@@ -17,3 +17,4 @@
 *.nii binary
 *.nii.gz binary
 *.surface binary
+*.tinysurface binary

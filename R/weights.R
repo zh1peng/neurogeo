@@ -108,13 +108,13 @@
   } else if (identical(symmetry, "union")) {
     reverse <- Matrix::t(matrix)
     shared <- matrix * (reverse != 0)
-    matrix <- methods::as(matrix + reverse - shared, "dgCMatrix")
+    matrix <- .ngeo_as_dgCMatrix(matrix + reverse - shared)
   } else if (identical(symmetry, "mutual")) {
     reverse <- Matrix::t(matrix)
     matrix <- matrix * (reverse != 0)
   }
   diag(matrix) <- 0
-  methods::as(matrix, "dgCMatrix")
+  .ngeo_as_dgCMatrix(matrix)
 }
 
 .ngeo_metric_neighbors <- function(x,
@@ -199,7 +199,7 @@
   if (identical(method, "distance_band")) {
     matrix <- matrix + Matrix::t(matrix)
   } else if (identical(symmetry, "union")) {
-    matrix <- methods::as(pmax(matrix, Matrix::t(matrix)), "dgCMatrix")
+    matrix <- .ngeo_as_dgCMatrix(pmax(matrix, Matrix::t(matrix)))
   } else if (identical(symmetry, "mutual")) {
     reverse <- Matrix::t(matrix)
     matrix <- matrix * (reverse != 0)
@@ -247,9 +247,8 @@
     if (identical(symmetry, "union")) {
       reverse <- Matrix::t(matrix)
       shared <- matrix * (reverse != 0)
-      matrix <- methods::as(
-        matrix + reverse - shared,
-        "dgCMatrix"
+      matrix <- .ngeo_as_dgCMatrix(
+        matrix + reverse - shared
       )
     } else if (identical(symmetry, "mutual")) {
       reverse <- Matrix::t(matrix)
@@ -257,11 +256,11 @@
     }
   }
   diag(matrix) <- 0
-  methods::as(matrix, "dgCMatrix")
+  .ngeo_as_dgCMatrix(matrix)
 }
 
 .ngeo_binary <- function(matrix) {
-  result <- methods::as(matrix, "dgCMatrix")
+  result <- .ngeo_as_dgCMatrix(matrix)
   if (length(result@x)) {
     result@x[] <- 1
   }
@@ -273,7 +272,7 @@
   inverse <- numeric(length(totals))
   nonzero <- totals != 0
   inverse[nonzero] <- 1 / totals[nonzero]
-  methods::as(Matrix::Diagonal(x = inverse) %*% matrix, "dgCMatrix")
+  .ngeo_as_dgCMatrix(Matrix::Diagonal(x = inverse) %*% matrix)
 }
 
 .ngeo_weight_diagnostics <- function(matrix) {
@@ -395,7 +394,7 @@ ngeo_weights <- function(x,
     }
   )
   diag(raw) <- 0
-  raw <- methods::as(raw, "dgCMatrix")
+  raw <- .ngeo_as_dgCMatrix(raw)
   matrix <- switch(
     style,
     W = .ngeo_row_standardize(raw),

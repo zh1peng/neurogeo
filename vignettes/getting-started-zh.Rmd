@@ -53,11 +53,11 @@ remotes::install_github(
 )
 ```
 
-也可以安装本地构建的 4.0.1 源包：
+也可以安装本地构建的 4.1.0 源包：
 
 ```{r install-local, eval=FALSE}
 install.packages(
-  "neurogeo_4.0.1.tar.gz",
+  "neurogeo_4.1.0.tar.gz",
   repos = NULL,
   type = "source"
 )

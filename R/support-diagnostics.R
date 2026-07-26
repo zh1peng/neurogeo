@@ -369,9 +369,8 @@ ngeo_support_monte_carlo <- function(
         inverse <- numeric(length(column_sum))
         inverse[column_sum > tolerance] <-
           1 / column_sum[column_sum > tolerance]
-        operator <- methods::as(
-          operator %*% Matrix::Diagonal(x = inverse),
-          "dgCMatrix"
+        operator <- .ngeo_as_dgCMatrix(
+          operator %*% Matrix::Diagonal(x = inverse)
         )
         column_sum <- Matrix::colSums(operator)
       }

@@ -74,6 +74,11 @@ if (utils::compareVersion(package_version, "4.0.0") >= 0L) {
     required_specs, "API-4.0.md", "migration-4.0.md"
   )
 }
+if (utils::compareVersion(package_version, "4.1.0") >= 0L) {
+  required_specs <- c(
+    required_specs, "API-4.1.md", "migration-4.1.md"
+  )
+}
 spec_paths <- system.file("spec", required_specs, package = "neurogeo")
 if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
     !nzchar(formats_path) || !file.exists(formats_path) ||

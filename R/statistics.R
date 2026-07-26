@@ -52,13 +52,11 @@
       "ngeo_error_statistic"
     )
   }
-  matrix <- methods::as(
-    weights$matrix[index, index, drop = FALSE],
-    "dgCMatrix"
+  matrix <- .ngeo_as_dgCMatrix(
+    weights$matrix[index, index, drop = FALSE]
   )
-  raw_matrix <- methods::as(
-    weights$raw_matrix[index, index, drop = FALSE],
-    "dgCMatrix"
+  raw_matrix <- .ngeo_as_dgCMatrix(
+    weights$raw_matrix[index, index, drop = FALSE]
   )
   if (length(matrix@x) && any(!is.finite(matrix@x))) {
     .ngeo_abort(

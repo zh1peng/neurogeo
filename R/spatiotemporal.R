@@ -633,7 +633,7 @@ ngeo_temporal_weights <- function(
     dims = c(n, n), giveCsparse = TRUE
   )
   diag(raw) <- 0
-  raw <- methods::as(raw, "dgCMatrix")
+  raw <- .ngeo_as_dgCMatrix(raw)
   matrix <- switch(
     style,
     W = .ngeo_row_standardize(raw),
@@ -874,7 +874,7 @@ ngeo_materialize_spatiotemporal_weights <- function(
   } else {
     Matrix::kronecker(temporal, spatial)
   }
-  methods::as(result, "dgCMatrix")
+  .ngeo_as_dgCMatrix(result)
 }
 
 .ngeo_st_values <- function(

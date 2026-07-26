@@ -58,7 +58,7 @@
       "ngeo_error_alignment"
     )
   }
-  methods::as(operator, "dgCMatrix")
+  .ngeo_as_dgCMatrix(operator)
 }
 
 .ngeo_support_map_structure <- function(operator,
@@ -74,7 +74,7 @@
                                         provenance) {
   result <- structure(
     list(
-      operator = methods::as(operator, "dgCMatrix"),
+      operator = .ngeo_as_dgCMatrix(operator),
       type = type,
       direction = "target_by_source",
       source_domain_hash = source_hash,
@@ -151,7 +151,7 @@ ngeo_support_map <- function(
         "ngeo_error_alignment"
       )
     }
-    weight_variance <- methods::as(weight_variance, "dgCMatrix")
+    weight_variance <- .ngeo_as_dgCMatrix(weight_variance)
   }
   target_support <- if (is.null(source_support)) {
     NULL
@@ -446,7 +446,7 @@ ngeo_support_map_hash <- function(x) {
     inverse[column_sum > tolerance] <- 1 / column_sum[column_sum > tolerance]
     operator <- operator %*% Matrix::Diagonal(x = inverse)
   }
-  methods::as(operator, "dgCMatrix")
+  .ngeo_as_dgCMatrix(operator)
 }
 
 .ngeo_weighted_mode_operator <- function(values, operator, support) {
@@ -759,9 +759,8 @@ ngeo_compose_support_map <- function(first, second) {
       "ngeo_error_domain_mismatch"
     )
   }
-  operator <- methods::as(
-    second$operator %*% first$operator,
-    "dgCMatrix"
+  operator <- .ngeo_as_dgCMatrix(
+    second$operator %*% first$operator
   )
   column_sum <- Matrix::colSums(operator)
   column_nnz <- diff(operator@p)

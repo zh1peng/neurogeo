@@ -337,9 +337,8 @@ ngeo_kriging <- function(
   attr(result, "method") <- if (length(predictors)) "universal" else "ordinary"
   attr(result, "metric") <- metric_name
   attr(result, "domain_hash") <- ngeo_domain_hash(x)
-  attr(result, "linear_weights") <- methods::as(
-    linear_weights,
-    "dgCMatrix"
+  attr(result, "linear_weights") <- .ngeo_as_dgCMatrix(
+    linear_weights
   )
   class(result) <- c("ngeo_kriging", "data.frame")
   result

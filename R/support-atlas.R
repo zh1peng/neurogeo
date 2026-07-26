@@ -43,10 +43,9 @@ ngeo_atlas_overlap <- function(
     metric = c("intersection", "jaccard", "dice")) {
   metric <- match.arg(metric)
   support <- .ngeo_support_source(first, second, source_support)
-  intersection <- methods::as(
+  intersection <- .ngeo_as_dgCMatrix(
     first$operator %*% Matrix::Diagonal(x = support) %*%
-      Matrix::t(second$operator),
-    "dgCMatrix"
+      Matrix::t(second$operator)
   )
   dimnames(intersection) <- list(
     first$target_element_id,
@@ -202,7 +201,7 @@ ngeo_cross_atlas <- function(
   result <- list(
     values = transferred,
     variance = variance,
-    operator = methods::as(transfer, "dgCMatrix"),
+    operator = .ngeo_as_dgCMatrix(transfer),
     model = model,
     semantics = semantics,
     source_atlas_hash = first$target_domain_hash,

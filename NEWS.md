@@ -1,3 +1,19 @@
+# neurogeo 4.1.0
+
+* Added six byte-pinned, license-audited upstream NIfTI, GIFTI, CIFTI, and
+  FreeSurfer reference fixtures plus `ngeo_example_data()` for discovery and
+  integrity verification.
+* Added reference-format tests and release validation for read/write
+  round-trips, affine and brain-model indexing, metadata, source provenance,
+  truncated files, malformed topology, missing transforms, and alignment
+  failures.
+* Added an executable Chinese format workflow tutorial with volume, surface,
+  and grayordinate visualizations. All workflows continue to use pure-R
+  backends without FreeSurfer, FSL, or Connectome Workbench binaries.
+* Completed the Matrix sparse-coercion update across weights, resampling,
+  models, statistics, and support operations, removing deprecated direct
+  coercions while preserving sparse numerical semantics.
+
 # neurogeo 4.0.1
 
 * Added a fully executable Chinese getting-started tutorial covering object

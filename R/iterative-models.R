@@ -824,8 +824,8 @@ ngeo_car_iterative <- function(
       "ngeo_error_weights"
     )
   }
-  weight <- methods::as(
-    (weight + Matrix::t(weight)) / 2, "dgCMatrix"
+  weight <- .ngeo_as_dgCMatrix(
+    (weight + Matrix::t(weight)) / 2
   )
   degree <- Matrix::rowSums(abs(weight))
   if (any(degree == 0) && !isTRUE(zero_policy)) {

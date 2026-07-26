@@ -241,7 +241,7 @@ ngeo_resampling_plan <- function(
         "ngeo_error_uncertainty"
       )
     }
-    weight_variance <- methods::as(weight_variance, "dgCMatrix")
+    weight_variance <- .ngeo_as_dgCMatrix(weight_variance)
     if (length(weight_variance@x) &&
         (any(!is.finite(weight_variance@x)) ||
           any(weight_variance@x < 0))) {
@@ -448,9 +448,8 @@ ngeo_validate_resampling_plan <- function(x) {
     inverse <- numeric(length(column_sum))
     inverse[column_sum > tolerance] <-
       1 / column_sum[column_sum > tolerance]
-    map$operator <- methods::as(
-      map$operator %*% Matrix::Diagonal(x = inverse),
-      "dgCMatrix"
+    map$operator <- .ngeo_as_dgCMatrix(
+      map$operator %*% Matrix::Diagonal(x = inverse)
     )
     map$target_support <- if (is.null(map$source_support)) {
       NULL

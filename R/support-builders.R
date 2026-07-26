@@ -51,7 +51,7 @@
                               operation,
                               parameters,
                               weight_variance = NULL) {
-  operator <- methods::as(operator, "dgCMatrix")
+  operator <- .ngeo_as_dgCMatrix(operator)
   source_support <- .ngeo_builder_support(source, source_support)
   provenance <- list(operations = list(.ngeo_operation(
     operation,
@@ -658,9 +658,8 @@ ngeo_affine_grid_map <- function(
   if (identical(outside, "normalize") && any(column_sum > tolerance)) {
     inverse <- numeric(length(column_sum))
     inverse[column_sum > tolerance] <- 1 / column_sum[column_sum > tolerance]
-    operator <- methods::as(
-      operator %*% Matrix::Diagonal(x = inverse),
-      "dgCMatrix"
+    operator <- .ngeo_as_dgCMatrix(
+      operator %*% Matrix::Diagonal(x = inverse)
     )
     column_sum <- Matrix::colSums(operator)
   }
@@ -812,9 +811,8 @@ ngeo_voxel_overlap_map <- function(
   if (identical(outside, "normalize") && any(column_sum > tolerance)) {
     inverse <- numeric(length(column_sum))
     inverse[column_sum > tolerance] <- 1 / column_sum[column_sum > tolerance]
-    operator <- methods::as(
-      operator %*% Matrix::Diagonal(x = inverse),
-      "dgCMatrix"
+    operator <- .ngeo_as_dgCMatrix(
+      operator %*% Matrix::Diagonal(x = inverse)
     )
     column_sum <- Matrix::colSums(operator)
   }
@@ -967,7 +965,7 @@ ngeo_probabilistic_atlas_map <- function(
       "ngeo_error_alignment"
     )
   }
-  probabilities <- methods::as(probabilities, "dgCMatrix")
+  probabilities <- .ngeo_as_dgCMatrix(probabilities)
   if (length(probabilities@x) &&
       (any(!is.finite(probabilities@x)) ||
         any(probabilities@x < 0))) {
@@ -1021,7 +1019,7 @@ ngeo_probabilistic_atlas_map <- function(
       )
     }
   }
-  operator <- methods::as(Matrix::t(probabilities), "dgCMatrix")
+  operator <- .ngeo_as_dgCMatrix(Matrix::t(probabilities))
   map <- .ngeo_builder_map(
     source,
     target,

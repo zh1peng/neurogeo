@@ -1,0 +1,263 @@
+---
+title: "neurogeo 4.1 中文教程：真实格式样例、回环验证与可视化"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{neurogeo 4.1 中文教程：真实格式样例、回环验证与可视化}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+available <- all(vapply(
+  c("cifti", "freesurferformats", "gifti", "RNifti"),
+  requireNamespace,
+  logical(1),
+  quietly = TRUE
+))
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = available,
+  fig.width = 6,
+  fig.height = 4
+)
+library(neurogeo)
+```
+
+## 1. 先确认样例来源，而不是先读文件
+
+4.1 内置的是上游软件包使用的小型格式样例，不是临床数据。每个文件都固定到
+上游 commit、URL、许可证、字节数和 SHA-256。默认查询时会重新验证文件：
+
+```{r manifest}
+examples <- ngeo_example_data()
+examples[, c(
+  "name", "format", "role", "source_project",
+  "source_version", "license", "verified"
+)]
+```
+
+读取某个样例时，不要依赖安装目录的内部布局：
+
+```{r select-path}
+nifti_path <- ngeo_example_data("rnifti-example")$path[[1L]]
+```
+
+如果字节数或 SHA-256 不一致，`ngeo_example_data()` 会抛出
+`ngeo_error_io`，而不是继续分析已被替换的文件。
+
+## 2. NIfTI：检查 affine、索引和体数据
+
+```{r nifti-read}
+volume <- suppressWarnings(
+  read_ngeo_nifti(nifti_path, checksum = TRUE)
+)
+
+volume$domain$dim
+volume$domain$affine
+head(volume$domain$source_voxel_index)
+range(ngeo_values(volume))
+volume$provenance$sources[[1L]][c(
+  "size", "checksum_md5", "importer"
+)]
+```
+
+这里的 `source_voxel_index` 保留文件中的零基索引；R 对象内部的元素行仍然是
+一基顺序。二者不能混用。
+
+下面显示中间轴向切片。这个图只是格式和方向的快速诊断，不是医学阅片器：
+
+```{r nifti-plot}
+plot(volume, slice = 30, palette = "Grays")
+```
+
+执行 NIfTI 回环时要同时检查 values、affine、voxel index 和 map 顺序：
+
+```{r nifti-roundtrip}
+nifti_output <- tempfile(fileext = ".nii.gz")
+nifti_manifest <- write_ngeo_nifti(volume, nifti_output)
+nifti_restored <- read_ngeo_nifti(
+  nifti_manifest$data,
+  maps = volume$maps,
+  measures = volume$measures,
+  checksum = FALSE
+)
+
+all.equal(
+  nifti_restored$domain$affine,
+  volume$domain$affine,
+  tolerance = 1e-6
+)
+identical(nifti_restored$values, volume$values)
+```
+
+## 3. GIFTI：从几何到对齐的 metric
+
+```{r gifti-read}
+gifti_path <- ngeo_example_data(
+  "freesurferformats-cube"
+)$path[[1L]]
+geometry <- read_ngeo_gifti(gifti_path, checksum = TRUE)
+
+nrow(geometry$domain$elements)
+nrow(geometry$domain$faces)
+geometry$domain$face_source_index_base
+```
+
+GIFTI geometry 可以没有 values。下面用坐标产生一个教学 metric，并重新构造
+“一个 domain + 一个对齐 values block”的表面对象：
+
+```{r gifti-values}
+coordinates <- geometry$domain$coordinates
+active <- geometry$domain$active_coordinates
+metric <- rowSums(coordinates[[active]])
+
+surface <- ngeo_surface(
+  coordinates = coordinates,
+  faces = geometry$domain$faces,
+  values = cbind(curvature = metric),
+  maps = data.frame(name = "curvature"),
+  measures = ngeo_measure(
+    value_type = "continuous",
+    spatial_semantics = "intensive",
+    units = "a.u."
+  ),
+  space = geometry$domain$space,
+  coordinate_roles = geometry$domain$coordinate_meta$role,
+  index_base = "one",
+  source_index_base = 0L
+)
+
+suppressWarnings(plot(surface, show_edges = TRUE))
+```
+
+写入会生成 geometry、metric 和 JSON sidecar；如果对象含 labels，还会生成
+label GIFTI：
+
+```{r gifti-roundtrip}
+gifti_output <- tempfile(fileext = ".surf.gii")
+gifti_manifest <- write_ngeo_gifti(surface, gifti_output)
+gifti_restored <- read_ngeo_gifti(
+  geometry = gifti_manifest$geometry,
+  data = gifti_manifest$data,
+  measures = surface$measures,
+  checksum = FALSE
+)
+
+all.equal(gifti_restored$values, surface$values, tolerance = 1e-6)
+identical(gifti_restored$domain$faces, surface$domain$faces)
+```
+
+## 4. CIFTI：验证 grayordinate 顺序和 brain models
+
+```{r cifti-read}
+cifti_path <- ngeo_example_data(
+  "cifti-curvature-fslr32k"
+)$path[[1L]]
+dense <- read_ngeo_cifti(cifti_path, checksum = TRUE)
+
+dim(dense$values)
+unique(dense$domain$elements$structure)
+head(dense$domain$components$cortex_left$vertex_index)
+dense$maps$name
+```
+
+这个样例包含左右皮层 brain model，但没有附带表面几何，因此
+`surface_topology` 和 `geodesic` capability 应为 `FALSE`。neurogeo 不会凭空
+补一个表面：
+
+```{r cifti-capabilities}
+ngeo_capabilities(dense)[c("surface_topology", "geodesic")]
+```
+
+用抽样后的有序 grayordinate 绘制曲率，虚线位置对应左右皮层边界：
+
+```{r cifti-plot}
+selected <- unique(round(seq(1, nrow(dense$values), length.out = 2000)))
+boundary <- dense$domain$components$cortex_left$n_element
+plot(
+  selected,
+  dense$values[selected, 1L],
+  pch = 16,
+  cex = 0.35,
+  xlab = "有序 grayordinate",
+  ylab = dense$maps$name[[1L]]
+)
+abline(v = boundary, lty = 2, col = "grey40")
+```
+
+纯 R writer 可以完成 dscalar 回环，不调用 Connectome Workbench：
+
+```{r cifti-roundtrip}
+cifti_output <- tempfile(fileext = ".dscalar.nii")
+write_ngeo_cifti(dense, cifti_output, type = "dscalar")
+dense_restored <- read_ngeo_cifti(cifti_output, checksum = FALSE)
+
+identical(
+  dense_restored$domain$elements$structure,
+  dense$domain$elements$structure
+)
+all.equal(dense_restored$values, dense$values, tolerance = 1e-6)
+```
+
+## 5. FreeSurfer：缺少 transform 时必须显式处理
+
+上游 tiny MGH 故意没有有效 RAS affine。直接读取会得到
+`ngeo_error_transform`，因为自动假设 identity affine 会制造错误空间语义：
+
+```{r freesurfer-error}
+mgh_path <- ngeo_example_data("freesurfer-tiny-mgh")$path[[1L]]
+
+tryCatch(
+  read_ngeo_freesurfer(mgh_path, domain = "volume"),
+  ngeo_error_transform = function(error) conditionMessage(error)
+)
+```
+
+只有在研究者确实知道正确变换时，才应显式提供：
+
+```{r freesurfer-explicit}
+mgh <- read_ngeo_freesurfer(
+  mgh_path,
+  domain = "volume",
+  affine = diag(4),
+  checksum = TRUE
+)
+
+mgh$domain$dim
+mgh$domain$affine
+range(mgh$values)
+```
+
+表面与 curv 的正向回环可以从前面的有效 GIFTI domain 开始：
+
+```{r freesurfer-roundtrip}
+fs_output <- tempfile(fileext = ".surface")
+fs_manifest <- write_ngeo_freesurfer(surface, fs_output)
+fs_restored <- read_ngeo_freesurfer(
+  geometry = fs_manifest$geometry,
+  data = fs_manifest$data,
+  measures = surface$measures,
+  checksum = FALSE
+)
+
+identical(fs_restored$domain$faces, surface$domain$faces)
+all.equal(fs_restored$values, surface$values, tolerance = 1e-5)
+```
+
+## 6. 审阅时应该检查什么
+
+对任何格式，至少检查：
+
+1. 文件来源、许可证、大小和 checksum 是否可审计；
+2. domain 元素数是否与 values 行数严格一致；
+3. source index base 和 R 内部索引是否被明确区分；
+4. affine、surface structure、brain-model 顺序和 map 顺序是否保真；
+5. measurement semantics 是否由分析者明确给出；
+6. truncated、错位或缺少 transform 的文件是否以 classed error 失败；
+7. provenance 是否记录 reader、源文件和 checksum；
+8. round-trip 比较是否使用了明确的数值容差。
+
+这些验证证明的是格式互操作和语义保真，不证明文件已经完成预处理、配准或
+质量控制。neurogeo 4.1 仍不执行 raw MRI preprocessing，也不自动
+registration/resampling。

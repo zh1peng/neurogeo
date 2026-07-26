@@ -329,7 +329,7 @@ ngeo_validate_support_covariance <- function(x) {
       support_map$operator %*%
       Matrix::Diagonal(x = source_support)
     return(list(
-      linear = methods::as(linear, "dgCMatrix"),
+      linear = .ngeo_as_dgCMatrix(linear),
       denominator = denominator
     ))
   }

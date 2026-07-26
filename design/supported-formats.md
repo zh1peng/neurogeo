@@ -38,6 +38,18 @@ The CIFTI reader uses the pure-R `cifti` package. The CIFTI writer is
 implemented directly in neurogeo and does not invoke Connectome Workbench.
 FreeSurfer, FSL, and Connectome Workbench are not runtime dependencies.
 
+## Controlled 4.1 reference data
+
+`ngeo_example_data()` lists six small upstream format fixtures bundled for
+interoperability testing and tutorials. The manifest records immutable
+source commits and URLs, source package versions, licenses, byte sizes,
+SHA-256 values, roles, and expected positive or negative use. Verification
+is enabled by default.
+
+The suite covers a NIfTI volume, GIFTI surface geometry, CIFTI fsLR dscalar,
+FreeSurfer surface and curv failure cases, and an MGH volume that requires an
+explicit affine. These are format fixtures rather than clinical data.
+
 ## Safety rules
 
 - NIfTI qform and sform are both retained; conflict emits a structured

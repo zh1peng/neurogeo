@@ -8,7 +8,7 @@
     input$normalization,
     W = .ngeo_row_standardize(matrix),
     B = .ngeo_binary(matrix),
-    none = methods::as(matrix, "dgCMatrix")
+    none = .ngeo_as_dgCMatrix(matrix)
   )
 }
 

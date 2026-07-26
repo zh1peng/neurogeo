@@ -28,7 +28,7 @@ To install a local release archive:
 
 ```r
 install.packages(
-  "neurogeo_4.0.1.tar.gz",
+  "neurogeo_4.1.0.tar.gz",
   repos = NULL,
   type = "source"
 )
@@ -214,5 +214,7 @@ result <- ngeo_moran(
 
 Start with the
 [Chinese getting-started tutorial](vignettes/getting-started-zh.Rmd), then
-use the package vignettes for core concepts, format-specific readers,
+continue with the
+[Chinese format workflow tutorial](vignettes/format-workflows-zh.Rmd).
+The remaining package vignettes cover core concepts, format-specific readers,
 neighbors and weights, and measurement-aware parcellation.

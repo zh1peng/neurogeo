@@ -27,6 +27,7 @@ $scripts = @(
     "tools/run-spatiotemporal-33-validation.R",
     "tools/run-iterative-models-34-validation.R",
     "tools/run-reproducibility-35-validation.R",
+    "tools/run-format-reference-41-validation.R",
     "tools/run-release-performance.R"
 )
 
