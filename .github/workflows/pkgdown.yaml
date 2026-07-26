@@ -44,6 +44,7 @@ jobs:
           path: docs
 
   deploy:
+    if: vars.NEUROGEO_ENABLE_PAGES == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

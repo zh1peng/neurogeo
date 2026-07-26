@@ -1,0 +1,19 @@
+* text=auto
+
+*.R text eol=lf
+*.Rmd text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.csv text eol=lf
+*.tsv text eol=lf
+
+*.annot binary
+*.curv binary
+*.gii binary
+*.mgh binary
+*.mgz binary
+*.nii binary
+*.nii.gz binary
+*.surface binary
