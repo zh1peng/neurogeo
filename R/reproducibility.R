@@ -1,3 +1,4 @@
+# Reproducible replay and artifact publication.
 .ngeo_named_list <- function(x, name) {
   if (!is.list(x) || is.null(names(x)) || any(!nzchar(names(x))) ||
       anyDuplicated(names(x))) {
@@ -683,7 +684,7 @@ write_ngeo_replay_manifest <- function(
     overwrite = FALSE) {
   .ngeo_require("jsonlite", "replay manifest writing")
   ngeo_validate_replay_manifest(manifest, "error")
-  ngeo_atomic_write(
+  .ngeo_atomic_write(
     path,
     function(temporary) {
       jsonlite::write_json(
@@ -896,7 +897,7 @@ write_ngeo_artifact_manifest <- function(
     overwrite = FALSE) {
   .ngeo_require("jsonlite", "artifact manifest writing")
   ngeo_validate_artifact_manifest(manifest, root, "error")
-  ngeo_atomic_write(
+  .ngeo_atomic_write(
     path,
     function(temporary) {
       jsonlite::write_json(
@@ -1097,7 +1098,7 @@ ngeo_write_artifact_batch <- function(
   on.exit(if (!committed) unlink(stage, recursive = TRUE), add = TRUE)
   for (i in seq_along(files)) {
     target <- file.path(stage, files[[i]])
-    ngeo_atomic_write(target, writers[[i]])
+    .ngeo_atomic_write(target, writers[[i]])
   }
   artifacts <- ngeo_artifact_manifest(
     file.path(stage, files), root = stage, roles = roles
@@ -1109,7 +1110,7 @@ ngeo_write_artifact_batch <- function(
     root = stage
   )
   ngeo_validate_artifact_batch(batch, stage, "error")
-  ngeo_atomic_write(
+  .ngeo_atomic_write(
     file.path(stage, manifest_name),
     function(temporary) {
       jsonlite::write_json(

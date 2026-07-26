@@ -218,28 +218,16 @@ test_that("support bundle checksums reject mutation", {
   )
 })
 
-test_that("language-independent corpus and 3.0 inventory are complete", {
+test_that("language-independent conformance corpus is complete", {
   skip_if_not_installed("jsonlite")
-  manifest <- ngeo_conformance_manifest(
+  manifest <- neurogeo:::.ngeo_conformance_manifest(
     system.file(
       "extdata", "conformance-ngcs29", "manifest.json",
       package = "neurogeo"
     )
   )
-  compatibility <- ngeo_compatibility_matrix()
-  inventory <- ngeo_api_inventory()
 
   expect_identical(manifest$corpus_version, "2.9")
   expect_length(manifest$specifications, 14L)
-  expect_identical(
-    compatibility$platform,
-    c("Windows", "Linux", "macOS")
-  )
-  expect_true(all(!compatibility$external_neuroimaging_binary))
-  expect_true(all(!inventory$deprecated_in_2_x))
-  expect_true(all(c(
-    "ngeo_conformance_manifest",
-    "write_ngeo_support_bundle",
-    "ngeo_bids_build_name"
-  ) %in% inventory$api))
+  expect_length(manifest$specifications, 14L)
 })

@@ -386,20 +386,23 @@ large_gate <- nrow(large_result$data$domain$elements) == large_n &&
   unname(large_timing[["elapsed"]]) < 30
 assert(large_gate, "100k resampling gate exceeded its contract.")
 
-corpus <- ngeo_conformance_manifest(version = "3.2")
+corpus <- neurogeo:::.ngeo_conformance_manifest(version = "3.2")
 corpus_verified <- identical(corpus$corpus_version, "3.2") &&
   identical(corpus$schema, "NGCS-conformance-corpus-4") &&
   length(corpus$specifications) == 18L &&
   length(corpus$fixtures) == 1L
 assert(corpus_verified, "NGCS 3.2 corpus failed verification.")
-schema_registered <- identical(
-  ngeo_schema(plan)$schema_id, "ngcs/resampling-plan"
-) && identical(
-  ngeo_schema(result)$schema_id, "ngcs/resampling-result"
-) && ngeo_validate_schema(plan)$valid &&
-  ngeo_validate_schema(result)$valid
 plan_manifest <- ngeo_object_manifest(plan)
 result_manifest <- ngeo_object_manifest(result)
+schema_registered <- identical(
+  plan_manifest$object_schema, "ngcs/resampling-plan"
+) && identical(
+  result_manifest$object_schema, "ngcs/resampling-result"
+) && {
+  ngeo_validate(plan)
+  ngeo_validate(result)
+  TRUE
+}
 manifest_verified <- identical(
   plan_manifest$specification, "NGCS 3.2"
 ) && identical(

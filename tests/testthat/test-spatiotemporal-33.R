@@ -375,7 +375,7 @@ test_that("longitudinal helpers obey temporal measurement support", {
   )
 })
 
-test_that("3.3 schemas and lifecycle cover temporal objects", {
+test_that("3.3 schemas cover temporal objects", {
   axis <- ngeo_time_axis(time = c(0, 1, 2))
   x <- time_points_fixture(
     values = matrix(1:9, nrow = 3L),
@@ -387,27 +387,18 @@ test_that("3.3 schemas and lifecycle cover temporal objects", {
   )
   joint <- ngeo_spatiotemporal_weights(spatial, temporal)
 
-  expect_gte(
-    utils::compareVersion(ngeo_schema_registry()$version, "3.3"),
-    0L
-  )
   expect_true(all(vapply(
     list(axis, temporal, joint),
-    function(object) ngeo_validate_schema(object)$valid,
+    function(object) {
+      ngeo_validate(object)
+      TRUE
+    },
     logical(1)
   )))
   expect_identical(
     ngeo_object_manifest(axis)$object_schema,
     "ngcs/time-axis"
   )
-  lifecycle <- ngeo_api_lifecycle()
-  expect_true(all(
-    lifecycle$introduced[
-      lifecycle$api %in% c(
-        "ngeo_time_axis", "ngeo_spatiotemporal_moran"
-      )
-    ] == "3.3"
-  ))
 })
 
 test_that("temporal arithmetic enforces and transforms measurement units", {

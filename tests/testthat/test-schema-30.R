@@ -1,10 +1,8 @@
-test_that("NGCS 3.0 registry covers core object families", {
-  registry <- ngeo_schema_registry()
-  corpus <- ngeo_conformance_manifest(version = "3.0")
+test_that("retained schema definitions cover core object families", {
+  definitions <- neurogeo:::.ngeo_schema_definitions()
+  corpus <- neurogeo:::.ngeo_conformance_manifest(version = "3.0")
+  schema_ids <- definitions$schema_id
 
-  expect_s3_class(registry, "ngeo_schema_registry_30")
-  expect_identical(registry$version, "3.5")
-  expect_gte(nrow(registry$schemas), 33L)
   expect_true(all(c(
     "ngcs/ngeo-surface",
     "ngcs/ngeo-volume",
@@ -16,7 +14,6 @@ test_that("NGCS 3.0 registry covers core object families", {
     "ngcs/weights",
     "ngcs/partition",
     "ngcs/support-map",
-    "ngcs/block-support-map",
     "ngcs/support-covariance",
     "ngcs/file-values",
     "ngcs/resampling-plan",
@@ -25,74 +22,47 @@ test_that("NGCS 3.0 registry covers core object families", {
     "ngcs/temporal-weights",
     "ngcs/spatiotemporal-weights",
     "ngcs/solver-control",
-    "ngcs/iterative-solution",
-    "ngcs/logdet-estimate",
-    "ngcs/iterative-spatial-regression",
-    "ngcs/iterative-car",
-    "ngcs/delayed-values",
-    "ngcs/space-registry",
-    "ngcs/transform-graph",
-    "ngcs/execution-plan"
-  ) %in% registry$schemas$schema_id))
-  expect_true(all(lengths(registry$schemas$invariants) > 0L))
+    "ngcs/iterative-solution"
+  ) %in% schema_ids))
+  expect_false(any(c(
+    "ngcs/block-support-map",
+    "ngcs/execution-plan",
+    "ngcs/delayed-values"
+  ) %in% schema_ids))
+  expect_true(all(lengths(definitions$invariants) > 0L))
   expect_identical(corpus$corpus_version, "3.0")
-  expect_length(corpus$specifications, 16L)
 })
 
-test_that("schema validation delegates to authoritative validators", {
+test_that("generic validation delegates to authoritative validators", {
   source <- builder_surface(
     values = cbind(signal = c(1, 2, 3, 4)),
     measures = ngeo_measure(spatial_semantics = "intensive")
   )
-  weights <- ngeo_weights(source, method = "mesh_contiguity")
-  partition <- ngeo_partition(source, c("A", "A", "B", "B"))
-  covariance <- ngeo_support_covariance(
-    source, variance = rep(0.1, 4L)
-  )
   fixture <- diagnostic_fixture()
-  block <- ngeo_block_support_map(
-    fixture$soft, row_block_size = 1L, source_block_size = 2L
-  )
-
   objects <- list(
     source,
     source$domain$space,
-    weights,
-    partition,
-    covariance,
-    fixture$soft,
-    block
+    ngeo_weights(source, method = "mesh_contiguity"),
+    ngeo_partition(source, c("A", "A", "B", "B")),
+    ngeo_support_covariance(source, variance = rep(0.1, 4L)),
+    fixture$soft
   )
-  reports <- lapply(objects, ngeo_validate_schema)
 
-  expect_true(all(vapply(reports, `[[`, logical(1), "valid")))
   expect_true(all(vapply(
-    reports, inherits, logical(1), what = "ngeo_validation_report"
+    objects,
+    function(object) {
+      ngeo_validate(object)
+      TRUE
+    },
+    logical(1)
   )))
 })
 
-test_that("schema validation returns deterministic classed issues", {
+test_that("generic validation preserves classed invariant errors", {
   x <- builder_surface(values = cbind(signal = 1:4))
   x$values <- x$values[-1L, , drop = FALSE]
 
-  first <- ngeo_validate_schema(x)
-  second <- ngeo_validate_schema(x)
-
-  expect_false(first$valid)
-  expect_identical(first$issues, second$issues)
-  expect_identical(first$issues$severity, "error")
-  expect_identical(
-    first$issues$condition_class, "ngeo_error_alignment"
-  )
-  condition <- tryCatch(
-    {
-      ngeo_validate_schema(x, mode = "error")
-      NULL
-    },
-    error = identity
-  )
-  expect_s3_class(condition, "ngeo_error_schema_validation")
-  expect_s3_class(condition$report, "ngeo_validation_report")
+  expect_error(ngeo_validate(x), class = "ngeo_error_alignment")
 })
 
 test_that("portable object manifests are deterministic and atomic", {
@@ -134,37 +104,27 @@ test_that("canonical manifest hashes ignore object property order", {
   )
 })
 
-test_that("schema migration and API lifecycle declare the 4.0 transition", {
-  x <- builder_surface(values = cbind(signal = 1:4))
-  migrated <- ngeo_migrate_schema(x)
-  migration <- attr(migrated, "ngeo_schema_migration")
-  lifecycle <- ngeo_api_lifecycle()
-  old_inventory <- ngeo_api_inventory()
+test_that("4.0 removes implementation-only public APIs", {
+  exports <- getNamespaceExports("neurogeo")
+  removed <- c(
+    "ngeo_metric",
+    "ngeo_delayed_values",
+    "ngeo_block_support_map",
+    "ngeo_execution_plan",
+    "ngeo_execute",
+    "ngeo_cache",
+    "ngeo_atomic_write",
+    "ngeo_gwr_batched",
+    "ngeo_kriging_batched",
+    "ngeo_schema_registry",
+    "ngeo_schema",
+    "ngeo_validate_schema",
+    "ngeo_migrate_schema",
+    "ngeo_api_inventory",
+    "ngeo_api_lifecycle",
+    "ngeo_compatibility_matrix",
+    "ngeo_conformance_manifest"
+  )
 
-  expect_identical(migration$target_version, "3.0")
-  expect_true(migration$valid)
-  expect_identical(
-    lifecycle$lifecycle[lifecycle$api == "ngeo_execution_plan"],
-    "deprecated"
-  )
-  expect_identical(
-    lifecycle$replacement[lifecycle$api == "ngeo_change_support_block"],
-    "ngeo_change_support"
-  )
-  expect_true(all(
-    lifecycle$planned_action[lifecycle$lifecycle == "deprecated"] ==
-      "remove_in_4.0"
-  ))
-  expect_invisible(ngeo_validate(ngeo_time_axis(0, 1, 3)))
-  expect_invisible(ngeo_validate(
-    ngeo_block_support_map(diagnostic_fixture()$hard, 1L, 2L)
-  ))
-  expect_true(all(old_inventory$status_2_9[
-    old_inventory$api %in% c("ngeo_surface", "ngeo_support_map")
-  ] == "stable"))
-  expect_true(all(old_inventory$status_2_9[
-    old_inventory$api %in% c(
-      "ngeo_schema_registry", "ngeo_object_manifest"
-    )
-  ] == "not_exported"))
+  expect_false(any(removed %in% exports))
 })

@@ -475,6 +475,7 @@ ngeo_support_map_hash <- function(x) {
 #' @param allocation Normalize non-unit columns or reject them.
 #' @param unmapped Reject or explicitly drop unmapped source support.
 #' @param unknown Interpretation for maps with unknown spatial semantics.
+#' @param budget Resource limits for materialized source and target values.
 #'
 #' @return A new `ngeo` dataset on the target domain.
 #' @export
@@ -485,18 +486,8 @@ ngeo_change_support <- function(
     maps = NULL,
     allocation = c("error", "normalize"),
     unmapped = c("error", "drop"),
-    unknown = c("error", "intensive", "extensive")) {
-  if (inherits(support_map, "ngeo_block_support_map")) {
-    return(ngeo_change_support_block(
-      x = x,
-      target = target,
-      support_map = support_map,
-      maps = maps,
-      allocation = allocation,
-      unmapped = unmapped,
-      unknown = unknown
-    ))
-  }
+    unknown = c("error", "intensive", "extensive"),
+    budget = ngeo_resource_budget()) {
   .ngeo_validate_support_domains(x, target, support_map)
   allocation <- match.arg(allocation)
   unmapped <- match.arg(unmapped)
@@ -508,6 +499,19 @@ ngeo_change_support <- function(
     )
   }
   map_index <- .ngeo_map_selection(x, maps)
+  .ngeo_budget_assert(
+    budget,
+    "materialized_elements",
+    nrow(target$domain$elements) * length(map_index)
+  )
+  .ngeo_budget_assert(
+    budget,
+    "memory_bytes",
+    8 * (
+      nrow(x$domain$elements) +
+        nrow(target$domain$elements) * max(3L, length(map_index))
+    )
+  )
   source_support <- support_map$source_support %||%
     .ngeo_support_vector(x)
   operator <- support_map$operator

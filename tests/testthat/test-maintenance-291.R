@@ -12,9 +12,11 @@ test_that("installed conformance resources are self-contained", {
   expect_true(file.exists(manifest_path))
   expect_true(nzchar(formats_path))
   expect_true(file.exists(formats_path))
-  expect_identical(ngeo_conformance_manifest()$corpus_version, "3.5")
   expect_identical(
-    ngeo_conformance_manifest(version = "2.9")$corpus_version,
+    neurogeo:::.ngeo_conformance_manifest()$corpus_version, "3.5"
+  )
+  expect_identical(
+    neurogeo:::.ngeo_conformance_manifest(version = "2.9")$corpus_version,
     "2.9"
   )
 })

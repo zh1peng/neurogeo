@@ -1,8 +1,8 @@
 ---
-title: "Bounded and resumable execution"
+title: "Bounded scientific execution"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Bounded and resumable execution}
+  %\VignetteIndexEntry{Bounded scientific execution}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -12,21 +12,14 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(neurogeo)
 ```
 
-neurogeo 2.6 keeps the core representation unchanged: one spatial domain and
-one strictly aligned values block. Bounded execution controls how that object
-is processed.
+neurogeo 4.0 keeps resource limits on scientific operations rather than
+exposing a second generic workflow engine.
 
 ```{r}
 backing <- cbind(signal = seq_len(12), predictor = 0:11)
-delayed <- ngeo_delayed_values(
-  function(rows, columns) backing[rows, columns, drop = FALSE],
-  dim(backing),
-  map_names = colnames(backing),
-  source = "documented callback"
-)
 x <- ngeo_points(
   cbind(x = 0:11, y = 0),
-  values = delayed,
+  values = backing,
   measures = rbind(
     ngeo_measure(spatial_semantics = "intensive"),
     ngeo_measure(spatial_semantics = "intensive")
@@ -36,7 +29,8 @@ ngeo_stream_summary(x, chunk_size = 4)
 ngeo_stream_lm(x, "signal", "predictor", chunk_size = 4)
 ```
 
-Block support operations consume sparse blocks directly.
+Change of support consumes its sparse operator directly and checks the
+declared materialization budget before computing values.
 
 ```{r}
 map <- ngeo_atlas_map(
@@ -44,30 +38,17 @@ map <- ngeo_atlas_map(
   rep(c("A", "B", "C"), each = 4),
   source_support = rep(1, 12)
 )
-blocked <- ngeo_block_support_map(map, 1, 3)
-target <- ngeo_change_support_block(
+target <- ngeo_change_support(
   x,
   map$target,
-  blocked,
-  budget = ngeo_resource_budget(blocks = 20)
+  map,
+  budget = ngeo_resource_budget(
+    memory_bytes = 1024^2,
+    materialized_elements = 6
+  )
 )
-ngeo_block_diagnostics(blocked)
+target
 ```
 
-Execution checkpoints are identity-bound. A changed domain, operator,
-semantics, or parameter identity must use a new plan.
-
-```{r}
-checkpoint <- tempfile(fileext = ".json")
-plan <- ngeo_execution_plan(
-  "square",
-  as.list(1:3),
-  function(task, index) task^2,
-  identity = list(domain_hash = ngeo_domain_hash(x)),
-  checkpoint = checkpoint
-)
-ngeo_execute(plan)
-```
-
-Use `ngeo_atomic_write()` for final outputs. If the writer fails, the final
-path is not created.
+Auditable supported workflows use replay manifests; atomic filesystem
+publication remains an internal responsibility of the format writers.

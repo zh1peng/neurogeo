@@ -36,6 +36,12 @@
   }
   cluster <- parallel::makeCluster(min(workers, nsim))
   on.exit(parallel::stopCluster(cluster), add = TRUE)
+  parallel::clusterCall(cluster, function(library_paths) {
+    .libPaths(library_paths)
+    loadNamespace("Matrix")
+    loadNamespace("neurogeo")
+    NULL
+  }, library_paths = .libPaths())
   parallel::parLapply(
     cluster,
     seq_len(nsim),

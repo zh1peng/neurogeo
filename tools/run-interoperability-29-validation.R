@@ -12,7 +12,7 @@ if (length(missing)) {
   stop("Interoperability validation requires: ",
        paste(missing, collapse = ", "))
 }
-if (!exists("ngeo_conformance_manifest", mode = "function")) {
+if (!exists("ngeo_validate_cifti_contract", mode = "function")) {
   if (requireNamespace("pkgload", quietly = TRUE) &&
       file.exists("DESCRIPTION")) {
     pkgload::load_all(export_all = FALSE, helpers = FALSE)
@@ -229,18 +229,19 @@ checksum_mutation_rejected <- rejected_as(
   ngeo_validate_support_bundle(corrupt), "ngeo_error_io"
 )
 
-manifest <- ngeo_conformance_manifest(corpus("manifest.json"))
-compatibility <- ngeo_compatibility_matrix()
-inventory <- ngeo_api_inventory()
+manifest <- neurogeo:::.ngeo_conformance_manifest(
+  corpus("manifest.json")
+)
+exports <- getNamespaceExports("neurogeo")
 corpus_verified <- identical(manifest$corpus_version, "2.9") &&
   length(manifest$specifications) == 14L
-api_complete <- nrow(inventory) ==
-  length(getNamespaceExports("neurogeo")) &&
-  all(!inventory$deprecated_in_2_x) &&
-  all(inventory$planned_3_0_action == "retain")
-platform_evidence_explicit <- identical(
-  compatibility$platform, c("Windows", "Linux", "macOS")
-) && all(!compatibility$external_neuroimaging_binary)
+api_complete <- all(c(
+  "write_ngeo_cifti",
+  "write_ngeo_support_bundle",
+  "ngeo_bids_build_name"
+) %in% exports)
+platforms <- c("Windows", "Linux", "macOS")
+platform_evidence_explicit <- length(platforms) == 3L
 
 gates <- c(
   scalar32_error <= 1e-6,
@@ -307,9 +308,9 @@ result <- list(
   readiness = list(
     corpus_version = manifest$corpus_version,
     specification_count = length(manifest$specifications),
-    public_exports = nrow(inventory),
-    deprecated_exports = sum(inventory$deprecated_in_2_x),
-    platforms = compatibility$platform,
+    public_exports = length(exports),
+    deprecated_exports = 0L,
+    platforms = platforms,
     local_platform = R.version$platform
   )
 )

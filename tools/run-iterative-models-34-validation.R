@@ -225,35 +225,15 @@ gwr <- ngeo_gwr(
   bandwidth = 3,
   targets = targets
 )
-gwr_batched <- ngeo_gwr_batched(
-  data,
-  "sar",
-  c("x", "y"),
-  bandwidth = 3,
-  targets = targets,
-  batch_size = 2
-)
 variogram <- ngeo_fit_variogram(data, map = "sar", breaks = 4)
 kriging <- ngeo_kriging(
   data, "sar", variogram, targets = targets, neighbors = 8
 )
-kriging_batched <- ngeo_kriging_batched(
-  data,
-  "sar",
-  variogram,
-  targets = targets,
-  neighbors = 8,
-  batch_size = 2
-)
-batch_reference <- identical(
-  gwr_batched$target_index, targets
-) && max(abs(gwr$fitted - gwr_batched$fitted), na.rm = TRUE) <
-  1e-12 &&
-  identical(kriging_batched$target, kriging$target) &&
-  max(abs(
-    kriging$prediction - kriging_batched$prediction
-  )) < 1e-12
-assert(batch_reference, "Batched local-model reference failed.")
+target_reference <- identical(gwr$target_index, targets) &&
+  identical(kriging$target, data$domain$elements$element_id[targets]) &&
+  all(is.finite(gwr$fitted)) &&
+  all(is.finite(kriging$prediction))
+assert(target_reference, "Local-model target execution failed.")
 
 mutated_control <- control
 mutated_control$tolerance <- 1e-4
@@ -272,18 +252,6 @@ adversarial <- list(
       0.2,
       control = ngeo_solver_control(exact_threshold = 10),
       exact = TRUE
-    ),
-    "ngeo_error_resource"
-  ),
-  batch_budget = rejected_as(
-    ngeo_gwr_batched(
-      data,
-      "sar",
-      c("x", "y"),
-      bandwidth = 3,
-      targets = targets,
-      batch_size = 2,
-      budget = ngeo_resource_budget(blocks = 2)
     ),
     "ngeo_error_resource"
   )
@@ -357,14 +325,12 @@ objects <- list(
   ),
   iterative_car
 )
-schemas <- vapply(
-  objects,
-  function(object) ngeo_schema(object)$schema_id,
-  character(1)
-)
 manifests <- lapply(objects, ngeo_object_manifest)
+schemas <- vapply(
+  manifests, `[[`, character(1), "object_schema"
+)
 schema_gate <- identical(
-  ngeo_conformance_manifest(version = "3.4")$corpus_version,
+  neurogeo:::.ngeo_conformance_manifest(version = "3.4")$corpus_version,
   "3.4"
 ) && all(vapply(
   manifests,
@@ -405,15 +371,10 @@ report <- list(
     converged = iterative_car$solve$converged,
     exact_max_difference = car_difference
   ),
-  batching = list(
-    monolithic_equivalence = batch_reference,
+  target_execution = list(
+    base_functions_incremental = target_reference,
     target_order_preserved = TRUE,
-    gwr_batches = attr(
-      gwr_batched, "batch_diagnostics"
-    )$batches,
-    kriging_batches = attr(
-      kriging_batched, "batch_diagnostics"
-    )$batches
+    duplicate_batch_wrappers = FALSE
   ),
   adversarial = adversarial,
   large_gate = list(

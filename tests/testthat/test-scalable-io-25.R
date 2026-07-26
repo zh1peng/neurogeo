@@ -1,7 +1,7 @@
 test_that("delayed values preserve one aligned block and chunk exactly", {
   backing <- matrix(seq_len(30), nrow = 10L, ncol = 3L)
   colnames(backing) <- c("a", "b", "c")
-  delayed <- ngeo_delayed_values(
+  delayed <- neurogeo:::.ngeo_delayed_values(
     function(rows, columns) backing[rows, columns, drop = FALSE],
     dim = dim(backing),
     map_names = c("a", "b", "c")
@@ -30,7 +30,7 @@ test_that("binary delayed values read selected cells without full materializatio
   writeBin(as.double(backing), connection, size = 8L)
   close(connection)
 
-  delayed <- ngeo_delayed_values(
+  delayed <- neurogeo:::.ngeo_delayed_values(
     path,
     dim = dim(backing),
     map_names = c("a", "b", "c")
@@ -42,34 +42,9 @@ test_that("binary delayed values read selected cells without full materializatio
     ignore_attr = TRUE
   )
   expect_error(
-    ngeo_delayed_values(path, dim = c(11L, 3L)),
+    neurogeo:::.ngeo_delayed_values(path, dim = c(11L, 3L)),
     class = "ngeo_error_alignment"
   )
-})
-
-test_that("block and monolithic support maps are logically identical", {
-  fixture <- diagnostic_fixture()
-  block <- ngeo_block_support_map(
-    fixture$soft,
-    row_block_size = 1L,
-    source_block_size = 2L
-  )
-  restored <- ngeo_materialize_support_map(block)
-  direct <- ngeo_change_support(
-    fixture$source, fixture$target, fixture$soft
-  )
-  changed <- ngeo_change_support_block(
-    fixture$source, fixture$target, block
-  )
-  unified <- ngeo_change_support(
-    fixture$source, fixture$target, block
-  )
-
-  expect_s3_class(block, "ngeo_block_support_map")
-  expect_identical(ngeo_support_map_hash(restored), block$logical_hash)
-  expect_equal(restored$operator, fixture$soft$operator)
-  expect_equal(changed$values, direct$values)
-  expect_equal(unified$values, direct$values)
 })
 
 test_that("pure-R CIFTI writer round-trips all supported dense types", {
@@ -132,19 +107,12 @@ test_that("BIDS derivative sidecars retain semantics and provenance", {
   expect_equal(nrow(sidecar$MeasurementSemantics), nrow(x$maps))
 })
 
-test_that("delayed and block contracts reject misalignment", {
+test_that("delayed contracts reject misalignment", {
   expect_error(
-    ngeo_delayed_values(
+    neurogeo:::.ngeo_delayed_values(
       function(rows, columns) matrix(1, 1, 1),
       c(3, 2)
     )[1:2, 1:2],
     class = "ngeo_error_alignment"
-  )
-  fixture <- diagnostic_fixture()
-  block <- ngeo_block_support_map(fixture$hard, 1L, 2L)
-  block$blocks[[1L]][[1L]][1, 1] <- 0
-  expect_error(
-    ngeo_validate_block_support_map(block),
-    class = "ngeo_error_support_map"
   )
 })

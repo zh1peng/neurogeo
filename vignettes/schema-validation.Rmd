@@ -12,16 +12,9 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(neurogeo)
 ```
 
-NGCS 3.0 registers the invariants already enforced by the object-specific
-validators. It does not introduce a second object model.
-
-```{r}
-registry <- ngeo_schema_registry()
-registry
-head(registry$schemas[c("schema_id", "class", "version")])
-```
-
-Any registered object can be validated through one reporting interface.
+NGCS invariants are enforced by one public validation entry point. The
+schema table is an internal implementation detail rather than a second
+runtime object model.
 
 ```{r}
 x <- ngeo_points(
@@ -30,8 +23,7 @@ x <- ngeo_points(
   measures = ngeo_measure(spatial_semantics = "intensive"),
   space = ngeo_space("reference-points", kind = "unknown")
 )
-report <- ngeo_validate_schema(x)
-report
+ngeo_validate(x)
 ```
 
 A portable manifest binds the normative metadata using canonical JSON and
@@ -50,8 +42,6 @@ output <- write_ngeo_manifest(manifest, "x.ngcs-manifest.json")
 restored <- read_ngeo_manifest(output$path)
 ```
 
-The lifecycle registry is derived from actual namespace exports.
-
-```{r}
-head(ngeo_api_lifecycle())
-```
+The public namespace is the authoritative API contract. Migration notes
+describe removals between releases without adding lifecycle objects to user
+workflows.

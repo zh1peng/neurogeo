@@ -11,7 +11,7 @@ one spatial domain
 + explicit space, topology, metric, measurement semantics, and provenance
 ```
 
-The local 3.0 release implements the five NGCS domains, strict alignment,
+The 4.0 release implements the five NGCS domains, strict alignment,
 space and measurement metadata, provenance, native and neuroimaging readers,
 sparse topology/distance/weights, semantic parcellation, and foundational
 spatial statistics. Version 1.1 adds controlled surface charts, bounded
@@ -89,6 +89,13 @@ provenance DAGs, environment-bound whitelist-only replay, verified portable
 artifact manifests, and atomically published derivative-only batches.
 Mutation, environment drift, dependency errors, incomplete output, and
 artifact corruption fail before verified results are returned.
+
+neurogeo 4.0 keeps those NGCS 3.5 scientific contracts and removes
+implementation frameworks that had become misleading public abstractions.
+Metrics are controlled names, change of support uses one sparse support-map
+path, registered objects use one validation entry point, and replay—not a
+generic task planner—is the auditable execution contract. Delayed storage,
+atomic publication, and conformance catalogs remain internal mechanisms.
 
 ```r
 target <- ngeo_regions(

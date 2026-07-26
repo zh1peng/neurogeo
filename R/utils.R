@@ -42,7 +42,7 @@
 .ngeo_package_version <- function() {
   tryCatch(
     as.character(utils::packageVersion("neurogeo")),
-    error = function(...) "3.5.0"
+    error = function(...) "4.0.0"
   )
 }
 

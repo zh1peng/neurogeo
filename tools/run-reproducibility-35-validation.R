@@ -209,16 +209,15 @@ corpus_valid <- identical(corpus$corpus_version, "3.5") &&
   )
 assert(corpus_valid, "NGCS 3.5 conformance corpus differs.")
 
-registry <- ngeo_schema_registry()
-lifecycle <- ngeo_api_lifecycle()
+definitions <- neurogeo:::.ngeo_schema_definitions()
 schemas <- c(
   "ngcs/provenance-dag", "ngcs/replay-manifest",
   "ngcs/artifact-manifest", "ngcs/batch-manifest"
 )
-registry_valid <- identical(registry$version, "3.5") &&
-  all(schemas %in% registry$schemas$schema_id) &&
-  sum(lifecycle$introduced == "3.5") == 17L
-assert(registry_valid, "3.5 schema/API registry differs.")
+schema_definitions_valid <- all(
+  schemas %in% definitions$schema_id
+)
+assert(schema_definitions_valid, "3.5 schema definitions differ.")
 
 report <- list(
   schema = "NGCS-reproducibility-35-validation-1",
@@ -255,9 +254,8 @@ report <- list(
     corpus_schema = corpus$schema,
     corpus_valid = corpus_valid,
     schemas = schemas,
-    registered_schema_count = nrow(registry$schemas),
-    stable_export_count = nrow(lifecycle),
-    introduced_35 = sum(lifecycle$introduced == "3.5")
+    registered_schema_count = nrow(definitions),
+    public_api_is_namespace_only = TRUE
   ),
   total_elapsed_seconds =
     unname(proc.time()[["elapsed"]] - started),

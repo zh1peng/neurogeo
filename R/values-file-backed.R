@@ -1,3 +1,4 @@
+# Format-aware file-backed values.
 .ngeo_file_source_identity <- function(path, checksum = TRUE) {
   info <- file.info(path)
   list(
@@ -991,7 +992,7 @@ write_ngeo_filebacked <- function(
     .ngeo_abort("File-backed output must differ from its source.",
                 "ngeo_error_argument")
   }
-  output <- ngeo_atomic_write(
+  output <- .ngeo_atomic_write(
     path,
     function(temporary) {
       input <- file(source, "rb")

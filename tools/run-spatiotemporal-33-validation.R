@@ -249,14 +249,12 @@ large_gate <- identical(
   )
 assert(large_gate, "Large matrix-free spatiotemporal gate failed.")
 
-corpus <- ngeo_conformance_manifest(version = "3.3")
-schemas <- c(
-  ngeo_schema(axis)$schema_id,
-  ngeo_schema(temporal)$schema_id,
-  ngeo_schema(space_time)$schema_id
-)
+corpus <- neurogeo:::.ngeo_conformance_manifest(version = "3.3")
 manifests <- lapply(
   list(axis, temporal, space_time), ngeo_object_manifest
+)
+schemas <- vapply(
+  manifests, `[[`, character(1), "object_schema"
 )
 schema_gate <- identical(corpus$corpus_version, "3.3") &&
   identical(

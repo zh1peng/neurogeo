@@ -1,3 +1,4 @@
+# BIDS filename and sidecar contracts.
 .ngeo_bids_entity_order <- c(
   "sub", "ses", "task", "acq", "ce", "rec", "dir", "run", "mod",
   "echo", "flip", "inv", "mt", "part", "recording", "proc",

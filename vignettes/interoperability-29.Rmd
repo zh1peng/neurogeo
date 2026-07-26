@@ -55,11 +55,7 @@ write_ngeo_cifti(
 )
 ```
 
-The conformance corpus and readiness inventories are machine-readable.
-
-```{r}
-manifest <- ngeo_conformance_manifest()
-manifest$corpus_version
-ngeo_compatibility_matrix()
-head(ngeo_api_inventory())
-```
+Installed conformance fixtures remain part of the package test resources.
+They are an implementation verification asset, not a runtime object model.
+Applications should use the format-specific validators above and
+`ngeo_validate()` for NGCS objects.

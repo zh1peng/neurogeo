@@ -19,7 +19,7 @@ if (!exists("ngeo_delayed_values", mode = "function")) {
 n <- 1000000L
 n_target <- 1000L
 elapsed <- system.time({
-  delayed <- ngeo_delayed_values(
+  delayed <- neurogeo:::.ngeo_delayed_values(
     function(rows, columns) matrix(
       as.numeric(rows),
       nrow = length(rows),
@@ -52,12 +52,15 @@ elapsed <- system.time({
     operator,
     source_support = rep.int(1, n)
   )
-  block <- ngeo_block_support_map(
+  changed <- ngeo_change_support(
+    source,
+    target,
     map,
-    row_block_size = 250L,
-    source_block_size = 250000L
+    budget = ngeo_resource_budget(
+      memory_bytes = 64 * 1024^2,
+      materialized_elements = n_target
+    )
   )
-  changed <- ngeo_change_support_block(source, target, block)
 })[["elapsed"]]
 
 expected <- vapply(seq_len(n_target), function(i) {
@@ -65,10 +68,7 @@ expected <- vapply(seq_len(n_target), function(i) {
 }, numeric(1))
 maximum_error <- max(abs(changed$values[, 1L] - expected))
 time_limit <- 180
-if (maximum_error > 1e-10 || elapsed > time_limit ||
-    !identical(ngeo_support_map_hash(
-      ngeo_materialize_support_map(block)
-    ), map |> ngeo_support_map_hash())) {
+if (maximum_error > 1e-10 || elapsed > time_limit) {
   stop("Million-element sparse/delayed validation failed.")
 }
 
@@ -82,7 +82,7 @@ result <- list(
     source_elements = n,
     target_elements = n_target,
     nonzero = length(map$operator@x),
-    blocks = length(block$row_groups) * length(block$column_groups),
+    operator_objects = 1L,
     elapsed_seconds = elapsed,
     elapsed_limit_seconds = time_limit,
     maximum_value_error = maximum_error,

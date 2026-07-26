@@ -1,3 +1,4 @@
+# Spatial prediction and regression models.
 .ngeo_variogram_curve <- function(distance, model, nugget, partial_sill, range) {
   ratio <- distance / range
   structure <- switch(

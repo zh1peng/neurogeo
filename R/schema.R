@@ -1,3 +1,4 @@
+# Internal NGCS schema dispatch and portable object manifests.
 .ngeo_schema_definitions <- function() {
   definitions <- list(
     list("ngcs/ngeo-surface", "ngeo_surface", c(
@@ -36,17 +37,11 @@
       "target_by_source", "nonnegative_sparse_operator",
       "ordered_domain_identity"
     )),
-    list("ngcs/block-support-map", "ngeo_block_support_map", c(
-      "complete_ordered_blocks", "logical_hash", "target_by_source"
-    )),
     list("ngcs/support-covariance", "ngeo_support_covariance", c(
       "domain_bound", "ordered_element_id", "nonnegative_variance"
     )),
     list("ngcs/support-ensemble", "ngeo_support_ensemble", c(
       "common_domains", "normalized_weights", "typed_uncertainty"
-    )),
-    list("ngcs/delayed-values", "ngeo_delayed_values", c(
-      "one_values_block", "positive_dimensions", "aligned_reader"
     )),
     list("ngcs/file-values", "ngeo_file_values", c(
       "one_values_block", "verified_source_identity",
@@ -122,9 +117,6 @@
     list("ngcs/transform-graph", "ngeo_transform_graph", c(
       "supplied_edges_only", "exact_space_endpoints", "graph_hash"
     )),
-    list("ngcs/execution-plan", "ngeo_execution_plan", c(
-      "deterministic_tasks", "complete_identity", "resource_budget"
-    )),
     list("ngcs/resource-budget", "ngeo_resource_budget", c(
       "positive_limits", "explicit_materialization_limit"
     ))
@@ -164,29 +156,7 @@
   )
 }
 
-#' Return the current NGCS 3.x schema registry
-#'
-#' @return An `ngeo_schema_registry_30` containing versioned schema
-#' descriptors and API lifecycle metadata.
-#' @export
-ngeo_schema_registry <- function() {
-  structure(
-    list(
-      specification = "NGCS 3.5",
-      version = "3.5",
-      schemas = .ngeo_schema_definitions(),
-      api = ngeo_api_lifecycle()
-    ),
-    class = "ngeo_schema_registry_30"
-  )
-}
-
-#' Resolve the registered schema for an object or class
-#'
-#' @param x An NGCS object or one class name.
-#' @return One schema descriptor row.
-#' @export
-ngeo_schema <- function(x) {
+.ngeo_schema <- function(x) {
   classes <- if (is.character(x) && length(x) == 1L) x else class(x)
   definitions <- .ngeo_schema_definitions()
   index <- match(classes, definitions$class, nomatch = 0L)
@@ -227,20 +197,8 @@ ngeo_schema <- function(x) {
       invisible(x)
     },
     "ngcs/support-map" = ngeo_validate_support_map(x),
-    "ngcs/block-support-map" = ngeo_validate_block_support_map(x),
     "ngcs/support-covariance" = ngeo_validate_support_covariance(x),
     "ngcs/support-ensemble" = ngeo_validate_support_ensemble(x),
-    "ngcs/delayed-values" = {
-      if (!inherits(x, "ngeo_delayed_values") ||
-          length(x$dim) != 2L || any(x$dim < 1L) ||
-          !(is.function(x$reader) ||
-            (is.character(x$reader) && length(x$reader) == 1L &&
-             file.exists(x$reader)))) {
-        .ngeo_abort("Invalid delayed values block.",
-                    "ngeo_error_values")
-      }
-      invisible(x)
-    },
     "ngcs/file-values" = ngeo_validate_file_values(x),
     "ngcs/resampling-plan" = ngeo_validate_resampling_plan(x),
     "ngcs/resampling-result" = .ngeo_validate_resampling_result(x),
@@ -337,31 +295,6 @@ ngeo_schema <- function(x) {
       ngeo_validate_artifact_batch(x, mode = "error"),
     "ngcs/space-registry" = ngeo_validate_space_registry(x),
     "ngcs/transform-graph" = ngeo_validate_transform_graph(x),
-    "ngcs/execution-plan" = {
-      if (!inherits(x, "ngeo_execution_plan") ||
-          !is.character(x$operation) || length(x$operation) != 1L ||
-          !is.list(x$tasks) || !length(x$tasks) ||
-          !is.function(x$executor) ||
-          !is.character(x$executor_id) ||
-          length(x$executor_id) != 1L ||
-          !inherits(x$budget, "ngeo_resource_budget") ||
-          !identical(
-            digest::digest(
-              list(
-                operation = x$operation,
-                tasks = x$tasks,
-                executor_id = x$executor_id,
-                identity = x$identity
-              ),
-              algo = "sha256"
-            ),
-            x$plan_hash
-          )) {
-        .ngeo_abort("Invalid deterministic execution plan.",
-                    "ngeo_error_execution_plan")
-      }
-      invisible(x)
-    },
     "ngcs/resource-budget" = {
       limits <- unlist(x, use.names = FALSE)
       if (!inherits(x, "ngeo_resource_budget") ||
@@ -405,86 +338,15 @@ ngeo_schema <- function(x) {
   toupper(gsub("[^A-Za-z0-9]+", "_", primary))
 }
 
-#' Validate any registered NGCS 3.x object
-#'
-#' @param x A registered NGCS object.
-#' @param mode Return a structured report or raise a classed condition when
-#' invalid.
-#' @return An `ngeo_validation_report`.
-#' @export
-ngeo_validate_schema <- function(x, mode = c("report", "error")) {
-  mode <- match.arg(mode)
-  schema <- ngeo_schema(x)
-  warnings <- list()
-  failure <- tryCatch(
-    withCallingHandlers(
-      {
-        .ngeo_schema_validate_one(x, schema$schema_id[[1L]])
-        NULL
-      },
-      warning = function(condition) {
-        warnings[[length(warnings) + 1L]] <<- condition
-        invokeRestart("muffleWarning")
-      }
-    ),
-    error = identity
+.ngeo_schema_report <- function(x) {
+  schema <- .ngeo_schema(x)
+  .ngeo_schema_validate_one(x, schema$schema_id[[1L]])
+  list(
+    schema_id = schema$schema_id[[1L]],
+    schema_version = schema$version[[1L]],
+    object_class = class(x)[[1L]],
+    checked_invariants = schema$invariants[[1L]]
   )
-  issues <- .ngeo_issue_frame()
-  if (length(warnings)) {
-    issues <- do.call(rbind, lapply(warnings, function(condition) {
-      .ngeo_issue_frame(
-        "warning",
-        .ngeo_condition_code(condition),
-        class(condition)[[1L]],
-        conditionMessage(condition)
-      )
-    }))
-  }
-  if (inherits(failure, "error")) {
-    issues <- rbind(
-      issues,
-      .ngeo_issue_frame(
-        "error",
-        .ngeo_condition_code(failure),
-        class(failure)[[1L]],
-        conditionMessage(failure)
-      )
-    )
-  }
-  report <- structure(
-    list(
-      valid = !any(issues$severity == "error"),
-      schema_id = schema$schema_id[[1L]],
-      schema_version = schema$version[[1L]],
-      object_class = class(x)[[1L]],
-      checked_invariants = schema$invariants[[1L]],
-      issues = issues
-    ),
-    class = "ngeo_validation_report"
-  )
-  if (!report$valid && identical(mode, "error")) {
-    condition <- structure(
-      list(
-        message = paste0(
-          "NGCS schema validation failed: ",
-          report$issues$message[
-            report$issues$severity == "error"
-          ][[1L]]
-        ),
-        call = NULL,
-        report = report
-      ),
-      class = c(
-        "ngeo_error_schema_validation",
-        "ngeo_error_schema",
-        "ngeo_error",
-        "error",
-        "condition"
-      )
-    )
-    stop(condition)
-  }
-  report
 }
 
 .ngeo_canonical_json_value <- function(x) {
@@ -680,16 +542,6 @@ ngeo_validate_schema <- function(x, mode = c("report", "error")) {
       logical_hash = ngeo_support_map_hash(x)
     ))
   }
-  if (inherits(x, "ngeo_block_support_map")) {
-    return(list(
-      direction = x$orientation,
-      dimensions = x$dim,
-      row_blocks = length(x$row_groups),
-      source_blocks = length(x$column_groups),
-      logical_hash = x$logical_hash,
-      block_hash = x$block_hash
-    ))
-  }
   if (inherits(x, "ngeo_resampling_plan")) {
     return(list(
       plan_hash = x$plan_hash,
@@ -817,7 +669,7 @@ ngeo_validate_schema <- function(x, mode = c("report", "error")) {
 #' @return A JSON-compatible `ngeo_object_manifest`.
 #' @export
 ngeo_object_manifest <- function(x) {
-  report <- ngeo_validate_schema(x, "error")
+  report <- .ngeo_schema_report(x)
   manifest <- list(
     schema = "NGCS-object-manifest-1",
     specification = paste("NGCS", report$schema_version),
@@ -944,7 +796,7 @@ NULL
 write_ngeo_manifest <- function(manifest, path, overwrite = FALSE) {
   .ngeo_require("jsonlite", "NGCS manifest writing")
   ngeo_validate_manifest(manifest, mode = "error")
-  ngeo_atomic_write(
+  .ngeo_atomic_write(
     path,
     function(temporary) {
       jsonlite::write_json(
@@ -980,170 +832,6 @@ read_ngeo_manifest <- function(path) {
   )
   ngeo_validate_manifest(manifest, mode = "error")
   structure(manifest, class = c("ngeo_object_manifest", "list"))
-}
-
-#' Report the public API lifecycle for the 4.0 transition
-#'
-#' @return A data frame containing every exported API and lifecycle state.
-#' @export
-ngeo_api_lifecycle <- function() {
-  exports <- sort(getNamespaceExports("neurogeo"))
-  introduced_30 <- c(
-    "ngeo_schema_registry", "ngeo_schema", "ngeo_validate_schema",
-    "ngeo_object_manifest", "ngeo_validate_manifest",
-    "write_ngeo_manifest", "read_ngeo_manifest",
-    "ngeo_api_lifecycle", "ngeo_migrate_schema"
-  )
-  introduced_31 <- c(
-    "ngeo_file_values", "ngeo_validate_file_values",
-    "ngeo_file_values_identity", "read_ngeo_nifti_filebacked",
-    "read_ngeo_cifti_filebacked", "read_ngeo_mgh_filebacked",
-    "read_ngeo_filebacked", "write_ngeo_filebacked"
-  )
-  introduced_32 <- c(
-    "ngeo_resampling_plan", "ngeo_validate_resampling_plan",
-    "ngeo_build_resampling_map", "ngeo_resampling_diagnostics",
-    "ngeo_resample"
-  )
-  introduced_33 <- c(
-    "ngeo_time_axis", "ngeo_validate_time_axis",
-    "ngeo_time_axis_hash", "ngeo_set_time_axis",
-    "ngeo_get_time_axis", "ngeo_time_slice",
-    "ngeo_temporal_weights", "ngeo_validate_temporal_weights",
-    "ngeo_temporal_neighbors", "ngeo_spatiotemporal_weights",
-    "ngeo_validate_spatiotemporal_weights",
-    "ngeo_materialize_spatiotemporal_weights",
-    "ngeo_spatiotemporal_lag", "ngeo_temporal_moran",
-    "ngeo_spatiotemporal_moran", "ngeo_temporal_variogram",
-    "ngeo_spatiotemporal_variogram", "ngeo_longitudinal_change",
-    "ngeo_temporal_trend", "ngeo_temporal_contrast"
-  )
-  introduced_34 <- c(
-    "ngeo_solver_control", "ngeo_validate_solver_control",
-    "ngeo_iterative_solve", "ngeo_logdet_approx",
-    "ngeo_spatial_regression_iterative", "ngeo_car_iterative",
-    "ngeo_gwr_batched", "ngeo_kriging_batched"
-  )
-  introduced_35 <- c(
-    "ngeo_provenance_dag", "ngeo_validate_provenance_dag",
-    "ngeo_environment_snapshot", "ngeo_logical_hash",
-    "ngeo_replay_step", "ngeo_record_replay",
-    "ngeo_validate_replay_manifest", "ngeo_replay",
-    "write_ngeo_replay_manifest", "read_ngeo_replay_manifest",
-    "ngeo_artifact_manifest", "ngeo_validate_artifact_manifest",
-    "write_ngeo_artifact_manifest", "read_ngeo_artifact_manifest",
-    "ngeo_validate_artifact_batch", "ngeo_write_artifact_batch",
-    "ngeo_read_artifact_batch"
-  )
-  introduction <- rep.int("<=2.9.1", length(exports))
-  names(introduction) <- exports
-  by_version <- list(
-    "3.0" = introduced_30,
-    "3.1" = introduced_31,
-    "3.2" = introduced_32,
-    "3.3" = introduced_33,
-    "3.4" = introduced_34,
-    "3.5" = introduced_35
-  )
-  for (current in names(by_version)) {
-    introduction[intersect(exports, by_version[[current]])] <- current
-  }
-  deprecated <- c(
-    ngeo_metric = NA_character_,
-    ngeo_delayed_values = "read_ngeo_filebacked",
-    ngeo_block_support_map = "ngeo_support_map",
-    ngeo_validate_block_support_map = "ngeo_validate",
-    ngeo_materialize_support_map = "ngeo_support_map",
-    ngeo_change_support_block = "ngeo_change_support",
-    ngeo_block_diagnostics = "ngeo_support_diagnostics",
-    ngeo_block_variance = "ngeo_support_variance",
-    ngeo_compose_block_support_map = "ngeo_compose_support_map",
-    ngeo_execution_plan = "ngeo_record_replay",
-    ngeo_execute = "ngeo_replay",
-    ngeo_cache = NA_character_,
-    ngeo_cache_compute = NA_character_,
-    ngeo_atomic_write = NA_character_,
-    ngeo_gwr_batched = "ngeo_gwr",
-    ngeo_kriging_batched = "ngeo_kriging",
-    ngeo_schema_registry = NA_character_,
-    ngeo_schema = "ngeo_validate",
-    ngeo_validate_schema = "ngeo_validate",
-    ngeo_migrate_schema = NA_character_,
-    ngeo_api_inventory = "ngeo_api_lifecycle",
-    ngeo_compatibility_matrix = NA_character_,
-    ngeo_conformance_manifest = NA_character_
-  )
-  lifecycle <- rep.int("stable", length(exports))
-  names(lifecycle) <- exports
-  lifecycle[intersect(exports, names(deprecated))] <- "deprecated"
-  replacement <- rep.int(NA_character_, length(exports))
-  names(replacement) <- exports
-  replacement[intersect(exports, names(deprecated))] <-
-    deprecated[intersect(exports, names(deprecated))]
-  planned_action <- ifelse(
-    lifecycle == "deprecated",
-    "remove_in_4.0",
-    "retain"
-  )
-  data.frame(
-    api = exports,
-    introduced = unname(introduction),
-    lifecycle = unname(lifecycle),
-    replacement = unname(replacement),
-    planned_action = unname(planned_action),
-    stringsAsFactors = FALSE
-  )
-}
-
-#' Mark a validated object as migrated to an NGCS schema version
-#'
-#' @param x A registered NGCS object.
-#' @param target_version NGCS 3.0, 3.1, 3.2, 3.3, 3.4, or 3.5.
-#' @return The validated object with an auditable schema-migration attribute.
-#' @export
-ngeo_migrate_schema <- function(x, target_version = "3.0") {
-  target_version <- match.arg(
-    target_version, c("3.0", "3.1", "3.2", "3.3", "3.4", "3.5")
-  )
-  schema <- ngeo_schema(x)
-  if (utils::compareVersion(
-    target_version, schema$version[[1L]]
-  ) < 0L) {
-    .ngeo_abort(
-      paste0(
-        "Object schema ", schema$version[[1L]],
-        " cannot migrate backward to ", target_version, "."
-      ),
-                "ngeo_error_schema")
-  }
-  report <- ngeo_validate_schema(x, "error")
-  attr(x, "ngeo_schema_migration") <- list(
-    source_embedded_version = if (inherits(x, "ngeo")) {
-      x$provenance$spec_version
-    } else {
-      x$spec_version %||% "pre-3.0"
-    },
-    target_version = target_version,
-    schema_id = schema$schema_id[[1L]],
-    valid = report$valid
-  )
-  x
-}
-
-#' @export
-print.ngeo_schema_registry_30 <- function(x, ...) {
-  cat("<ngeo_schema_registry_30>\n  specification: ",
-      x$specification, "\n  schemas: ", nrow(x$schemas),
-      "\n  public APIs: ", nrow(x$api), "\n", sep = "")
-  invisible(x)
-}
-
-#' @export
-print.ngeo_validation_report <- function(x, ...) {
-  cat("<ngeo_validation_report>\n  schema: ", x$schema_id,
-      "\n  valid: ", x$valid,
-      "\n  issues: ", nrow(x$issues), "\n", sep = "")
-  invisible(x)
 }
 
 #' @export

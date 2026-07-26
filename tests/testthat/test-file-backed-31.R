@@ -32,23 +32,10 @@ test_that("file-backed NIfTI matches loaded values and selections", {
     selected$provenance$file_backed$selected_maps, 2L
   )
   expect_true(nzchar(ngeo_file_values_identity(backed$values)))
-  expect_identical(
-    ngeo_schema(backed$values)$schema_id, "ngcs/file-values"
-  )
   manifest <- ngeo_object_manifest(backed$values)
+  expect_identical(manifest$object_schema, "ngcs/file-values")
   expect_identical(manifest$specification, "NGCS 3.1")
   expect_true(ngeo_validate_manifest(manifest, backed$values)$valid)
-  migrated <- ngeo_migrate_schema(
-    backed$values, target_version = "3.1"
-  )
-  expect_identical(
-    attr(migrated, "ngeo_schema_migration")$target_version,
-    "3.1"
-  )
-  expect_error(
-    ngeo_migrate_schema(backed$values),
-    class = "ngeo_error_schema"
-  )
 })
 
 test_that("file-backed compressed NIfTI streams row chunks", {

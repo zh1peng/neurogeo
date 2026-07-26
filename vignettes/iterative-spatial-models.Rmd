@@ -97,17 +97,16 @@ car <- ngeo_car_iterative(
 car
 ```
 
-GWR and kriging batching preserves target order and changes execution
-grouping only.
+GWR and kriging evaluate requested targets directly; batching is an internal
+execution detail rather than a second public model API.
 
 ```{r}
-gwr <- ngeo_gwr_batched(
+gwr <- ngeo_gwr(
   data,
   "response",
   c("x", "y"),
   bandwidth = 3,
-  targets = c(9, 2, 17, 5, 21),
-  batch_size = 2
+  targets = c(9, 2, 17, 5, 21)
 )
-attr(gwr, "batch_diagnostics")
+gwr[, c("element_id", "fitted")]
 ```

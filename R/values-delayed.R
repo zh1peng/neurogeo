@@ -1,14 +1,6 @@
-#' Construct one delayed, strictly aligned values block
+# Internal delayed, strictly aligned values block.
 #'
-#' @param reader Function `(rows, columns)` returning a matrix, or a binary
-#'   file path containing column-major doubles.
-#' @param dim Two positive dimensions.
-#' @param map_names Optional column names.
-#' @param source Auditable source description.
-#'
-#' @return An `ngeo_delayed_values`.
-#' @export
-ngeo_delayed_values <- function(reader, dim, map_names = NULL, source = NULL) {
+.ngeo_delayed_values <- function(reader, dim, map_names = NULL, source = NULL) {
   dim <- .ngeo_as_integer(dim, "dim")
   if (length(dim) != 2L || any(dim < 1L)) {
     .ngeo_abort("`dim` must contain two positive integers.", "ngeo_error_argument")

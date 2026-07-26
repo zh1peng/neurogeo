@@ -397,14 +397,12 @@ test_that("result provenance, schema manifests, and atomic output verify", {
   expect_s3_class(result, "ngeo_resampling_result")
   expect_s3_class(result$output, "ngeo_atomic_output")
   expect_true(file.exists(output))
-  expect_identical(ngeo_schema(plan)$schema_id, "ngcs/resampling-plan")
-  expect_identical(
-    ngeo_schema(result)$schema_id, "ngcs/resampling-result"
-  )
-  expect_true(ngeo_validate_schema(plan)$valid)
-  expect_true(ngeo_validate_schema(result)$valid)
   plan_manifest <- ngeo_object_manifest(plan)
   result_manifest <- ngeo_object_manifest(result)
+  expect_identical(plan_manifest$object_schema, "ngcs/resampling-plan")
+  expect_identical(result_manifest$object_schema, "ngcs/resampling-result")
+  expect_invisible(ngeo_validate(plan))
+  expect_invisible(ngeo_validate(result))
   expect_identical(plan_manifest$specification, "NGCS 3.2")
   expect_true(ngeo_validate_manifest(plan_manifest, plan)$valid)
   expect_true(ngeo_validate_manifest(result_manifest, result)$valid)

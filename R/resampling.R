@@ -1,3 +1,4 @@
+# Explicit, authorized resampling.
 .ngeo_resampling_methods <- function(source, target) {
   if (inherits(source, "ngeo_surface") &&
       inherits(target, "ngeo_surface")) {
@@ -727,7 +728,7 @@ ngeo_resample <- function(
       .ngeo_abort("`writer` must be a function.",
                   "ngeo_error_argument")
     }
-    output <- ngeo_atomic_write(
+    output <- .ngeo_atomic_write(
       output_path,
       function(temporary) writer(data, temporary),
       overwrite = overwrite

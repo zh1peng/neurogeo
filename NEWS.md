@@ -1,3 +1,21 @@
+# neurogeo 4.0.0
+
+* Reduced the public API to scientific domain, support, model, I/O,
+  validation, and replay contracts. Removed the 3.6 compatibility shims for
+  metric objects, delayed-value construction, block-support wrappers,
+  generic execution/cache utilities, separate batched model wrappers, and
+  schema/conformance introspection.
+* `ngeo_change_support()` now has one sparse support-map execution path with
+  explicit resource budgets. Internal delayed and atomic-write machinery is
+  no longer presented as a second scientific object or public workflow API.
+* `ngeo_validate()` is the single public validator for registered NGCS
+  objects. Portable object manifests remain available without exposing a
+  mutable schema registry or attribute-only migration layer.
+* Consolidated version-suffixed source files into responsibility-named
+  modules and removed obsolete print-only result classes.
+* The stable NGCS 3.5 scientific schemas and numerical semantics are
+  unchanged; 4.0 is an API and implementation architecture release.
+
 # neurogeo 3.6.0
 
 * Introduced the 4.0 lifecycle transition: generic execution/cache helpers,

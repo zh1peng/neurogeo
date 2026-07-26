@@ -1,3 +1,4 @@
+# Bounded streaming computations over aligned values.
 #' Compute delayed-native streaming summaries
 #'
 #' @param x An `ngeo` dataset or values block.

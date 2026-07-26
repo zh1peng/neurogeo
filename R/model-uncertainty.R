@@ -1,3 +1,4 @@
+# Model uncertainty propagation.
 .ngeo_model_covariance_matrix <- function(covariance, x) {
   .ngeo_validate_covariance_domain(covariance, x)
   maximum <- getOption("neurogeo.max_model_covariance_dimension", 2000L)

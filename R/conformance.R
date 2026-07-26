@@ -1,10 +1,5 @@
-#' Read and verify the language-independent NGCS conformance corpus
-#'
-#' @param path Optional corpus manifest path.
-#' @param version Bundled corpus version when `path` is `NULL`.
-#' @return The verified manifest.
-#' @export
-ngeo_conformance_manifest <- function(
+# Read and verify the internal language-independent conformance corpus.
+.ngeo_conformance_manifest <- function(
     path = NULL,
     version = c(
       "latest", "3.5", "3.4", "3.3", "3.2", "3.1", "3.0", "2.9"
@@ -79,53 +74,4 @@ ngeo_conformance_manifest <- function(
     }
   }
   manifest
-}
-
-#' Report the 2.9 cross-platform compatibility matrix
-#'
-#' @return A compatibility data frame that distinguishes local evidence from
-#' configured remote CI.
-#' @export
-ngeo_compatibility_matrix <- function() {
-  data.frame(
-    platform = c("Windows", "Linux", "macOS"),
-    minimum_r = rep("4.2.0", 3L),
-    pure_r_core = TRUE,
-    external_neuroimaging_binary = FALSE,
-    evidence = c(
-      if (.Platform$OS.type == "windows") {
-        "local release validation"
-      } else {
-        "configured CI"
-      },
-      if (Sys.info()[["sysname"]] == "Linux") {
-        "local release validation"
-      } else {
-        "configured CI; remote result required"
-      },
-      if (Sys.info()[["sysname"]] == "Darwin") {
-        "local release validation"
-      } else {
-        "configured CI; remote result required"
-      }
-    ),
-    stringsAsFactors = FALSE
-  )
-}
-
-#' Inventory the public 2.9 API for 3.0 planning
-#'
-#' @return A data frame of exported APIs and deprecation state.
-#' @export
-ngeo_api_inventory <- function() {
-  lifecycle <- ngeo_api_lifecycle()
-  data.frame(
-    api = lifecycle$api,
-    status_2_9 = ifelse(
-      lifecycle$introduced == "<=2.9.1", "stable", "not_exported"
-    ),
-    planned_3_0_action = "retain",
-    deprecated_in_2_x = FALSE,
-    stringsAsFactors = FALSE
-  )
 }

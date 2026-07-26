@@ -1,3 +1,4 @@
+# Portable sparse support-map bundles.
 .ngeo_support_bundle_directory <- function(path) {
   .ngeo_assert_scalar_character(path, "path")
   if (tolower(basename(path)) == "manifest.json") dirname(path) else path

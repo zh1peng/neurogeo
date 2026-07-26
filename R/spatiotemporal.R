@@ -1,3 +1,4 @@
+# Explicit temporal and spatiotemporal semantics.
 .ngeo_time_units <- function() {
   c(
     "millisecond", "second", "minute", "hour",

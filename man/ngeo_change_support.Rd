@@ -11,7 +11,8 @@ ngeo_change_support(
   maps = NULL,
   allocation = c("error", "normalize"),
   unmapped = c("error", "drop"),
-  unknown = c("error", "intensive", "extensive")
+  unknown = c("error", "intensive", "extensive"),
+  budget = ngeo_resource_budget()
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ ngeo_change_support(
 \item{unmapped}{Reject or explicitly drop unmapped source support.}
 
 \item{unknown}{Interpretation for maps with unknown spatial semantics.}
+
+\item{budget}{Resource limits for materialized source and target values.}
 }
 \value{
 A new `ngeo` dataset on the target domain.

@@ -12,17 +12,24 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(neurogeo)
 ```
 
-Delayed storage remains one logical element-by-map values block.
+Chunked access operates on the same logical element-by-map values block.
+Standard neuroimaging files use the format-specific file-backed readers.
 
 ```{r}
 backing <- matrix(seq_len(30), nrow = 10, ncol = 3)
-delayed <- ngeo_delayed_values(
-  function(rows, columns) backing[rows, columns, drop = FALSE],
-  dim(backing),
-  map_names = c("a", "b", "c"),
-  source = "documented callback"
+colnames(backing) <- c("a", "b", "c")
+x <- ngeo_points(
+  cbind(x = 1:10, y = 0),
+  values = backing,
+  measures = do.call(
+    rbind,
+    replicate(
+      3,
+      ngeo_measure(spatial_semantics = "intensive"),
+      simplify = FALSE
+    )
+  )
 )
-x <- ngeo_points(cbind(x = 1:10, y = 0), values = delayed)
 chunks <- ngeo_value_chunks(
   x, chunk_size = 4,
   FUN = function(block, rows) colSums(block)
@@ -30,8 +37,8 @@ chunks <- ngeo_value_chunks(
 chunks
 ```
 
-A block map is a partition of one logical sparse operator, not a different
-mapping. Its hash equals the monolithic map after materialization.
+One sparse support map is used directly. Resource budgets bound the values
+materialized by the scientific operation; there is no second block-map class.
 
 ```{r}
 atlas <- ngeo_atlas_map(
@@ -39,14 +46,14 @@ atlas <- ngeo_atlas_map(
   rep(c("A", "B"), each = 5),
   source_support = rep(1, 10)
 )
-blocked <- ngeo_block_support_map(
+ngeo_change_support(
+  x,
+  atlas$target,
   atlas,
-  row_block_size = 1,
-  source_block_size = 4
-)
-identical(
-  ngeo_support_map_hash(ngeo_materialize_support_map(blocked)),
-  blocked$logical_hash
+  budget = ngeo_resource_budget(
+    memory_bytes = 1024^2,
+    materialized_elements = 6
+  )
 )
 ```
 

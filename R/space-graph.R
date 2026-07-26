@@ -1,3 +1,4 @@
+# Coordinate-space registry and explicit transform graph.
 #' Compute the stable identity of a coordinate space
 #'
 #' @param x An `ngeo_space`.

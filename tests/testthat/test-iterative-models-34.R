@@ -59,7 +59,9 @@ test_that("solver controls are immutable and resource-bound", {
 
   expect_s3_class(control, "ngeo_solver_control")
   expect_invisible(ngeo_validate_solver_control(control))
-  expect_identical(ngeo_schema(control)$version, "3.4")
+  expect_identical(
+    ngeo_object_manifest(control)$object_schema_version, "3.4"
+  )
 
   changed <- control
   changed$tolerance <- 1e-4
@@ -358,86 +360,7 @@ test_that("iterative CAR agrees with the direct small smoother", {
   )
 })
 
-test_that("batched GWR preserves monolithic target order and values", {
-  fixture <- iterative_model_fixture()
-  targets <- c(9L, 2L, 17L, 5L, 21L, 1L, 13L)
-  monolithic <- ngeo_gwr(
-    fixture$data,
-    "sar",
-    c("x", "y"),
-    bandwidth = 3,
-    targets = targets
-  )
-  batched <- ngeo_gwr_batched(
-    fixture$data,
-    "sar",
-    c("x", "y"),
-    bandwidth = 3,
-    targets = targets,
-    batch_size = 3
-  )
-
-  expect_s3_class(batched, "ngeo_gwr_batched")
-  expect_identical(batched$target_index, targets)
-  expect_equal(batched$fitted, monolithic$fitted)
-  expect_equal(
-    as.matrix(batched[, c("(Intercept)", "x", "y")]),
-    as.matrix(monolithic[, c("(Intercept)", "x", "y")])
-  )
-  expect_identical(
-    attr(batched, "batch_diagnostics")$batches, 3L
-  )
-  expect_error(
-    ngeo_gwr_batched(
-      fixture$data,
-      "sar",
-      c("x", "y"),
-      bandwidth = 3,
-      targets = targets,
-      batch_size = 2,
-      budget = ngeo_resource_budget(blocks = 2)
-    ),
-    class = "ngeo_error_resource"
-  )
-})
-
-test_that("batched kriging preserves monolithic targets and weights", {
-  fixture <- iterative_model_fixture()
-  variogram <- ngeo_fit_variogram(
-    fixture$data, map = "sar", breaks = 4
-  )
-  targets <- c(7L, 1L, 20L, 4L, 14L, 3L)
-  monolithic <- ngeo_kriging(
-    fixture$data,
-    "sar",
-    variogram,
-    targets = targets,
-    neighbors = 8
-  )
-  batched <- ngeo_kriging_batched(
-    fixture$data,
-    "sar",
-    variogram,
-    targets = targets,
-    neighbors = 8,
-    batch_size = 2
-  )
-
-  expect_s3_class(batched, "ngeo_kriging_batched")
-  expect_identical(batched$target, monolithic$target)
-  expect_equal(batched$prediction, monolithic$prediction)
-  expect_equal(batched$variance, monolithic$variance)
-  expect_equal(
-    as.matrix(attr(batched, "linear_weights")),
-    as.matrix(attr(monolithic, "linear_weights"))
-  )
-  expect_identical(
-    attr(batched, "batch_diagnostics")$target_count,
-    length(targets)
-  )
-})
-
-test_that("3.4 schemas and lifecycle cover iterative model objects", {
+test_that("3.4 schemas cover iterative model objects", {
   fixture <- iterative_model_fixture()
   control <- ngeo_solver_control(exact_threshold = 100)
   solution <- ngeo_iterative_solve(
@@ -463,13 +386,12 @@ test_that("3.4 schemas and lifecycle cover iterative model objects", {
     control = control
   )
 
-  expect_gte(
-    utils::compareVersion(ngeo_schema_registry()$version, "3.4"),
-    0L
-  )
   expect_true(all(vapply(
     list(control, solution, logdet, model, car),
-    function(object) ngeo_validate_schema(object)$valid,
+    function(object) {
+      ngeo_validate(object)
+      TRUE
+    },
     logical(1)
   )))
   expect_true(all(vapply(
@@ -482,14 +404,4 @@ test_that("3.4 schemas and lifecycle cover iterative model objects", {
     },
     logical(1)
   )))
-  lifecycle <- ngeo_api_lifecycle()
-  expect_true(all(
-    lifecycle$introduced[
-      lifecycle$api %in% c(
-        "ngeo_solver_control",
-        "ngeo_spatial_regression_iterative",
-        "ngeo_kriging_batched"
-      )
-    ] == "3.4"
-  ))
 })

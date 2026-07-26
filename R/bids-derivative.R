@@ -1,3 +1,4 @@
+# BIDS derivative publication.
 #' Build a scoped BIDS derivative sidecar
 #'
 #' @param x An `ngeo` dataset.

@@ -1,40 +1,18 @@
-#' Define an explicit distance metric
-#'
-#' @param name Metric name.
-#' @param ... Metric parameters.
-#' @return An `ngeo_metric` object.
-#' @export
-ngeo_metric <- function(name = c(
-                          "euclidean", "world_euclidean",
-                          "edge_geodesic", "hops", "region_centroid"
-                        ),
-                        ...) {
-  name <- match.arg(name)
-  parameters <- list(...)
-  if (length(parameters)) {
-    .ngeo_abort(
-      "Parameterized metrics are not supported; use a declared metric name.",
-      "ngeo_error_argument"
-    )
-  }
-  base::structure(
-    list(name = name, parameters = parameters),
-    class = "ngeo_metric"
-  )
-}
-
 .ngeo_metric_name <- function(metric) {
-  if (inherits(metric, "ngeo_metric")) {
-    metric$name
-  } else {
-    match.arg(
-      metric,
-      c(
-        "euclidean", "world_euclidean",
-        "edge_geodesic", "hops", "region_centroid"
-      )
+  if (!is.null(metric) &&
+      (!is.character(metric) || length(metric) != 1L || is.na(metric))) {
+    .ngeo_abort(
+      "`metric` must be one declared metric name.",
+      "ngeo_error_metric"
     )
   }
+  match.arg(
+    metric,
+    c(
+      "euclidean", "world_euclidean",
+      "edge_geodesic", "hops", "region_centroid"
+    )
+  )
 }
 
 .ngeo_world_coordinates <- function(index, affine) {
@@ -239,8 +217,7 @@ ngeo_metric <- function(name = c(
 #' @param x An `ngeo` object.
 #' @param from Source positions or stable element IDs.
 #' @param to Target positions or IDs. `NULL` means all elements.
-#' @param metric A metric name or `ngeo_metric`; `NULL` selects the
-#'   domain-specific default.
+#' @param metric A metric name; `NULL` selects the domain-specific default.
 #' @param max_distance Distances beyond this limit remain infinite.
 #' @param connectivity Voxel connectivity for graph metrics.
 #'

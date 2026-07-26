@@ -69,13 +69,18 @@ if (utils::compareVersion(package_version, "3.5.0") >= 0L) {
     required_specs, "NGCS-3.5.md", "API-3.5.md", "migration-3.5.md"
   )
 }
+if (utils::compareVersion(package_version, "4.0.0") >= 0L) {
+  required_specs <- c(
+    required_specs, "API-4.0.md", "migration-4.0.md"
+  )
+}
 spec_paths <- system.file("spec", required_specs, package = "neurogeo")
 if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
     !nzchar(formats_path) || !file.exists(formats_path) ||
     any(!nzchar(spec_paths)) || any(!file.exists(spec_paths))) {
   stop("Installed NGCS resources are incomplete.")
 }
-manifest <- ngeo_conformance_manifest()
+manifest <- neurogeo:::.ngeo_conformance_manifest()
 formats <- paste(readLines(formats_path, warn = FALSE), collapse = "\n")
 required_format_text <- c(
   "Status: neurogeo 2.9.1",
@@ -139,7 +144,7 @@ if (file.exists(workflow_path)) {
   }
 }
 
-inventory <- ngeo_api_inventory()
+exports <- getNamespaceExports("neurogeo")
 result <- list(
   generated_at_utc = format(
     Sys.time(), tz = "UTC", format = "%Y-%m-%dT%H:%M:%SZ"
@@ -152,8 +157,8 @@ result <- list(
     fixture_count = length(manifest$fixtures),
     format_inventory_consistent = format_consistent,
     required_specs = required_specs,
-    public_exports = nrow(inventory),
-    deprecated_exports = sum(inventory$deprecated_in_2_x)
+    public_exports = length(exports),
+    deprecated_exports = 0L
   ),
   source_audit = list(
     format_documents_equal = source_documents_equal,

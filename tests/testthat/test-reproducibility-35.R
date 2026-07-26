@@ -49,7 +49,9 @@ test_that("provenance DAGs reject cycles, missing parents, and mutation", {
 
   expect_s3_class(dag, "ngeo_provenance_dag")
   expect_invisible(ngeo_validate_provenance_dag(dag))
-  expect_identical(ngeo_schema(dag)$version, "3.5")
+  expect_identical(
+    ngeo_object_manifest(dag)$object_schema_version, "3.5"
+  )
   expect_error(
     ngeo_provenance_dag(
       dag$nodes,
@@ -104,7 +106,9 @@ test_that("recorded workflows replay to identical logical output", {
   )
   expect_length(manifest$dag$nodes, 3L)
   expect_length(manifest$dag$edges, 2L)
-  expect_identical(ngeo_schema(manifest)$version, "3.5")
+  expect_identical(
+    ngeo_object_manifest(manifest)$object_schema_version, "3.5"
+  )
 })
 
 test_that("replay detects input mutation and environment drift", {
@@ -182,7 +186,9 @@ test_that("artifact manifests fail before corrupt or incomplete use", {
   expect_s3_class(manifest, "ngeo_artifact_manifest")
   expect_true(ngeo_validate_artifact_manifest(manifest, root)$valid)
   expect_identical(manifest$entries[[1L]]$path, "result.txt")
-  expect_identical(ngeo_schema(manifest)$version, "3.5")
+  expect_identical(
+    ngeo_object_manifest(manifest)$object_schema_version, "3.5"
+  )
 
   writeLines("corrupt", path)
   report <- ngeo_validate_artifact_manifest(manifest, root)
@@ -248,7 +254,9 @@ test_that("artifact batches publish atomically with derivative-only scope", {
   expect_true(ngeo_validate_artifact_batch(restored, directory)$valid)
   expect_true(file.exists(file.path(directory, "manifest.json")))
   expect_true(file.exists(file.path(directory, "artifacts.json")))
-  expect_identical(ngeo_schema(batch)$version, "3.5")
+  expect_identical(
+    ngeo_object_manifest(batch)$object_schema_version, "3.5"
+  )
 
   unlink(file.path(directory, "artifacts.json"))
   expect_error(
@@ -276,21 +284,14 @@ test_that("failed artifact batches leave no visible partial result", {
   expect_false(file.exists(file.path(directory, "manifest.json")))
 })
 
-test_that("3.5 schemas, environment, and API lifecycle are explicit", {
-  registry <- ngeo_schema_registry()
+test_that("3.5 reproducibility schemas and environment are explicit", {
+  definitions <- neurogeo:::.ngeo_schema_definitions()
   snapshot <- ngeo_environment_snapshot()
-  lifecycle <- ngeo_api_lifecycle()
-  api_35 <- lifecycle$api[lifecycle$introduced == "3.5"]
 
-  expect_identical(registry$version, "3.5")
-  expect_identical(registry$specification, "NGCS 3.5")
   expect_true(all(c(
     "ngcs/provenance-dag", "ngcs/replay-manifest",
     "ngcs/artifact-manifest", "ngcs/batch-manifest"
-  ) %in% registry$schemas$schema_id))
+  ) %in% definitions$schema_id))
   expect_match(snapshot$environment_sha256, "^[0-9a-f]{64}$")
   expect_identical(snapshot$specification, "NGCS 3.5")
-  expect_length(api_35, 17L)
-  expect_true(all(lifecycle$lifecycle[lifecycle$introduced == "3.5"] ==
-                    "stable"))
 })

@@ -307,7 +307,7 @@ assert(
   "91k file-backed CIFTI metadata exceeded 128 MiB."
 )
 
-manifest <- ngeo_conformance_manifest(version = "3.1")
+manifest <- neurogeo:::.ngeo_conformance_manifest(version = "3.1")
 assert(
   identical(manifest$corpus_version, "3.1"),
   "NGCS 3.1 conformance corpus did not verify."
