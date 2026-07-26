@@ -48,7 +48,9 @@ jobs:
           error-on: '"warning"'
 
       - name: Install checked source for installed-corpus validation
-        run: R CMD INSTALL .
+        shell: Rscript {0}
+        run: |
+          install.packages(".", repos = NULL, type = "source")
 
       - name: Installed NGCS 1.0-2.9 conformance
         run: Rscript tools/run-installed-conformance-291.R
