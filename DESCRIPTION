@@ -1,6 +1,6 @@
 Package: neurogeo
 Title: Neuroimaging Geoinformatics Core Objects
-Version: 3.5.2
+Version: 3.6.0
 Authors@R:
     person("neurogeo", "contributors",
            email = "maintainers@neurogeo.invalid",

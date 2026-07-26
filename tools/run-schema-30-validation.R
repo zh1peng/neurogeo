@@ -87,9 +87,17 @@ migration_auditable <- identical(migration$target_version, "3.0") &&
 lifecycle <- ngeo_api_lifecycle()
 exports <- sort(getNamespaceExports("neurogeo"))
 api_complete <- identical(lifecycle$api, exports) &&
-  all(lifecycle$lifecycle == "stable") &&
-  all(lifecycle$planned_action == "retain") &&
-  !any(!is.na(lifecycle$replacement))
+  all(lifecycle$lifecycle %in% c("stable", "deprecated")) &&
+  all(
+    lifecycle$planned_action[lifecycle$lifecycle == "stable"] == "retain"
+  ) &&
+  all(
+    lifecycle$planned_action[lifecycle$lifecycle == "deprecated"] ==
+      "remove_in_4.0"
+  ) &&
+  !any(
+    !is.na(lifecycle$replacement[lifecycle$lifecycle == "stable"])
+  )
 old_exports_retained <- all(c(
   "ngeo_surface", "ngeo_volume", "ngeo_points",
   "ngeo_support_map", "ngeo_transform_graph",

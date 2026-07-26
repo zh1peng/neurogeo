@@ -982,7 +982,7 @@ read_ngeo_manifest <- function(path) {
   structure(manifest, class = c("ngeo_object_manifest", "list"))
 }
 
-#' Report the public API lifecycle at the 3.0 boundary
+#' Report the public API lifecycle for the 4.0 transition
 #'
 #' @return A data frame containing every exported API and lifecycle state.
 #' @export
@@ -1048,12 +1048,49 @@ ngeo_api_lifecycle <- function() {
   for (current in names(by_version)) {
     introduction[intersect(exports, by_version[[current]])] <- current
   }
+  deprecated <- c(
+    ngeo_metric = NA_character_,
+    ngeo_delayed_values = "read_ngeo_filebacked",
+    ngeo_block_support_map = "ngeo_support_map",
+    ngeo_validate_block_support_map = "ngeo_validate",
+    ngeo_materialize_support_map = "ngeo_support_map",
+    ngeo_change_support_block = "ngeo_change_support",
+    ngeo_block_diagnostics = "ngeo_support_diagnostics",
+    ngeo_block_variance = "ngeo_support_variance",
+    ngeo_compose_block_support_map = "ngeo_compose_support_map",
+    ngeo_execution_plan = "ngeo_record_replay",
+    ngeo_execute = "ngeo_replay",
+    ngeo_cache = NA_character_,
+    ngeo_cache_compute = NA_character_,
+    ngeo_atomic_write = NA_character_,
+    ngeo_gwr_batched = "ngeo_gwr",
+    ngeo_kriging_batched = "ngeo_kriging",
+    ngeo_schema_registry = NA_character_,
+    ngeo_schema = "ngeo_validate",
+    ngeo_validate_schema = "ngeo_validate",
+    ngeo_migrate_schema = NA_character_,
+    ngeo_api_inventory = "ngeo_api_lifecycle",
+    ngeo_compatibility_matrix = NA_character_,
+    ngeo_conformance_manifest = NA_character_
+  )
+  lifecycle <- rep.int("stable", length(exports))
+  names(lifecycle) <- exports
+  lifecycle[intersect(exports, names(deprecated))] <- "deprecated"
+  replacement <- rep.int(NA_character_, length(exports))
+  names(replacement) <- exports
+  replacement[intersect(exports, names(deprecated))] <-
+    deprecated[intersect(exports, names(deprecated))]
+  planned_action <- ifelse(
+    lifecycle == "deprecated",
+    "remove_in_4.0",
+    "retain"
+  )
   data.frame(
     api = exports,
     introduced = unname(introduction),
-    lifecycle = "stable",
-    replacement = NA_character_,
-    planned_action = "retain",
+    lifecycle = unname(lifecycle),
+    replacement = unname(replacement),
+    planned_action = unname(planned_action),
     stringsAsFactors = FALSE
   )
 }

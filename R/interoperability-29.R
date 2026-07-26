@@ -124,7 +124,7 @@ ngeo_api_inventory <- function() {
     status_2_9 = ifelse(
       lifecycle$introduced == "<=2.9.1", "stable", "not_exported"
     ),
-    planned_3_0_action = lifecycle$planned_action,
+    planned_3_0_action = "retain",
     deprecated_in_2_x = FALSE,
     stringsAsFactors = FALSE
   )

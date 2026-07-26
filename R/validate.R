@@ -306,7 +306,7 @@
 
 #' Validate an NGCS object
 #'
-#' @param x An `ngeo` object.
+#' @param x An `ngeo` object or another registered NGCS object.
 #' @param level Validation level: basic structural invariants, strict domain
 #'   checks, or scientific semantic diagnostics.
 #'
@@ -314,6 +314,11 @@
 #' @export
 ngeo_validate <- function(x, level = c("basic", "strict", "scientific")) {
   level <- match.arg(level)
+  if (!inherits(x, "ngeo")) {
+    schema <- ngeo_schema(x)
+    .ngeo_schema_validate_one(x, schema$schema_id[[1L]])
+    return(invisible(x))
+  }
   .ngeo_validate_common(x)
 
   type <- x$domain$type

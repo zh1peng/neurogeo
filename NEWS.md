@@ -1,3 +1,14 @@
+# neurogeo 3.6.0
+
+* Introduced the 4.0 lifecycle transition: generic execution/cache helpers,
+  block-support wrappers, metric objects, schema introspection, and separate
+  batched-model wrappers are now declared deprecated.
+* `ngeo_change_support()` now accepts legacy block support maps directly, and
+  `ngeo_validate()` validates every registered NGCS object through one public
+  entry point.
+* Added a migration guide that separates retained scientific contracts from
+  implementation-only frameworks scheduled for removal in 4.0.
+
 # neurogeo 3.5.2
 
 * Binary `ngeo_delayed_values` selections now seek directly to requested

@@ -486,6 +486,17 @@ ngeo_change_support <- function(
     allocation = c("error", "normalize"),
     unmapped = c("error", "drop"),
     unknown = c("error", "intensive", "extensive")) {
+  if (inherits(support_map, "ngeo_block_support_map")) {
+    return(ngeo_change_support_block(
+      x = x,
+      target = target,
+      support_map = support_map,
+      maps = maps,
+      allocation = allocation,
+      unmapped = unmapped,
+      unknown = unknown
+    ))
+  }
   .ngeo_validate_support_domains(x, target, support_map)
   allocation <- match.arg(allocation)
   unmapped <- match.arg(unmapped)

@@ -134,7 +134,7 @@ test_that("canonical manifest hashes ignore object property order", {
   )
 })
 
-test_that("schema migration and API lifecycle retain earlier APIs", {
+test_that("schema migration and API lifecycle declare the 4.0 transition", {
   x <- builder_surface(values = cbind(signal = 1:4))
   migrated <- ngeo_migrate_schema(x)
   migration <- attr(migrated, "ngeo_schema_migration")
@@ -143,8 +143,22 @@ test_that("schema migration and API lifecycle retain earlier APIs", {
 
   expect_identical(migration$target_version, "3.0")
   expect_true(migration$valid)
-  expect_true(all(lifecycle$lifecycle == "stable"))
-  expect_true(all(lifecycle$planned_action == "retain"))
+  expect_identical(
+    lifecycle$lifecycle[lifecycle$api == "ngeo_execution_plan"],
+    "deprecated"
+  )
+  expect_identical(
+    lifecycle$replacement[lifecycle$api == "ngeo_change_support_block"],
+    "ngeo_change_support"
+  )
+  expect_true(all(
+    lifecycle$planned_action[lifecycle$lifecycle == "deprecated"] ==
+      "remove_in_4.0"
+  ))
+  expect_invisible(ngeo_validate(ngeo_time_axis(0, 1, 3)))
+  expect_invisible(ngeo_validate(
+    ngeo_block_support_map(diagnostic_fixture()$hard, 1L, 2L)
+  ))
   expect_true(all(old_inventory$status_2_9[
     old_inventory$api %in% c("ngeo_surface", "ngeo_support_map")
   ] == "stable"))

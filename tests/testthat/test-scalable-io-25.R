@@ -61,11 +61,15 @@ test_that("block and monolithic support maps are logically identical", {
   changed <- ngeo_change_support_block(
     fixture$source, fixture$target, block
   )
+  unified <- ngeo_change_support(
+    fixture$source, fixture$target, block
+  )
 
   expect_s3_class(block, "ngeo_block_support_map")
   expect_identical(ngeo_support_map_hash(restored), block$logical_hash)
   expect_equal(restored$operator, fixture$soft$operator)
   expect_equal(changed$values, direct$values)
+  expect_equal(unified$values, direct$values)
 })
 
 test_that("pure-R CIFTI writer round-trips all supported dense types", {

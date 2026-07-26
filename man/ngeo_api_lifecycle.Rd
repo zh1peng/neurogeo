@@ -2,7 +2,7 @@
 % Please edit documentation in R/schema-30.R
 \name{ngeo_api_lifecycle}
 \alias{ngeo_api_lifecycle}
-\title{Report the public API lifecycle at the 3.0 boundary}
+\title{Report the public API lifecycle for the 4.0 transition}
 \usage{
 ngeo_api_lifecycle()
 }
@@ -10,5 +10,5 @@ ngeo_api_lifecycle()
 A data frame containing every exported API and lifecycle state.
 }
 \description{
-Report the public API lifecycle at the 3.0 boundary
+Report the public API lifecycle for the 4.0 transition
 }

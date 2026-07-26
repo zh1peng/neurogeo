@@ -7,7 +7,7 @@
 ngeo_validate(x, level = c("basic", "strict", "scientific"))
 }
 \arguments{
-\item{x}{An `ngeo` object.}
+\item{x}{An `ngeo` object or another registered NGCS object.}
 
 \item{level}{Validation level: basic structural invariants, strict domain
 checks, or scientific semantic diagnostics.}
