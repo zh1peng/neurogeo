@@ -25,118 +25,73 @@ if (dir.exists(run_dir)) {
 check_dir <- file.path(run_dir, "check")
 dir.create(check_dir, recursive = TRUE)
 
-required_reports <- c(
-  "conformance.json",
-  "performance.json",
-  "external-workflows.json"
-)
-if (utils::compareVersion(version, "1.3.0") >= 0L) {
-  required_reports <- c(required_reports, "simulation.json")
-}
-if (utils::compareVersion(version, "2.0.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
-    "support-map-conformance.json"
-  )
-}
-if (utils::compareVersion(version, "2.1.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
+validation_catalog <- data.frame(
+  minimum_version = c(
+    "1.0.0", "1.0.0", "1.0.0", "1.3.0", "2.0.0",
+    "2.1.0", "2.1.0", "2.1.0", "2.2.0", "2.3.0",
+    "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0",
+    "2.9.0", "2.9.1", "3.0.0", "3.1.0", "3.2.0",
+    "3.3.0", "3.4.0", "3.5.0"
+  ),
+  report = c(
+    "conformance.json",
+    "performance.json",
+    "external-workflows.json",
+    "simulation.json",
+    "support-map-conformance.json",
     "support-builder-conformance.json",
     "support-workflows.json",
-    "support-inference-validation.json"
-  )
-}
-if (utils::compareVersion(version, "2.2.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
-    "support-uncertainty-validation.json"
-  )
-}
-if (utils::compareVersion(version, "2.3.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
-    "support-inference-23-validation.json"
-  )
-}
-if (utils::compareVersion(version, "2.4.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
-    "spatial-models-24-validation.json"
-  )
-}
-if (utils::compareVersion(version, "2.5.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
-    "scalable-io-25-validation.json"
-  )
-}
-if (utils::compareVersion(version, "2.6.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
-    "execution-26-validation.json"
-  )
-}
-if (utils::compareVersion(version, "2.7.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
-    "model-uncertainty-27-validation.json"
-  )
-}
-if (utils::compareVersion(version, "2.8.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
-    "space-graph-28-validation.json"
-  )
-}
-if (utils::compareVersion(version, "2.9.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
-    "interoperability-29-validation.json"
-  )
-}
-if (utils::compareVersion(version, "2.9.1") >= 0L) {
-  required_reports <- c(
-    required_reports,
-    "maintenance-291-validation.json"
-  )
-}
-if (utils::compareVersion(version, "3.0.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
-    "schema-30-validation.json"
-  )
-}
-if (utils::compareVersion(version, "3.1.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
-    "file-backed-31-validation.json"
-  )
-}
-if (utils::compareVersion(version, "3.2.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
-    "resampling-32-validation.json"
-  )
-}
-if (utils::compareVersion(version, "3.3.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
-    "spatiotemporal-33-validation.json"
-  )
-}
-if (utils::compareVersion(version, "3.4.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
-    "iterative-models-34-validation.json"
-  )
-}
-if (utils::compareVersion(version, "3.5.0") >= 0L) {
-  required_reports <- c(
-    required_reports,
+    "support-inference-validation.json",
+    "support-uncertainty-validation.json",
+    "support-inference-23-validation.json",
+    "spatial-models-24-validation.json",
+    "scalable-io-25-validation.json",
+    "execution-26-validation.json",
+    "model-uncertainty-27-validation.json",
+    "space-graph-28-validation.json",
+    "interoperability-29-validation.json",
+    "maintenance-291-validation.json",
+    "schema-30-validation.json",
+    "file-backed-31-validation.json",
+    "resampling-32-validation.json",
+    "spatiotemporal-33-validation.json",
+    "iterative-models-34-validation.json",
     "reproducibility-35-validation.json"
-  )
-}
+  ),
+  stringsAsFactors = FALSE
+)
+required_reports <- validation_catalog$report[vapply(
+  validation_catalog$minimum_version,
+  function(minimum) utils::compareVersion(version, minimum) >= 0L,
+  logical(1)
+)]
+
+specification_catalog <- data.frame(
+  minimum_version = c(
+    "1.0.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0",
+    "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0",
+    "2.9.0", "2.9.1", "3.0.0", "3.1.0", "3.2.0",
+    "3.3.0", "3.4.0", "3.5.0"
+  ),
+  specification = paste(
+    "NGCS",
+    c(
+      "1.0", "2.0", "2.1", "2.2", "2.3", "2.4",
+      "2.5", "2.6", "2.7", "2.8", "2.9", "2.9.1",
+      "3.0", "3.1", "3.2", "3.3", "3.4", "3.5"
+    )
+  ),
+  stringsAsFactors = FALSE
+)
+eligible_specification <- vapply(
+  specification_catalog$minimum_version,
+  function(minimum) utils::compareVersion(version, minimum) >= 0L,
+  logical(1)
+)
+specification <- tail(
+  specification_catalog$specification[eligible_specification],
+  1L
+)
 missing_reports <- required_reports[
   !file.exists(file.path(release_dir, required_reports))
 ]
@@ -304,74 +259,7 @@ jsonlite::write_json(
   list(
     package = package,
     version = version,
-    specification = if (
-      utils::compareVersion(version, "3.5.0") >= 0L
-    ) {
-      "NGCS 3.5"
-    } else if (
-      utils::compareVersion(version, "3.4.0") >= 0L
-    ) {
-      "NGCS 3.4"
-    } else if (
-      utils::compareVersion(version, "3.3.0") >= 0L
-    ) {
-      "NGCS 3.3"
-    } else if (
-      utils::compareVersion(version, "3.2.0") >= 0L
-    ) {
-      "NGCS 3.2"
-    } else if (
-      utils::compareVersion(version, "3.1.0") >= 0L
-    ) {
-      "NGCS 3.1"
-    } else if (
-      utils::compareVersion(version, "3.0.0") >= 0L
-    ) {
-      "NGCS 3.0"
-    } else if (
-      utils::compareVersion(version, "2.9.1") >= 0L
-    ) {
-      "NGCS 2.9.1"
-    } else if (
-      utils::compareVersion(version, "2.9.0") >= 0L
-    ) {
-      "NGCS 2.9"
-    } else if (
-      utils::compareVersion(version, "2.8.0") >= 0L
-    ) {
-      "NGCS 2.8"
-    } else if (
-      utils::compareVersion(version, "2.7.0") >= 0L
-    ) {
-      "NGCS 2.7"
-    } else if (
-      utils::compareVersion(version, "2.6.0") >= 0L
-    ) {
-      "NGCS 2.6"
-    } else if (
-      utils::compareVersion(version, "2.5.0") >= 0L
-    ) {
-      "NGCS 2.5"
-    } else if (
-      utils::compareVersion(version, "2.4.0") >= 0L
-    ) {
-      "NGCS 2.4"
-    } else if (
-      utils::compareVersion(version, "2.3.0") >= 0L
-    ) {
-      "NGCS 2.3"
-    } else if (
-      utils::compareVersion(version, "2.2.0") >= 0L
-    ) {
-      "NGCS 2.2"
-    } else if (utils::compareVersion(version, "2.1.0") >= 0L
-    ) {
-      "NGCS 2.1"
-    } else if (utils::compareVersion(version, "2.0.0") >= 0L) {
-      "NGCS 2.0"
-    } else {
-      "NGCS 1.0"
-    },
+    specification = specification,
     generated_at_utc = format(
       Sys.time(),
       tz = "UTC",

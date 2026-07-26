@@ -22,6 +22,31 @@ test_that("delayed values preserve one aligned block and chunk exactly", {
   expect_equal(vapply(chunks, nrow, integer(1)), c(4L, 4L, 2L))
 })
 
+test_that("binary delayed values read selected cells without full materialization", {
+  backing <- matrix(seq_len(30), nrow = 10L, ncol = 3L)
+  path <- tempfile(fileext = ".bin")
+  on.exit(unlink(path), add = TRUE)
+  connection <- file(path, "wb")
+  writeBin(as.double(backing), connection, size = 8L)
+  close(connection)
+
+  delayed <- ngeo_delayed_values(
+    path,
+    dim = dim(backing),
+    map_names = c("a", "b", "c")
+  )
+
+  expect_equal(
+    delayed[c(10L, 1L, 5L), c(3L, 1L), drop = FALSE],
+    backing[c(10L, 1L, 5L), c(3L, 1L), drop = FALSE],
+    ignore_attr = TRUE
+  )
+  expect_error(
+    ngeo_delayed_values(path, dim = c(11L, 3L)),
+    class = "ngeo_error_alignment"
+  )
+})
+
 test_that("block and monolithic support maps are logically identical", {
   fixture <- diagnostic_fixture()
   block <- ngeo_block_support_map(

@@ -260,3 +260,11 @@ test_that("distance-based weights execute the declared surface metric", {
     class = "ngeo_error_capability"
   )
 })
+
+test_that("metric objects reject parameters that have no execution semantics", {
+  expect_s3_class(ngeo_metric("euclidean"), "ngeo_metric")
+  expect_error(
+    ngeo_metric("euclidean", exponent = 2),
+    class = "ngeo_error_argument"
+  )
+})

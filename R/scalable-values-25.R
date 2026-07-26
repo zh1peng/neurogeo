@@ -25,6 +25,16 @@ ngeo_delayed_values <- function(reader, dim, map_names = NULL, source = NULL) {
     .ngeo_abort("`map_names` must uniquely name every column.",
                 "ngeo_error_alignment")
   }
+  if (is.character(reader)) {
+    expected_size <- prod(as.double(dim)) * 8
+    actual_size <- as.double(file.info(reader)$size)
+    if (!is.finite(actual_size) || actual_size != expected_size) {
+      .ngeo_abort(
+        "Binary delayed values must contain exactly `prod(dim)` doubles.",
+        "ngeo_error_alignment"
+      )
+    }
+  }
   structure(
     list(
       reader = reader,
@@ -64,6 +74,30 @@ dimnames.ngeo_delayed_values <- function(x) x$dimnames
   seq_len(n)[index]
 }
 
+.ngeo_read_delayed_binary <- function(path, dim, rows, columns) {
+  connection <- file(path, "rb")
+  on.exit(close(connection), add = TRUE)
+  value <- matrix(NA_real_, nrow = length(rows), ncol = length(columns))
+  row_count <- as.double(dim[[1L]])
+  for (column_position in seq_along(columns)) {
+    column <- as.double(columns[[column_position]])
+    for (row_position in seq_along(rows)) {
+      row <- as.double(rows[[row_position]])
+      offset <- ((column - 1) * row_count + row - 1) * 8
+      seek(connection, where = offset, origin = "start")
+      current <- readBin(connection, "double", n = 1L, size = 8L)
+      if (length(current) != 1L) {
+        .ngeo_abort(
+          "Binary delayed values ended before the requested cell.",
+          "ngeo_error_io"
+        )
+      }
+      value[row_position, column_position] <- current
+    }
+  }
+  value
+}
+
 #' @export
 `[.ngeo_delayed_values` <- function(x, i, j, ..., drop = TRUE) {
   rows <- if (missing(i)) seq_len(x$dim[[1L]]) else
@@ -73,13 +107,7 @@ dimnames.ngeo_delayed_values <- function(x) x$dimnames
   value <- if (is.function(x$reader)) {
     x$reader(rows, columns)
   } else {
-    connection <- file(x$reader, "rb")
-    on.exit(close(connection), add = TRUE)
-    full <- matrix(
-      readBin(connection, "double", n = prod(x$dim), size = 8L),
-      nrow = x$dim[[1L]], ncol = x$dim[[2L]]
-    )
-    full[rows, columns, drop = FALSE]
+    .ngeo_read_delayed_binary(x$reader, x$dim, rows, columns)
   }
   value <- as.matrix(value)
   if (!identical(dim(value), c(length(rows), length(columns)))) {

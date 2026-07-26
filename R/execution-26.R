@@ -51,11 +51,34 @@ print.ngeo_resource_budget <- function(x, ...) {
   invisible(x)
 }
 
+.ngeo_function_identity <- function(value, declared = NULL) {
+  if (!is.function(value)) {
+    .ngeo_abort("A function identity requires a function.",
+                "ngeo_error_argument")
+  }
+  if (!is.null(declared)) {
+    .ngeo_assert_scalar_character(declared, "declared")
+    return(declared)
+  }
+  digest::digest(
+    list(
+      formals = formals(value),
+      body = body(value),
+      environment = environmentName(environment(value)),
+      package_version = .ngeo_package_version()
+    ),
+    algo = "sha256"
+  )
+}
+
 #' Create a deterministic resumable execution plan
 #'
 #' @param operation Stable operation name.
 #' @param tasks Ordered serializable task descriptors.
 #' @param executor Function receiving one task and its one-based index.
+#' @param executor_id Optional stable identifier for the executor
+#'   implementation. By default it is derived from the function formals,
+#'   body, environment name, and package version.
 #' @param identity Inputs included in the plan hash.
 #' @param budget Resource budget.
 #' @param checkpoint Optional JSON checkpoint path.
@@ -68,7 +91,8 @@ ngeo_execution_plan <- function(
     executor,
     identity = list(),
     budget = ngeo_resource_budget(),
-    checkpoint = NULL) {
+    checkpoint = NULL,
+    executor_id = NULL) {
   .ngeo_assert_scalar_character(operation, "operation")
   if (!is.list(tasks) || !length(tasks) || !is.function(executor) ||
       !is.list(identity)) {
@@ -76,8 +100,14 @@ ngeo_execution_plan <- function(
                 "ngeo_error_argument")
   }
   .ngeo_budget_assert(budget, "blocks", length(tasks))
+  executor_id <- .ngeo_function_identity(executor, executor_id)
   hash <- digest::digest(
-    list(operation = operation, tasks = tasks, identity = identity),
+    list(
+      operation = operation,
+      tasks = tasks,
+      executor_id = executor_id,
+      identity = identity
+    ),
     algo = "sha256"
   )
   structure(
@@ -85,6 +115,7 @@ ngeo_execution_plan <- function(
       operation = operation,
       tasks = tasks,
       executor = executor,
+      executor_id = executor_id,
       identity = identity,
       plan_hash = hash,
       budget = budget,
@@ -194,15 +225,22 @@ ngeo_cache <- function(path) {
 #' @param cache An `ngeo_cache`.
 #' @param identity Serializable identity including all scientific inputs.
 #' @param compute Function used on a cache miss.
+#' @param compute_id Optional stable identifier for the compute
+#'   implementation. By default it is derived from the function formals,
+#'   body, environment name, and package version.
 #'
 #' @return An `ngeo_cache_result`.
 #' @export
-ngeo_cache_compute <- function(cache, identity, compute) {
+ngeo_cache_compute <- function(cache, identity, compute, compute_id = NULL) {
   if (!inherits(cache, "ngeo_cache") || !is.list(identity) ||
       !is.function(compute)) {
     .ngeo_abort("Cache inputs are invalid.", "ngeo_error_argument")
   }
-  key <- digest::digest(identity, algo = "sha256")
+  compute_id <- .ngeo_function_identity(compute, compute_id)
+  key <- digest::digest(
+    list(identity = identity, compute_id = compute_id),
+    algo = "sha256"
+  )
   path <- file.path(cache$path, paste0(key, ".rds"))
   hit <- file.exists(path)
   if (hit) {
@@ -217,7 +255,13 @@ ngeo_cache_compute <- function(cache, identity, compute) {
     }
   }
   structure(
-    list(value = value, key = key, hit = hit, path = path),
+    list(
+      value = value,
+      key = key,
+      compute_id = compute_id,
+      hit = hit,
+      path = path
+    ),
     class = "ngeo_cache_result"
   )
 }

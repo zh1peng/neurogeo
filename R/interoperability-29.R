@@ -11,17 +11,12 @@ ngeo_conformance_manifest <- function(
     )) {
   .ngeo_require("jsonlite", "NGCS conformance corpus reading")
   version <- match.arg(version)
+  corpus_versions <- c("2.9", "3.0", "3.1", "3.2", "3.3", "3.4", "3.5")
   if (is.null(path)) {
     if (identical(version, "latest")) version <- "3.5"
-    directory <- switch(
-      version,
-      "3.5" = "conformance-ngcs35",
-      "3.4" = "conformance-ngcs34",
-      "3.3" = "conformance-ngcs33",
-      "3.2" = "conformance-ngcs32",
-      "3.1" = "conformance-ngcs31",
-      "3.0" = "conformance-ngcs30",
-      "2.9" = "conformance-ngcs29"
+    directory <- paste0(
+      "conformance-ngcs",
+      gsub(".", "", version, fixed = TRUE)
     )
     path <- system.file(
       "extdata", directory, "manifest.json",
@@ -38,48 +33,29 @@ ngeo_conformance_manifest <- function(
                 "ngeo_error_io")
   }
   manifest <- jsonlite::fromJSON(path, simplifyVector = FALSE)
-  expected_29 <- c(
+  specification_versions <- c(
     "1.0", "1.1", "1.2", "1.3", "2.0", "2.1", "2.2",
-    "2.3", "2.4", "2.5", "2.6", "2.7", "2.8", "2.9"
+    "2.3", "2.4", "2.5", "2.6", "2.7", "2.8", "2.9",
+    "2.9.1", "3.0", "3.1", "3.2", "3.3", "3.4", "3.5"
   )
-  expected <- if (identical(manifest$corpus_version, "3.5")) {
-    c(
-      expected_29, "2.9.1", "3.0", "3.1", "3.2", "3.3", "3.4", "3.5"
-    )
-  } else if (identical(manifest$corpus_version, "3.4")) {
-    c(
-      expected_29, "2.9.1", "3.0", "3.1", "3.2", "3.3", "3.4"
-    )
-  } else if (identical(manifest$corpus_version, "3.3")) {
-    c(expected_29, "2.9.1", "3.0", "3.1", "3.2", "3.3")
-  } else if (identical(manifest$corpus_version, "3.2")) {
-    c(expected_29, "2.9.1", "3.0", "3.1", "3.2")
-  } else if (identical(manifest$corpus_version, "3.1")) {
-    c(expected_29, "2.9.1", "3.0", "3.1")
-  } else if (identical(manifest$corpus_version, "3.0")) {
-    c(expected_29, "2.9.1", "3.0")
+  corpus_position <- match(manifest$corpus_version, corpus_versions)
+  expected_position <- match(
+    manifest$corpus_version,
+    specification_versions
+  )
+  expected <- if (is.na(expected_position)) {
+    character()
   } else {
-    expected_29
+    specification_versions[seq_len(expected_position)]
   }
-  expected_schema <- if (identical(manifest$corpus_version, "3.5")) {
-    "NGCS-conformance-corpus-7"
-  } else if (identical(manifest$corpus_version, "3.4")) {
-    "NGCS-conformance-corpus-6"
-  } else if (identical(manifest$corpus_version, "3.3")) {
-    "NGCS-conformance-corpus-5"
-  } else if (identical(manifest$corpus_version, "3.2")) {
-    "NGCS-conformance-corpus-4"
-  } else if (identical(manifest$corpus_version, "3.1")) {
-    "NGCS-conformance-corpus-3"
-  } else if (identical(manifest$corpus_version, "3.0")) {
-    "NGCS-conformance-corpus-2"
+  expected_schema <- if (is.na(corpus_position)) {
+    ""
   } else {
-    "NGCS-conformance-corpus-1"
+    paste0("NGCS-conformance-corpus-", corpus_position)
   }
   versions <- as.character(unlist(manifest$specifications))
-  if (!identical(manifest$schema, expected_schema) ||
-      !manifest$corpus_version %in%
-        c("2.9", "3.0", "3.1", "3.2", "3.3", "3.4", "3.5") ||
+  if (is.na(corpus_position) || is.na(expected_position) ||
+      !identical(manifest$schema, expected_schema) ||
       !identical(versions, expected) ||
       !isTRUE(manifest$language_independent) ||
       !is.list(manifest$fixtures) || !length(manifest$fixtures)) {

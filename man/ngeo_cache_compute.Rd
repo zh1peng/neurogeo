@@ -4,7 +4,7 @@
 \alias{ngeo_cache_compute}
 \title{Read or populate a content-addressed cache entry}
 \usage{
-ngeo_cache_compute(cache, identity, compute)
+ngeo_cache_compute(cache, identity, compute, compute_id = NULL)
 }
 \arguments{
 \item{cache}{An `ngeo_cache`.}
@@ -12,6 +12,10 @@ ngeo_cache_compute(cache, identity, compute)
 \item{identity}{Serializable identity including all scientific inputs.}
 
 \item{compute}{Function used on a cache miss.}
+
+\item{compute_id}{Optional stable identifier for the compute
+implementation. By default it is derived from the function formals,
+body, environment name, and package version.}
 }
 \value{
 An `ngeo_cache_result`.

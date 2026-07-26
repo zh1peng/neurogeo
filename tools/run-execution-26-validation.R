@@ -120,15 +120,21 @@ if (partial$complete || !resumed$complete ||
 
 cache <- ngeo_cache(tempfile("ngeo-validation-cache-"))
 calls <- 0L
+compute <- function() {
+  calls <<- calls + 1L
+  26L
+}
 first <- ngeo_cache_compute(
   cache,
   list(domain = ngeo_domain_hash(source), semantics = "intensive"),
-  function() {
-    calls <<- calls + 1L
-    26L
-  }
+  compute
 )
 second <- ngeo_cache_compute(
+  cache,
+  list(domain = ngeo_domain_hash(source), semantics = "intensive"),
+  compute
+)
+changed_compute <- ngeo_cache_compute(
   cache,
   list(domain = ngeo_domain_hash(source), semantics = "intensive"),
   function() {
@@ -136,8 +142,9 @@ second <- ngeo_cache_compute(
     99L
   }
 )
-if (first$hit || !second$hit || calls != 1L ||
-    !identical(second$value, 26L)) {
+if (first$hit || !second$hit || changed_compute$hit || calls != 2L ||
+    !identical(second$value, 26L) ||
+    !identical(changed_compute$value, 99L)) {
   stop("Content cache validation failed.")
 }
 
@@ -231,6 +238,7 @@ result <- list(
     resumed_tasks = resumed$completed,
     checkpoint_complete = resumed$complete,
     cache_hit_verified = second$hit,
+    compute_change_invalidated = !changed_compute$hit,
     atomic_failure_clean = atomic_failed_cleanly,
     atomic_sha256 = atomic$sha256
   ),

@@ -10,7 +10,8 @@ ngeo_execution_plan(
   executor,
   identity = list(),
   budget = ngeo_resource_budget(),
-  checkpoint = NULL
+  checkpoint = NULL,
+  executor_id = NULL
 )
 }
 \arguments{
@@ -25,6 +26,10 @@ ngeo_execution_plan(
 \item{budget}{Resource budget.}
 
 \item{checkpoint}{Optional JSON checkpoint path.}
+
+\item{executor_id}{Optional stable identifier for the executor
+implementation. By default it is derived from the function formals,
+body, environment name, and package version.}
 }
 \value{
 An `ngeo_execution_plan`.

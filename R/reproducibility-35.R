@@ -9,6 +9,16 @@
   x
 }
 
+.ngeo_replay_operations <- function() {
+  c(
+    "ngeo_subset",
+    "ngeo_time_slice",
+    "ngeo_longitudinal_change",
+    "ngeo_temporal_trend",
+    "ngeo_temporal_contrast"
+  )
+}
+
 .ngeo_hash_string <- function(x) {
   is.character(x) && length(x) == 1L && !is.na(x) &&
     grepl("^[0-9a-f]{64}$", x)
@@ -292,10 +302,7 @@ ngeo_replay_step <- function(
     arguments = list()) {
   .ngeo_assert_scalar_character(id, "id")
   .ngeo_assert_scalar_character(operation, "operation")
-  supported <- c(
-    "ngeo_subset", "ngeo_time_slice", "ngeo_longitudinal_change",
-    "ngeo_temporal_trend", "ngeo_temporal_contrast"
-  )
+  supported <- .ngeo_replay_operations()
   if (!operation %in% supported ||
       !is.character(inputs) || !length(inputs) ||
       is.null(names(inputs)) || any(!nzchar(names(inputs))) ||
@@ -496,11 +503,7 @@ ngeo_validate_replay_manifest <- function(
         is.character(step$id) && length(step$id) == 1L &&
         !is.na(step$id) && nzchar(step$id) &&
         is.character(step$operation) && length(step$operation) == 1L &&
-        step$operation %in% c(
-          "ngeo_subset", "ngeo_time_slice",
-          "ngeo_longitudinal_change", "ngeo_temporal_trend",
-          "ngeo_temporal_contrast"
-        ) &&
+        step$operation %in% .ngeo_replay_operations() &&
         is.list(step$inputs) && length(step$inputs) > 0L &&
         !is.null(names(step$inputs)) &&
         all(nzchar(names(step$inputs))) &&

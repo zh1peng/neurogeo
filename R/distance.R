@@ -10,8 +10,15 @@ ngeo_metric <- function(name = c(
                         ),
                         ...) {
   name <- match.arg(name)
+  parameters <- list(...)
+  if (length(parameters)) {
+    .ngeo_abort(
+      "Parameterized metrics are not supported; use a declared metric name.",
+      "ngeo_error_argument"
+    )
+  }
   base::structure(
-    list(name = name, parameters = list(...)),
+    list(name = name, parameters = parameters),
     class = "ngeo_metric"
   )
 }

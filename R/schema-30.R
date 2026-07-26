@@ -134,35 +134,29 @@
     class = vapply(definitions, `[[`, character(1), 2L),
     version = {
       schema_id <- vapply(definitions, `[[`, character(1), 1L)
-      ifelse(
-        schema_id %in% c(
-          "ngcs/provenance-dag", "ngcs/replay-manifest",
-          "ngcs/artifact-manifest", "ngcs/batch-manifest"
-        ),
-        "3.5",
-        ifelse(
-        schema_id %in% c(
-          "ngcs/solver-control", "ngcs/iterative-solution",
-          "ngcs/logdet-estimate",
-          "ngcs/iterative-spatial-regression",
-          "ngcs/iterative-car"
-        ),
-        "3.4",
-        ifelse(
-        schema_id %in% c(
+      introduced <- rep.int("3.0", length(schema_id))
+      names(introduced) <- schema_id
+      by_version <- list(
+        "3.1" = "ngcs/file-values",
+        "3.2" = c("ngcs/resampling-plan", "ngcs/resampling-result"),
+        "3.3" = c(
           "ngcs/time-axis", "ngcs/temporal-weights",
           "ngcs/spatiotemporal-weights"
         ),
-        "3.3",
-        ifelse(
-        schema_id %in%
-          c("ngcs/resampling-plan", "ngcs/resampling-result"),
-        "3.2",
-        ifelse(schema_id == "ngcs/file-values", "3.1", "3.0")
-        )
+        "3.4" = c(
+          "ngcs/solver-control", "ngcs/iterative-solution",
+          "ngcs/logdet-estimate", "ngcs/iterative-spatial-regression",
+          "ngcs/iterative-car"
+        ),
+        "3.5" = c(
+          "ngcs/provenance-dag", "ngcs/replay-manifest",
+          "ngcs/artifact-manifest", "ngcs/batch-manifest"
         )
       )
-      )
+      for (current in names(by_version)) {
+        introduced[by_version[[current]]] <- current
+      }
+      unname(introduced)
     },
     status = "stable",
     invariants = I(lapply(definitions, `[[`, 3L)),
@@ -348,12 +342,15 @@ ngeo_schema <- function(x) {
           !is.character(x$operation) || length(x$operation) != 1L ||
           !is.list(x$tasks) || !length(x$tasks) ||
           !is.function(x$executor) ||
+          !is.character(x$executor_id) ||
+          length(x$executor_id) != 1L ||
           !inherits(x$budget, "ngeo_resource_budget") ||
           !identical(
             digest::digest(
               list(
                 operation = x$operation,
                 tasks = x$tasks,
+                executor_id = x$executor_id,
                 identity = x$identity
               ),
               algo = "sha256"
@@ -1038,29 +1035,22 @@ ngeo_api_lifecycle <- function() {
     "ngeo_validate_artifact_batch", "ngeo_write_artifact_batch",
     "ngeo_read_artifact_batch"
   )
+  introduction <- rep.int("<=2.9.1", length(exports))
+  names(introduction) <- exports
+  by_version <- list(
+    "3.0" = introduced_30,
+    "3.1" = introduced_31,
+    "3.2" = introduced_32,
+    "3.3" = introduced_33,
+    "3.4" = introduced_34,
+    "3.5" = introduced_35
+  )
+  for (current in names(by_version)) {
+    introduction[intersect(exports, by_version[[current]])] <- current
+  }
   data.frame(
     api = exports,
-    introduced = ifelse(
-      exports %in% introduced_30,
-      "3.0",
-      ifelse(
-        exports %in% introduced_31,
-        "3.1",
-        ifelse(
-          exports %in% introduced_32,
-          "3.2",
-          ifelse(
-            exports %in% introduced_33,
-            "3.3",
-            ifelse(
-              exports %in% introduced_34,
-              "3.4",
-              ifelse(exports %in% introduced_35, "3.5", "<=2.9.1")
-            )
-          )
-        )
-      )
-    ),
+    introduced = unname(introduction),
     lifecycle = "stable",
     replacement = NA_character_,
     planned_action = "retain",

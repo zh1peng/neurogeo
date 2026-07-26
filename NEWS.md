@@ -1,3 +1,13 @@
+# neurogeo 3.5.2
+
+* Binary `ngeo_delayed_values` selections now seek directly to requested
+  cells and validate backing-file size instead of loading the complete file.
+* Metric objects reject parameters that have no execution semantics.
+* Execution-plan checkpoints and content-cache keys now bind the executor or
+  compute implementation as well as the declared scientific inputs.
+* Replay operations and release/conformance version metadata now have one
+  data-driven definition instead of repeated version and operation ladders.
+
 # neurogeo 3.5.1
 
 * Fixed distance-based weights, local kriging, and GWR bandwidth selection

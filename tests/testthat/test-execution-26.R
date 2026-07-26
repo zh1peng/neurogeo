@@ -254,20 +254,39 @@ test_that("execution plans resume deterministically and reject mutation", {
     ngeo_execute(changed),
     class = "ngeo_error_cache_mismatch"
   )
+
+  changed_executor <- ngeo_execution_plan(
+    "square",
+    tasks,
+    function(task, index) task^3,
+    identity = list(domain = "fixed"),
+    checkpoint = checkpoint
+  )
+  expect_false(identical(plan$plan_hash, changed_executor$plan_hash))
+  expect_error(
+    ngeo_execute(changed_executor),
+    class = "ngeo_error_cache_mismatch"
+  )
 })
 
 test_that("content cache and atomic writes are auditable", {
   cache <- ngeo_cache(tempfile("ngeo-cache-"))
   calls <- 0L
+  compute <- function() {
+    calls <<- calls + 1L
+    42
+  }
   first <- ngeo_cache_compute(
     cache,
     list(domain = "a", semantics = "intensive"),
-    function() {
-      calls <<- calls + 1L
-      42
-    }
+    compute
   )
   second <- ngeo_cache_compute(
+    cache,
+    list(domain = "a", semantics = "intensive"),
+    compute
+  )
+  changed_compute <- ngeo_cache_compute(
     cache,
     list(domain = "a", semantics = "intensive"),
     function() {
@@ -291,9 +310,11 @@ test_that("content cache and atomic writes are auditable", {
 
   expect_false(first$hit)
   expect_true(second$hit)
+  expect_false(changed_compute$hit)
   expect_false(third$hit)
   expect_identical(second$value, 42)
-  expect_identical(calls, 2L)
+  expect_identical(changed_compute$value, 99)
+  expect_identical(calls, 3L)
   expect_true(file.exists(written$path))
   expect_length(written$sha256, 1L)
 
