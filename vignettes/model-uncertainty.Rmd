@@ -1,0 +1,78 @@
+---
+title: "Uncertainty-aware spatial models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Uncertainty-aware spatial models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+Model uncertainty is bound to one exact ordered domain.
+
+```{r}
+coordinates <- as.matrix(expand.grid(x = 0:3, y = 0:3))
+predictor <- coordinates[, 1] + coordinates[, 2] / 4
+x <- ngeo_points(
+  coordinates,
+  values = cbind(
+    response = 1 + 2 * predictor + sin(seq_along(predictor)) / 20,
+    predictor = predictor
+  ),
+  measures = rbind(
+    ngeo_measure(spatial_semantics = "intensive"),
+    ngeo_measure(spatial_semantics = "intensive")
+  )
+)
+measurement <- ngeo_support_covariance(
+  x,
+  variance = rep(0.01, nrow(coordinates))
+)
+```
+
+Variogram uncertainty separates the raw empirical semivariance from the
+measurement-error correction and retains its parameter simulations.
+
+```{r}
+variogram <- ngeo_variogram_uncertainty(
+  x,
+  "response",
+  measurement,
+  breaks = 5,
+  model = "exponential",
+  nsim = 20,
+  seed = 27
+)
+variogram$empirical
+variogram$parameter_interval
+```
+
+Kriging reports independent variance components explicitly.
+
+```{r}
+prediction <- ngeo_kriging_uncertainty(
+  x,
+  "response",
+  variogram$fit,
+  targets = 1:4,
+  neighbors = 8,
+  value_covariance = measurement,
+  variogram_uncertainty = variogram
+)
+prediction[
+  , c(
+    "process_variance", "measurement_variance",
+    "parameter_variance", "support_variance", "total_variance"
+  )
+]
+```
+
+For GWR, alternative-bandwidth minima and maxima are sensitivity ranges, not
+confidence intervals. `ngeo_spatial_regression_uncertainty()` and
+`ngeo_car_uncertainty()` require the same domain-bound covariance.
+`ngeo_support_model_ensemble()` applies the law of total variance only to the
+declared support family.

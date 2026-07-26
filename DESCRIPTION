@@ -1,0 +1,40 @@
+Package: neurogeo
+Title: Neuroimaging Geoinformatics Core Objects
+Version: 3.5.1
+Authors@R:
+    person("neurogeo", "contributors",
+           email = "maintainers@neurogeo.invalid",
+           role = c("aut", "cre"))
+Description: A reference implementation of the Neuroimaging Geoinformatics
+    Core Specification. It represents neuroimaging measurements using one
+    explicit spatial domain and one strictly aligned values block. It builds
+    and diagnoses sparse support mappings from already-known surface
+    registrations, voxel affines, segmentations, and probabilistic atlases.
+License: MIT + file LICENSE
+Encoding: UTF-8
+RoxygenNote: 7.3.3
+Depends:
+    R (>= 4.2.0)
+Imports:
+    digest,
+    graphics,
+    Matrix,
+    methods,
+    parallel,
+    stats
+Suggests:
+    cifti,
+    dbscan,
+    freesurferformats,
+    gifti,
+    igraph,
+    jsonlite,
+    knitr,
+    RNifti,
+    rmarkdown,
+    sf,
+    spdep,
+    testthat (>= 3.0.0),
+    xml2
+VignetteBuilder: knitr
+Config/testthat/edition: 3

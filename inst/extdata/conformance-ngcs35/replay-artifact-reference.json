@@ -1,0 +1,40 @@
+{
+  "schema": "NGCS-replay-artifact-reference-1",
+  "specification": "NGCS 3.5",
+  "logical_identity": {
+    "includes": [
+      "ordered_domain",
+      "aligned_values",
+      "measurement_semantics",
+      "labels",
+      "file_identity"
+    ],
+    "excludes": [
+      "execution_timestamp"
+    ],
+    "resource_budget_required": true
+  },
+  "provenance_dag": {
+    "nodes": ["source", "window", "trend"],
+    "edges": [
+      {"from": "source", "to": "window", "role": "x"},
+      {"from": "window", "to": "trend", "role": "x"}
+    ],
+    "acyclic": true,
+    "missing_parent_allowed": false
+  },
+  "replay": {
+    "arbitrary_code_allowed": false,
+    "environment_explicit": true,
+    "input_hashes_required": true,
+    "intermediate_hashes_required": true,
+    "output_hashes_required": true
+  },
+  "artifacts": {
+    "paths": "root_relative",
+    "integrity": ["size", "sha256", "complete"],
+    "batch_scope": "derivative_only",
+    "failed_batch_visible": false
+  },
+  "language_independent": true
+}

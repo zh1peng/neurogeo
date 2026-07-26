@@ -1,0 +1,32 @@
+{
+  "schema": "NGCS-conformance-corpus-1",
+  "corpus_version": "2.9",
+  "language_independent": true,
+  "specifications": ["1.0", "1.1", "1.2", "1.3", "2.0", "2.1", "2.2", "2.3", "2.4", "2.5", "2.6", "2.7", "2.8", "2.9"],
+  "fixtures": [
+    {
+      "path": "core-reference.json",
+      "schema": "NGCS-language-independent-reference-1",
+      "sha256": "d70cbc3640a3cca036c0920f076510268dece47606049e1d7ce8874236fd3045",
+      "claim": "normative core, support, transform, and runtime reference results"
+    },
+    {
+      "path": "bids-cases.json",
+      "schema": "NGCS-BIDS-derivative-cases-1",
+      "sha256": "2c95d939e778b556c1e8be9c11d03b8e5ebe13f659a92c12cea40181bacb6524",
+      "claim": "valid and adversarial scoped BIDS derivative naming cases"
+    }
+  ],
+  "existing_corpora": [
+    {"path": "../conformance", "covers": "NGCS 1.0 domains and topology"},
+    {"path": "../conformance-ngcs2", "covers": "NGCS 2.0 support maps"},
+    {"path": "../conformance-ngcs21", "covers": "NGCS 2.1 support builders"},
+    {"path": "../golden", "covers": "neuroimaging golden I/O including CIFTI"}
+  ],
+  "runtime_boundaries": {
+    "external_neuroimaging_binaries_required": false,
+    "automatic_registration": false,
+    "automatic_resampling": false,
+    "custom_binary_format": false
+  }
+}

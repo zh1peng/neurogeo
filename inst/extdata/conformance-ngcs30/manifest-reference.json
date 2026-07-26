@@ -1,0 +1,20 @@
+{
+  "schema": "NGCS-object-manifest-reference-1",
+  "specification": "NGCS 3.0",
+  "object": {
+    "domain_type": "points",
+    "coordinates": [[0, 0], [1, 0], [0, 1]],
+    "element_id": ["element_00000001", "element_00000002", "element_00000003"],
+    "map_id": ["map_0001"],
+    "values_dimensions": [3, 1],
+    "spatial_semantics": ["intensive"],
+    "space_id": "reference-points"
+  },
+  "requirements": {
+    "canonical_json_sha256": true,
+    "r_serialization": false,
+    "one_domain": true,
+    "one_values_block": true
+  },
+  "language_independent": true
+}

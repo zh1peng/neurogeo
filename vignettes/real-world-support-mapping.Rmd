@@ -1,0 +1,160 @@
+---
+title: "Real-world support mapping"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Real-world support mapping}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+NGCS separates the evidence that two domains correspond from the sparse
+operator used to change support. `neurogeo` 2.1 builds operators from known
+registrations, affines, and aligned atlas data; it does not estimate those
+relationships.
+
+## A known surface registration
+
+Both surfaces below declare one registered space. In practice the named
+coordinate sets can be registered spheres supplied by a standard workflow.
+
+```{r}
+coordinates <- matrix(
+  c(0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0),
+  ncol = 3,
+  byrow = TRUE
+)
+faces <- matrix(c(1, 2, 3, 1, 3, 4), ncol = 3, byrow = TRUE)
+space <- ngeo_space(
+  "declared-registration",
+  kind = "surface",
+  structure = "CORTEX_LEFT"
+)
+source <- ngeo_surface(
+  coordinates,
+  faces,
+  values = cbind(thickness = c(2.1, 2.4, 2.2, 2.5)),
+  measures = ngeo_measure(spatial_semantics = "intensive"),
+  space = space
+)
+target <- ngeo_surface(coordinates, faces, space = space)
+
+surface_map <- ngeo_surface_registration_map(
+  source,
+  target,
+  method = "barycentric"
+)
+ngeo_support_diagnostics(surface_map)
+resampled <- ngeo_change_support(source, target, surface_map)
+resampled$values
+```
+
+If spaces differ or are unknown, `registration` must explicitly identify
+the already-known relationship. This argument does not run registration.
+
+## A known affine grid
+
+Nearest and trilinear builders transform source voxel centres through the
+stored affines while respecting each object's source index base.
+
+```{r}
+volume_space <- ngeo_space("template-grid", kind = "volume")
+source_grid <- ngeo_volume(
+  dim = c(2, 2, 2),
+  affine = diag(4),
+  space = volume_space,
+  index_base = "zero"
+)
+target_grid <- ngeo_volume(
+  dim = c(2, 2, 2),
+  affine = diag(4),
+  space = volume_space,
+  index_base = "zero"
+)
+grid_map <- ngeo_affine_grid_map(
+  source_grid,
+  target_grid,
+  method = "trilinear"
+)
+ngeo_support_diagnostics(grid_map)
+```
+
+`ngeo_voxel_overlap_map()` computes exact fractional overlap only for
+axis-aligned grids. Rotation and shear are rejected rather than silently
+approximated.
+
+## Hard and probabilistic atlases
+
+Hard labels create a crisp operator and, when needed, a bound region target.
+
+```{r}
+atlas <- ngeo_atlas_map(
+  source,
+  c("anterior", "anterior", "posterior", "posterior")
+)
+regional <- ngeo_change_support(source, atlas$target, atlas)
+regional$values
+```
+
+Probabilities are supplied as source-element by region. The builder performs
+the single required transpose into the normative target-by-source operator.
+
+```{r}
+probability <- matrix(
+  c(1, 0, 0.7, 0.3, 0.3, 0.7, 0, 1),
+  ncol = 2,
+  byrow = TRUE,
+  dimnames = list(NULL, c("anterior", "posterior"))
+)
+soft <- ngeo_probabilistic_atlas_map(source, probability)
+ngeo_support_entropy(soft)
+```
+
+## Sensitivity and uncertainty
+
+Alternative operators can be compared only when their ordered source and
+target domains match.
+
+```{r}
+soft_same_target <- ngeo_probabilistic_atlas_map(
+  source,
+  probability,
+  target = atlas$target
+)
+sensitivity <- ngeo_support_sensitivity(
+  source,
+  atlas$target,
+  list(hard = atlas, soft = soft_same_target)
+)
+sensitivity
+```
+
+An operator with independent entry variances can be sampled under an
+explicit truncation and normalization model:
+
+```{r}
+uncertain <- soft
+uncertain$weight_variance <- methods::as(
+  uncertain$operator * 0.0025,
+  "dgCMatrix"
+)
+draws <- ngeo_support_monte_carlo(
+  uncertain,
+  nsim = 10,
+  seed = 2026
+)
+draws
+```
+
+The independence and Gaussian assumptions are recorded. They are not a
+substitute for a registration or segmentation uncertainty model.
+
+## Sparse exchange
+
+`write_ngeo_support_map()` writes a Matrix Market operator and JSON sidecar.
+An optional aligned variance operator is a second Matrix Market file.
+`read_ngeo_support_map()` verifies the stored integrity hash.

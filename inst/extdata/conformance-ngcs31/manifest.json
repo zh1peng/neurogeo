@@ -1,0 +1,34 @@
+{
+  "schema": "NGCS-conformance-corpus-3",
+  "corpus_version": "3.1",
+  "language_independent": true,
+  "specifications": [
+    "1.0",
+    "1.1",
+    "1.2",
+    "1.3",
+    "2.0",
+    "2.1",
+    "2.2",
+    "2.3",
+    "2.4",
+    "2.5",
+    "2.6",
+    "2.7",
+    "2.8",
+    "2.9",
+    "2.9.1",
+    "3.0",
+    "3.1"
+  ],
+  "fixtures": [
+    {
+      "path": "file-backed-reference.json",
+      "schema": "NGCS-file-backed-reference-1",
+      "sha256": "79bdc7e9d408545c991c945480b8a4c5f48e3acfaa97bd1fdd67b97048b61bf6"
+    }
+  ],
+  "prior_corpora": [
+    "../conformance-ngcs30"
+  ]
+}

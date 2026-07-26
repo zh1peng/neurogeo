@@ -1,0 +1,23 @@
+{
+  "schema": "NGCS-BIDS-derivative-cases-1",
+  "valid": [
+    {
+      "entities": {"sub": "01", "task": "rest", "space": "fsLR", "den": "32k", "desc": "effect"},
+      "suffix": "dscalar",
+      "extension": ".dscalar.nii",
+      "expected": "sub-01_task-rest_space-fsLR_den-32k_desc-effect_dscalar.dscalar.nii"
+    },
+    {
+      "entities": {"sub": "01", "ses": "02", "space": "MNI152", "desc": "zstat"},
+      "suffix": "statmap",
+      "extension": ".nii.gz",
+      "expected": "sub-01_ses-02_space-MNI152_desc-zstat_statmap.nii.gz"
+    }
+  ],
+  "invalid": [
+    {"name": "sub-01_space-fsLR_desc-effect.dscalar.nii", "reason": "missing suffix separator"},
+    {"name": "space-fsLR_sub-01_dscalar.dscalar.nii", "reason": "noncanonical entity order"},
+    {"name": "sub-01_unknown-x_dscalar.dscalar.nii", "reason": "unknown entity"},
+    {"name": "sub-01_desc-bad_value_dscalar.dscalar.nii", "reason": "nonalphanumeric entity value"}
+  ]
+}

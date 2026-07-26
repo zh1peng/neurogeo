@@ -1,0 +1,42 @@
+{
+  "schema": "NGCS-resampling-reference-1",
+  "specification": "NGCS 3.2",
+  "orientation": "target_by_source",
+  "authorization": {
+    "required": true,
+    "registration_estimated": false,
+    "implicit_resampling": false
+  },
+  "path": {
+    "kind": "supplied_non_lossy_affine",
+    "matrix_row_major": [
+      1, 0, 0, 1,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+    ]
+  },
+  "identity_reference": {
+    "source_elements": ["voxel:0", "voxel:1"],
+    "target_elements": ["voxel:0", "voxel:1"],
+    "operator_triplets": [
+      {"i": 1, "j": 1, "x": 1},
+      {"i": 2, "j": 2, "x": 1}
+    ],
+    "intensive_values": [10, 20],
+    "extensive_values": [3, 7],
+    "expected_intensive": [10, 20],
+    "expected_extensive": [3, 7]
+  },
+  "methods": {
+    "surface": ["nearest", "barycentric"],
+    "volume": ["nearest", "linear", "overlap"]
+  },
+  "policies": {
+    "coverage": ["error", "drop", "normalize"],
+    "conservation": ["strict", "normalize"],
+    "missing": ["error", "drop"],
+    "uncertainty": ["none", "value", "value_and_mapping"]
+  },
+  "language_independent": true
+}

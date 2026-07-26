@@ -1,0 +1,38 @@
+{
+  "schema": "NGCS-conformance-corpus-7",
+  "corpus_version": "3.5",
+  "language_independent": true,
+  "specifications": [
+    "1.0",
+    "1.1",
+    "1.2",
+    "1.3",
+    "2.0",
+    "2.1",
+    "2.2",
+    "2.3",
+    "2.4",
+    "2.5",
+    "2.6",
+    "2.7",
+    "2.8",
+    "2.9",
+    "2.9.1",
+    "3.0",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.4",
+    "3.5"
+  ],
+  "fixtures": [
+    {
+      "path": "replay-artifact-reference.json",
+      "schema": "NGCS-replay-artifact-reference-1",
+      "sha256": "02cca470e28e4fe64dd3aacf78d2f94d3457fe1909fdff32ad00b678b9c0e2a2"
+    }
+  ],
+  "prior_corpora": [
+    "../conformance-ngcs34"
+  ]
+}

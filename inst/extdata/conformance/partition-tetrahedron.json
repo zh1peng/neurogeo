@@ -1,0 +1,29 @@
+{
+  "fixture": "partition-tetrahedron",
+  "spec_version": "1.0",
+  "description": "Crisp two-region partition aligned to surface-tetrahedron.",
+  "base_fixture": "surface-tetrahedron",
+  "membership": ["A", "A", "B", "B"],
+  "background": null,
+  "expected": {
+    "regions": ["A", "B"],
+    "region_adjacency": [
+      [0, 1],
+      [1, 0]
+    ],
+    "cross_region_edge_count": [
+      [0, 4],
+      [4, 0]
+    ],
+    "intensive_aggregation": [15.0, 35.0],
+    "extensive_aggregation": [30.0, 70.0],
+    "region_support_size": [
+      0.8660254037844386,
+      0.8660254037844386
+    ]
+  },
+  "tolerance": {
+    "absolute": 1e-12,
+    "relative": 1e-12
+  }
+}

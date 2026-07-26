@@ -1,0 +1,106 @@
+---
+title: "Support uncertainty and operator ensembles"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Support uncertainty and operator ensembles}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+Uncertainty must be aligned to the same ordered domain as the values it
+describes. Version 2.2 represents independent variance, sparse/full
+covariance, and low-rank shared variation without creating a second assay in
+the dataset.
+
+```{r}
+source <- ngeo_points(
+  cbind(x = 1:6, y = 0),
+  values = cbind(signal = c(2, 4, 3, 8, 6, 10)),
+  measures = ngeo_measure(spatial_semantics = "intensive"),
+  space = ngeo_space("uncertainty-example")
+)
+atlas <- ngeo_atlas_map(
+  source,
+  c("A", "A", "B", "B", "C", "C"),
+  source_support = c(1, 2, 1, 2, 1, 2)
+)
+covariance <- ngeo_support_covariance(
+  source,
+  variance = rep(0.5, 6),
+  factor = matrix(rep(0.2, 6), ncol = 1)
+)
+analytic <- ngeo_support_uncertainty(
+  source,
+  atlas$target,
+  atlas,
+  covariance,
+  output = "covariance"
+)
+analytic
+```
+
+For intensive measurements, analytic propagation uses the derivative of
+the support-normalized ratio. The returned diagonal is scalable; full
+target covariance has a configurable size guard.
+
+```{r}
+monte_carlo <- ngeo_support_uncertainty(
+  source,
+  atlas$target,
+  atlas,
+  covariance,
+  method = "monte_carlo",
+  nsim = 200,
+  seed = 2202
+)
+monte_carlo
+```
+
+Alternative operators must have identical ordered source and target
+domains:
+
+```{r}
+probability <- matrix(
+  c(
+    1, 0, 0,
+    0.8, 0.2, 0,
+    0.2, 0.8, 0,
+    0, 1, 0,
+    0, 0.2, 0.8,
+    0, 0, 1
+  ),
+  nrow = 6,
+  byrow = TRUE,
+  dimnames = list(NULL, c("A", "B", "C"))
+)
+soft <- ngeo_probabilistic_atlas_map(
+  source,
+  probability,
+  target = atlas$target,
+  source_support = c(1, 2, 1, 2, 1, 2)
+)
+ensemble <- ngeo_segmentation_ensemble(list(hard = atlas, soft = soft))
+sensitivity <- ngeo_support_sensitivity(
+  source,
+  atlas$target,
+  ensemble
+)
+sensitivity
+```
+
+Between-operator variance measures sensitivity to the supplied alternatives.
+It is not automatically a calibrated registration or segmentation
+confidence interval.
+
+```{r}
+ngeo_support_condition(soft)
+ngeo_support_diagnostics(
+  soft,
+  source_structure = rep(c("left", "right"), each = 3)
+)
+```

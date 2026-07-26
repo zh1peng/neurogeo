@@ -1,0 +1,113 @@
+---
+title: "Bounded iterative spatial models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Bounded iterative spatial models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+NGCS 3.4 keeps exact-small modelling as a calibration reference and requires
+an explicit control object before iterative or approximate execution.
+
+```{r}
+library(neurogeo)
+
+coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
+values <- cbind(
+  response = 2 + coordinates[, 1] - 0.5 * coordinates[, 2],
+  x = coordinates[, 1],
+  y = coordinates[, 2]
+)
+data <- ngeo_points(coordinates, values = values)
+weights <- ngeo_weights(
+  data,
+  method = "distance_band",
+  threshold = 1.01,
+  style = "W"
+)
+control <- ngeo_solver_control(
+  tolerance = 1e-7,
+  max_iterations = 1000,
+  trace_order = 20,
+  trace_probes = 60,
+  seed = 3401,
+  workers = 1,
+  exact_threshold = 100
+)
+```
+
+For a small reference, request the exact determinant while retaining
+iterative SAR fitted-value solving.
+
+```{r}
+sar <- ngeo_spatial_regression_iterative(
+  data,
+  response = "response",
+  predictors = c("x", "y"),
+  weights = weights,
+  model = "sar",
+  control = control,
+  logdet = "exact"
+)
+sar
+sar$solve$relative_residual
+```
+
+For a larger workflow, exact/approximate selection is explicit. Approximate
+results include Monte Carlo and series-truncation diagnostics.
+
+```{r}
+approximate <- ngeo_logdet_approx(
+  weights,
+  parameter = 0.2,
+  control = ngeo_solver_control(
+    trace_order = 30,
+    trace_probes = 100,
+    exact_threshold = 10,
+    seed = 3402
+  ),
+  exact = FALSE
+)
+approximate
+```
+
+Iterative CAR requires symmetric weights and a declared precision.
+
+```{r}
+binary <- ngeo_weights(
+  data,
+  method = "distance_band",
+  threshold = 1.01,
+  style = "B"
+)
+car <- ngeo_car_iterative(
+  data,
+  "response",
+  binary,
+  type = "proper",
+  rho = 0.5,
+  precision = 2,
+  control = control
+)
+car
+```
+
+GWR and kriging batching preserves target order and changes execution
+grouping only.
+
+```{r}
+gwr <- ngeo_gwr_batched(
+  data,
+  "response",
+  c("x", "y"),
+  bandwidth = 3,
+  targets = c(9, 2, 17, 5, 21),
+  batch_size = 2
+)
+attr(gwr, "batch_diagnostics")
+```

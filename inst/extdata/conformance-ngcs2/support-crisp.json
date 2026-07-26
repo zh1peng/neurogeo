@@ -1,0 +1,24 @@
+{
+  "fixture_id": "ngcs2-support-crisp",
+  "spec_version": "2.0",
+  "type": "crisp",
+  "coverage": "complete",
+  "direction": "target_by_source",
+  "source_support": [1, 2, 1, 2],
+  "operator": [
+    [1, 1, 0, 0],
+    [0, 0, 1, 1]
+  ],
+  "values": {
+    "intensive": [10, 20, 30, 40],
+    "extensive": [1, 2, 3, 4]
+  },
+  "allocation": "error",
+  "expected": {
+    "target_support": [3, 3],
+    "intensive": [16.666666666666668, 36.666666666666664],
+    "extensive": [3, 7],
+    "extensive_total": 10
+  },
+  "tolerance": 1e-12
+}

@@ -1,0 +1,70 @@
+---
+title: "Explicit spaces and transform paths"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Explicit spaces and transform paths}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+Matching names are not proof that coordinate spaces are equivalent. A
+registry stores the complete normative space description and resolves
+aliases to one exact hash.
+
+```{r}
+native <- ngeo_space("native", template = "subject-01")
+intermediate <- ngeo_space("intermediate", template = "study-template")
+standard <- ngeo_space("standard", template = "public-template")
+registry <- ngeo_space_registry(
+  list(native, intermediate, standard),
+  aliases = c(subject = "native", reference = "standard")
+)
+ngeo_space_audit(native, standard)
+```
+
+The graph contains supplied transforms only.
+
+```{r}
+translation <- function(from, to, shift, method) {
+  matrix <- diag(4)
+  matrix[1:3, 4] <- shift
+  ngeo_transform(
+    from,
+    to,
+    "affine",
+    method = method,
+    parameters = list(matrix = matrix)
+  )
+}
+native_to_intermediate <- translation(
+  native, intermediate, c(1, 0, 0), "supplied step 1"
+)
+intermediate_to_standard <- translation(
+  intermediate, standard, c(0, 2, 0), "supplied step 2"
+)
+graph <- ngeo_transform_graph(
+  registry,
+  list(native_to_intermediate, intermediate_to_standard),
+  edge_ids = c("native-study", "study-standard")
+)
+path <- ngeo_transform_path(graph, "subject", "reference")
+ngeo_transform_path_provenance(path)
+```
+
+Path application is geometry-only and requires explicit authorization.
+Lossy or unsupported non-affine paths remain auditable but cannot be applied.
+
+```{r}
+x <- ngeo_points(
+  cbind(x = c(0, 1), y = c(0, 1)),
+  values = cbind(signal = c(1, 2)),
+  space = native
+)
+changed <- ngeo_apply_transform_path(x, path, authorize = TRUE)
+changed$domain$coordinates
+```

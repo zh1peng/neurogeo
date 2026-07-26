@@ -1,0 +1,26 @@
+{
+  "schema": "NGCS-schema-registry-reference-1",
+  "specification": "NGCS 3.0",
+  "schemas": [
+    "ngcs/ngeo-surface",
+    "ngcs/ngeo-volume",
+    "ngcs/ngeo-points",
+    "ngcs/ngeo-grayordinates",
+    "ngcs/ngeo-regions",
+    "ngcs/space",
+    "ngcs/transform",
+    "ngcs/weights",
+    "ngcs/partition",
+    "ngcs/support-map",
+    "ngcs/block-support-map",
+    "ngcs/support-covariance",
+    "ngcs/support-ensemble",
+    "ngcs/delayed-values",
+    "ngcs/space-registry",
+    "ngcs/transform-graph",
+    "ngcs/execution-plan",
+    "ngcs/resource-budget"
+  ],
+  "schema_version": "3.0",
+  "language_independent": true
+}

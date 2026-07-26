@@ -1,0 +1,61 @@
+{
+  "schema": "NGCS-spatiotemporal-reference-1",
+  "specification": "NGCS 3.3",
+  "time_axis": {
+    "time": [0, 1, 3],
+    "unit": "second",
+    "support": "instant",
+    "strictly_increasing": true,
+    "inferred_from_map_count": false
+  },
+  "values": {
+    "orientation": "element_by_time",
+    "matrix_row_major": [
+      1, 2, 4,
+      2, 4, 8
+    ],
+    "one_spatial_domain": true,
+    "one_values_block": true
+  },
+  "temporal_weights": {
+    "method": "adjacent",
+    "normalization": "binary",
+    "directed": false,
+    "matrix_row_major": [
+      0, 1, 0,
+      1, 0, 1,
+      0, 1, 0
+    ]
+  },
+  "spatial_weights": {
+    "normalization": "binary",
+    "matrix_row_major": [
+      0, 1,
+      1, 0
+    ]
+  },
+  "spatiotemporal_weights": {
+    "combination": "sum",
+    "spatial_scale": 0.5,
+    "normative_execution": "matrix_free",
+    "stored_kronecker_matrix": false,
+    "lag_matrix_row_major": [
+      2, 4.5, 5,
+      2.5, 6, 4
+    ]
+  },
+  "pair_accounting": {
+    "temporal_pairs_per_element": 3,
+    "temporal_pairs_total": 6,
+    "space_time_observations": 6,
+    "space_time_pairs_total": 15
+  },
+  "temporal_semantics": [
+    "instantaneous",
+    "interval_mean",
+    "interval_total",
+    "rate",
+    "categorical"
+  ],
+  "language_independent": true
+}

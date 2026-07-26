@@ -1,0 +1,111 @@
+---
+title: "Transform-aware resampling"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Transform-aware resampling}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+NGCS 3.2 connects a transform graph to support mapping without estimating
+registration or resampling implicitly.
+
+Register exact spaces and supplied transforms first.
+
+```{r}
+native <- ngeo_space("native", kind = "volume")
+standard <- ngeo_space("standard", kind = "volume")
+
+affine <- diag(4)
+affine[1, 4] <- 10
+known <- ngeo_transform(
+  native,
+  standard,
+  type = "affine",
+  method = "supplied scanner-to-template affine",
+  parameters = list(matrix = affine)
+)
+
+registry <- ngeo_space_registry(list(native, standard))
+graph <- ngeo_transform_graph(
+  registry,
+  transforms = list(known),
+  edge_ids = "native-to-standard",
+  invertible = FALSE,
+  lossy = FALSE
+)
+path <- ngeo_transform_path(graph, "native", "standard")
+```
+
+The source and target are ordinary NGCS objects. The target is a domain
+template; its values are not used.
+
+```{r}
+plan <- ngeo_resampling_plan(
+  source,
+  target,
+  path,
+  method = "linear",
+  coverage = "error",
+  conservation = "strict",
+  missing = "error",
+  unknown = "error",
+  uncertainty = "none",
+  budget = ngeo_resource_budget(
+    memory_bytes = 256 * 1024^2,
+    materialized_elements = 2e7
+  )
+)
+```
+
+Plan creation is inert. Building a map or resampling requires explicit
+authorization.
+
+```{r}
+support_map <- ngeo_build_resampling_map(
+  plan, authorize = TRUE
+)
+diagnostics <- ngeo_resampling_diagnostics(plan, support_map)
+
+result <- ngeo_resample(plan, authorize = TRUE)
+result$data
+result$diagnostics
+```
+
+Surface plans support nearest and barycentric mapping. Volume plans support
+nearest, trilinear (`method = "linear"`), and exact axis-aligned overlap.
+The path must be supplied, non-lossy, and affine-applicable. An auditable warp
+edge remains useful in a transform graph, but the 3.2 bridge refuses to
+execute it.
+
+Coverage and conservation are different decisions. Coverage controls
+geometric contributions outside the target; conservation determines whether
+non-unit extensive/count allocation fails or is explicitly normalized.
+Unknown measurement semantics fail unless the caller selects an
+interpretation.
+
+Uncertainty must be declared in the plan.
+
+```{r}
+uncertain_plan <- ngeo_resampling_plan(
+  source,
+  target,
+  path,
+  method = "nearest",
+  uncertainty = "value"
+)
+uncertain <- ngeo_resample(
+  uncertain_plan,
+  value_variance = source_variance,
+  authorize = TRUE
+)
+uncertain$variance
+```
+
+The result dataset still has exactly one target spatial domain and one
+aligned values block. Variance, the sparse map, diagnostics, and joint
+path/plan/map hashes are explicit result components.

@@ -1,0 +1,22 @@
+{
+  "schema": "NGCS-2.1-support-builder-fixture",
+  "case": "volume_trilinear_half",
+  "tolerance": 1e-12,
+  "space_id": "registered-grid",
+  "source": {
+    "dim": [1, 1, 1],
+    "affine": [[1, 0, 0, 0.5], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+    "index_base": "zero"
+  },
+  "target": {
+    "dim": [2, 1, 1],
+    "affine": [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+    "index_base": "zero"
+  },
+  "method": "trilinear",
+  "expected": {
+    "type": "probabilistic",
+    "coverage": "complete",
+    "operator": [[0.5], [0.5]]
+  }
+}

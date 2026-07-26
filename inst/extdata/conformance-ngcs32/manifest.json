@@ -1,0 +1,35 @@
+{
+  "schema": "NGCS-conformance-corpus-4",
+  "corpus_version": "3.2",
+  "language_independent": true,
+  "specifications": [
+    "1.0",
+    "1.1",
+    "1.2",
+    "1.3",
+    "2.0",
+    "2.1",
+    "2.2",
+    "2.3",
+    "2.4",
+    "2.5",
+    "2.6",
+    "2.7",
+    "2.8",
+    "2.9",
+    "2.9.1",
+    "3.0",
+    "3.1",
+    "3.2"
+  ],
+  "fixtures": [
+    {
+      "path": "resampling-reference.json",
+      "schema": "NGCS-resampling-reference-1",
+      "sha256": "93cd5d65a744753e85ddc2ffa30a2981e4b4e5698bf261e5509ff96924dca5a9"
+    }
+  ],
+  "prior_corpora": [
+    "../conformance-ngcs31"
+  ]
+}

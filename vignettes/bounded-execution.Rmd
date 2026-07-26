@@ -1,0 +1,73 @@
+---
+title: "Bounded and resumable execution"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Bounded and resumable execution}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+neurogeo 2.6 keeps the core representation unchanged: one spatial domain and
+one strictly aligned values block. Bounded execution controls how that object
+is processed.
+
+```{r}
+backing <- cbind(signal = seq_len(12), predictor = 0:11)
+delayed <- ngeo_delayed_values(
+  function(rows, columns) backing[rows, columns, drop = FALSE],
+  dim(backing),
+  map_names = colnames(backing),
+  source = "documented callback"
+)
+x <- ngeo_points(
+  cbind(x = 0:11, y = 0),
+  values = delayed,
+  measures = rbind(
+    ngeo_measure(spatial_semantics = "intensive"),
+    ngeo_measure(spatial_semantics = "intensive")
+  )
+)
+ngeo_stream_summary(x, chunk_size = 4)
+ngeo_stream_lm(x, "signal", "predictor", chunk_size = 4)
+```
+
+Block support operations consume sparse blocks directly.
+
+```{r}
+map <- ngeo_atlas_map(
+  x,
+  rep(c("A", "B", "C"), each = 4),
+  source_support = rep(1, 12)
+)
+blocked <- ngeo_block_support_map(map, 1, 3)
+target <- ngeo_change_support_block(
+  x,
+  map$target,
+  blocked,
+  budget = ngeo_resource_budget(blocks = 20)
+)
+ngeo_block_diagnostics(blocked)
+```
+
+Execution checkpoints are identity-bound. A changed domain, operator,
+semantics, or parameter identity must use a new plan.
+
+```{r}
+checkpoint <- tempfile(fileext = ".json")
+plan <- ngeo_execution_plan(
+  "square",
+  as.list(1:3),
+  function(task, index) task^2,
+  identity = list(domain_hash = ngeo_domain_hash(x)),
+  checkpoint = checkpoint
+)
+ngeo_execute(plan)
+```
+
+Use `ngeo_atomic_write()` for final outputs. If the writer fails, the final
+path is not created.

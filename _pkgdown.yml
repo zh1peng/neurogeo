@@ -1,0 +1,282 @@
+template:
+  bootstrap: 5
+
+home:
+  title: neurogeo
+  description: Neuroimaging Geoinformatics Core Specification reference implementation
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search]
+
+articles:
+- title: Workflows
+  navbar: Workflows
+  contents:
+  - core-concepts
+  - reading-data
+  - neighbors-and-weights
+  - parcellation-and-aggregation
+  - change-of-support
+  - real-world-support-mapping
+  - support-uncertainty
+  - support-aware-inference
+  - spatial-modelling
+  - scalable-io
+  - bounded-execution
+  - model-uncertainty
+  - space-transform-graph
+  - interoperability-29
+  - schema-validation
+  - file-backed-io
+  - transform-aware-resampling
+  - spatiotemporal-analysis
+  - iterative-spatial-models
+  - reproducible-replay
+
+reference:
+- title: Domains and semantics
+  contents:
+  - ngeo_surface
+  - ngeo_volume
+  - ngeo_points
+  - ngeo_grayordinates
+  - ngeo_regions
+  - ngeo_space
+  - ngeo_transform
+  - ngeo_validate_transform
+  - ngeo_apply_transform
+  - ngeo_compose_transform
+  - ngeo_invert_transform
+  - ngeo_space_hash
+  - ngeo_space_audit
+  - ngeo_space_registry
+  - ngeo_validate_space_registry
+  - ngeo_register_space
+  - ngeo_resolve_space
+  - ngeo_transform_hash
+  - ngeo_transform_graph
+  - ngeo_add_transform
+  - ngeo_validate_transform_graph
+  - ngeo_transform_path
+  - ngeo_transform_graph_diagnostics
+  - ngeo_transform_path_provenance
+  - ngeo_apply_transform_path
+  - ngeo_measure
+- title: Topology, metrics, and weights
+  contents:
+  - ngeo_adjacency
+  - ngeo_distance
+  - ngeo_metric
+  - ngeo_neighbors
+  - ngeo_weights
+- title: Temporal and spatiotemporal analysis
+  contents:
+  - ngeo_time_axis
+  - ngeo_time_axis_validation
+  - ngeo_set_time_axis
+  - ngeo_get_time_axis
+  - ngeo_time_slice
+  - ngeo_temporal_weights
+  - ngeo_validate_temporal_weights
+  - ngeo_temporal_neighbors
+  - ngeo_spatiotemporal_weights
+  - ngeo_validate_spatiotemporal_weights
+  - ngeo_materialize_spatiotemporal_weights
+  - ngeo_spatiotemporal_lag
+  - ngeo_temporal_moran
+  - ngeo_spatiotemporal_moran
+  - ngeo_temporal_variogram
+  - ngeo_spatiotemporal_variogram
+  - ngeo_longitudinal_change
+  - ngeo_temporal_trend
+  - ngeo_temporal_contrast
+- title: Iterative and batched spatial models
+  contents:
+  - ngeo_solver_control
+  - ngeo_validate_solver_control
+  - ngeo_iterative_solve
+  - ngeo_logdet_approx
+  - ngeo_spatial_regression_iterative
+  - ngeo_car_iterative
+  - ngeo_gwr_batched
+  - ngeo_kriging_batched
+- title: Partitions and aggregation
+  contents:
+  - ngeo_partition
+  - ngeo_boundary
+  - ngeo_region_adjacency
+  - ngeo_aggregate
+- title: Change of support
+  contents:
+  - ngeo_resampling_plan
+  - ngeo_validate_resampling_plan
+  - ngeo_build_resampling_map
+  - ngeo_resampling_diagnostics
+  - ngeo_resample
+  - ngeo_support_map
+  - ngeo_validate_support_map
+  - ngeo_support_map_hash
+  - ngeo_support_map_from_partition
+  - ngeo_compose_support_map
+  - ngeo_change_support
+  - ngeo_support_variance
+  - ngeo_atlas_overlap
+  - ngeo_atlas_compare
+  - ngeo_cross_atlas
+  - ngeo_parcellation_inference
+  - ngeo_surface_nearest_map
+  - ngeo_surface_barycentric_map
+  - ngeo_surface_registration_map
+  - ngeo_affine_grid_map
+  - ngeo_voxel_overlap_map
+  - ngeo_atlas_map
+  - ngeo_label_overlap_map
+  - ngeo_probabilistic_atlas_map
+  - ngeo_support_entropy
+  - ngeo_support_diagnostics
+  - ngeo_support_monte_carlo
+  - ngeo_support_sensitivity
+  - ngeo_boundary_sensitivity
+  - ngeo_atlas_robust_effect
+  - ngeo_support_test
+  - ngeo_support_covariance
+  - ngeo_validate_support_covariance
+  - ngeo_support_uncertainty
+  - ngeo_support_ensemble
+  - ngeo_registration_ensemble
+  - ngeo_segmentation_ensemble
+  - ngeo_validate_support_ensemble
+  - ngeo_support_condition
+  - ngeo_support_adjust
+  - ngeo_common_support_test
+  - ngeo_cross_atlas_consensus
+  - ngeo_multiscale_inference
+  - ngeo_boundary_test
+  - plot.ngeo_support_map
+  - plot.ngeo_support_diagnostics
+- title: Spatial statistics
+  contents:
+  - ngeo_moran
+  - ngeo_geary
+  - ngeo_local_moran
+  - ngeo_getis_ord
+  - ngeo_correlogram
+  - ngeo_permutation_control
+  - ngeo_variogram
+  - ngeo_spin_null
+  - ngeo_moran_null
+  - ngeo_spatial_lm
+  - ngeo_kernel_regression
+  - ngeo_fit_variogram
+  - ngeo_kriging
+  - ngeo_gwr_bandwidth
+  - ngeo_gwr
+  - ngeo_spatial_regression
+  - ngeo_car
+  - ngeo_support_model
+  - ngeo_variogram_uncertainty
+  - ngeo_kriging_uncertainty
+  - ngeo_gwr_uncertainty
+  - ngeo_spatial_regression_uncertainty
+  - ngeo_car_uncertainty
+  - ngeo_support_model_ensemble
+  - ngeo_model_calibration
+- title: Input
+  contents:
+  - starts_with("read_ngeo")
+- title: Output and provenance
+  contents:
+  - starts_with("write_ngeo")
+  - ngeo_export_provenance
+  - write_ngeo_cifti
+  - ngeo_bids_sidecar
+  - write_ngeo_bids_derivative
+- title: Scalable values and support
+  contents:
+  - ngeo_delayed_values
+  - ngeo_value_chunks
+  - ngeo_block_support_map
+  - ngeo_validate_block_support_map
+  - ngeo_materialize_support_map
+  - ngeo_change_support_block
+  - ngeo_block_diagnostics
+  - ngeo_block_variance
+  - ngeo_compose_block_support_map
+  - ngeo_resource_budget
+  - ngeo_execution_plan
+  - ngeo_execute
+  - ngeo_cache
+  - ngeo_cache_compute
+  - ngeo_atomic_write
+  - ngeo_stream_summary
+  - ngeo_stream_covariance
+  - ngeo_stream_lm
+  - ngeo_stream_moran
+  - ngeo_file_values
+  - ngeo_validate_file_values
+  - ngeo_file_values_identity
+- title: Validation and accessors
+  contents:
+  - ngeo_accessors
+  - ngeo_capabilities
+  - ngeo_domain_hash
+  - ngeo_domain_type
+  - ngeo_subset
+  - ngeo_validate
+- title: Reproducibility and artifact integrity
+  contents:
+  - ngeo_logical_hash
+  - ngeo_provenance_dag
+  - ngeo_validate_provenance_dag
+  - ngeo_environment_snapshot
+  - ngeo_replay_step
+  - ngeo_record_replay
+  - ngeo_validate_replay_manifest
+  - ngeo_replay
+  - ngeo_replay_manifest_io
+  - ngeo_artifact_manifest
+  - ngeo_validate_artifact_manifest
+  - ngeo_artifact_manifest_io
+  - ngeo_write_artifact_batch
+  - ngeo_read_artifact_batch
+  - ngeo_validate_artifact_batch
+- title: Geometry diagnostics
+  contents:
+  - ngeo_components
+  - ngeo_support_size
+  - ngeo_vertex_area
+  - ngeo_voxel_volume
+  - ngeo_set_chart
+  - ngeo_chart_distortion
+  - ngeo_as_sf
+  - plot.ngeo
+  - plot.ngeo_weights
+  - plot.ngeo_partition
+  - plot.ngeo_global_stat
+- title: Interoperability
+  contents:
+  - as_igraph
+  - as_spdep_nb
+  - as_spdep_listw
+  - ngeo_validate_cifti_contract
+  - ngeo_bids_parse_name
+  - ngeo_bids_build_name
+  - ngeo_validate_bids_sidecar
+  - write_ngeo_support_bundle
+  - read_ngeo_support_bundle
+  - ngeo_validate_support_bundle
+  - ngeo_migrate_support_map_exchange
+  - ngeo_conformance_manifest
+  - ngeo_compatibility_matrix
+  - ngeo_api_inventory
+  - ngeo_schema_registry
+  - ngeo_schema
+  - ngeo_validate_schema
+  - ngeo_object_manifest
+  - ngeo_validate_manifest
+  - write_ngeo_manifest
+  - read_ngeo_manifest
+  - ngeo_migrate_schema
+  - ngeo_api_lifecycle

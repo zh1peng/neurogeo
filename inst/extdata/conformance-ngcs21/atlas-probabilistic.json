@@ -1,0 +1,17 @@
+{
+  "schema": "NGCS-2.1-support-builder-fixture",
+  "case": "atlas_probabilistic",
+  "tolerance": 1e-12,
+  "source": {
+    "coordinates": [[0, 0], [1, 0], [2, 0]],
+    "support": [1, 2, 1]
+  },
+  "region_id": ["A", "B"],
+  "probabilities_source_by_region": [[0.8, 0.2], [0.3, 0.7], [0, 1]],
+  "expected": {
+    "type": "probabilistic",
+    "coverage": "complete",
+    "operator_target_by_source": [[0.8, 0.3, 0], [0.2, 0.7, 1]],
+    "target_support": [1.4, 2.6]
+  }
+}

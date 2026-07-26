@@ -1,0 +1,121 @@
+test_that("delayed values preserve one aligned block and chunk exactly", {
+  backing <- matrix(seq_len(30), nrow = 10L, ncol = 3L)
+  colnames(backing) <- c("a", "b", "c")
+  delayed <- ngeo_delayed_values(
+    function(rows, columns) backing[rows, columns, drop = FALSE],
+    dim = dim(backing),
+    map_names = c("a", "b", "c")
+  )
+  x <- ngeo_points(
+    cbind(x = 1:10, y = 0),
+    values = delayed
+  )
+  chunks <- ngeo_value_chunks(
+    x,
+    chunk_size = 4L,
+    FUN = function(block, rows) cbind(rows, block)
+  )
+
+  expect_s3_class(x$values, "ngeo_delayed_values")
+  expect_equal(as.matrix(x$values), backing)
+  expect_equal(do.call(rbind, chunks)[, -1L], backing)
+  expect_equal(vapply(chunks, nrow, integer(1)), c(4L, 4L, 2L))
+})
+
+test_that("block and monolithic support maps are logically identical", {
+  fixture <- diagnostic_fixture()
+  block <- ngeo_block_support_map(
+    fixture$soft,
+    row_block_size = 1L,
+    source_block_size = 2L
+  )
+  restored <- ngeo_materialize_support_map(block)
+  direct <- ngeo_change_support(
+    fixture$source, fixture$target, fixture$soft
+  )
+  changed <- ngeo_change_support_block(
+    fixture$source, fixture$target, block
+  )
+
+  expect_s3_class(block, "ngeo_block_support_map")
+  expect_identical(ngeo_support_map_hash(restored), block$logical_hash)
+  expect_equal(restored$operator, fixture$soft$operator)
+  expect_equal(changed$values, direct$values)
+})
+
+test_that("pure-R CIFTI writer round-trips all supported dense types", {
+  skip_if_not_installed("cifti")
+  cases <- c("dscalar", "dlabel", "dtseries")
+  for (type in cases) {
+    source <- read_ngeo_cifti(
+      golden_path(paste0("tiny.", type, ".nii")),
+      checksum = FALSE
+    )
+    path <- tempfile(fileext = paste0(".", type, ".nii"))
+    write_ngeo_cifti(source, path, type = type)
+    restored <- read_ngeo_cifti(path, checksum = FALSE)
+
+    expect_equal(restored$values, source$values, tolerance = 1e-6)
+    expect_identical(restored$maps$name, source$maps$name)
+    expect_identical(
+      restored$domain$elements$structure,
+      source$domain$elements$structure
+    )
+    expect_equal(
+      lapply(restored$domain$components, function(z) {
+        if (is.null(z$vertex_index)) z$voxel_index else z$vertex_index
+      }),
+      lapply(source$domain$components, function(z) {
+        if (is.null(z$vertex_index)) z$voxel_index else z$vertex_index
+      })
+    )
+    if (type == "dlabel") {
+      expect_identical(
+        restored$labels[[1L]]$table$Label,
+        source$labels[[1L]]$table$Label
+      )
+    }
+    if (type == "dtseries") {
+      expect_equal(restored$maps$time, source$maps$time)
+      expect_identical(restored$maps$time_unit, source$maps$time_unit)
+    }
+  }
+})
+
+test_that("BIDS derivative sidecars retain semantics and provenance", {
+  skip_if_not_installed("cifti")
+  skip_if_not_installed("jsonlite")
+  x <- read_ngeo_cifti(
+    golden_path("tiny.dscalar.nii"),
+    checksum = FALSE
+  )
+  path <- tempfile(fileext = ".dscalar.nii")
+  output <- write_ngeo_bids_derivative(
+    x,
+    path,
+    entities = list(space = "fsLR", desc = "effect")
+  )
+  sidecar <- jsonlite::fromJSON(output[["sidecar"]])
+
+  expect_true(all(file.exists(output)))
+  expect_identical(sidecar$DomainHash, ngeo_domain_hash(x))
+  expect_identical(sidecar$Entities$space, "fsLR")
+  expect_equal(nrow(sidecar$MeasurementSemantics), nrow(x$maps))
+})
+
+test_that("delayed and block contracts reject misalignment", {
+  expect_error(
+    ngeo_delayed_values(
+      function(rows, columns) matrix(1, 1, 1),
+      c(3, 2)
+    )[1:2, 1:2],
+    class = "ngeo_error_alignment"
+  )
+  fixture <- diagnostic_fixture()
+  block <- ngeo_block_support_map(fixture$hard, 1L, 2L)
+  block$blocks[[1L]][[1L]][1, 1] <- 0
+  expect_error(
+    ngeo_validate_block_support_map(block),
+    class = "ngeo_error_support_map"
+  )
+})

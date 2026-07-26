@@ -1,0 +1,24 @@
+{
+  "fixture_id": "ngcs2-support-overlapping",
+  "spec_version": "2.0",
+  "type": "overlapping",
+  "coverage": "complete",
+  "direction": "target_by_source",
+  "source_support": [1, 2, 1, 2],
+  "operator": [
+    [1, 1, 1, 0],
+    [0, 1, 1, 1]
+  ],
+  "values": {
+    "intensive": [10, 20, 30, 40],
+    "extensive": [1, 2, 3, 4]
+  },
+  "allocation": "normalize",
+  "expected": {
+    "target_support": [4, 5],
+    "intensive": [20, 30],
+    "extensive": [3.5, 6.5],
+    "extensive_total": 10
+  },
+  "tolerance": 1e-12
+}

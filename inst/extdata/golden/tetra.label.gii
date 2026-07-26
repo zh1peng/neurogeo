@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GIFTI Version="1.0" NumberOfDataArrays="1">
+  <MetaData>
+    <MD>
+      <Name>Generator</Name>
+      <Value>fsbrain</Value>
+    </MD>
+  </MetaData>
+  <LabelTable>
+    <Label Red="0" Green="0" Blue="0" Alpha="0" Key="0" Index="0"><![CDATA[background]]></Label>
+    <Label Red="220" Green="20" Blue="60" Alpha="0" Key="3937500" Index="3937500"><![CDATA[region]]></Label>
+  </LabelTable>
+  <DataArray Dimensionality="1" Dim0="4" Encoding="GZipBase64Binary" DataType="NIFTI_TYPE_INT32" Intent="NIFTI_INTENT_LABEL" Endian="LittleEndian" ExternalFileName="" ExternalFileOffset="" ArrayIndexingOrder="RowMajorOrder">
+    <MetaData/>
+    <Data>eJwBEADv/wAAAADcFDwA3BQ8AAAAAAAWaAJZ</Data>
+  </DataArray>
+</GIFTI>

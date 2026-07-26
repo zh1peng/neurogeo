@@ -1,0 +1,102 @@
+---
+title: "Support-aware inference"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Support-aware inference}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+Version 2.3 tests a declared family of spatial supports by generating one
+source-domain null realization per replicate and applying that same
+realization to every support map.
+
+```{r}
+source <- ngeo_surface(
+  coordinates = cbind(
+    x = c(0, 1, 2, 0, 1, 2),
+    y = c(0, 0, 0, 1, 1, 1),
+    z = 0
+  ),
+  faces = matrix(
+    c(1, 2, 5, 1, 5, 4, 2, 3, 6, 2, 6, 5),
+    ncol = 3,
+    byrow = TRUE
+  ),
+  values = cbind(
+    outcome = c(1.1, 2.9, 5.2, 2.8, 7.1, 10.9),
+    predictor = c(0, 1, 2, 1, 3, 5)
+  ),
+  measures = rbind(
+    ngeo_measure(spatial_semantics = "intensive"),
+    ngeo_measure(spatial_semantics = "intensive")
+  ),
+  space = ngeo_space("support-inference-example", kind = "surface")
+)
+first <- ngeo_atlas_map(source, c("A", "A", "B", "B", "C", "C"))
+second <- ngeo_atlas_map(
+  source,
+  c("A", "B", "B", "C", "C", "A"),
+  target = first$target
+)
+maps <- list(first = first, second = second)
+targets <- rep(list(first$target), 2)
+```
+
+An unconstrained permutation is explicitly marked as non-spatial. Use a
+Moran spectral null with matching weights or a surface spin with valid
+spherical registration coordinates when spatial preservation is required.
+
+```{r}
+family_test <- ngeo_common_support_test(
+  source,
+  maps,
+  targets,
+  outcome = "outcome",
+  predictor = "predictor",
+  adjustment = "maxT",
+  nsim = 99,
+  seed = 2301
+)
+family_test
+family_test$estimates
+```
+
+Atlas effects include intervals, random-effects consensus, heterogeneity,
+and leave-one-atlas-out influence.
+
+```{r}
+effect <- ngeo_atlas_robust_effect(
+  source,
+  maps,
+  targets,
+  outcome = "outcome",
+  predictor = "predictor"
+)
+effect$estimates
+effect$meta_analysis
+```
+
+Scale order is never inferred. It must be declared by the caller.
+
+```{r}
+multiscale <- ngeo_multiscale_inference(
+  source,
+  maps,
+  targets,
+  scales = c("coarse", "fine"),
+  outcome = "outcome",
+  predictor = "predictor",
+  nsim = 49,
+  seed = 2302
+)
+multiscale$adjacent_change
+```
+
+These results quantify sensitivity over the supplied support family. They do
+not establish parcellation- or scale-invariant local effects.

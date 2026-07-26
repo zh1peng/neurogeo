@@ -1,0 +1,100 @@
+---
+title: "Explicit temporal and spatiotemporal analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Explicit temporal and spatiotemporal analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+NGCS 3.3 aligns time to maps while retaining one spatial domain and one
+element-by-map values block. It does not expand point, vertex, voxel, region,
+or grayordinate geometry through time.
+
+```{r}
+library(neurogeo)
+
+coordinates <- matrix(
+  c(0, 0, 1, 0, 2, 0),
+  ncol = 2,
+  byrow = TRUE
+)
+values <- matrix(
+  c(
+    1, 2, 4,
+    2, 4, 8,
+    4, 8, 16,
+    8, 16, 32
+  ),
+  nrow = 3
+)
+x <- ngeo_points(coordinates, values = values)
+axis <- ngeo_time_axis(
+  time = c(0, 1, 3, 6),
+  unit = "second"
+)
+x <- ngeo_set_time_axis(
+  x, axis, temporal_semantics = "instantaneous"
+)
+```
+
+Time slicing changes only the aligned map dimension.
+
+```{r}
+slice <- ngeo_time_slice(x, index = c(1, 3))
+identical(ngeo_domain_hash(slice), ngeo_domain_hash(x))
+ngeo_get_time_axis(slice)$time
+```
+
+Spatial and temporal operators remain independent sparse components. The
+combined operator records a Kronecker-sum contract but does not store the
+space-by-time matrix.
+
+```{r}
+spatial <- ngeo_weights(
+  x, method = "distance_band", threshold = 1.1, style = "W"
+)
+temporal <- ngeo_temporal_weights(axis, style = "W")
+space_time <- ngeo_spatiotemporal_weights(
+  spatial, temporal, combination = "sum", spatial_scale = 0.5
+)
+
+lag <- ngeo_spatiotemporal_lag(x, space_time)
+moran <- ngeo_spatiotemporal_moran(
+  x, space_time, permutations = 99, seed = 33
+)
+moran
+```
+
+Variograms require a hard pair budget. Longitudinal helpers derive ordinary
+spatial maps with source domain and axis identities in provenance.
+
+```{r}
+ngeo_temporal_variogram(x, breaks = 3, max_pairs = 100)
+ngeo_longitudinal_change(x, from = 1, to = 4, scale = "rate")
+ngeo_temporal_trend(x)
+```
+
+For interval data, construct explicit interval boundaries and use compatible
+semantics.
+
+```{r}
+interval_axis <- ngeo_time_axis(
+  time = c(0.5, 2),
+  unit = "hour",
+  interval_start = c(0, 1),
+  interval_end = c(1, 3)
+)
+interval_data <- ngeo_points(
+  coordinates,
+  values = matrix(1:6, nrow = 3)
+)
+interval_data <- ngeo_set_time_axis(
+  interval_data, interval_axis, temporal_semantics = "rate"
+)
+ngeo_temporal_contrast(interval_data, operation = "integral")
+```

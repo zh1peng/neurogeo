@@ -1,0 +1,66 @@
+---
+title: "Auditable replay and derivative artifacts"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Auditable replay and derivative artifacts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+NGCS 3.5 records a small, deterministic neurogeo analysis as data. It is a
+verification layer, not a general workflow engine: manifests cannot contain
+R functions or arbitrary code.
+
+```{r}
+library(neurogeo)
+
+x <- ngeo_points(
+  cbind(x = 1:4, y = 0, z = 0),
+  values = cbind(t0 = 1:4, t1 = 2 * (1:4), t2 = 3 * (1:4))
+)
+x <- ngeo_set_time_axis(
+  x,
+  ngeo_time_axis(start = 0, step = 1, n = 3, unit = "day"),
+  temporal_semantics = "instantaneous"
+)
+
+steps <- list(
+  ngeo_replay_step(
+    "window", "ngeo_time_slice", c(x = "source"),
+    list(index = 1:2)
+  ),
+  ngeo_replay_step(
+    "trend", "ngeo_temporal_trend", c(x = "window")
+  )
+)
+manifest <- ngeo_record_replay(
+  list(source = x), steps, outputs = "trend"
+)
+verified <- ngeo_replay(manifest, list(source = x))
+verified$verified
+```
+
+The logical hash covers the ordered domain, aligned values, measurement
+semantics, maps, labels, and file identity. Execution timestamps do not
+change it. Replay checks the environment and every input, intermediate, and
+final hash before returning verified outputs.
+
+Related derivatives can be published as one complete directory transition.
+
+```{r eval=FALSE}
+batch <- ngeo_write_artifact_batch(
+  "derivatives/neurogeo/sub-01",
+  c("sub-01_metric.tsv", "sub-01_metric.json"),
+  list(
+    function(path) write.table(metric, path, sep = "\t"),
+    function(path) jsonlite::write_json(sidecar, path)
+  ),
+  roles = c("metric", "sidecar"),
+  entities = list(subject = "01", datatype = "anat")
+)
+ngeo_read_artifact_batch("derivatives/neurogeo/sub-01")
+```
+
+Artifacts use root-relative paths and content SHA-256 values. Batch scope is
+fixed to `derivative_only`; neurogeo does not discover or orchestrate an
+entire BIDS dataset.

@@ -1,0 +1,65 @@
+---
+title: "Interoperability and auditable exchange"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Interoperability and auditable exchange}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+NGCS 2.9 makes supported file contracts explicit. It does not add
+registration, resampling, preprocessing, or dataset orchestration.
+
+Canonical BIDS derivative names are built from validated, ordered entities.
+
+```{r}
+entities <- list(sub = "01", space = "fsLR", desc = "effect")
+name <- ngeo_bids_build_name(
+  entities,
+  suffix = "dscalar",
+  extension = ".dscalar.nii"
+)
+name
+ngeo_bids_parse_name(name)
+```
+
+Support maps can be exchanged as checksum-verified chunks. The bundle uses
+JSON plus Matrix Market and preserves the complete logical map hash.
+
+```{r eval=FALSE}
+bundle <- write_ngeo_support_bundle(
+  support_map,
+  "support-map.ngcs",
+  chunk_size = 100000L
+)
+ngeo_validate_support_bundle(bundle$path)
+restored <- read_ngeo_support_bundle(bundle$path)
+```
+
+CIFTI writing validates datatype and axis semantics before any final file is
+published.
+
+```{r eval=FALSE}
+ngeo_validate_cifti_contract(x, "dscalar", datatype = "float64")
+write_ngeo_cifti(
+  x,
+  "sub-01_desc-effect.dscalar.nii",
+  type = "dscalar",
+  datatype = "float64",
+  named_map_metadata = list(list(Description = "effect estimate"))
+)
+```
+
+The conformance corpus and readiness inventories are machine-readable.
+
+```{r}
+manifest <- ngeo_conformance_manifest()
+manifest$corpus_version
+ngeo_compatibility_matrix()
+head(ngeo_api_inventory())
+```

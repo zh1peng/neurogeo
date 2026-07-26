@@ -1,0 +1,78 @@
+---
+title: "File-backed neuroimaging values"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{File-backed neuroimaging values}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+NGCS 3.1 keeps one spatial domain and one aligned element-by-map values
+block, but the block can address a source file instead of retaining the
+complete matrix.
+
+```{r}
+library(neurogeo)
+
+x <- read_ngeo_nifti_filebacked(
+  "sub-01_task-rest_bold.nii.gz",
+  frames = 1:20,
+  verify = "checksum",
+  budget = ngeo_resource_budget(
+    memory_bytes = 64 * 1024^2,
+    materialized_elements = 8e6
+  )
+)
+
+x$values[1:1000, 1:2, drop = FALSE]
+```
+
+The same contract is available for CIFTI and FreeSurfer volumes.
+
+```{r}
+dense <- read_ngeo_cifti_filebacked(
+  "sub-01_task-rest_bold.dtseries.nii",
+  structures = c("CORTEX_LEFT", "CORTEX_RIGHT"),
+  frames = 1:100
+)
+
+mgh <- read_ngeo_mgh_filebacked("lh.metric.mgz", frames = 1)
+```
+
+Selections are reflected in both the domain and map table. A file identity
+binds the exact selection and source state, so it is safe to include in cache
+and checkpoint identities.
+
+Use deterministic chunks for streaming methods.
+
+```{r}
+summaries <- ngeo_value_chunks(
+  dense,
+  chunk_size = 4096,
+  FUN = function(block, rows) {
+    list(rows = range(rows), mean = colMeans(block))
+  }
+)
+```
+
+The resource budget is checked for each requested block. Requesting a block
+larger than the budget raises `ngeo_error_resource` before file data are
+read.
+
+`write_ngeo_filebacked()` is intentionally narrow: it atomically copies a
+complete source through a bounded buffer. It rejects partial selections,
+because copying the original bytes would otherwise publish data that are not
+represented by the selected object.
+
+```{r}
+complete <- read_ngeo_filebacked("image.nii.gz")
+write_ngeo_filebacked(complete, "image-copy.nii.gz")
+```
+
+Use the normal format writer to encode a deliberately materialized subset.
+Neither file-backed readers nor writers perform registration, resampling, or
+preprocessing.

@@ -1,0 +1,61 @@
+---
+title: "Change of support and cross-atlas analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Change of support and cross-atlas analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+NGCS 2.0 represents support change with one sparse operator whose rows are
+target elements and columns are source elements.
+
+```{r}
+source <- ngeo_points(
+  cbind(x = 1:4, y = 0),
+  values = cbind(intensity = c(10, 20, 30, 40)),
+  measures = ngeo_measure(spatial_semantics = "intensive")
+)
+target <- ngeo_regions(
+  data.frame(region_id = c("A", "B")),
+  support_size = c(3, 3)
+)
+support_map <- ngeo_support_map(
+  source,
+  target,
+  operator = c("A", "A", "B", "B"),
+  source_support = c(1, 2, 1, 2)
+)
+ngeo_change_support(source, target, support_map)
+```
+
+Intensive maps use source-support weighted means. Extensive maps and counts
+use conservative allocation. Overlapping operators therefore require
+explicit column normalization before they can conserve totals.
+
+Two atlas maps with a common source domain can be compared by physical
+support overlap:
+
+```{r}
+target2 <- ngeo_regions(
+  data.frame(region_id = c("C", "D")),
+  support_size = c(3, 3)
+)
+support_map2 <- ngeo_support_map(
+  source,
+  target2,
+  operator = c("C", "D", "D", "C"),
+  source_support = c(1, 2, 1, 2)
+)
+as.matrix(ngeo_atlas_overlap(support_map, support_map2, metric = "dice"))
+```
+
+`ngeo_cross_atlas()` is deliberately model based. It declares a
+piecewise-constant source-parcel model and exposes the resulting transfer
+operator and propagated variance. It is not described as an inverse
+reconstruction.

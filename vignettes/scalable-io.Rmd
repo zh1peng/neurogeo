@@ -1,0 +1,56 @@
+---
+title: "Scalable values, CIFTI, and BIDS derivatives"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Scalable values, CIFTI, and BIDS derivatives}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+Delayed storage remains one logical element-by-map values block.
+
+```{r}
+backing <- matrix(seq_len(30), nrow = 10, ncol = 3)
+delayed <- ngeo_delayed_values(
+  function(rows, columns) backing[rows, columns, drop = FALSE],
+  dim(backing),
+  map_names = c("a", "b", "c"),
+  source = "documented callback"
+)
+x <- ngeo_points(cbind(x = 1:10, y = 0), values = delayed)
+chunks <- ngeo_value_chunks(
+  x, chunk_size = 4,
+  FUN = function(block, rows) colSums(block)
+)
+chunks
+```
+
+A block map is a partition of one logical sparse operator, not a different
+mapping. Its hash equals the monolithic map after materialization.
+
+```{r}
+atlas <- ngeo_atlas_map(
+  x,
+  rep(c("A", "B"), each = 5),
+  source_support = rep(1, 10)
+)
+blocked <- ngeo_block_support_map(
+  atlas,
+  row_block_size = 1,
+  source_block_size = 4
+)
+identical(
+  ngeo_support_map_hash(ngeo_materialize_support_map(blocked)),
+  blocked$logical_hash
+)
+```
+
+`write_ngeo_cifti()` writes dscalar, dlabel, and dtseries directly as
+CIFTI-2/NIfTI-2 without Workbench. `write_ngeo_bids_derivative()` adds a
+scoped JSON sidecar with spatial entities, measurement semantics, and
+provenance; it does not index or run a BIDS dataset.

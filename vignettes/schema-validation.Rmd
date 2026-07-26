@@ -1,0 +1,57 @@
+---
+title: "Schema validation and portable manifests"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Schema validation and portable manifests}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+NGCS 3.0 registers the invariants already enforced by the object-specific
+validators. It does not introduce a second object model.
+
+```{r}
+registry <- ngeo_schema_registry()
+registry
+head(registry$schemas[c("schema_id", "class", "version")])
+```
+
+Any registered object can be validated through one reporting interface.
+
+```{r}
+x <- ngeo_points(
+  cbind(x = c(0, 1, 0), y = c(0, 0, 1)),
+  values = cbind(signal = c(1, 2, 3)),
+  measures = ngeo_measure(spatial_semantics = "intensive"),
+  space = ngeo_space("reference-points", kind = "unknown")
+)
+report <- ngeo_validate_schema(x)
+report
+```
+
+A portable manifest binds the normative metadata using canonical JSON and
+SHA-256. It contains no duplicate values block.
+
+```{r}
+manifest <- ngeo_object_manifest(x)
+manifest
+ngeo_validate_manifest(manifest, x)
+```
+
+Atomic JSON exchange verifies integrity before use.
+
+```{r eval=FALSE}
+output <- write_ngeo_manifest(manifest, "x.ngcs-manifest.json")
+restored <- read_ngeo_manifest(output$path)
+```
+
+The lifecycle registry is derived from actual namespace exports.
+
+```{r}
+head(ngeo_api_lifecycle())
+```

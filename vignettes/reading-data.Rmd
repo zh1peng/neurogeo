@@ -1,0 +1,64 @@
+---
+title: "Reading neuroimaging data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reading neuroimaging data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+Readers preserve source indexing, coordinate transforms, map metadata,
+labels, and provenance. They do not invoke FreeSurfer, FSL, or Connectome
+Workbench, and they do not perform registration or resampling.
+
+```{r readers, eval=FALSE}
+volume <- read_ngeo_nifti("sub-01_T1w.nii.gz")
+
+surface <- read_ngeo_gifti(
+  geometry = "sub-01.L.midthickness.surf.gii",
+  data = c(thickness = "sub-01.L.thickness.shape.gii"),
+  labels = c(aparc = "sub-01.L.aparc.label.gii")
+)
+
+dense <- read_ngeo_cifti(
+  "sub-01_task-rest.dtseries.nii",
+  surfaces = list(
+    CORTEX_LEFT = "sub-01.L.midthickness.surf.gii",
+    CORTEX_RIGHT = "sub-01.R.midthickness.surf.gii"
+  )
+)
+
+freesurfer <- read_ngeo_freesurfer(
+  geometry = "lh.white",
+  data = c(thickness = "lh.thickness"),
+  labels = "lh.aparc.annot"
+)
+```
+
+`read_ngeo()` dispatches by standard filename suffix. For ambiguous MGH/MGZ
+inputs, use the format-specific reader and state the intended domain.
+
+```{r dispatch, eval=FALSE}
+x <- read_ngeo("sub-01_space-MNI152_desc-stat.nii.gz")
+x <- read_ngeo_freesurfer("lh.metric.mgh", domain = "surface",
+                          surface = "lh.white")
+```
+
+After import, validate before analysis and declare any measurement semantics
+that the source did not encode.
+
+```{r workflow, eval=FALSE}
+ngeo_validate(surface, "strict")
+surface$measures$spatial_semantics <- "intensive"
+surface$measures$units <- "mm"
+w <- ngeo_weights(surface, method = "mesh_contiguity", style = "W")
+ngeo_moran(surface, w, "thickness", permutations = 999, seed = 2026)
+```
+
+BIDS sidecars and relevant space entities are parsed when present, but
+dataset orchestration remains outside the package.

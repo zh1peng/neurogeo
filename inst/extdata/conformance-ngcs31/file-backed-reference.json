@@ -1,0 +1,33 @@
+{
+  "schema": "NGCS-file-backed-reference-1",
+  "specification": "NGCS 3.1",
+  "orientation": "element_by_map",
+  "selection": {
+    "indices": "one_based_public_zero_based_binary",
+    "order_preserved": true,
+    "duplicates": false
+  },
+  "formats": {
+    "nifti": {
+      "layout": "voxel_then_frame",
+      "compressed": [false, true]
+    },
+    "cifti": {
+      "layout": "declared_matrix_axes",
+      "compressed": [false]
+    },
+    "mgh_mgz": {
+      "layout": "voxel_then_frame",
+      "endian": "big",
+      "compressed": [false, true]
+    }
+  },
+  "invariants": [
+    "verified_source_identity",
+    "bounded_binary_selection",
+    "one_aligned_values_block",
+    "partial_selection_provenance",
+    "no_implicit_materialization"
+  ],
+  "language_independent": true
+}

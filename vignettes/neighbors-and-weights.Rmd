@@ -1,0 +1,63 @@
+---
+title: "Neighbors and weights"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Neighbors and weights}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+Topology-derived relationships are sparse. Surface adjacency follows mesh
+edges, volume adjacency uses active-mask-limited 6/18/26 connectivity, and
+grayordinate adjacency remains block diagonal by default.
+
+```{r}
+coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
+x <- ngeo_points(
+  coordinates,
+  values = cbind(signal = c(1, 2, 3, 2, 4, 7, 3, 7, 9)),
+  measures = ngeo_measure(spatial_semantics = "intensive")
+)
+w <- ngeo_weights(
+  x,
+  method = "distance_band",
+  threshold = 1.01,
+  style = "W"
+)
+w
+w$diagnostics
+```
+
+`style = "W"` row-standardizes the relation, `style = "B"` makes it binary,
+and `style = "none"` retains raw edge or kernel weights. KNN construction
+requires an explicit symmetry policy.
+
+```{r}
+knn <- ngeo_weights(
+  x,
+  method = "knn",
+  k = 2,
+  symmetry = "union",
+  style = "B"
+)
+knn
+```
+
+Distances require explicit sources and targets; the API guards against
+accidental dense all-pairs allocation.
+
+```{r}
+ngeo_distance(x, from = 1, to = c(2, 5, 9), metric = "euclidean")
+```
+
+The same weights object can drive global and local statistics.
+
+```{r}
+ngeo_moran(x, w, "signal")
+head(ngeo_local_moran(x, w, "signal"))
+```

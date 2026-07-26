@@ -1,0 +1,17 @@
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+.Rproj.user/
+.r-lib/
+.tools/
+*.Rcheck/
+check-output*/
+docs/
+neurogeo_*.tar.gz
+release/runs/
+release/LATEST
+release/*.json
+release/*.log
+release/*.txt
+release/*.tar.gz
