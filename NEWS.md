@@ -1,3 +1,13 @@
+# neurogeo 4.0.1
+
+* Added a fully executable Chinese getting-started tutorial covering object
+  construction, validation, sparse weights, Moran's I, change of support,
+  file readers, bounded values, manifests, common errors, and review checks.
+* Updated pkgdown navigation to the 4.0 public API and added installation,
+  contribution, issue-reporting, and documentation-site infrastructure.
+* Replaced deprecated Matrix pattern-to-numeric sparse coercion in topology
+  construction without changing adjacency or weighting semantics.
+
 # neurogeo 4.0.0
 
 * Reduced the public API to scientific domain, support, model, I/O,

@@ -14,6 +14,7 @@ articles:
 - title: Workflows
   navbar: Workflows
   contents:
+  - getting-started-zh
   - core-concepts
   - reading-data
   - neighbors-and-weights
@@ -68,7 +69,6 @@ reference:
   contents:
   - ngeo_adjacency
   - ngeo_distance
-  - ngeo_metric
   - ngeo_neighbors
   - ngeo_weights
 - title: Temporal and spatiotemporal analysis
@@ -92,7 +92,7 @@ reference:
   - ngeo_longitudinal_change
   - ngeo_temporal_trend
   - ngeo_temporal_contrast
-- title: Iterative and batched spatial models
+- title: Iterative spatial models
   contents:
   - ngeo_solver_control
   - ngeo_validate_solver_control
@@ -100,8 +100,6 @@ reference:
   - ngeo_logdet_approx
   - ngeo_spatial_regression_iterative
   - ngeo_car_iterative
-  - ngeo_gwr_batched
-  - ngeo_kriging_batched
 - title: Partitions and aggregation
   contents:
   - ngeo_partition
@@ -193,23 +191,10 @@ reference:
   - write_ngeo_cifti
   - ngeo_bids_sidecar
   - write_ngeo_bids_derivative
-- title: Scalable values and support
+- title: Bounded values and execution
   contents:
-  - ngeo_delayed_values
   - ngeo_value_chunks
-  - ngeo_block_support_map
-  - ngeo_validate_block_support_map
-  - ngeo_materialize_support_map
-  - ngeo_change_support_block
-  - ngeo_block_diagnostics
-  - ngeo_block_variance
-  - ngeo_compose_block_support_map
   - ngeo_resource_budget
-  - ngeo_execution_plan
-  - ngeo_execute
-  - ngeo_cache
-  - ngeo_cache_compute
-  - ngeo_atomic_write
   - ngeo_stream_summary
   - ngeo_stream_covariance
   - ngeo_stream_lm
@@ -268,15 +253,7 @@ reference:
   - read_ngeo_support_bundle
   - ngeo_validate_support_bundle
   - ngeo_migrate_support_map_exchange
-  - ngeo_conformance_manifest
-  - ngeo_compatibility_matrix
-  - ngeo_api_inventory
-  - ngeo_schema_registry
-  - ngeo_schema
-  - ngeo_validate_schema
   - ngeo_object_manifest
   - ngeo_validate_manifest
   - write_ngeo_manifest
   - read_ngeo_manifest
-  - ngeo_migrate_schema
-  - ngeo_api_lifecycle

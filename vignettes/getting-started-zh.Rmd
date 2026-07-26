@@ -1,0 +1,380 @@
+---
+title: "neurogeo 中文入门：从空间对象到 Moran's I"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{neurogeo 中文入门：从空间对象到 Moran's I}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
+)
+library(neurogeo)
+```
+
+## 1. 这篇教程解决什么问题
+
+这是一篇可以从头运行的入门教程。完成后，你将能够：
+
+1. 理解 neurogeo 最重要的对象约束；
+2. 创建并验证一个空间数据对象；
+3. 构造稀疏空间权重；
+4. 计算带置换检验的 Moran's I；
+5. 将元素聚合到新的区域 support；
+6. 知道怎样读取真实神经影像文件；
+7. 审阅分析中最容易被忽略的科学假设。
+
+neurogeo 的核心结构始终是：
+
+```text
+一个空间 domain
++ 一个严格对齐的 values block
++ 显式 space、topology、metric、measurement semantics 和 provenance
+```
+
+它不会自动完成配准、分割、表面重建或预处理，也不会在不兼容的
+空间之间隐式重采样。
+
+## 2. 安装和加载
+
+当前 GitHub 仓库是私有仓库。拥有访问权限并配置
+`GITHUB_PAT` 后，可以使用：
+
+```{r install-github, eval=FALSE}
+install.packages("remotes")
+remotes::install_github(
+  "zh1peng/neurogeo",
+  auth_token = Sys.getenv("GITHUB_PAT")
+)
+```
+
+也可以安装本地构建的 4.0.1 源包：
+
+```{r install-local, eval=FALSE}
+install.packages(
+  "neurogeo_4.0.1.tar.gz",
+  repos = NULL,
+  type = "source"
+)
+```
+
+加载后确认版本：
+
+```{r version}
+library(neurogeo)
+packageVersion("neurogeo")
+```
+
+## 3. 创建第一个空间对象
+
+下面构造一个 $3 \times 3$ 点网格。每一行坐标对应 values 中同一行
+的观测值，这种顺序对齐是规范的一部分。
+
+```{r construct}
+coordinates <- as.matrix(expand.grid(
+  x = 0:2,
+  y = 0:2
+))
+
+signal <- c(1, 2, 3, 2, 4, 7, 3, 7, 9)
+
+x <- ngeo_points(
+  coordinates = coordinates,
+  values = cbind(signal = signal),
+  measures = ngeo_measure(
+    value_type = "continuous",
+    spatial_semantics = "intensive",
+    units = "a.u."
+  ),
+  space = ngeo_space(
+    space_id = "tutorial-grid",
+    kind = "unknown",
+    units = "mm",
+    source_metadata = list(description = "3 x 3 teaching grid")
+  )
+)
+
+x
+```
+
+这里有两个不能省略的科学声明：
+
+- `space` 表示坐标属于哪个空间以及坐标单位；
+- `spatial_semantics = "intensive"` 表示区域聚合时应计算
+  support-weighted mean，而不是求和。
+
+检查 domain、元素索引、values 和测量语义：
+
+```{r inspect}
+ngeo_domain_type(x)
+head(ngeo_elements(x))
+ngeo_values(x)
+ngeo_measures(x)
+```
+
+## 4. 在分析前验证对象
+
+`ngeo_validate()` 是 4.0 中注册 NGCS 对象的统一验证入口。
+
+```{r validate}
+ngeo_validate(x, level = "strict")
+```
+
+严格验证会检查 domain 结构、唯一元素索引、values 行数、map 元数据
+和空间信息是否一致。验证成功时函数不可见地返回对象，因此控制台
+没有输出是正常现象。
+
+下面展示一个常见错误，但不让教程中断：
+
+```{r alignment-error}
+misaligned <- x
+misaligned$values <- misaligned$values[-1, , drop = FALSE]
+
+tryCatch(
+  ngeo_validate(misaligned),
+  error = function(condition) {
+    conditionMessage(condition)
+  }
+)
+```
+
+不要通过删除 domain 元素或补任意数值来“修好”这种错误；应回到数据
+读取或筛选步骤，保证 domain 与 values 使用完全相同的元素顺序。
+
+## 5. 构造稀疏空间权重
+
+点数据没有天然的 mesh topology，因此这里明确使用欧氏距离带。
+网格相邻点的距离为 1，所以阈值设为 1.01。
+
+```{r weights}
+w <- ngeo_weights(
+  x,
+  method = "distance_band",
+  threshold = 1.01,
+  metric = "euclidean",
+  style = "W"
+)
+
+w
+```
+
+`style = "W"` 表示对每一行做标准化。权重对象保存 domain identity，
+不能无声地复用于另一个元素顺序不同的数据集。
+
+可以查看前四个元素对应的权重行：
+
+```{r neighbors}
+as.matrix(w$matrix[1:4, , drop = FALSE])
+```
+
+## 6. 计算全局 Moran's I
+
+置换检验必须记录随机种子。教程使用 99 次置换以缩短运行时间；
+正式分析通常应根据推断精度要求增加次数。
+
+```{r moran}
+moran <- ngeo_moran(
+  x,
+  weights = w,
+  map = "signal",
+  permutations = 99,
+  seed = 2026
+)
+
+moran
+```
+
+审阅结果时至少确认：
+
+- 使用的是哪一个 map；
+- 权重构造方法、metric 和标准化方式；
+- 是否存在 isolate，以及 `zero_policy` 如何设置；
+- 置换次数、随机种子和 alternative hypothesis；
+- p 值来自解析近似还是置换分布。
+
+Moran's I 说明全局空间自相关，不等于局部热点定位，也不能证明因果
+关系。局部分析可以继续使用 `ngeo_local_moran()` 或
+`ngeo_getis_ord()`。
+
+## 7. 从元素 support 改变到区域 support
+
+假设九个点属于三个区域。`ngeo_atlas_map()` 根据已知标签构造稀疏
+target-by-source support map；它不会估计配准关系。
+
+```{r support-map}
+labels <- c("left", "middle", "right")[
+  coordinates[, "x"] + 1
+]
+
+atlas <- ngeo_atlas_map(
+  x,
+  labels = labels,
+  source_support = rep(1, nrow(coordinates))
+)
+
+ngeo_support_diagnostics(atlas)
+```
+
+执行 change of support：
+
+```{r change-support}
+regional <- ngeo_change_support(
+  x,
+  target = atlas$target,
+  support_map = atlas,
+  budget = ngeo_resource_budget(
+    memory_bytes = 1024^2,
+    materialized_elements = 3
+  )
+)
+
+ngeo_values(regional)
+ngeo_measures(regional)
+```
+
+因为 `signal` 被声明为 intensive，三个区域得到各自元素的加权均值。
+如果它代表总数量、体积或计数，则应根据科学含义声明为
+`"extensive"` 或 `"count"`；此时 change of support 使用守恒分配，
+而不是均值。
+
+## 8. 读取真实神经影像数据
+
+neurogeo 使用纯 R 后端读取标准格式，不依赖 FreeSurfer、FSL 或
+Connectome Workbench 可执行程序。
+
+```{r real-readers, eval=FALSE}
+volume <- read_ngeo_nifti("sub-01_T1w.nii.gz")
+
+surface <- read_ngeo_gifti(
+  geometry = "sub-01.L.midthickness.surf.gii",
+  data = c(thickness = "sub-01.L.thickness.shape.gii"),
+  labels = c(aparc = "sub-01.L.aparc.label.gii")
+)
+
+dense <- read_ngeo_cifti(
+  "sub-01_task-rest.dtseries.nii",
+  surfaces = list(
+    CORTEX_LEFT = "sub-01.L.midthickness.surf.gii",
+    CORTEX_RIGHT = "sub-01.R.midthickness.surf.gii"
+  )
+)
+
+freesurfer <- read_ngeo_freesurfer(
+  geometry = "lh.white",
+  data = c(thickness = "lh.thickness"),
+  labels = "lh.aparc.annot"
+)
+```
+
+大型 NIfTI、CIFTI、MGH 或 MGZ 可以保持 file-backed，并按块处理：
+
+```{r file-backed, eval=FALSE}
+dense <- read_ngeo_cifti_filebacked(
+  "sub-01_task-rest.dtseries.nii",
+  frames = 1:100,
+  budget = ngeo_resource_budget(
+    memory_bytes = 64 * 1024^2,
+    materialized_elements = 8e6
+  )
+)
+
+summary_chunks <- ngeo_value_chunks(
+  dense,
+  chunk_size = 4096,
+  FUN = function(block, rows) colMeans(block)
+)
+```
+
+读取后应先验证对象，再检查源文件没有提供的测量语义：
+
+```{r post-read, eval=FALSE}
+ngeo_validate(surface, level = "strict")
+surface$maps
+surface$measures
+surface$domain$space
+```
+
+不要因为文件名看起来熟悉就假定 units、surface density、template
+或 measurement semantics。
+
+## 9. 保存审计信息
+
+对象 manifest 记录 canonical metadata 和哈希，不会复制完整 values
+block。
+
+```{r manifest}
+manifest <- ngeo_object_manifest(x)
+manifest
+```
+
+写入和恢复 JSON：
+
+```{r manifest-io, eval=FALSE}
+output <- write_ngeo_manifest(
+  manifest,
+  "tutorial-object.ngcs-manifest.json"
+)
+restored <- read_ngeo_manifest(output$path)
+ngeo_validate_manifest(restored, x)
+```
+
+需要重放受支持的分析流程时，应使用 `ngeo_record_replay()` 和
+`ngeo_replay()`，而不是保存任意 R 代码供以后执行。
+
+## 10. 常见错误
+
+### domain 与 values 不对齐
+
+任何筛选都必须同步作用于 domain、values、maps 和 labels。优先使用
+`ngeo_subset()`，不要分别修改内部字段。
+
+### measurement semantics 为 unknown
+
+聚合或 change of support 前应根据变量的科学含义声明 intensive、
+extensive、count 或 categorical。不要为了让代码通过而随意指定。
+
+### space 不兼容
+
+neurogeo 不会自动 registration 或 resampling。只有已经提供并授权的
+transform path 才能用于 `ngeo_resample()`。
+
+### 大对象超出预算
+
+使用 file-backed reader、`ngeo_value_chunks()` 和显式
+`ngeo_resource_budget()`。不要默认计算全脑稠密距离矩阵。
+
+### 把统计关联解释为因果关系
+
+Moran's I、LISA、GWR、SAR/SEM 和 kriging 都依赖明确假设。结果必须
+与权重、support、metric、缺失值策略和不确定性声明一起解释。
+
+## 11. 分析审阅清单
+
+提交或复核一次 neurogeo 分析时，逐项确认：
+
+- [ ] 每个对象只有一个 domain 和一个严格对齐的 values block；
+- [ ] element indexing 稳定且唯一；
+- [ ] space、units、structure、template 或 density 没有被隐式猜测；
+- [ ] topology 和 metric 与研究问题一致；
+- [ ] 每个 map 的 measurement semantics 已明确；
+- [ ] weights 与当前 domain identity 匹配；
+- [ ] change of support 的覆盖率、守恒和 unmapped policy 已检查；
+- [ ] permutation 或 simulation 的 seed 与次数已记录；
+- [ ] 大规模运算有资源预算，没有稠密全脑回退；
+- [ ] provenance、manifest 或 replay 信息足以审计结果；
+- [ ] 没有把 preprocessing、registration 或 segmentation 误认为
+      neurogeo 自动完成的步骤。
+
+接下来可以阅读以下专题教程：
+
+- `vignette("reading-data", package = "neurogeo")`
+- `vignette("neighbors-and-weights", package = "neurogeo")`
+- `vignette("change-of-support", package = "neurogeo")`
+- `vignette("spatial-modelling", package = "neurogeo")`
+- `vignette("spatiotemporal-analysis", package = "neurogeo")`
+- `vignette("reproducible-replay", package = "neurogeo")`

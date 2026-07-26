@@ -1,0 +1,41 @@
+name: Scientific validation
+description: Report a discrepancy with an analytic or external reference.
+title: "[Validation]: "
+labels: ["scientific-validation"]
+body:
+  - type: textarea
+    id: method
+    attributes:
+      label: Method and claim
+      description: Identify the neurogeo method and the scientific quantity being checked.
+    validations:
+      required: true
+  - type: textarea
+    id: reference
+    attributes:
+      label: Reference result
+      description: Cite the equation, software, dataset, version, and expected tolerance.
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Reproducible data or fixture
+      description: Provide a small redistributable fixture or deterministic generator.
+    validations:
+      required: true
+  - type: textarea
+    id: contract
+    attributes:
+      label: NGCS contract
+      description: State domain, indexing, space, topology, metric, support, semantics, transforms, and provenance.
+    validations:
+      required: true
+  - type: textarea
+    id: comparison
+    attributes:
+      label: Comparison
+      description: Include code, observed values, expected values, and numerical tolerance.
+      render: r
+    validations:
+      required: true

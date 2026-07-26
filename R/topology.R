@@ -213,7 +213,7 @@ ngeo_adjacency <- function(x,
     }
   )
   diag(adjacency) <- 0
-  methods::as(adjacency, "dgCMatrix")
+  .ngeo_as_dgCMatrix(adjacency)
 }
 
 #' Find connected components
@@ -292,4 +292,3 @@ ngeo_support_size <- function(x) {
     }
   )
 }
-

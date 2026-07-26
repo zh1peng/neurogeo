@@ -11,6 +11,29 @@ one spatial domain
 + explicit space, topology, metric, measurement semantics, and provenance
 ```
 
+## Installation
+
+The development repository is currently private. Authorized users can
+install it with a GitHub personal access token:
+
+```r
+install.packages("remotes")
+remotes::install_github(
+  "zh1peng/neurogeo",
+  auth_token = Sys.getenv("GITHUB_PAT")
+)
+```
+
+To install a local release archive:
+
+```r
+install.packages(
+  "neurogeo_4.0.1.tar.gz",
+  repos = NULL,
+  type = "source"
+)
+```
+
 The 4.0 release implements the five NGCS domains, strict alignment,
 space and measurement metadata, provenance, native and neuroimaging readers,
 sparse topology/distance/weights, semantic parcellation, and foundational
@@ -189,5 +212,7 @@ result <- ngeo_moran(
 )
 ```
 
-See the package vignettes for core concepts, format-specific readers,
+Start with the
+[Chinese getting-started tutorial](vignettes/getting-started-zh.Rmd), then
+use the package vignettes for core concepts, format-specific readers,
 neighbors and weights, and measurement-aware parcellation.

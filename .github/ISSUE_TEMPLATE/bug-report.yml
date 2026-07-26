@@ -1,0 +1,39 @@
+name: Bug report
+description: Report reproducible incorrect behavior in neurogeo.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please remove confidential imaging data and provide the smallest
+        reproducible example possible.
+  - type: textarea
+    id: description
+    attributes:
+      label: Observed behavior
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Minimal reproducible example
+      render: r
+    validations:
+      required: true
+  - type: textarea
+    id: semantics
+    attributes:
+      label: Spatial and measurement semantics
+      description: State the domain, space, topology, metric, support, units, and measurement semantics.
+    validations:
+      required: true
+  - type: textarea
+    id: session
+    attributes:
+      label: Session information
+      description: Paste the output of sessionInfo().
+      render: text
+    validations:
+      required: true

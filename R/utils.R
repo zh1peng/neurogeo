@@ -39,10 +39,18 @@
   as.integer(x)
 }
 
+.ngeo_as_dgCMatrix <- function(x) {
+  if (!inherits(x, "dMatrix")) {
+    x <- methods::as(x, "dMatrix")
+  }
+  x <- methods::as(x, "generalMatrix")
+  methods::as(x, "CsparseMatrix")
+}
+
 .ngeo_package_version <- function() {
   tryCatch(
     as.character(utils::packageVersion("neurogeo")),
-    error = function(...) "4.0.0"
+    error = function(...) "4.0.1"
   )
 }
 

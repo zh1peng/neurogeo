@@ -5,7 +5,7 @@ test_that("surface topology matches the tetrahedron conformance fixture", {
     rows_to_matrix(fixture$faces, "integer"),
     index_base = "zero"
   )
-  adjacency <- ngeo_adjacency(x)
+  expect_no_warning(adjacency <- ngeo_adjacency(x))
 
   expect_s4_class(adjacency, "dgCMatrix")
   expect_equal(length(adjacency@x), 12L)
@@ -68,7 +68,7 @@ test_that("grayordinate topology remains block diagonal", {
       )
     )
   )
-  adjacency <- ngeo_adjacency(x)
+  expect_no_warning(adjacency <- ngeo_adjacency(x))
 
   expect_equal(length(adjacency@x), 4L)
   expect_equal(as.matrix(adjacency)[1:2, 3:4], matrix(0, 2, 2))
