@@ -1,8 +1,8 @@
 ---
-title: "neurogeo 中文入门：从空间对象到 Moran's I"
+title: "点数据空间统计：从 ngeo_points 到 Moran's I"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{neurogeo 中文入门：从空间对象到 Moran's I}
+  %\VignetteIndexEntry{点数据空间统计：从 ngeo_points 到 Moran's I}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -19,23 +19,17 @@ knitr::opts_chunk$set(
 library(neurogeo)
 ```
 
-## 1. 这篇教程解决什么问题
+## 1. 工作流范围
 
-这是一篇可以从头运行的入门教程。完成后，你将能够：
+本工作流使用 $3 \times 3$ 点网格验证以下接口：
 
-1. 理解 neurogeo 最重要的对象约束；
-2. 区分 domain、support、space、topology、metric 和 measurement
-   semantics；
-3. 创建、查看并验证一个空间数据对象；
-4. 从距离算出邻接关系、行标准化权重和空间滞后；
-5. 按公式手算 Moran's I，再与 neurogeo 的结果逐项核对；
-6. 理解置换检验和局部 Moran 结果；
-7. 将元素聚合到新的区域 support，并理解 intensive 与 count
-   为什么使用不同公式；
-8. 知道怎样读取真实神经影像文件；
-9. 审阅分析中最容易被忽略的科学假设。
+- `ngeo_points()` 对象构造与 element/value alignment；
+- distance-band 空间权重与空间滞后；
+- global Moran's I、permutation test 和 local Moran；
+- 元素到区域的 change of support；
+- measurement semantics 和 provenance 检查。
 
-neurogeo 的核心结构始终是：
+对象约束为：
 
 ```text
 一个空间 domain
@@ -43,21 +37,15 @@ neurogeo 的核心结构始终是：
 + 显式 space、topology、metric、measurement semantics 和 provenance
 ```
 
-它不会自动完成配准、分割、表面重建或预处理，也不会在不兼容的
-空间之间隐式重采样。
+该接口不执行配准、分割、表面重建或预处理，也不在不兼容空间之间隐式
+重采样。
 
-> **建议的学习方式**
->
-> 第一次阅读时，按顺序运行所有代码块。每得到一个对象，先根据文字预测
-> 输出，再执行代码核对。教程中的数据很小，因此会把矩阵完整显示出来；
-> 真实脑影像应继续使用稀疏矩阵和 file-backed 接口。
-
-## 2. 先建立一张概念地图
+## 2. 数据模型
 
 空间分析不仅需要一列数值，还需要回答“数值在哪里、相互如何关联、聚合时
 代表什么”。neurogeo 将这些问题拆成显式组件：
 
-| 概念 | 初学者可以先这样理解 | 本教程中的例子 |
+| 字段 | 定义 | 本工作流中的值 |
 |---|---|---|
 | domain | 观测值所依附的一组空间元素 | 九个点 |
 | element indexing | domain 元素与 values 行之间的稳定对应 | 第 1 个点对应 values 第 1 行 |
@@ -90,14 +78,12 @@ $$
 
 ## 3. 安装和加载
 
-当前 GitHub 仓库是私有仓库。拥有访问权限并配置
-`GITHUB_PAT` 后，可以使用：
+从公开 GitHub 仓库安装：
 
 ```{r install-github, eval=FALSE}
 install.packages("remotes")
 remotes::install_github(
-  "zh1peng/neurogeo",
-  auth_token = Sys.getenv("GITHUB_PAT")
+  "zh1peng/neurogeo"
 )
 ```
 
@@ -118,7 +104,7 @@ library(neurogeo)
 packageVersion("neurogeo")
 ```
 
-## 4. 创建第一个空间对象
+## 4. 构造点数据对象
 
 下面构造一个 $3 \times 3$ 点网格。每一行坐标对应 values 中同一行
 的观测值，这种顺序对齐是规范的一部分。
@@ -222,7 +208,7 @@ c(
 )
 ```
 
-## 5. 在分析前验证对象
+## 5. 对象验证
 
 `ngeo_validate()` 是 4.0 中注册 NGCS 对象的统一验证入口。
 
@@ -256,7 +242,7 @@ tryCatch(
 > 验证失败是在保护分析，而不是妨碍分析。若跳过对齐检查，后续公式仍会
 > 产生一个数字，但这个数字可能把 A 点的信号配给 B 点的位置。
 
-## 6. 从距离构造稀疏空间权重
+## 6. 稀疏空间权重
 
 点数据没有天然的 mesh topology，因此这里明确使用欧氏距离带。
 两点 $i$ 和 $j$ 的二维欧氏距离是：
@@ -352,7 +338,7 @@ legend(
 )
 ```
 
-### 6.1 空间滞后是什么
+### 6.1 空间滞后
 
 先中心化信号：
 
@@ -406,7 +392,7 @@ abline(stats::lm(lag_z ~ z), col = "#b33f2e", lwd = 2)
 text(z, lag_z, labels = seq_along(signal), pos = 3, cex = 0.8)
 ```
 
-## 7. 从公式到全局 Moran's I
+## 7. Global Moran's I
 
 全局 Moran's I 的公式是：
 
@@ -487,7 +473,7 @@ $$
 倾向于具有相似偏离方向。它不是相关系数，不要求落在 $[-1,1]$，也不能
 脱离权重矩阵解释。
 
-### 7.1 置换 p 值是怎样得到的
+### 7.1 置换检验
 
 置换检验保持空间位置和 $W$ 不变，随机打乱 values，重复计算 Moran's I。
 若执行 $B$ 次置换，neurogeo 使用加一校正：
@@ -512,7 +498,7 @@ Moran's I 说明全局空间自相关，不等于局部热点定位，也不能�
 关系。局部分析可以继续使用 `ngeo_local_moran()` 或
 `ngeo_getis_ord()`。
 
-## 8. 从全局统计走到局部 Moran
+## 8. Local Moran
 
 全局 Moran's I 回答“整个 domain 是否存在空间模式”，局部 Moran 则为每个
 元素计算：
@@ -600,7 +586,7 @@ legend(
 )
 ```
 
-## 9. 从元素 support 改变到区域 support
+## 9. Change of support
 
 假设九个点属于三个区域。`ngeo_atlas_map()` 根据已知标签构造稀疏
 target-by-source support map；它不会估计配准关系。
@@ -711,7 +697,7 @@ cbind(
 )
 ```
 
-### 9.1 为什么计数不能也求平均
+### 9.1 计数变量的守恒聚合
 
 假设同一九个点上的值是事件数。计数从小 support 合并到大 support 时应
 守恒：
@@ -760,7 +746,7 @@ ngeo_values(regional_count)
 声明为 `count`，结果会随区域内顶点数增长。软件无法从数值本身推断哪一种
 科学含义正确，所以 measurement semantics 必须由研究者声明。
 
-## 10. 读取真实神经影像数据
+## 10. 标准格式输入
 
 neurogeo 使用纯 R 后端读取标准格式，不依赖 FreeSurfer、FSL 或
 Connectome Workbench 可执行程序。
@@ -846,7 +832,7 @@ surface$domain$space
 不是证明数据在科学上正确，而是检查 values、几何、索引和 metadata 在
 “读入—写出—再读入”后是否按约定保真。
 
-## 11. 保存审计信息
+## 11. Provenance 与 manifest
 
 对象 manifest 记录 canonical metadata 和哈希，不会复制完整 values
 block。
@@ -897,7 +883,7 @@ transform path 才能用于 `ngeo_resample()`。
 Moran's I、LISA、GWR、SAR/SEM 和 kriging 都依赖明确假设。结果必须
 与权重、support、metric、缺失值策略和不确定性声明一起解释。
 
-## 13. 一次完整分析的思考顺序
+## 13. 分析执行顺序
 
 遇到新数据时，可以按这条顺序工作：
 
@@ -914,7 +900,7 @@ Moran's I、LISA、GWR、SAR/SEM 和 kriging 都依赖明确假设。结果必�
 
 这条顺序比“先选择一个统计函数，再设法填参数”更可靠。
 
-## 14. 小练习
+## 14. 参数敏感性检查
 
 建议修改代码亲自回答：
 

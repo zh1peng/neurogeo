@@ -1,8 +1,8 @@
 ---
-title: "neurogeo 4.1 中文教程：真实格式样例、回环验证与可视化"
+title: "标准格式 I/O：NIfTI、GIFTI、CIFTI 与 FreeSurfer"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{neurogeo 4.1 中文教程：真实格式样例、回环验证与可视化}
+  %\VignetteIndexEntry{标准格式 I/O：NIfTI、GIFTI、CIFTI 与 FreeSurfer}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -24,11 +24,10 @@ knitr::opts_chunk$set(
 library(neurogeo)
 ```
 
-## 1. 这篇 walkthrough 怎样阅读
+## 1. 范围与数据契约
 
-这篇教程承接 `vignette("getting-started-zh", package = "neurogeo")`，使用
-真实格式小样例走完“确认来源—读取—检查—可视化—写出—再读入—比较”的
-完整流程。它不要求预先安装 FreeSurfer、FSL 或 Connectome Workbench。
+本工作流使用固定校验和的格式样例执行读取、结构检查、可视化、写出、再读入
+和对象比较。FreeSurfer、FSL 和 Connectome Workbench 不是运行时依赖。
 
 读取神经影像文件时需要同时区分五层信息：
 
@@ -41,7 +40,7 @@ library(neurogeo)
 文件“能够打开”只证明字节能被解析，不证明这些层次都正确。后面的每一节
 都按同一张检查表操作。
 
-### 1.1 三个容易混淆的术语
+### 1.1 索引、affine 与 round-trip
 
 **文件索引与 R 行号。** 许多神经影像格式保存零基索引，例如第一个体素或
 顶点记为 0；R 的第一行编号是 1。neurogeo 保留 source index，同时用稳定的
@@ -68,7 +67,7 @@ $$
 
 round-trip 验证的是格式和语义保真，不是预处理质量或生物学正确性。
 
-## 2. 先确认样例来源，而不是先读文件
+## 2. 样例来源与完整性
 
 4.1 内置的是上游软件包使用的小型格式样例，不是临床数据。每个文件都固定到
 上游 commit、URL、许可证、字节数和 SHA-256。默认查询时会重新验证文件：
@@ -170,7 +169,7 @@ identical(nifti_restored$values, volume$values)
 在这个样例中要求完全一致。真实分析还应比较维度、map 顺序、units 和
 provenance，不能只看图像“长得差不多”。
 
-## 4. GIFTI：从几何到对齐的 metric
+## 4. GIFTI：geometry 与 metric alignment
 
 ```{r gifti-read}
 gifti_path <- ngeo_example_data(
@@ -335,7 +334,7 @@ all.equal(dense_restored$values, dense$values, tolerance = 1e-6)
 检查数值误差。只比较 values 的排序结果或直方图会漏掉最危险的
 grayordinate 错位。
 
-## 6. FreeSurfer：缺少 transform 时必须显式处理
+## 6. FreeSurfer：transform metadata
 
 上游 tiny MGH 故意没有有效 RAS affine。直接读取会得到
 `ngeo_error_transform`，因为自动假设 identity affine 会制造错误空间语义：
@@ -393,7 +392,7 @@ FreeSurfer surface 保存几何和 topology，curv 保存逐顶点 metric；两�
 顶点顺序对齐，而不是通过顶点名称匹配。因此回环必须同时检查 faces、
 coordinates 和 values。
 
-## 7. 把完整操作压缩成一个检查顺序
+## 7. 格式 I/O 检查顺序
 
 面对一个新文件，可以按以下顺序执行：
 
@@ -407,7 +406,7 @@ coordinates 和 values。
 8. 写出并再读入，分别比较整数索引、浮点 values 和 metadata；
 9. 保存 provenance、checksum、writer manifest 和数值容差。
 
-## 8. 初学者练习
+## 8. 验证用例
 
 1. 在 NIfTI 示例中选择第二个体素索引，手算 affine 后的世界坐标，再与矩阵
    乘法结果核对。
@@ -418,7 +417,7 @@ coordinates 和 values。
 5. 删除显式 MGH affine，确认错误类别，并用自己的话解释为什么失败比自动
    identity 更安全。
 
-## 9. 审阅时应该检查什么
+## 9. 审阅检查项
 
 对任何格式，至少检查：
 

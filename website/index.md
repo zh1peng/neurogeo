@@ -1,35 +1,40 @@
 ---
-layout: home
 title: neurogeo
-
-hero:
-  name: neurogeo
-  text: 从空间对象走到可审计的神经影像空间推断
-  tagline: 以 domain、support、space 和 measurement semantics 为起点，用可视化理解每一步计算。
-  actions:
-    - theme: brand
-      text: 开始第一次完整分析
-      link: /tutorials/getting-started
-    - theme: alt
-      text: 浏览学习路线
-      link: /guide/
-
-features:
-  - title: 看见空间结构
-    details: 同时检查几何、信号、邻接、空间权重和局部聚集，而不只查看数据表。
-  - title: 从公式走到代码
-    details: 每篇教程解释统计量、科学假设和实现步骤，并用可运行 R 代码逐项核对。
-  - title: 保持分析可审计
-    details: 显式记录空间、测量语义、变换、支持映射、随机种子和 provenance。
+description: Neuroimaging Geoinformatics Core Specification 的 R 参考实现
 ---
 
-## 一条连续的学习路线
+# neurogeo
 
-<div class="learning-path">
-  <div><strong>01 · 表示</strong>建立一个 domain 与严格对齐的 values block。</div>
-  <div><strong>02 · 检查</strong>通过图形确认几何、索引、空间和信号。</div>
-  <div><strong>03 · 计算</strong>构造权重，完成 Moran's I、LISA 或空间模型。</div>
-  <div><strong>04 · 审阅</strong>解释统计结果、敏感性和 provenance。</div>
-</div>
+`neurogeo` 是 Neuroimaging Geoinformatics Core Specification（NGCS）的 R
+参考实现，用于表示神经影像空间数据、构造空间关系、执行空间统计并记录
+provenance。
 
-这套教程不会把一个分析拆成几十个孤立概念页。每个 walkthrough 都从研究问题开始，经过数据检查和可视化，最后到达可解释、可复现的结果。
+## 对象约束
+
+```text
+one spatial domain
++ one aligned values block
++ explicit space, topology, metric, measurement semantics, and provenance
+```
+
+支持 `surface`、`volume`、`points`、`grayordinates` 和 `regions` 五类基础
+domain。domain 元素索引与 values 行严格对齐。
+
+## 功能范围
+
+- NIfTI、GIFTI、CIFTI 和 FreeSurfer 标准格式输入；
+- surface、volume、points、grayordinates 和 regions 的几何诊断；
+- 稀疏邻接、距离、空间权重和分区；
+- Moran's I、LISA、variogram、GWR、kriging、SAR/SEM 和 CAR；
+- change of support、atlas overlap 和支持不确定性；
+- transform graph、manifest、artifact integrity 和 replay。
+
+软件包不执行 raw MRI preprocessing、registration、segmentation 或 surface
+reconstruction，也不会在不兼容空间之间隐式重采样。
+
+## 文档
+
+- [安装与基本用法](/guide/)
+- [NGCS 数据模型](/concepts/)
+- [分析工作流](/tutorials/)
+- [函数参考](/api/reference/)

@@ -1,26 +1,80 @@
 ---
-title: 学习路线
-description: 从第一次运行到能够独立审阅 neurogeo 分析
+title: 安装与基本用法
+description: neurogeo 的安装、对象构造、验证和基本空间统计
 ---
 
-# 学习路线
+# 安装与基本用法
 
-不要从函数列表开始学习 neurogeo。更有效的方法是先完成一个小而完整的空间分析，再把相同思路迁移到真实神经影像格式。
+## 系统要求
 
-<div class="learning-path">
-  <div><strong>第一步</strong>创建空间对象，并理解 domain 与 values 为什么必须严格对齐。</div>
-  <div><strong>第二步</strong>把信号和邻接关系画出来，在计算前发现空间错误。</div>
-  <div><strong>第三步</strong>计算 Moran's I 与 LISA，理解公式、置换分布和空间聚类。</div>
-  <div><strong>第四步</strong>读取 NIfTI、GIFTI、CIFTI 和 FreeSurfer 数据并验证。</div>
-</div>
+- R 4.2.0 或更高版本；
+- 核心依赖：`Matrix`、`digest`；
+- 格式后端按需安装：`RNifti`、`gifti`、`cifti`、
+  `freesurferformats`。
 
-## 建议顺序
+FreeSurfer、FSL 和 Connectome Workbench 不是运行时依赖。
 
-1. [第一次完整分析](/tutorials/getting-started)：适合第一次接触空间统计和 neurogeo。
-2. [真实格式读取与验证](/tutorials/format-workflows)：把同样的检查顺序应用到真实神经影像文件。
-3. [NGCS 概念地图](/concepts/)：在完成实践后系统整理 domain、support、space 和 measurement semantics。
-4. [函数参考](/api/reference/)：知道分析目标后再查询参数和返回值。
+## 安装
 
-::: tip 阅读方式
-先观察每幅图并写下预期，再运行对应代码。空间分析中，图形不是最后的装饰，而是检查数据与模型假设的组成部分。
-:::
+```r
+install.packages("remotes")
+remotes::install_github("zh1peng/neurogeo")
+```
+
+## 构造空间对象
+
+```r
+library(neurogeo)
+
+coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
+signal <- c(1, 2, 3, 2, 4, 7, 3, 7, 9)
+
+x <- ngeo_points(
+  coordinates = coordinates,
+  values = cbind(signal = signal),
+  measures = ngeo_measure(
+    value_type = "continuous",
+    spatial_semantics = "intensive",
+    units = "a.u."
+  ),
+  space = ngeo_space(
+    space_id = "example-grid",
+    kind = "unknown",
+    units = "mm"
+  )
+)
+```
+
+## 验证
+
+```r
+ngeo_validate(x, level = "strict")
+ngeo_domain_type(x)
+ngeo_values(x)
+ngeo_measures(x)
+```
+
+## 空间权重与 Moran's I
+
+```r
+w <- ngeo_weights(
+  x,
+  method = "distance_band",
+  threshold = 1.01,
+  metric = "euclidean",
+  style = "W"
+)
+
+result <- ngeo_moran(
+  x,
+  weights = w,
+  map = "signal",
+  permutations = 999,
+  seed = 2026
+)
+
+plot(x, map = "signal")
+plot(result)
+```
+
+完整计算过程见[点数据与 Moran's I](/tutorials/getting-started)。

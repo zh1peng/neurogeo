@@ -32,8 +32,8 @@ tutorials <- data.frame(
     "website/en/tutorials/spatial-modelling.md"
   ),
   title = c(
-    "neurogeo 中文入门：从空间对象到 Moran's I",
-    "真实格式 walkthrough：读取、验证与可视化",
+    "点数据空间统计：从 ngeo_points 到 Moran's I",
+    "标准格式 I/O：NIfTI、GIFTI、CIFTI 与 FreeSurfer",
     "Core concepts",
     "Reading neuroimaging data",
     "Neighbors and weights",

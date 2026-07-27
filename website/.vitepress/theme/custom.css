@@ -103,56 +103,7 @@
   border-radius: 12px;
 }
 
-.VPHomeHero .name {
-  color: var(--vp-c-brand-1);
-}
-
-.VPHomeHero .text {
-  max-width: 15ch;
-}
-
-.VPFeature {
-  border-color: var(--vp-c-divider);
-  background: linear-gradient(
-    145deg,
-    var(--vp-c-bg-soft),
-    var(--vp-c-bg)
-  );
-}
-
-.learning-path {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.8rem;
-  margin: 1.5rem 0 2rem;
-}
-
-.learning-path > div {
-  position: relative;
-  min-height: 130px;
-  padding: 1rem;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 12px;
-  background: var(--vp-c-bg-soft);
-}
-
-.learning-path strong {
-  display: block;
-  margin-bottom: 0.45rem;
-  color: var(--vp-c-brand-1);
-}
-
-@media (max-width: 900px) {
-  .learning-path {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 560px) {
-  .learning-path {
-    grid-template-columns: 1fr;
-  }
-
   .vp-doc {
     font-size: 15.5px;
   }
