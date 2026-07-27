@@ -37,4 +37,5 @@ reconstruction，也不会在不兼容空间之间隐式重采样。
 - [安装与基本用法](/guide/)
 - [NGCS 数据模型](/concepts/)
 - [分析工作流](/tutorials/)
+- [功能模块](/modules/)
 - [函数参考](/api/reference/)

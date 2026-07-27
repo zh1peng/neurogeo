@@ -10,7 +10,7 @@ if (!requireNamespace("neurogeo", quietly = TRUE)) {
   stop("Install neurogeo before rendering the tutorial site.")
 }
 
-tutorials <- data.frame(
+documents <- data.frame(
   source = c(
     "vignettes/getting-started-zh.Rmd",
     "vignettes/format-workflows-zh.Rmd",
@@ -19,7 +19,21 @@ tutorials <- data.frame(
     "vignettes/neighbors-and-weights.Rmd",
     "vignettes/parcellation-and-aggregation.Rmd",
     "vignettes/change-of-support.Rmd",
-    "vignettes/spatial-modelling.Rmd"
+    "vignettes/spatial-modelling.Rmd",
+    "vignettes/real-world-support-mapping.Rmd",
+    "vignettes/support-uncertainty.Rmd",
+    "vignettes/support-aware-inference.Rmd",
+    "vignettes/scalable-io.Rmd",
+    "vignettes/bounded-execution.Rmd",
+    "vignettes/model-uncertainty.Rmd",
+    "vignettes/space-transform-graph.Rmd",
+    "vignettes/interoperability-29.Rmd",
+    "vignettes/schema-validation.Rmd",
+    "vignettes/file-backed-io.Rmd",
+    "vignettes/transform-aware-resampling.Rmd",
+    "vignettes/spatiotemporal-analysis.Rmd",
+    "vignettes/iterative-spatial-models.Rmd",
+    "vignettes/reproducible-replay.Rmd"
   ),
   target = c(
     "website/tutorials/getting-started.md",
@@ -29,7 +43,21 @@ tutorials <- data.frame(
     "website/en/tutorials/neighbors-and-weights.md",
     "website/en/tutorials/parcellation-and-aggregation.md",
     "website/en/tutorials/change-of-support.md",
-    "website/en/tutorials/spatial-modelling.md"
+    "website/en/tutorials/spatial-modelling.md",
+    "website/en/modules/real-world-support-mapping.md",
+    "website/en/modules/support-uncertainty.md",
+    "website/en/modules/support-aware-inference.md",
+    "website/en/modules/scalable-io.md",
+    "website/en/modules/bounded-execution.md",
+    "website/en/modules/model-uncertainty.md",
+    "website/en/modules/space-transform-graph.md",
+    "website/en/modules/interoperability-29.md",
+    "website/en/modules/schema-validation.md",
+    "website/en/modules/file-backed-io.md",
+    "website/en/modules/transform-aware-resampling.md",
+    "website/en/modules/spatiotemporal-analysis.md",
+    "website/en/modules/iterative-spatial-models.md",
+    "website/en/modules/reproducible-replay.md"
   ),
   title = c(
     "点数据空间统计：从 ngeo_points 到 Moran's I",
@@ -39,10 +67,43 @@ tutorials <- data.frame(
     "Neighbors and weights",
     "Parcellation and aggregation",
     "Change of support and cross-atlas analysis",
-    "Bounded spatial modelling"
+    "Bounded spatial modelling",
+    "Real-world support mapping",
+    "Support uncertainty and operator ensembles",
+    "Support-aware inference",
+    "Scalable values, CIFTI, and BIDS derivatives",
+    "Bounded scientific execution",
+    "Uncertainty-aware spatial models",
+    "Explicit spaces and transform paths",
+    "Interoperability and auditable exchange",
+    "Schema validation and portable manifests",
+    "File-backed neuroimaging values",
+    "Transform-aware resampling",
+    "Explicit temporal and spatiotemporal analysis",
+    "Bounded iterative spatial models",
+    "Auditable replay and derivative artifacts"
   ),
   stringsAsFactors = FALSE
 )
+
+vignettes <- sort(list.files(
+  "vignettes",
+  pattern = "\\.Rmd$",
+  full.names = TRUE
+))
+unlisted <- setdiff(vignettes, documents$source)
+missing <- setdiff(documents$source, vignettes)
+if (length(unlisted) || length(missing)) {
+  stop(
+    "VitePress Rmd manifest is incomplete.",
+    if (length(unlisted)) {
+      paste0("\nUnlisted vignettes: ", paste(unlisted, collapse = ", "))
+    },
+    if (length(missing)) {
+      paste0("\nMissing sources: ", paste(missing, collapse = ", "))
+    }
+  )
+}
 
 replace_front_matter <- function(path, title) {
   lines <- readLines(path, encoding = "UTF-8", warn = FALSE)
@@ -103,9 +164,9 @@ on.exit({
   }
 }, add = TRUE)
 
-for (index in seq_len(nrow(tutorials))) {
-  source <- tutorials$source[[index]]
-  target <- tutorials$target[[index]]
+for (index in seq_len(nrow(documents))) {
+  source <- documents$source[[index]]
+  target <- documents$target[[index]]
   target_dir <- dirname(target)
   dir.create(target_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -120,6 +181,6 @@ for (index in seq_len(nrow(tutorials))) {
     quiet = TRUE,
     envir = new.env(parent = globalenv())
   )
-  replace_front_matter(target, tutorials$title[[index]])
+  replace_front_matter(target, documents$title[[index]])
   message("Rendered ", source, " -> ", target)
 }

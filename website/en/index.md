@@ -26,5 +26,6 @@ segmentation, or surface reconstruction.
 ## Documentation
 
 - [Installation and basic use](/en/guide/)
-- [Data model and workflows](/en/tutorials/)
+- [Analysis workflows](/en/tutorials/)
+- [Module index](/en/modules/)
 - [Function reference](/api/reference/)

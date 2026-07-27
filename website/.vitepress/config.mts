@@ -13,11 +13,56 @@ const zhTheme = {
       ]
     },
     {
-      text: '分析工作流',
+      text: '中文工作流',
       items: [
         { text: '工作流索引', link: '/tutorials/' },
         { text: "点数据与 Moran's I", link: '/tutorials/getting-started' },
         { text: '格式 I/O 与验证', link: '/tutorials/format-workflows' }
+      ]
+    },
+    {
+      text: '数据模型与 I/O',
+      collapsed: true,
+      items: [
+        { text: '功能模块索引', link: '/modules/' },
+        { text: 'Core concepts', link: '/en/tutorials/core-concepts' },
+        { text: 'Reading neuroimaging data', link: '/en/tutorials/reading-data' },
+        { text: 'Schema validation', link: '/en/modules/schema-validation' },
+        { text: 'Interoperability', link: '/en/modules/interoperability-29' },
+        { text: 'Scalable I/O', link: '/en/modules/scalable-io' },
+        { text: 'File-backed values', link: '/en/modules/file-backed-io' }
+      ]
+    },
+    {
+      text: '空间关系与 support',
+      collapsed: true,
+      items: [
+        { text: 'Neighbors and weights', link: '/en/tutorials/neighbors-and-weights' },
+        { text: 'Parcellation and aggregation', link: '/en/tutorials/parcellation-and-aggregation' },
+        { text: 'Change of support', link: '/en/tutorials/change-of-support' },
+        { text: 'Real-world support mapping', link: '/en/modules/real-world-support-mapping' },
+        { text: 'Transform-aware resampling', link: '/en/modules/transform-aware-resampling' },
+        { text: 'Spaces and transform paths', link: '/en/modules/space-transform-graph' }
+      ]
+    },
+    {
+      text: '推断与模型',
+      collapsed: true,
+      items: [
+        { text: 'Support uncertainty', link: '/en/modules/support-uncertainty' },
+        { text: 'Support-aware inference', link: '/en/modules/support-aware-inference' },
+        { text: 'Spatial modelling', link: '/en/tutorials/spatial-modelling' },
+        { text: 'Model uncertainty', link: '/en/modules/model-uncertainty' },
+        { text: 'Iterative spatial models', link: '/en/modules/iterative-spatial-models' },
+        { text: 'Spatiotemporal analysis', link: '/en/modules/spatiotemporal-analysis' }
+      ]
+    },
+    {
+      text: '执行与复现',
+      collapsed: true,
+      items: [
+        { text: 'Bounded execution', link: '/en/modules/bounded-execution' },
+        { text: 'Reproducible replay', link: '/en/modules/reproducible-replay' }
       ]
     },
     {
@@ -54,24 +99,48 @@ const enTheme = {
       text: 'Overview',
       items: [
         { text: 'Package overview', link: '/en/' },
-        { text: 'Installation and basic use', link: '/en/guide/' }
+        { text: 'Installation and basic use', link: '/en/guide/' },
+        { text: 'Module index', link: '/en/modules/' }
       ]
     },
     {
-      text: 'Data model',
+      text: 'Data model and I/O',
       items: [
         { text: 'Core concepts', link: '/en/tutorials/core-concepts' },
-        { text: 'Reading data', link: '/en/tutorials/reading-data' }
+        { text: 'Reading data', link: '/en/tutorials/reading-data' },
+        { text: 'Schema validation', link: '/en/modules/schema-validation' },
+        { text: 'Interoperability', link: '/en/modules/interoperability-29' },
+        { text: 'Scalable I/O', link: '/en/modules/scalable-io' },
+        { text: 'File-backed values', link: '/en/modules/file-backed-io' }
       ]
     },
     {
-      text: 'Analysis workflows',
+      text: 'Spatial relations and support',
       items: [
-        { text: 'Workflow index', link: '/en/tutorials/' },
         { text: 'Neighbors and weights', link: '/en/tutorials/neighbors-and-weights' },
         { text: 'Parcellation and aggregation', link: '/en/tutorials/parcellation-and-aggregation' },
         { text: 'Change of support', link: '/en/tutorials/change-of-support' },
-        { text: 'Spatial modelling', link: '/en/tutorials/spatial-modelling' }
+        { text: 'Real-world support mapping', link: '/en/modules/real-world-support-mapping' },
+        { text: 'Transform-aware resampling', link: '/en/modules/transform-aware-resampling' },
+        { text: 'Spaces and transform paths', link: '/en/modules/space-transform-graph' }
+      ]
+    },
+    {
+      text: 'Inference and models',
+      items: [
+        { text: 'Support uncertainty', link: '/en/modules/support-uncertainty' },
+        { text: 'Support-aware inference', link: '/en/modules/support-aware-inference' },
+        { text: 'Spatial modelling', link: '/en/tutorials/spatial-modelling' },
+        { text: 'Model uncertainty', link: '/en/modules/model-uncertainty' },
+        { text: 'Iterative spatial models', link: '/en/modules/iterative-spatial-models' },
+        { text: 'Spatiotemporal analysis', link: '/en/modules/spatiotemporal-analysis' }
+      ]
+    },
+    {
+      text: 'Execution and reproducibility',
+      items: [
+        { text: 'Bounded execution', link: '/en/modules/bounded-execution' },
+        { text: 'Reproducible replay', link: '/en/modules/reproducible-replay' }
       ]
     },
     {
