@@ -8,7 +8,14 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  fig.retina = 2,
+  out.width = "100%"
+)
 library(neurogeo)
 ```
 
@@ -48,11 +55,55 @@ regional$values
 regional$domain$support_size
 ```
 
+Plot the surface map and the partition sizes before interpreting the regional
+values. The first view checks spatial alignment; the second checks whether one
+parcel unexpectedly dominates the aggregation.
+
+```{r parcellation-plots, fig.width=8, fig.height=4.5, fig.alt="Surface thickness values and a bar chart of partition region sizes", fig.cap="Geometry and partition diagnostics should precede aggregation."}
+old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
+plot(surface, map = "thickness", show_edges = TRUE, palette = "Viridis")
+plot(partition, col = c("#3b82a0", "#e29b45"), border = NA)
+par(old_par)
+```
+
 The extensive map is conserved:
 
 ```{r}
 sum(surface$values[, "surface_area"])
 sum(regional$values[, "surface_area"])
+```
+
+```{r semantics-comparison, fig.width=8, fig.height=4.5, fig.alt="Two grouped bar charts comparing source elements with aggregated regional thickness and surface area", fig.cap="Intensive thickness is averaged, whereas extensive surface area is conserved and summed."}
+old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
+barplot(
+  rbind(
+    source_mean = tapply(surface$values[, "thickness"],
+                         partition$membership, mean),
+    regional = regional$values[, "thickness"]
+  ),
+  beside = TRUE,
+  col = c("#8ecdc4", "#176b63"),
+  border = NA,
+  ylab = "Thickness (mm)",
+  main = "Intensive"
+)
+legend("topleft", legend = c("Source mean", "Regional"),
+       fill = c("#8ecdc4", "#176b63"), bty = "n", cex = 0.8)
+barplot(
+  rbind(
+    source_sum = tapply(surface$values[, "surface_area"],
+                        partition$membership, sum),
+    regional = regional$values[, "surface_area"]
+  ),
+  beside = TRUE,
+  col = c("#f3c985", "#d97b29"),
+  border = NA,
+  ylab = expression(mm^2),
+  main = "Extensive"
+)
+legend("topleft", legend = c("Source sum", "Regional"),
+       fill = c("#f3c985", "#d97b29"), bty = "n", cex = 0.8)
+par(old_par)
 ```
 
 Label inputs can be used directly by name. Background and medial-wall values

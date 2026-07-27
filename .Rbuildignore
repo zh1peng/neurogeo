@@ -12,6 +12,9 @@
 ^neuroimaging_geoinformatics_development_plan\(1\)\.md$
 ^check-output.*$
 ^docs$
+^node_modules$
+^package(-lock)?\.json$
+^website$
 ^release$
 ^tools/check-repository$
 ^neurogeo\.Rcheck$

@@ -12,7 +12,9 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.width = 6,
-  fig.height = 4
+  fig.height = 4,
+  fig.retina = 2,
+  out.width = "100%"
 )
 library(neurogeo)
 ```
@@ -141,17 +143,22 @@ knitr::kable(teaching_data)
 先画出这些观测。数字是 signal；位置相近的右上区域有相近的较大值，
 因此在计算前可以提出一个待检验的猜想：“signal 可能具有正空间自相关”。
 
-```{r teaching-plot, fig.alt="九个点组成的三乘三网格，每个点上标注 signal 数值"}
+```{r teaching-plot, fig.alt="九个点组成的三乘三网格，颜色和数字共同表示 signal 数值", fig.cap="先画数据再计算：颜色越深、圆点越大，signal 越高。"}
+signal_colors <- grDevices::hcl.colors(9, "YlOrRd", rev = TRUE)[
+  cut(signal, breaks = 9, labels = FALSE, include.lowest = TRUE)
+]
 plot(
   coordinates,
   asp = 1,
   pch = 21,
-  bg = "white",
+  bg = signal_colors,
+  col = "white",
+  cex = 1.8 + signal / max(signal),
   xlab = "x（mm）",
   ylab = "y（mm）",
-  main = "3 × 3 教学网格"
+  main = "信号在 3 × 3 教学网格中的分布"
 )
-text(coordinates, labels = signal, pos = 3)
+text(coordinates, labels = signal, font = 2, cex = 0.9)
 ```
 
 现在把同一组坐标和数值放入 neurogeo。`cbind()` 很重要：即使只有一个
@@ -303,6 +310,48 @@ rowSums(W)
 数十万个元素；这里转成普通矩阵只是为了教学，正式分析不要执行
 `as.matrix(w$matrix)`。
 
+矩阵适合核对数值，网络图更适合发现连接是否符合预期。下面只画一次每条无向边；
+节点颜色仍然表示 signal。
+
+```{r weights-network, fig.width=7, fig.height=5, fig.alt="三乘三网格上的空间邻接网络，横纵相邻点由线段连接", fig.cap="距离阈值 1.01 形成的空间邻接网络。对角线没有连边。"}
+edge_index <- which(
+  upper.tri(W) & ((W > 0) | (t(W) > 0)),
+  arr.ind = TRUE
+)
+plot(
+  coordinates,
+  type = "n",
+  asp = 1,
+  xlab = "x（mm）",
+  ylab = "y（mm）",
+  main = "先检查邻接，再进行空间统计"
+)
+segments(
+  coordinates[edge_index[, 1], 1],
+  coordinates[edge_index[, 1], 2],
+  coordinates[edge_index[, 2], 1],
+  coordinates[edge_index[, 2], 2],
+  col = "#8aa6a3",
+  lwd = 2
+)
+points(
+  coordinates,
+  pch = 21,
+  bg = signal_colors,
+  col = "white",
+  cex = 2.6,
+  lwd = 1.5
+)
+text(coordinates, labels = seq_along(signal), font = 2, cex = 0.85)
+legend(
+  "topleft",
+  legend = "节点编号；颜色表示 signal",
+  pch = 21,
+  pt.bg = "#e85d3f",
+  bty = "n"
+)
+```
+
 ### 6.1 空间滞后是什么
 
 先中心化信号：
@@ -336,6 +385,26 @@ c(by_hand = first_lag_by_hand, matrix_result = lag_z[1])
 
 负值旁边仍是负值、正值旁边仍是正值时，$z_i(Wz)_i$ 往往为正，这正是
 Moran's I 捕捉正空间自相关的基础。
+
+把横轴设为中心化信号、纵轴设为空间滞后，就得到 Moran 散点图。右上和左下
+象限表示“相似值相邻”，另外两个象限表示潜在空间离群。
+
+```{r lag-scatter, fig.width=6.5, fig.height=5, fig.alt="中心化信号与空间滞后的散点图，带有四象限参考线", fig.cap="Moran 散点图把每个位置的偏离与其邻域平均偏离放在同一坐标系中。"}
+plot(
+  z,
+  lag_z,
+  pch = 21,
+  bg = signal_colors,
+  col = "white",
+  cex = 2,
+  xlab = expression(z[i] == y[i] - bar(y)),
+  ylab = expression(sum(j, w[ij] * z[j])),
+  main = "信号与空间滞后的关系"
+)
+abline(h = 0, v = 0, col = "#8aa6a3", lty = 2)
+abline(stats::lm(lag_z ~ z), col = "#b33f2e", lwd = 2)
+text(z, lag_z, labels = seq_along(signal), pos = 3, cex = 0.8)
+```
 
 ## 7. 从公式到全局 Moran's I
 
@@ -399,6 +468,13 @@ c(
   null_expectation = moran$expectation,
   permutation_p = moran$p.value
 )
+```
+
+`plot()` 会直接使用统计对象中保存的标准化值和空间滞后，因此既是结果图，也是
+对输入 map 和 weights 的快速诊断。
+
+```{r moran-object-plot, fig.width=6.5, fig.height=5, fig.alt="neurogeo 全局 Moran 统计对象的标准化值与空间滞后图", fig.cap="由 `plot.ngeo_global_stat()` 生成的 Moran 诊断图。回归线斜率反映全局空间关联方向。"}
+plot(moran, pch = 21, bg = "#26a69a", col = "white", cex = 1.7)
 ```
 
 在随机置换假设下，Moran's I 的常用期望为：
@@ -474,6 +550,56 @@ knitr::kable(lisa_view, digits = 3)
 Benjamini--Hochberg（`adjust = "BH"`）校正，并应优先解释
 `p.adjusted`。99 次置换仍然只用于演示。
 
+表格用于读取精确数值；空间图用于判断这些结果究竟落在哪里。下面的颜色表示
+局部象限类型，粗黑边框表示经过 BH 校正后达到 0.05 的元素。
+
+```{r lisa-map, fig.width=7, fig.height=5, fig.alt="三乘三网格上的局部 Moran 聚类类型空间图", fig.cap="LISA 象限类型的空间位置。颜色是描述性分类，显著性由边框单独表示。"}
+cluster_palette <- c(
+  "high-high" = "#d73027",
+  "low-low" = "#4575b4",
+  "high-low" = "#fdae61",
+  "low-high" = "#74add1"
+)
+cluster_color <- unname(cluster_palette[lisa_view$cluster])
+cluster_color[is.na(cluster_color)] <- "#b9c3c1"
+significant <- is.finite(lisa_view$p.adjusted) &
+  lisa_view$p.adjusted <= 0.05
+
+plot(
+  coordinates,
+  type = "n",
+  asp = 1,
+  xlab = "x（mm）",
+  ylab = "y（mm）",
+  main = "局部 Moran 聚类位于哪里？"
+)
+segments(
+  coordinates[edge_index[, 1], 1],
+  coordinates[edge_index[, 1], 2],
+  coordinates[edge_index[, 2], 1],
+  coordinates[edge_index[, 2], 2],
+  col = "#d8dfde"
+)
+points(
+  coordinates,
+  pch = 21,
+  bg = cluster_color,
+  col = ifelse(significant, "#172624", "white"),
+  lwd = ifelse(significant, 2.5, 1),
+  cex = 2.8
+)
+text(coordinates, labels = seq_along(signal), cex = 0.82, font = 2)
+legend(
+  "topleft",
+  legend = names(cluster_palette),
+  pch = 21,
+  pt.bg = unname(cluster_palette),
+  pt.cex = 1.4,
+  bty = "n",
+  cex = 0.82
+)
+```
+
 ## 9. 从元素 support 改变到区域 support
 
 假设九个点属于三个区域。`ngeo_atlas_map()` 根据已知标签构造稀疏
@@ -520,6 +646,44 @@ regional <- ngeo_change_support(
 
 ngeo_values(regional)
 ngeo_measures(regional)
+```
+
+下面把 source 元素、区域标签和聚合后的区域均值放在同一幅图中。它可以立即揭示
+“哪些元素进入了哪个 target support”，这是只看 operator 矩阵时不容易发现的。
+
+```{r support-map-visual, fig.width=8, fig.height=4.5, fig.alt="左侧为按三个区域着色的九个源点，右侧为三个目标区域的聚合 signal", fig.cap="从元素 support 到区域 support：颜色保持区域身份，柱高显示聚合后的 intensive 值。"}
+region_palette <- c(
+  "left" = "#3b82a0",
+  "middle" = "#26a69a",
+  "right" = "#e29b45"
+)
+old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
+plot(
+  coordinates,
+  type = "n",
+  asp = 1,
+  xlab = "x（mm）",
+  ylab = "y（mm）",
+  main = "source 元素与区域标签"
+)
+points(
+  coordinates,
+  pch = 21,
+  bg = unname(region_palette[labels]),
+  col = "white",
+  cex = 2.8
+)
+text(coordinates, labels = signal, font = 2, cex = 0.85)
+regional_signal <- as.numeric(ngeo_values(regional)[, "signal"])
+barplot(
+  regional_signal,
+  names.arg = unique(labels),
+  col = unname(region_palette[unique(labels)]),
+  border = NA,
+  ylab = "区域 signal 均值",
+  main = "target 区域"
+)
+par(old_par)
 ```
 
 因为 `signal` 被声明为 intensive，目标区域 $r$ 的值按下面的公式计算：

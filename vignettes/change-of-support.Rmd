@@ -8,7 +8,14 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  fig.retina = 2,
+  out.width = "100%"
+)
 library(neurogeo)
 ```
 
@@ -31,7 +38,55 @@ support_map <- ngeo_support_map(
   operator = c("A", "A", "B", "B"),
   source_support = c(1, 2, 1, 2)
 )
-ngeo_change_support(source, target, support_map)
+regional <- ngeo_change_support(source, target, support_map)
+regional
+```
+
+The operator is easier to audit when the source elements and target summaries
+are shown together. Point size below represents source support, not intensity.
+
+```{r support-flow, fig.width=8, fig.height=4.5, fig.alt="Source points assigned to two colored regions alongside target regional intensity bars", fig.cap="A visual support audit separates source value, source support, and target membership."}
+membership <- c("A", "A", "B", "B")
+region_colors <- c(A = "#3b82a0", B = "#e29b45")
+old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
+plot(
+  source$domain$coordinates,
+  type = "n",
+  asp = 1,
+  xlab = "x",
+  ylab = "y",
+  ylim = c(-0.5, 0.5),
+  main = "Source support"
+)
+points(
+  source$domain$coordinates,
+  pch = 21,
+  bg = unname(region_colors[membership]),
+  col = "white",
+  cex = 1.5 + source$domain$support_size
+)
+text(
+  source$domain$coordinates,
+  labels = source$values[, "intensity"],
+  pos = 3
+)
+barplot(
+  regional$values[, "intensity"],
+  names.arg = target$domain$elements$region_id,
+  col = unname(region_colors[target$domain$elements$region_id]),
+  border = NA,
+  ylab = "Support-weighted intensity",
+  main = "Target support"
+)
+par(old_par)
+```
+
+The bounded built-in diagnostic shows whether each source column has the
+expected membership sum. It does not materialize or draw a whole-brain dense
+operator.
+
+```{r support-diagnostic, fig.alt="Histogram of source membership column sums", fig.cap="Every source element in this crisp complete map has membership sum one."}
+plot(support_map, type = "membership", col = "#26a69a", border = "white")
 ```
 
 Intensive maps use source-support weighted means. Extensive maps and counts
@@ -52,7 +107,30 @@ support_map2 <- ngeo_support_map(
   operator = c("C", "D", "D", "C"),
   source_support = c(1, 2, 1, 2)
 )
-as.matrix(ngeo_atlas_overlap(support_map, support_map2, metric = "dice"))
+overlap <- as.matrix(
+  ngeo_atlas_overlap(support_map, support_map2, metric = "dice")
+)
+overlap
+```
+
+```{r atlas-overlap, fig.width=6, fig.height=5, fig.alt="Heatmap of Dice overlap between two pairs of atlas regions", fig.cap="Cross-atlas overlap is a relationship between supports, not a claim that one atlas reconstructs the other."}
+image(
+  seq_len(nrow(overlap)),
+  seq_len(ncol(overlap)),
+  overlap,
+  col = grDevices::hcl.colors(32, "Teal"),
+  axes = FALSE,
+  xlab = "Second atlas",
+  ylab = "First atlas",
+  main = "Dice overlap"
+)
+axis(1, at = seq_len(ncol(overlap)), labels = colnames(overlap))
+axis(2, at = seq_len(nrow(overlap)), labels = rownames(overlap))
+text(
+  rep(seq_len(nrow(overlap)), times = ncol(overlap)),
+  rep(seq_len(ncol(overlap)), each = nrow(overlap)),
+  labels = sprintf("%.2f", as.vector(overlap))
+)
 ```
 
 `ngeo_cross_atlas()` is deliberately model based. It declares a

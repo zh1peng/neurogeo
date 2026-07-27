@@ -8,7 +8,14 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  fig.retina = 2,
+  out.width = "100%"
+)
 library(neurogeo)
 ```
 
@@ -33,6 +40,29 @@ w
 w$diagnostics
 ```
 
+Inspect the graph before using it in a statistic. The node fill shows the
+signal while each segment shows one distance-band connection.
+
+```{r distance-network, fig.alt="A three by three spatial graph with horizontal and vertical neighbor connections", fig.cap="The distance-band graph. A visual check catches missing components and unintended diagonal links more quickly than a matrix printout."}
+W <- as.matrix(w$matrix)
+edges <- which(
+  upper.tri(W) & ((W > 0) | (t(W) > 0)),
+  arr.ind = TRUE
+)
+node_colors <- grDevices::hcl.colors(9, "YlOrRd", rev = TRUE)[
+  cut(x$values[, "signal"], breaks = 9, labels = FALSE, include.lowest = TRUE)
+]
+plot(coordinates, type = "n", asp = 1, xlab = "x", ylab = "y",
+     main = "Distance-band neighbors")
+segments(
+  coordinates[edges[, 1], 1], coordinates[edges[, 1], 2],
+  coordinates[edges[, 2], 1], coordinates[edges[, 2], 2],
+  col = "#8aa6a3", lwd = 2
+)
+points(coordinates, pch = 21, bg = node_colors, col = "white", cex = 2.8)
+text(coordinates, labels = seq_len(nrow(coordinates)), font = 2)
+```
+
 `style = "W"` row-standardizes the relation, `style = "B"` makes it binary,
 and `style = "none"` retains raw edge or kernel weights. KNN construction
 requires an explicit symmetry policy.
@@ -48,6 +78,33 @@ knn <- ngeo_weights(
 knn
 ```
 
+The degree distributions make the consequences of the two construction
+rules visible. Boundary nodes have fewer distance-band neighbors, whereas KNN
+starts from a requested neighbor count and then applies the symmetry policy.
+
+```{r compare-degrees, fig.width=8, fig.height=4.5, fig.alt="Side-by-side bar charts comparing node degree under distance-band and K nearest-neighbor weights", fig.cap="Neighbor count is a model choice, not a harmless implementation detail."}
+old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
+barplot(
+  Matrix::rowSums(w$raw_matrix != 0),
+  names.arg = seq_len(nrow(coordinates)),
+  col = "#26a69a",
+  border = NA,
+  xlab = "Element",
+  ylab = "Neighbor count",
+  main = "Distance band"
+)
+barplot(
+  Matrix::rowSums(knn$raw_matrix != 0),
+  names.arg = seq_len(nrow(coordinates)),
+  col = "#e29b45",
+  border = NA,
+  xlab = "Element",
+  ylab = "Neighbor count",
+  main = "KNN union"
+)
+par(old_par)
+```
+
 Distances require explicit sources and targets; the API guards against
 accidental dense all-pairs allocation.
 
@@ -58,6 +115,15 @@ ngeo_distance(x, from = 1, to = c(2, 5, 9), metric = "euclidean")
 The same weights object can drive global and local statistics.
 
 ```{r}
-ngeo_moran(x, w, "signal")
-head(ngeo_local_moran(x, w, "signal"))
+moran <- ngeo_moran(x, w, "signal")
+lisa <- ngeo_local_moran(x, w, "signal")
+moran
+head(lisa)
+```
+
+```{r association-plots, fig.width=8, fig.height=4.5, fig.alt="Side-by-side Moran and local Moran scatterplots", fig.cap="Global and local association diagnostics use the same declared weights object."}
+old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
+plot(moran, pch = 21, bg = "#26a69a", col = "white", cex = 1.4)
+plot(lisa, pch = 21, bg = "#e29b45", col = "white", cex = 1.4)
+par(old_par)
 ```

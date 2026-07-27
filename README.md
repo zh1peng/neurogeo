@@ -13,14 +13,12 @@ one spatial domain
 
 ## Installation
 
-The development repository is currently private. Authorized users can
-install it with a GitHub personal access token:
+Install the development version from the public GitHub repository:
 
 ```r
 install.packages("remotes")
 remotes::install_github(
-  "zh1peng/neurogeo",
-  auth_token = Sys.getenv("GITHUB_PAT")
+  "zh1peng/neurogeo"
 )
 ```
 
@@ -131,8 +129,9 @@ result <- ngeo_moran(
 ```
 
 Start with the
-[Chinese getting-started tutorial](vignettes/getting-started-zh.Rmd), then
-continue with the
-[Chinese format workflow tutorial](vignettes/format-workflows-zh.Rmd).
-The remaining package vignettes cover core concepts, format-specific readers,
-neighbors and weights, and measurement-aware parcellation.
+[Chinese learning path](https://zh1peng.github.io/neurogeo/guide/), then
+complete the visual walkthrough from a spatial object to
+[Moran's I](https://zh1peng.github.io/neurogeo/tutorials/getting-started).
+The [tutorial index](https://zh1peng.github.io/neurogeo/tutorials/) and
+[API reference](https://zh1peng.github.io/neurogeo/api/reference/) are built
+from the same R package sources.

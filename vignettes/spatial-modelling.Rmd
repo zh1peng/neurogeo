@@ -8,7 +8,14 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  fig.retina = 2,
+  out.width = "100%"
+)
 library(neurogeo)
 ```
 
@@ -30,11 +37,24 @@ weights <- ngeo_weights(
 )
 ```
 
+```{r model-input-map, fig.alt="A five by five point grid colored by response", fig.cap="Always inspect the response on its domain before fitting a spatial model."}
+plot(
+  x,
+  map = "response",
+  palette = "Inferno",
+  cex = 2.2
+)
+```
+
 ```{r}
 empirical <- ngeo_variogram(x, "response", breaks = 6)
 variogram <- ngeo_fit_variogram(empirical, model = "exponential")
 variogram
 ngeo_kriging(x, "response", variogram, targets = 1:3, neighbors = 8)
+```
+
+```{r variogram-plot, fig.alt="Empirical semivariance plotted against spatial distance", fig.cap="The empirical variogram makes the distance scale of spatial dependence visible."}
+plot(empirical, pch = 21, bg = "#26a69a", col = "white", cex = 1.5)
 ```
 
 ```{r}
@@ -44,6 +64,22 @@ bandwidth <- ngeo_gwr_bandwidth(
 )
 gwr <- ngeo_gwr(x, "response", "predictor", bandwidth)
 gwr[, c("element_id", "fitted", "condition_number")]
+```
+
+```{r gwr-diagnostics, fig.width=8, fig.height=4.5, fig.alt="Maps of GWR fitted values and condition numbers over the five by five grid", fig.cap="Fitted values must be read together with local numerical diagnostics."}
+old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
+fit_colors <- grDevices::hcl.colors(32, "Viridis")[
+  cut(gwr$fitted, breaks = 32, labels = FALSE, include.lowest = TRUE)
+]
+plot(coordinates, pch = 21, bg = fit_colors, col = "white", cex = 2.2,
+     asp = 1, xlab = "x", ylab = "y", main = "GWR fitted value")
+condition_colors <- grDevices::hcl.colors(32, "YlOrRd", rev = TRUE)[
+  cut(gwr$condition_number, breaks = 32, labels = FALSE,
+      include.lowest = TRUE)
+]
+plot(coordinates, pch = 21, bg = condition_colors, col = "white", cex = 2.2,
+     asp = 1, xlab = "x", ylab = "y", main = "Condition number")
+par(old_par)
 ```
 
 SAR and SEM use an exact dense log determinant only below a declared resource

@@ -1,4 +1,4 @@
-name: pkgdown
+name: documentation
 
 on:
   push:
@@ -26,12 +26,17 @@ jobs:
         with:
           use-public-rspm: true
 
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::pkgdown
           needs: website
 
-      - name: Build pkgdown site
+      - name: Build API reference
         shell: Rscript {0}
         run: |
           pkgdown::build_site_github_pages(
@@ -39,9 +44,24 @@ jobs:
             install = TRUE
           )
 
+      - name: Install neurogeo for executable tutorials
+        run: R CMD INSTALL .
+
+      - name: Render Rmd tutorials
+        run: Rscript tools/render-vitepress.R
+
+      - name: Build tutorial site
+        run: |
+          npm ci
+          npm run docs:build
+
+      - name: Add pkgdown API reference
+        shell: bash
+        run: cp -R docs website/.vitepress/dist/api
+
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: docs
+          path: website/.vitepress/dist
 
   deploy:
     if: vars.NEUROGEO_ENABLE_PAGES == 'true'
