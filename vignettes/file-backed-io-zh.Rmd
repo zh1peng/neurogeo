@@ -1,0 +1,69 @@
+---
+title: "文件后端神经影像 values"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{文件后端神经影像 values}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+## 基础背景
+
+file-backed values 在请求特定 element-by-map block 时才读取文件，适合长时间
+序列和 dense grayordinate 数据。它不是新的科学数据模型：对象仍然只有一个
+domain 和一个严格对齐的 values block。
+
+源文件 identity 和 selection 必须进入对象身份，避免文件改变后仍命中旧缓存。
+
+## 读取
+
+```{r}
+library(neurogeo)
+
+x <- read_ngeo_nifti_filebacked(
+  "sub-01_task-rest_bold.nii.gz",
+  frames = 1:20,
+  verify = "checksum",
+  budget = ngeo_resource_budget(
+    memory_bytes = 64 * 1024^2,
+    materialized_elements = 8e6
+  )
+)
+x$values[1:1000, 1:2, drop = FALSE]
+```
+
+CIFTI 和 FreeSurfer volume 使用相同契约：
+
+```{r}
+dense <- read_ngeo_cifti_filebacked(
+  "sub-01_task-rest_bold.dtseries.nii",
+  structures = c("CORTEX_LEFT", "CORTEX_RIGHT"),
+  frames = 1:100
+)
+mgh <- read_ngeo_mgh_filebacked("lh.metric.mgz", frames = 1)
+```
+
+## 分块与预算
+
+```{r}
+ngeo_value_chunks(
+  dense,
+  chunk_size = 4096,
+  FUN = function(block, rows) {
+    list(rows = range(rows), mean = colMeans(block))
+  }
+)
+```
+
+每个请求 block 都接受预算检查；超限时在读取数据前产生
+`ngeo_error_resource`。
+
+## 写出边界
+
+`write_ngeo_filebacked()` 仅原子复制完整源文件。部分 selection 必须先显式
+materialize，再用对应格式 writer 编码。读取和写出都不会执行 preprocessing、
+registration 或 resampling。

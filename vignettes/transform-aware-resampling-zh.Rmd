@@ -1,0 +1,72 @@
+---
+title: "显式 transform 的 resampling"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{显式 transform 的 resampling}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+## 基础背景
+
+registration 估计两个空间的关系；resampling 使用已经提供的关系，在 target
+domain 上评价 source measurements。一次可审计 resampling 必须分别声明：
+
+1. 连接两个 space 的 transform path；
+2. nearest、linear 或 barycentric 等 interpolation method；
+3. coverage、conservation、missing value 和 uncertainty policy。
+
+## 注册 space 与 transform
+
+```{r}
+library(neurogeo)
+native <- ngeo_space("native", kind = "volume")
+standard <- ngeo_space("standard", kind = "volume")
+affine <- diag(4)
+affine[1, 4] <- 10
+known <- ngeo_transform(
+  native, standard, type = "affine",
+  method = "supplied scanner-to-template affine",
+  parameters = list(matrix = affine)
+)
+registry <- ngeo_space_registry(list(native, standard))
+graph <- ngeo_transform_graph(
+  registry, transforms = list(known),
+  edge_ids = "native-to-standard", invertible = FALSE, lossy = FALSE
+)
+path <- ngeo_transform_path(graph, "native", "standard")
+```
+
+## 创建 inert plan
+
+```{r}
+plan <- ngeo_resampling_plan(
+  source, target, path,
+  method = "linear",
+  coverage = "error",
+  conservation = "strict",
+  missing = "error",
+  unknown = "error",
+  uncertainty = "none",
+  budget = ngeo_resource_budget(
+    memory_bytes = 256 * 1024^2,
+    materialized_elements = 2e7
+  )
+)
+```
+
+plan 创建时不执行运算。建立 map 或 resample 需要显式授权：
+
+```{r}
+support_map <- ngeo_build_resampling_map(plan, authorize = TRUE)
+ngeo_resampling_diagnostics(plan, support_map)
+result <- ngeo_resample(plan, authorize = TRUE)
+```
+
+coverage 描述 target 外的几何贡献，conservation 描述 extensive/count allocation
+是否守恒；两者不能混为一个参数。warp 可以记录在 graph 中，但不支持的 path
+不会被隐式执行。

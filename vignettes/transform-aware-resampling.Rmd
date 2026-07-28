@@ -11,8 +11,19 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE)
 ```
 
-NGCS 3.2 connects a transform graph to support mapping without estimating
-registration or resampling implicitly.
+## Background
+
+Resampling evaluates source measurements on a target domain. It requires
+three separate declarations: a path connecting the coordinate spaces, an
+interpolation rule, and policies for coverage, conservation, missing values,
+and uncertainty. Registration estimates a spatial relationship; resampling
+uses a relationship that has already been supplied. These are not the same
+operation.
+
+The transform graph is connected to support mapping without estimating
+registration or executing resampling implicitly.
+
+## Register spaces and transforms
 
 Register exact spaces and supplied transforms first.
 
@@ -41,6 +52,8 @@ graph <- ngeo_transform_graph(
 path <- ngeo_transform_path(graph, "native", "standard")
 ```
 
+## Create an inert plan
+
 The source and target are ordinary NGCS objects. The target is a domain
 template; its values are not used.
 
@@ -62,6 +75,8 @@ plan <- ngeo_resampling_plan(
 )
 ```
 
+## Authorize execution
+
 Plan creation is inert. Building a map or resampling requires explicit
 authorization.
 
@@ -79,14 +94,16 @@ result$diagnostics
 Surface plans support nearest and barycentric mapping. Volume plans support
 nearest, trilinear (`method = "linear"`), and exact axis-aligned overlap.
 The path must be supplied, non-lossy, and affine-applicable. An auditable warp
-edge remains useful in a transform graph, but the 3.2 bridge refuses to
-execute it.
+edge remains useful in a transform graph, but this resampling bridge refuses
+to execute it.
 
 Coverage and conservation are different decisions. Coverage controls
 geometric contributions outside the target; conservation determines whether
 non-unit extensive/count allocation fails or is explicitly normalized.
 Unknown measurement semantics fail unless the caller selects an
 interpretation.
+
+## Uncertainty
 
 Uncertainty must be declared in the plan.
 

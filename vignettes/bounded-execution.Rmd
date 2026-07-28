@@ -12,8 +12,18 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(neurogeo)
 ```
 
-neurogeo 4.0 keeps resource limits on scientific operations rather than
-exposing a second generic workflow engine.
+## Background
+
+Whole-brain matrices can exceed memory even when the intended statistic is
+simple. Bounded execution makes memory, materialization, and iteration limits
+explicit at the scientific operation that consumes them. A resource budget
+changes whether an operation may run; it must not silently change the
+statistical method.
+
+Resource limits stay attached to scientific operations rather than exposing
+a second generic workflow engine.
+
+## Streaming summaries
 
 ```{r}
 backing <- cbind(signal = seq_len(12), predictor = 0:11)
@@ -28,6 +38,8 @@ x <- ngeo_points(
 ngeo_stream_summary(x, chunk_size = 4)
 ngeo_stream_lm(x, "signal", "predictor", chunk_size = 4)
 ```
+
+## Bounded support change
 
 Change of support consumes its sparse operator directly and checks the
 declared materialization budget before computing values.
@@ -49,6 +61,8 @@ target <- ngeo_change_support(
 )
 target
 ```
+
+## Scope
 
 Auditable supported workflows use replay manifests; atomic filesystem
 publication remains an internal responsibility of the format writers.

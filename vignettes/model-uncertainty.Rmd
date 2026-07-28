@@ -12,7 +12,18 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(neurogeo)
 ```
 
-Model uncertainty is bound to one exact ordered domain.
+## Background
+
+Prediction uncertainty can combine several distinct components: measurement
+error in observed values, residual process variation, uncertainty in fitted
+covariance parameters, and sensitivity to support or tuning choices.
+Combining them without labels makes a total variance difficult to interpret.
+
+Every uncertainty object is therefore bound to one exact ordered domain so
+that covariance rows and columns cannot drift away from the observations they
+describe.
+
+## Measurement covariance
 
 ```{r}
 coordinates <- as.matrix(expand.grid(x = 0:3, y = 0:3))
@@ -34,6 +45,8 @@ measurement <- ngeo_support_covariance(
 )
 ```
 
+## Variogram uncertainty
+
 Variogram uncertainty separates the raw empirical semivariance from the
 measurement-error correction and retains its parameter simulations.
 
@@ -50,6 +63,8 @@ variogram <- ngeo_variogram_uncertainty(
 variogram$empirical
 variogram$parameter_interval
 ```
+
+## Kriging variance components
 
 Kriging reports independent variance components explicitly.
 
@@ -70,6 +85,8 @@ prediction[
   )
 ]
 ```
+
+## Interpretation
 
 For GWR, alternative-bandwidth minima and maxima are sensitivity ranges, not
 confidence intervals. `ngeo_spatial_regression_uncertainty()` and

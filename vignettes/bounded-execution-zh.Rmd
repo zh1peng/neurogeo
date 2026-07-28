@@ -1,0 +1,56 @@
+---
+title: "有界科学计算"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{有界科学计算}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## 基础背景
+
+whole-brain matrix 可能远大于内存，即使目标统计量很简单。有界执行把 memory、
+materialization 和 iteration limit 放在真正消耗资源的科学操作上。resource
+budget 可以决定操作是否运行，但不能静默改变统计方法。
+
+## Streaming summary
+
+```{r}
+backing <- cbind(signal = seq_len(12), predictor = 0:11)
+x <- ngeo_points(
+  cbind(x = 0:11, y = 0),
+  values = backing,
+  measures = rbind(
+    ngeo_measure(spatial_semantics = "intensive"),
+    ngeo_measure(spatial_semantics = "intensive")
+  )
+)
+ngeo_stream_summary(x, chunk_size = 4)
+ngeo_stream_lm(x, "signal", "predictor", chunk_size = 4)
+```
+
+chunk size 影响执行方式，不应影响 summary 或 model estimate。
+
+## 有界 support change
+
+```{r}
+map <- ngeo_atlas_map(
+  x, rep(c("A", "B", "C"), each = 4),
+  source_support = rep(1, 12)
+)
+ngeo_change_support(
+  x, map$target, map,
+  budget = ngeo_resource_budget(
+    memory_bytes = 1024^2,
+    materialized_elements = 6
+  )
+)
+```
+
+稀疏 operator 被直接消费；在 materialize values 前先检查预算。可审计工作流由
+replay manifest 表示，format writer 负责 atomic filesystem publication。

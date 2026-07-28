@@ -431,5 +431,5 @@ coordinates 和 values。
 8. round-trip 比较是否使用了明确的数值容差。
 
 这些验证证明的是格式互操作和语义保真，不证明文件已经完成预处理、配准或
-质量控制。neurogeo 4.1 仍不执行 raw MRI preprocessing，也不自动
+质量控制。neurogeo 不执行 raw MRI preprocessing，也不自动
 registration/resampling。

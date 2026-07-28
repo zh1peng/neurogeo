@@ -10,7 +10,7 @@ description: Technical documentation for neurogeo objects, I/O, spatial relation
 - [Core concepts](/en/tutorials/core-concepts)
 - [Reading neuroimaging data](/en/tutorials/reading-data)
 - [Schema validation and portable manifests](/en/modules/schema-validation)
-- [Interoperability and auditable exchange](/en/modules/interoperability-29)
+- [Interoperability and auditable exchange](/en/modules/interoperability)
 - [Scalable values, CIFTI, and BIDS derivatives](/en/modules/scalable-io)
 - [File-backed neuroimaging values](/en/modules/file-backed-io)
 

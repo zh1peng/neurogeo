@@ -12,8 +12,18 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(neurogeo)
 ```
 
+## Background
+
+Dense neuroimaging matrices can exceed available memory even when an analysis
+needs only a few maps or a block of elements. Chunking changes how values are
+accessed, not what the dataset means: element order, map metadata, domain
+identity, and measurement semantics must remain identical to an in-memory
+object.
+
 Chunked access operates on the same logical element-by-map values block.
 Standard neuroimaging files use the format-specific file-backed readers.
+
+## Chunked computation
 
 ```{r}
 backing <- matrix(seq_len(30), nrow = 10, ncol = 3)
@@ -37,6 +47,8 @@ chunks <- ngeo_value_chunks(
 chunks
 ```
 
+## Bounded support operations
+
 One sparse support map is used directly. Resource budgets bound the values
 materialized by the scientific operation; there is no second block-map class.
 
@@ -56,6 +68,8 @@ ngeo_change_support(
   )
 )
 ```
+
+## Derivative output
 
 `write_ngeo_cifti()` writes dscalar, dlabel, and dtseries directly as
 CIFTI-2/NIfTI-2 without Workbench. `write_ngeo_bids_derivative()` adds a

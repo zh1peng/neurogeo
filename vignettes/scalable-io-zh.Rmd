@@ -1,0 +1,65 @@
+---
+title: "可扩展 values、CIFTI 与 BIDS derivatives"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{可扩展 values、CIFTI 与 BIDS derivatives}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## 基础背景
+
+高分辨率 surface、volume 和 dense grayordinate 数据可能超过内存。分块访问
+只改变 values 的读取方式，不能改变 element order、map metadata、domain
+identity 或 measurement semantics。
+
+## 分块计算
+
+```{r}
+backing <- matrix(seq_len(30), nrow = 10, ncol = 3)
+colnames(backing) <- c("a", "b", "c")
+x <- ngeo_points(
+  cbind(x = 1:10, y = 0),
+  values = backing,
+  measures = do.call(
+    rbind,
+    replicate(3, ngeo_measure(spatial_semantics = "intensive"),
+              simplify = FALSE)
+  )
+)
+ngeo_value_chunks(
+  x, chunk_size = 4,
+  FUN = function(block, rows) colSums(block)
+)
+```
+
+`chunk_size` 是执行参数，不产生第二套空间对象模型。不同 chunk size 应得到
+同一逻辑结果。
+
+## 资源预算
+
+```{r}
+atlas <- ngeo_atlas_map(
+  x, rep(c("A", "B"), each = 5), source_support = rep(1, 10)
+)
+ngeo_change_support(
+  x, atlas$target, atlas,
+  budget = ngeo_resource_budget(
+    memory_bytes = 1024^2,
+    materialized_elements = 6
+  )
+)
+```
+
+预算在分配内存前检查。超出预算应明确失败，而不是悄悄切换统计方法。
+
+## Derivative 输出
+
+`write_ngeo_cifti()` 可写出 dscalar、dlabel 和 dtseries；
+`write_ngeo_bids_derivative()` 添加限定范围的 JSON sidecar。两者都不负责运行
+或索引完整 BIDS dataset。

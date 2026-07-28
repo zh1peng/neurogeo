@@ -11,9 +11,19 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE)
 ```
 
-NGCS 3.1 keeps one spatial domain and one aligned element-by-map values
+## Background
+
+File-backed access delays reading until a particular element-by-map block is
+requested. It is useful for long time series and dense grayordinate data, but
+it is not a different scientific data model. The file identity and selection
+must be part of the object identity so that a changed source file cannot be
+mistaken for the same data.
+
+The object keeps one spatial domain and one aligned element-by-map values
 block, but the block can address a source file instead of retaining the
 complete matrix.
+
+## File-backed readers
 
 ```{r}
 library(neurogeo)
@@ -43,9 +53,13 @@ dense <- read_ngeo_cifti_filebacked(
 mgh <- read_ngeo_mgh_filebacked("lh.metric.mgz", frames = 1)
 ```
 
+## Selection and identity
+
 Selections are reflected in both the domain and map table. A file identity
 binds the exact selection and source state, so it is safe to include in cache
 and checkpoint identities.
+
+## Bounded streaming
 
 Use deterministic chunks for streaming methods.
 
@@ -62,6 +76,8 @@ summaries <- ngeo_value_chunks(
 The resource budget is checked for each requested block. Requesting a block
 larger than the budget raises `ngeo_error_resource` before file data are
 read.
+
+## Writing
 
 `write_ngeo_filebacked()` is intentionally narrow: it atomically copies a
 complete source through a bounded buffer. It rejects partial selections,

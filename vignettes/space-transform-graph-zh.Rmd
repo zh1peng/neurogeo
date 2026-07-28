@@ -1,0 +1,73 @@
+---
+title: "显式空间与 transform path"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{显式空间与 transform path}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## 基础背景
+
+坐标只有放在 coordinate reference space 中才有含义。两个文件都使用毫米，
+并不能证明它们属于同一 subject、template、orientation 或 surface
+registration。transform 是一个有方向、可审计的声明：某个 exact space 的坐标
+可以映射到另一个 exact space。
+
+## 注册空间
+
+```{r}
+native <- ngeo_space("native", template = "subject-01")
+intermediate <- ngeo_space("intermediate", template = "study-template")
+standard <- ngeo_space("standard", template = "public-template")
+registry <- ngeo_space_registry(
+  list(native, intermediate, standard),
+  aliases = c(subject = "native", reference = "standard")
+)
+ngeo_space_audit(native, standard)
+```
+
+名称相同不是等价证明；registry 使用完整规范描述和 hash 解析 alias。
+
+## 构造 transform graph
+
+```{r}
+translation <- function(from, to, shift, method) {
+  matrix <- diag(4)
+  matrix[1:3, 4] <- shift
+  ngeo_transform(
+    from, to, "affine", method = method,
+    parameters = list(matrix = matrix)
+  )
+}
+t1 <- translation(native, intermediate, c(1, 0, 0), "supplied step 1")
+t2 <- translation(intermediate, standard, c(0, 2, 0), "supplied step 2")
+graph <- ngeo_transform_graph(
+  registry, list(t1, t2),
+  edge_ids = c("native-study", "study-standard")
+)
+path <- ngeo_transform_path(graph, "subject", "reference")
+ngeo_transform_path_provenance(path)
+```
+
+graph 只包含调用者提供的 transform；path resolution 不会估计缺失 registration。
+
+## 应用 path
+
+```{r}
+x <- ngeo_points(
+  cbind(x = c(0, 1), y = c(0, 1)),
+  values = cbind(signal = c(1, 2)),
+  space = native
+)
+changed <- ngeo_apply_transform_path(x, path, authorize = TRUE)
+changed$domain$coordinates
+```
+
+应用只改变 geometry 并需要显式授权；lossy 或不支持的 non-affine path 可以审计，
+但不会被执行。

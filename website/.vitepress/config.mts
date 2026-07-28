@@ -25,44 +25,44 @@ const zhTheme = {
       collapsed: true,
       items: [
         { text: '功能模块索引', link: '/modules/' },
-        { text: 'Core concepts', link: '/en/tutorials/core-concepts' },
-        { text: 'Reading neuroimaging data', link: '/en/tutorials/reading-data' },
-        { text: 'Schema validation', link: '/en/modules/schema-validation' },
-        { text: 'Interoperability', link: '/en/modules/interoperability-29' },
-        { text: 'Scalable I/O', link: '/en/modules/scalable-io' },
-        { text: 'File-backed values', link: '/en/modules/file-backed-io' }
+        { text: '核心概念与对象契约', link: '/modules/core-concepts' },
+        { text: '读取神经影像数据', link: '/modules/reading-data' },
+        { text: 'Schema 验证与 manifest', link: '/modules/schema-validation' },
+        { text: '互操作与可审计交换', link: '/modules/interoperability' },
+        { text: '可扩展 I/O', link: '/modules/scalable-io' },
+        { text: '文件后端 values', link: '/modules/file-backed-io' }
       ]
     },
     {
       text: '空间关系与 support',
       collapsed: true,
       items: [
-        { text: 'Neighbors and weights', link: '/en/tutorials/neighbors-and-weights' },
-        { text: 'Parcellation and aggregation', link: '/en/tutorials/parcellation-and-aggregation' },
-        { text: 'Change of support', link: '/en/tutorials/change-of-support' },
-        { text: 'Real-world support mapping', link: '/en/modules/real-world-support-mapping' },
-        { text: 'Transform-aware resampling', link: '/en/modules/transform-aware-resampling' },
-        { text: 'Spaces and transform paths', link: '/en/modules/space-transform-graph' }
+        { text: '邻接关系与空间权重', link: '/modules/neighbors-and-weights' },
+        { text: '分区与聚合', link: '/modules/parcellation-and-aggregation' },
+        { text: '空间支持变换', link: '/modules/change-of-support' },
+        { text: '真实数据 support mapping', link: '/modules/real-world-support-mapping' },
+        { text: '显式 transform resampling', link: '/modules/transform-aware-resampling' },
+        { text: '空间与 transform path', link: '/modules/space-transform-graph' }
       ]
     },
     {
       text: '推断与模型',
       collapsed: true,
       items: [
-        { text: 'Support uncertainty', link: '/en/modules/support-uncertainty' },
-        { text: 'Support-aware inference', link: '/en/modules/support-aware-inference' },
-        { text: 'Spatial modelling', link: '/en/tutorials/spatial-modelling' },
-        { text: 'Model uncertainty', link: '/en/modules/model-uncertainty' },
-        { text: 'Iterative spatial models', link: '/en/modules/iterative-spatial-models' },
-        { text: 'Spatiotemporal analysis', link: '/en/modules/spatiotemporal-analysis' }
+        { text: 'Support uncertainty', link: '/modules/support-uncertainty' },
+        { text: 'Support-aware inference', link: '/modules/support-aware-inference' },
+        { text: '有界空间建模', link: '/modules/spatial-modelling' },
+        { text: '空间模型不确定性', link: '/modules/model-uncertainty' },
+        { text: '迭代空间模型', link: '/modules/iterative-spatial-models' },
+        { text: '时间与时空分析', link: '/modules/spatiotemporal-analysis' }
       ]
     },
     {
       text: '执行与复现',
       collapsed: true,
       items: [
-        { text: 'Bounded execution', link: '/en/modules/bounded-execution' },
-        { text: 'Reproducible replay', link: '/en/modules/reproducible-replay' }
+        { text: '有界科学计算', link: '/modules/bounded-execution' },
+        { text: '可审计 replay', link: '/modules/reproducible-replay' }
       ]
     },
     {
@@ -109,7 +109,7 @@ const enTheme = {
         { text: 'Core concepts', link: '/en/tutorials/core-concepts' },
         { text: 'Reading data', link: '/en/tutorials/reading-data' },
         { text: 'Schema validation', link: '/en/modules/schema-validation' },
-        { text: 'Interoperability', link: '/en/modules/interoperability-29' },
+        { text: 'Interoperability', link: '/en/modules/interoperability' },
         { text: 'Scalable I/O', link: '/en/modules/scalable-io' },
         { text: 'File-backed values', link: '/en/modules/file-backed-io' }
       ]

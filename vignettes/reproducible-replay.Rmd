@@ -7,9 +7,19 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-NGCS 3.5 records a small, deterministic neurogeo analysis as data. It is a
-verification layer, not a general workflow engine: manifests cannot contain
-R functions or arbitrary code.
+## Background
+
+Reproducibility requires more than saving final numbers. A replay record must
+identify exact inputs, ordered operations, parameters, intermediate hashes,
+the execution environment, and expected outputs. Restricting the operation
+vocabulary makes the record inspectable and prevents a manifest from becoming
+an arbitrary-code container.
+
+A small deterministic analysis can be recorded as data. This is a
+verification layer, not a general workflow engine: manifests cannot contain R
+functions or arbitrary code.
+
+## Record and verify an analysis
 
 ```{r}
 library(neurogeo)
@@ -40,10 +50,14 @@ verified <- ngeo_replay(manifest, list(source = x))
 verified$verified
 ```
 
+## Logical identity
+
 The logical hash covers the ordered domain, aligned values, measurement
 semantics, maps, labels, and file identity. Execution timestamps do not
 change it. Replay checks the environment and every input, intermediate, and
 final hash before returning verified outputs.
+
+## Publish related artifacts
 
 Related derivatives can be published as one complete directory transition.
 

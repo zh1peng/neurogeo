@@ -1,0 +1,68 @@
+---
+title: "邻接关系与空间权重"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{邻接关系与空间权重}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>",
+                      fig.width = 7, fig.height = 5)
+library(neurogeo)
+```
+
+## 基础背景
+
+空间统计首先需要回答“哪些位置可以相互影响”。空间权重矩阵 \(W\) 把这个选择
+写成稀疏矩阵：\(w_{ij}>0\) 表示元素 \(j\) 是元素 \(i\) 的邻居。邻域规则是
+模型假设，不是无关紧要的实现细节。
+
+surface 常由 mesh edge 定义邻接，volume 可使用 mask 内的 6/18/26 邻接，
+points 可使用距离带或 KNN；grayordinates 默认保持不同结构之间 block diagonal。
+
+## 构造距离带权重
+
+```{r}
+coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
+x <- ngeo_points(
+  coordinates,
+  values = cbind(signal = c(1, 2, 3, 2, 4, 7, 3, 7, 9)),
+  measures = ngeo_measure(spatial_semantics = "intensive")
+)
+w <- ngeo_weights(
+  x, method = "distance_band", threshold = 1.01, style = "W"
+)
+w$diagnostics
+```
+
+`style = "W"` 使每行权重和为 1，`"B"` 仅保留是否邻接，`"none"` 保留原始
+edge 或 kernel weight。
+
+## 可视化检查
+
+矩阵打印不容易发现断开的 component 或意外对角线；应直接检查空间图。
+
+```{r network, fig.alt="三乘三点网格及其水平和垂直邻接边"}
+W <- as.matrix(w$matrix)
+edges <- which(upper.tri(W) & ((W > 0) | (t(W) > 0)), arr.ind = TRUE)
+plot(coordinates, type = "n", asp = 1, xlab = "x", ylab = "y",
+     main = "距离带邻接")
+segments(coordinates[edges[, 1], 1], coordinates[edges[, 1], 2],
+         coordinates[edges[, 2], 1], coordinates[edges[, 2], 2],
+         col = "#8aa6a3", lwd = 2)
+points(coordinates, pch = 21, bg = "#26a69a", col = "white", cex = 2.5)
+text(coordinates, labels = seq_len(nrow(coordinates)))
+```
+
+## 用于空间统计
+
+```{r}
+ngeo_distance(x, from = 1, to = c(2, 5, 9), metric = "euclidean")
+ngeo_moran(x, w, "signal")
+head(ngeo_local_moran(x, w, "signal"))
+```
+
+解释结果时必须同时报告构造方法、threshold 或 \(k\)、symmetry policy 和
+standardization style。

@@ -12,8 +12,16 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(neurogeo)
 ```
 
+## Background
+
+A support map is valid only when the correspondence between source and target
+domains is already known. That evidence may be a registered surface, a voxel
+affine, or atlas probabilities defined on the same ordered elements.
+Interpolation constructs weights from that evidence; it does not discover
+anatomical correspondence.
+
 NGCS separates the evidence that two domains correspond from the sparse
-operator used to change support. `neurogeo` 2.1 builds operators from known
+operator used to change support. `neurogeo` builds operators from known
 registrations, affines, and aligned atlas data; it does not estimate those
 relationships.
 

@@ -12,9 +12,19 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(neurogeo)
 ```
 
-Version 2.3 tests a declared family of spatial supports by generating one
-source-domain null realization per replicate and applying that same
-realization to every support map.
+## Background
+
+An effect can change when the same source data are summarized with different
+atlases or spatial scales. Testing each atlas independently confounds this
+support sensitivity with different random null draws and inflates the number
+of opportunities for a false positive. A common-support test treats the
+declared atlases as one inferential family.
+
+One source-domain null realization is generated per replicate and applied to
+every support map. The resulting joint null distribution supports family-wise
+adjustments such as maxT while preserving the dependence among atlas results.
+
+## Define a support family
 
 ```{r}
 source <- ngeo_surface(
@@ -48,6 +58,8 @@ maps <- list(first = first, second = second)
 targets <- rep(list(first$target), 2)
 ```
 
+## Choose a null model
+
 An unconstrained permutation is explicitly marked as non-spatial. Use a
 Moran spectral null with matching weights or a surface spin with valid
 spherical registration coordinates when spatial preservation is required.
@@ -67,6 +79,8 @@ family_test
 family_test$estimates
 ```
 
+## Summarize robustness
+
 Atlas effects include intervals, random-effects consensus, heterogeneity,
 and leave-one-atlas-out influence.
 
@@ -81,6 +95,8 @@ effect <- ngeo_atlas_robust_effect(
 effect$estimates
 effect$meta_analysis
 ```
+
+## Multiscale inference
 
 Scale order is never inferred. It must be declared by the caller.
 

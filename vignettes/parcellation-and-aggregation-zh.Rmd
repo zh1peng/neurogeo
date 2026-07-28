@@ -1,0 +1,68 @@
+---
+title: "分区与聚合"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{分区与聚合}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>",
+                      fig.width = 7, fig.height = 5)
+library(neurogeo)
+```
+
+## 基础背景
+
+parcellation 把 vertex、voxel 或 point 分配到 region；aggregation 将观测支持
+从细尺度元素改变到区域。聚合规则取决于 measurement semantics：
+
+- intensive（如 thickness、temperature）使用 support-weighted mean；
+- extensive 和 count（如面积、事件数）使用 sum；
+- categorical 使用显式 mode rule；
+- unknown 必须提供明确函数。
+
+## 构造 surface 与 partition
+
+```{r}
+coordinates <- matrix(
+  c(0,0,0, 1,0,0, 1,1,0, 0,1,0), ncol = 3, byrow = TRUE
+)
+faces <- matrix(c(1,2,3, 1,3,4), ncol = 3, byrow = TRUE)
+surface <- ngeo_surface(
+  coordinates, faces,
+  values = cbind(
+    thickness = c(1, 2, 3, 4),
+    surface_area = c(1/3, 1/6, 1/3, 1/6)
+  ),
+  measures = rbind(
+    ngeo_measure(spatial_semantics = "intensive", units = "mm"),
+    ngeo_measure(spatial_semantics = "extensive", units = "mm2")
+  )
+)
+partition <- ngeo_partition(surface, c("A", "A", "B", "B"))
+regional <- ngeo_aggregate(surface, partition)
+regional$values
+```
+
+## 先检查空间分配
+
+```{r plots, fig.alt="surface 数值图与两个区域的元素数"}
+old_par <- par(mfrow = c(1, 2))
+plot(surface, map = "thickness", show_edges = TRUE, palette = "Viridis")
+plot(partition, col = c("#3b82a0", "#e29b45"), border = NA)
+par(old_par)
+```
+
+## 检查守恒
+
+extensive map 在聚合前后应保持总量：
+
+```{r}
+sum(surface$values[, "surface_area"])
+sum(regional$values[, "surface_area"])
+```
+
+label 中的 background 和 medial wall 不能猜测，应显式声明。partition 还绑定
+base-domain hash，因此 geometry 或 indexing 改变后不能静默复用。

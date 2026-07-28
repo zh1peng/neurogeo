@@ -12,10 +12,20 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(neurogeo)
 ```
 
+## Background
+
+Changing spatial support propagates uncertainty as well as point estimates.
+If source errors are correlated, regional variance depends on the full
+covariance structure and on the support operator, not only on element-wise
+standard errors. Uncertainty in the operator itself is a separate source of
+variation.
+
 Uncertainty must be aligned to the same ordered domain as the values it
-describes. Version 2.2 represents independent variance, sparse/full
-covariance, and low-rank shared variation without creating a second assay in
-the dataset.
+describes. Independent variance, sparse or full covariance, and low-rank
+shared variation are represented without creating a second assay in the
+dataset.
+
+## Propagate value uncertainty
 
 ```{r}
 source <- ngeo_points(
@@ -61,6 +71,8 @@ monte_carlo <- ngeo_support_uncertainty(
 monte_carlo
 ```
 
+## Compare operator alternatives
+
 Alternative operators must have identical ordered source and target
 domains:
 
@@ -92,6 +104,8 @@ sensitivity <- ngeo_support_sensitivity(
 )
 sensitivity
 ```
+
+## Interpretation
 
 Between-operator variance measures sensitivity to the supplied alternatives.
 It is not automatically a calibrated registration or segmentation

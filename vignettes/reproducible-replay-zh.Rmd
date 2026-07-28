@@ -1,0 +1,69 @@
+---
+title: "可审计 replay 与 derivative artifact"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{可审计 replay 与 derivative artifact}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## 基础背景
+
+可复现性不仅是保存 final numbers。replay record 应识别 exact input、ordered
+operation、parameter、intermediate hash、execution environment 和 expected
+output。限制可用 operation vocabulary 能让记录被审阅，也避免 manifest 变成
+任意 R code 的容器。
+
+## 记录并验证分析
+
+```{r}
+library(neurogeo)
+x <- ngeo_points(
+  cbind(x = 1:4, y = 0, z = 0),
+  values = cbind(t0 = 1:4, t1 = 2 * (1:4), t2 = 3 * (1:4))
+)
+x <- ngeo_set_time_axis(
+  x,
+  ngeo_time_axis(start = 0, step = 1, n = 3, unit = "day"),
+  temporal_semantics = "instantaneous"
+)
+steps <- list(
+  ngeo_replay_step(
+    "window", "ngeo_time_slice", c(x = "source"),
+    list(index = 1:2)
+  ),
+  ngeo_replay_step(
+    "trend", "ngeo_temporal_trend", c(x = "window")
+  )
+)
+manifest <- ngeo_record_replay(
+  list(source = x), steps, outputs = "trend"
+)
+verified <- ngeo_replay(manifest, list(source = x))
+verified$verified
+```
+
+## Logical identity
+
+logical hash 覆盖 ordered domain、aligned values、measurement semantics、
+maps、labels 和 file identity；execution timestamp 不改变该 identity。
+replay 在返回结果前检查 environment 以及每个 input、intermediate 和 final
+hash。
+
+## 发布相关 artifacts
+
+```{r eval=FALSE}
+ngeo_write_artifact_batch(
+  "derivatives/neurogeo/sub-01",
+  c("sub-01_metric.tsv", "sub-01_metric.json"),
+  list(
+    function(path) write.table(metric, path, sep = "\t"),
+    function(path) jsonlite::write_json(sidecar, path)
+  ),
+  roles = c("metric", "sidecar"),
+  entities = list(subject = "01", datatype = "anat")
+)
+```
+
+artifact 使用 root-relative path 和 SHA-256；batch scope 只覆盖指定 derivative，
+不会发现或运行整个 BIDS dataset。

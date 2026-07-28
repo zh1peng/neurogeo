@@ -12,9 +12,19 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(neurogeo)
 ```
 
-Readers preserve source indexing, coordinate transforms, map metadata,
-labels, and provenance. They do not invoke FreeSurfer, FSL, or Connectome
-Workbench, and they do not perform registration or resampling.
+## Background
+
+A neuroimaging file contains more than a numeric array. Interpretation also
+depends on element order, coordinate transforms, brain structures, map names,
+label tables, units, and the source file identity. Losing any of these can
+produce a numerically valid object in the wrong space or with misaligned
+values.
+
+Readers therefore preserve source indexing, coordinate transforms, map
+metadata, labels, and provenance. They do not invoke FreeSurfer, FSL, or
+Connectome Workbench, and they do not perform registration or resampling.
+
+## Format-specific readers
 
 ```{r readers, eval=FALSE}
 volume <- read_ngeo_nifti("sub-01_T1w.nii.gz")
@@ -40,6 +50,8 @@ freesurfer <- read_ngeo_freesurfer(
 )
 ```
 
+## Dispatch and validation
+
 `read_ngeo()` dispatches by standard filename suffix. For ambiguous MGH/MGZ
 inputs, use the format-specific reader and state the intended domain.
 
@@ -60,5 +72,9 @@ w <- ngeo_weights(surface, method = "mesh_contiguity", style = "W")
 ngeo_moran(surface, w, "thickness", permutations = 999, seed = 2026)
 ```
 
+## Scope
+
 BIDS sidecars and relevant space entities are parsed when present, but
-dataset orchestration remains outside the package.
+dataset orchestration remains outside the package. Import establishes an
+auditable object contract; it does not establish anatomical correspondence
+between datasets.

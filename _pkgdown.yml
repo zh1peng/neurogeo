@@ -11,30 +11,53 @@ navbar:
     right: [search]
 
 articles:
-- title: Workflows
-  navbar: Workflows
+- title: Chinese documentation
+  navbar: Chinese
   contents:
   - getting-started-zh
   - format-workflows-zh
+  - core-concepts-zh
+  - reading-data-zh
+  - schema-validation-zh
+  - interoperability-zh
+  - scalable-io-zh
+  - file-backed-io-zh
+  - neighbors-and-weights-zh
+  - parcellation-and-aggregation-zh
+  - change-of-support-zh
+  - real-world-support-mapping-zh
+  - transform-aware-resampling-zh
+  - space-transform-graph-zh
+  - support-uncertainty-zh
+  - support-aware-inference-zh
+  - spatial-modelling-zh
+  - model-uncertainty-zh
+  - iterative-spatial-models-zh
+  - spatiotemporal-analysis-zh
+  - bounded-execution-zh
+  - reproducible-replay-zh
+- title: English documentation
+  navbar: English
+  contents:
   - core-concepts
   - reading-data
+  - schema-validation
+  - interoperability
+  - scalable-io
+  - file-backed-io
   - neighbors-and-weights
   - parcellation-and-aggregation
   - change-of-support
   - real-world-support-mapping
+  - transform-aware-resampling
+  - space-transform-graph
   - support-uncertainty
   - support-aware-inference
   - spatial-modelling
-  - scalable-io
-  - bounded-execution
   - model-uncertainty
-  - space-transform-graph
-  - interoperability-29
-  - schema-validation
-  - file-backed-io
-  - transform-aware-resampling
-  - spatiotemporal-analysis
   - iterative-spatial-models
+  - spatiotemporal-analysis
+  - bounded-execution
   - reproducible-replay
 
 reference:

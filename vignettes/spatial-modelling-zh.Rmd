@@ -1,0 +1,80 @@
+---
+title: "有界空间建模"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{有界空间建模}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>",
+                      fig.width = 7, fig.height = 5)
+library(neurogeo)
+```
+
+## 基础背景
+
+普通回归假设 residual 相互独立，而空间数据常存在距离或邻接相关。不同模型
+处理的对象不同：
+
+- variogram 描述 semivariance 随距离的变化；
+- kriging 根据 covariance structure 进行空间预测；
+- GWR 估计随位置变化的局部 coefficient；
+- SAR/SEM/CAR 通过 weights matrix 表达依赖。
+
+这些方法不能被当成彼此等价的“空间校正”。
+
+## 数据和权重
+
+```{r}
+coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
+predictor <- coordinates[, 1] + coordinates[, 2]
+x <- ngeo_points(
+  coordinates,
+  values = cbind(
+    response = 1 + 2 * predictor + sin(predictor),
+    predictor = predictor
+  )
+)
+weights <- ngeo_weights(
+  x, method = "distance_band", threshold = 1.01, style = "W"
+)
+plot(x, map = "response", palette = "Inferno", cex = 2.2)
+```
+
+## Variogram 与 kriging
+
+```{r}
+empirical <- ngeo_variogram(x, "response", breaks = 6)
+fit <- ngeo_fit_variogram(empirical, model = "exponential")
+plot(empirical, pch = 21, bg = "#26a69a", col = "white")
+ngeo_kriging(x, "response", fit, targets = 1:3, neighbors = 8)
+```
+
+variogram plot 用于检查 dependence 的距离尺度；kriging prediction 必须与
+prediction variance 一起解释。
+
+## GWR 与诊断
+
+```{r}
+bandwidth <- ngeo_gwr_bandwidth(
+  x, "response", "predictor", candidates = c(1.5, 2.5, 4.5)
+)
+gwr <- ngeo_gwr(x, "response", "predictor", bandwidth)
+gwr[, c("element_id", "fitted", "condition_number")]
+```
+
+local coefficient 或 fitted value 必须与 condition number、effective sample
+size 和 bandwidth 敏感性一起检查。
+
+## SAR 与 CAR
+
+```{r}
+ngeo_spatial_regression(
+  x, "response", "predictor", weights, model = "sar"
+)
+ngeo_car(x, "response", weights, type = "proper", precision = 1)
+```
+
+metric、weights、numerical method 和 resource limit 都属于结果的可复现信息。

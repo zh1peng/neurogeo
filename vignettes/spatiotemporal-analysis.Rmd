@@ -11,9 +11,19 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-NGCS 3.3 aligns time to maps while retaining one spatial domain and one
-element-by-map values block. It does not expand point, vertex, voxel, region,
-or grayordinate geometry through time.
+## Background
+
+Repeated spatial measurements have two distinct axes: spatial elements and
+time-indexed maps. Duplicating geometry at every time point wastes memory and
+can obscure whether a transformation affected space, time, or both. Temporal
+semantics also matter: an instantaneous value, an interval total, and a rate
+cannot be contrasted in the same way.
+
+Time is aligned to maps while the object retains one spatial domain and one
+element-by-map values block. Point, vertex, voxel, region, or grayordinate
+geometry is not expanded through time.
+
+## Attach a time axis
 
 ```{r}
 library(neurogeo)
@@ -42,6 +52,8 @@ x <- ngeo_set_time_axis(
 )
 ```
 
+## Slice time
+
 Time slicing changes only the aligned map dimension.
 
 ```{r}
@@ -49,6 +61,8 @@ slice <- ngeo_time_slice(x, index = c(1, 3))
 identical(ngeo_domain_hash(slice), ngeo_domain_hash(x))
 ngeo_get_time_axis(slice)$time
 ```
+
+## Space-time weights
 
 Spatial and temporal operators remain independent sparse components. The
 combined operator records a Kronecker-sum contract but does not store the
@@ -70,6 +84,8 @@ moran <- ngeo_spatiotemporal_moran(
 moran
 ```
 
+## Change and trend
+
 Variograms require a hard pair budget. Longitudinal helpers derive ordinary
 spatial maps with source domain and axis identities in provenance.
 
@@ -78,6 +94,8 @@ ngeo_temporal_variogram(x, breaks = 3, max_pairs = 100)
 ngeo_longitudinal_change(x, from = 1, to = 4, scale = "rate")
 ngeo_temporal_trend(x)
 ```
+
+## Interval measurements
 
 For interval data, construct explicit interval boundaries and use compatible
 semantics.

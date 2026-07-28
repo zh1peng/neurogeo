@@ -5,8 +5,8 @@ description: neurogeo 的对象、I/O、空间关系、模型、执行和复现�
 
 # 功能模块
 
-站点收录 22 篇由软件包 Rmd 构建的技术文档。其中 2 篇为中文分析工作流，
-其余模块文档目前为英文。
+站点收录 2 篇中文分析工作流和 20 篇中文模块文档。每篇模块文档均提供对应
+英文版本，并在页面顶部提供语言入口。
 
 ## 中文工作流
 
@@ -15,32 +15,32 @@ description: neurogeo 的对象、I/O、空间关系、模型、执行和复现�
 
 ## 数据模型与 I/O
 
-- [Core concepts](/en/tutorials/core-concepts)
-- [Reading neuroimaging data](/en/tutorials/reading-data)
-- [Schema validation and portable manifests](/en/modules/schema-validation)
-- [Interoperability and auditable exchange](/en/modules/interoperability-29)
-- [Scalable values, CIFTI, and BIDS derivatives](/en/modules/scalable-io)
-- [File-backed neuroimaging values](/en/modules/file-backed-io)
+- [核心概念与对象契约](/modules/core-concepts)
+- [读取神经影像数据](/modules/reading-data)
+- [Schema 验证与可移植 manifest](/modules/schema-validation)
+- [互操作与可审计交换](/modules/interoperability)
+- [可扩展 values、CIFTI 与 BIDS derivatives](/modules/scalable-io)
+- [文件后端神经影像 values](/modules/file-backed-io)
 
 ## 空间关系与 support
 
-- [Neighbors and weights](/en/tutorials/neighbors-and-weights)
-- [Parcellation and aggregation](/en/tutorials/parcellation-and-aggregation)
-- [Change of support and cross-atlas analysis](/en/tutorials/change-of-support)
-- [Real-world support mapping](/en/modules/real-world-support-mapping)
-- [Transform-aware resampling](/en/modules/transform-aware-resampling)
-- [Explicit spaces and transform paths](/en/modules/space-transform-graph)
+- [邻接关系与空间权重](/modules/neighbors-and-weights)
+- [分区与聚合](/modules/parcellation-and-aggregation)
+- [空间支持变换与跨 atlas 分析](/modules/change-of-support)
+- [真实数据中的 support mapping](/modules/real-world-support-mapping)
+- [显式 transform 的 resampling](/modules/transform-aware-resampling)
+- [显式空间与 transform path](/modules/space-transform-graph)
 
 ## 推断与模型
 
-- [Support uncertainty and operator ensembles](/en/modules/support-uncertainty)
-- [Support-aware inference](/en/modules/support-aware-inference)
-- [Bounded spatial modelling](/en/tutorials/spatial-modelling)
-- [Uncertainty-aware spatial models](/en/modules/model-uncertainty)
-- [Bounded iterative spatial models](/en/modules/iterative-spatial-models)
-- [Explicit temporal and spatiotemporal analysis](/en/modules/spatiotemporal-analysis)
+- [Support uncertainty 与 operator ensemble](/modules/support-uncertainty)
+- [Support-aware inference](/modules/support-aware-inference)
+- [有界空间建模](/modules/spatial-modelling)
+- [包含不确定性的空间模型](/modules/model-uncertainty)
+- [有界迭代空间模型](/modules/iterative-spatial-models)
+- [显式时间与时空分析](/modules/spatiotemporal-analysis)
 
 ## 执行与复现
 
-- [Bounded scientific execution](/en/modules/bounded-execution)
-- [Auditable replay and derivative artifacts](/en/modules/reproducible-replay)
+- [有界科学计算](/modules/bounded-execution)
+- [可审计 replay 与 derivative artifact](/modules/reproducible-replay)

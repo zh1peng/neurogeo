@@ -1,0 +1,64 @@
+---
+title: "Support uncertainty 与 operator ensemble"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Support uncertainty 与 operator ensemble}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## 基础背景
+
+改变空间支持时，不仅 point estimate 会改变，measurement uncertainty 也会通过
+support operator 传播。如果 source error 相关，target variance 取决于完整
+covariance 和 operator，而不是只取决于每个元素的 standard error。
+
+value uncertainty 与 operator uncertainty 是不同来源，应分别报告。
+
+## 传播 value uncertainty
+
+```{r}
+source <- ngeo_points(
+  cbind(x = 1:6, y = 0),
+  values = cbind(signal = c(2, 4, 3, 8, 6, 10)),
+  measures = ngeo_measure(spatial_semantics = "intensive"),
+  space = ngeo_space("uncertainty-example")
+)
+atlas <- ngeo_atlas_map(
+  source, c("A", "A", "B", "B", "C", "C"),
+  source_support = c(1, 2, 1, 2, 1, 2)
+)
+covariance <- ngeo_support_covariance(
+  source,
+  variance = rep(0.5, 6),
+  factor = matrix(rep(0.2, 6), ncol = 1)
+)
+analytic <- ngeo_support_uncertainty(
+  source, atlas$target, atlas, covariance,
+  output = "covariance"
+)
+analytic
+```
+
+intensive measurement 使用 support-normalized ratio 的 derivative 传播误差。
+完整 target covariance 有大小保护；只需标准误时应优先返回 diagonal。
+
+## Monte Carlo 检查
+
+```{r}
+ngeo_support_uncertainty(
+  source, atlas$target, atlas, covariance,
+  method = "monte_carlo", nsim = 200, seed = 2202
+)
+```
+
+## Operator ensemble
+
+多个 operator 只有在有序 source 和 target domain 完全相同时才能比较。
+between-operator variance 衡量对给定 atlas/segmentation 替代方案的敏感性，
+不应自动解释为已校准的 registration confidence interval。

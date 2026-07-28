@@ -12,9 +12,20 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(neurogeo)
 ```
 
-`neurogeo` represents one spatial domain and one strictly aligned values
-block. Space, topology, metric, measurement semantics, and provenance remain
-explicit instead of being inferred from filenames or column names.
+## Background
+
+Neuroimaging measurements are meaningful only when their values remain tied
+to the spatial elements on which they were observed. A row may describe a
+surface vertex, voxel, point, grayordinate, or region; changing that order
+without changing the values changes the data.
+
+`neurogeo` therefore represents one spatial domain and one strictly aligned
+values block. Space, topology, metric, measurement semantics, and provenance
+remain explicit instead of being inferred from filenames or column names.
+This contract separates *where an observation is defined* from *what was
+measured there*.
+
+## Domain and aligned values
 
 ```{r}
 coordinates <- matrix(
@@ -46,9 +57,13 @@ ngeo_elements(subset)
 ngeo_provenance(subset)$operations
 ```
 
-Topology and metric are distinct. Adjacency says which vertices share an
-edge; edge-geodesic distance assigns lengths to those edges and finds a
-shortest path.
+## Topology and metric
+
+Topology and metric answer different questions. Topology records which
+elements are connected; a metric assigns a distance to pairs or paths. Two
+vertices may be adjacent in a mesh even though the physical length of their
+connecting edge differs from other edges. Edge-geodesic distance assigns
+lengths to those edges and finds a shortest path.
 
 ```{r}
 ngeo_adjacency(surface)

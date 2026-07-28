@@ -11,8 +11,18 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-NGCS 3.4 keeps exact-small modelling as a calibration reference and requires
-an explicit control object before iterative or approximate execution.
+## Background
+
+Exact matrix factorization becomes expensive for large spatial domains.
+Iterative linear solvers and stochastic log-determinant approximations reduce
+memory and computation, but introduce convergence tolerance, truncation, and
+Monte Carlo error. These numerical choices are part of the scientific result
+and must be recorded.
+
+Exact small-domain modelling remains a calibration reference. Iterative or
+approximate execution requires an explicit control object.
+
+## Solver controls
 
 ```{r}
 library(neurogeo)
@@ -41,6 +51,8 @@ control <- ngeo_solver_control(
 )
 ```
 
+## Calibrate on a small problem
+
 For a small reference, request the exact determinant while retaining
 iterative SAR fitted-value solving.
 
@@ -57,6 +69,8 @@ sar <- ngeo_spatial_regression_iterative(
 sar
 sar$solve$relative_residual
 ```
+
+## Approximate execution
 
 For a larger workflow, exact/approximate selection is explicit. Approximate
 results include Monte Carlo and series-truncation diagnostics.
@@ -75,6 +89,8 @@ approximate <- ngeo_logdet_approx(
 )
 approximate
 ```
+
+## CAR, GWR, and kriging
 
 Iterative CAR requires symmetric weights and a declared precision.
 

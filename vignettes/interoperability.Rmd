@@ -12,8 +12,18 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(neurogeo)
 ```
 
-NGCS 2.9 makes supported file contracts explicit. It does not add
-registration, resampling, preprocessing, or dataset orchestration.
+## Background
+
+Interoperability requires agreement on both representation and meaning. A
+filename can identify a standard format, but it does not by itself guarantee
+element order, spatial compatibility, measurement semantics, or file
+integrity. Auditable exchange therefore combines standard encodings with
+validated metadata and cryptographic hashes.
+
+The supported exchange contracts do not add registration, resampling,
+preprocessing, or dataset orchestration.
+
+## BIDS derivative names
 
 Canonical BIDS derivative names are built from validated, ordered entities.
 
@@ -28,6 +38,8 @@ name
 ngeo_bids_parse_name(name)
 ```
 
+## Sparse support-map exchange
+
 Support maps can be exchanged as checksum-verified chunks. The bundle uses
 JSON plus Matrix Market and preserves the complete logical map hash.
 
@@ -40,6 +52,8 @@ bundle <- write_ngeo_support_bundle(
 ngeo_validate_support_bundle(bundle$path)
 restored <- read_ngeo_support_bundle(bundle$path)
 ```
+
+## CIFTI output contracts
 
 CIFTI writing validates datatype and axis semantics before any final file is
 published.
@@ -54,6 +68,8 @@ write_ngeo_cifti(
   named_map_metadata = list(list(Description = "effect estimate"))
 )
 ```
+
+## Scope
 
 Installed conformance fixtures remain part of the package test resources.
 They are an implementation verification asset, not a runtime object model.

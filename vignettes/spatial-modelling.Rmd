@@ -19,8 +19,19 @@ knitr::opts_chunk$set(
 library(neurogeo)
 ```
 
-NGCS 2.4 keeps covariance and likelihood calculations bounded and records
-the metric, weights, numerical method, and diagnostics used by each model.
+## Background
+
+Spatial models account for dependence that ordinary independent-error
+regression ignores. Variograms describe how dissimilarity changes with
+distance, kriging predicts from that covariance structure, GWR estimates
+location-specific coefficients, and SAR/SEM/CAR models encode dependence
+through a weights matrix. These methods answer different questions and should
+not be treated as interchangeable corrections.
+
+Covariance and likelihood calculations are bounded, and each model records
+the metric, weights, numerical method, and diagnostics used.
+
+## Data and spatial structure
 
 ```{r}
 coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
@@ -46,6 +57,8 @@ plot(
 )
 ```
 
+## Variogram and kriging
+
 ```{r}
 empirical <- ngeo_variogram(x, "response", breaks = 6)
 variogram <- ngeo_fit_variogram(empirical, model = "exponential")
@@ -56,6 +69,8 @@ ngeo_kriging(x, "response", variogram, targets = 1:3, neighbors = 8)
 ```{r variogram-plot, fig.alt="Empirical semivariance plotted against spatial distance", fig.cap="The empirical variogram makes the distance scale of spatial dependence visible."}
 plot(empirical, pch = 21, bg = "#26a69a", col = "white", cex = 1.5)
 ```
+
+## Geographically weighted regression
 
 ```{r}
 bandwidth <- ngeo_gwr_bandwidth(
@@ -81,6 +96,8 @@ plot(coordinates, pch = 21, bg = condition_colors, col = "white", cex = 2.2,
      asp = 1, xlab = "x", ylab = "y", main = "Condition number")
 par(old_par)
 ```
+
+## Spatial regression and CAR
 
 SAR and SEM use an exact dense log determinant only below a declared resource
 limit:

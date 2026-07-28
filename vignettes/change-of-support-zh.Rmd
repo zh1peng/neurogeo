@@ -1,0 +1,71 @@
+---
+title: "空间支持变换与跨 atlas 分析"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{空间支持变换与跨 atlas 分析}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>",
+                      fig.width = 7, fig.height = 5)
+library(neurogeo)
+```
+
+## 基础背景
+
+spatial support 是一个值所代表的面积、体积、vertex 集合或其他空间范围。
+从 vertex 变为 region 不是改名，而是使用 target-by-source 稀疏算子 \(A\)
+进行传递。extensive 变量可按 \(Ax\) 守恒分配；intensive 变量需要用转移后的
+support 对加权分子归一化。
+
+## 构造 support map
+
+```{r}
+source <- ngeo_points(
+  cbind(x = 1:4, y = 0),
+  values = cbind(intensity = c(10, 20, 30, 40)),
+  measures = ngeo_measure(spatial_semantics = "intensive")
+)
+target <- ngeo_regions(
+  data.frame(region_id = c("A", "B")), support_size = c(3, 3)
+)
+support_map <- ngeo_support_map(
+  source, target,
+  operator = c("A", "A", "B", "B"),
+  source_support = c(1, 2, 1, 2)
+)
+regional <- ngeo_change_support(source, target, support_map)
+regional$values
+```
+
+## 诊断与可视化
+
+```{r diagnostic, fig.alt="每个源元素的 support membership sum 直方图"}
+ngeo_support_diagnostics(support_map)
+plot(support_map, type = "membership", col = "#26a69a", border = "white")
+```
+
+crisp complete map 中每个 source column 的 membership sum 应为 1。重叠算子
+若要守恒，必须显式说明 normalization。
+
+## 比较两个 atlas
+
+```{r}
+target2 <- ngeo_regions(
+  data.frame(region_id = c("C", "D")), support_size = c(3, 3)
+)
+support_map2 <- ngeo_support_map(
+  source, target2,
+  operator = c("C", "D", "D", "C"),
+  source_support = c(1, 2, 1, 2)
+)
+overlap <- as.matrix(
+  ngeo_atlas_overlap(support_map, support_map2, metric = "dice")
+)
+overlap
+```
+
+Dice overlap 描述两个 support 的物理重叠，不表示一个 atlas 可以无误差地重建
+另一个 atlas。

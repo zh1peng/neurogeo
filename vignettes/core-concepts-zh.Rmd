@@ -1,0 +1,83 @@
+---
+title: "核心概念与对象契约"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{核心概念与对象契约}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## 基础背景
+
+神经影像数据不只是一个数值矩阵。矩阵的每一行必须对应一个明确的空间元素，
+例如 vertex、voxel、point、grayordinate 或 region；如果元素顺序改变而 values
+没有同步改变，数值虽然不变，科学含义已经错误。
+
+neurogeo 使用以下对象契约：
+
+```text
+一个 spatial domain
++ 一个严格按元素对齐的 values block
++ 显式 space、topology、metric、measurement semantics 和 provenance
+```
+
+domain 回答“观测定义在哪里”，values 回答“在那里测量了什么”。
+
+## 构造对象
+
+下面用一个三角形 surface 表示三个 vertex 上的皮层厚度：
+
+```{r}
+coordinates <- matrix(
+  c(0, 0, 0, 1, 0, 0, 0, 1, 0),
+  ncol = 3, byrow = TRUE
+)
+surface <- ngeo_surface(
+  coordinates,
+  matrix(c(1, 2, 3), nrow = 1),
+  values = cbind(thickness = c(2.1, 2.4, 2.2)),
+  measures = ngeo_measure(
+    spatial_semantics = "intensive",
+    units = "mm"
+  )
+)
+ngeo_elements(surface)
+ngeo_maps(surface)
+ngeo_capabilities(surface)
+```
+
+`values` 的行数必须等于元素数；每一列还需要 map 和 measurement
+metadata。`ngeo_domain_hash()` 为元素顺序、几何及相关空间定义生成稳定标识。
+
+```{r}
+ngeo_validate(surface)
+ngeo_domain_hash(surface)
+```
+
+## 子集与对齐
+
+子集操作必须同时更新 domain、values、maps 和 provenance：
+
+```{r}
+subset <- ngeo_subset(surface, elements = c(1, 3))
+ngeo_elements(subset)
+ngeo_provenance(subset)$operations
+```
+
+## Topology 与 metric
+
+topology 描述哪些元素相连；metric 描述距离如何计算。共享 mesh edge
+是一种拓扑关系，edge-geodesic 则把 edge length 加入最短路径计算。
+
+```{r}
+ngeo_adjacency(surface)
+ngeo_distance(surface, from = 1, to = 2, metric = "edge_geodesic")
+```
+
+因此，相同 domain 可以使用不同 metric；相同坐标也不能自动证明两个对象位于
+兼容 space。

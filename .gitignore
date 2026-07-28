@@ -14,6 +14,9 @@ website/.vitepress/cache/
 website/tutorials/getting-started.md
 website/tutorials/format-workflows.md
 website/tutorials/*_files/
+website/modules/*.md
+!website/modules/index.md
+website/modules/*_files/
 website/en/tutorials/core-concepts.md
 website/en/tutorials/reading-data.md
 website/en/tutorials/neighbors-and-weights.md
@@ -29,6 +32,7 @@ website/en/modules/bounded-execution.md
 website/en/modules/model-uncertainty.md
 website/en/modules/space-transform-graph.md
 website/en/modules/interoperability-29.md
+website/en/modules/interoperability.md
 website/en/modules/schema-validation.md
 website/en/modules/file-backed-io.md
 website/en/modules/transform-aware-resampling.md

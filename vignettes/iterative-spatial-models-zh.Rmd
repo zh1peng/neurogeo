@@ -1,0 +1,74 @@
+---
+title: "有界迭代空间模型"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{有界迭代空间模型}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## 基础背景
+
+大 spatial domain 上的 exact matrix factorization 可能不可承受。iterative
+solver 和 stochastic log-determinant approximation 可以降低内存与计算量，
+但会引入 convergence tolerance、series truncation 和 Monte Carlo error。
+这些数值选择属于科学结果，不能隐藏在内部默认值中。
+
+## Solver control
+
+```{r}
+coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
+data <- ngeo_points(
+  coordinates,
+  values = cbind(
+    response = 2 + coordinates[,1] - 0.5 * coordinates[,2],
+    x = coordinates[,1], y = coordinates[,2]
+  )
+)
+weights <- ngeo_weights(
+  data, method = "distance_band", threshold = 1.01, style = "W"
+)
+control <- ngeo_solver_control(
+  tolerance = 1e-7,
+  max_iterations = 1000,
+  trace_order = 20,
+  trace_probes = 60,
+  seed = 3401,
+  workers = 1,
+  exact_threshold = 100
+)
+```
+
+## 小问题校准
+
+```{r}
+sar <- ngeo_spatial_regression_iterative(
+  data, response = "response", predictors = c("x", "y"),
+  weights = weights, model = "sar",
+  control = control, logdet = "exact"
+)
+sar$solve$relative_residual
+```
+
+小 domain 的 exact result 是 approximation calibration reference。
+
+## Approximate execution
+
+```{r}
+ngeo_logdet_approx(
+  weights, parameter = 0.2,
+  control = ngeo_solver_control(
+    trace_order = 30, trace_probes = 100,
+    exact_threshold = 10, seed = 3402
+  ),
+  exact = FALSE
+)
+```
+
+报告结果时应包括 residual、iteration count、trace order、probe count 和 seed。
+CAR 还要求 symmetric weights 与明确 precision。

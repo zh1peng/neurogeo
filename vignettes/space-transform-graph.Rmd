@@ -12,9 +12,18 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(neurogeo)
 ```
 
+## Background
+
+A coordinate is interpretable only relative to a coordinate reference space.
+Two files can both use millimetres and still refer to different subjects,
+templates, orientations, or surface registrations. A transform is a directed,
+auditable claim that coordinates in one exact space can be mapped to another.
+
 Matching names are not proof that coordinate spaces are equivalent. A
 registry stores the complete normative space description and resolves
 aliases to one exact hash.
+
+## Register exact spaces
 
 ```{r}
 native <- ngeo_space("native", template = "subject-01")
@@ -27,7 +36,10 @@ registry <- ngeo_space_registry(
 ngeo_space_audit(native, standard)
 ```
 
-The graph contains supplied transforms only.
+## Build and resolve a transform graph
+
+The graph contains supplied transforms only. A path composes directed edges;
+path resolution does not estimate a missing registration.
 
 ```{r}
 translation <- function(from, to, shift, method) {
@@ -55,6 +67,8 @@ graph <- ngeo_transform_graph(
 path <- ngeo_transform_path(graph, "subject", "reference")
 ngeo_transform_path_provenance(path)
 ```
+
+## Apply a path
 
 Path application is geometry-only and requires explicit authorization.
 Lossy or unsupported non-affine paths remain auditable but cannot be applied.

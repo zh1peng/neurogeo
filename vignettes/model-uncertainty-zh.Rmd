@@ -1,0 +1,70 @@
+---
+title: "包含不确定性的空间模型"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{包含不确定性的空间模型}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## 基础背景
+
+空间预测的不确定性可能包括 measurement error、residual process variance、
+covariance parameter uncertainty，以及 support 或 tuning choice 的敏感性。
+只有把这些成分分开命名，总 variance 才能被正确解释。
+
+covariance 的行列必须绑定到一个 exact ordered domain，防止 uncertainty 与
+observation 错位。
+
+## Measurement covariance
+
+```{r}
+coordinates <- as.matrix(expand.grid(x = 0:3, y = 0:3))
+predictor <- coordinates[, 1] + coordinates[, 2] / 4
+x <- ngeo_points(
+  coordinates,
+  values = cbind(
+    response = 1 + 2 * predictor +
+      sin(seq_along(predictor)) / 20,
+    predictor = predictor
+  )
+)
+measurement <- ngeo_support_covariance(
+  x, variance = rep(0.01, nrow(coordinates))
+)
+```
+
+## Variogram parameter uncertainty
+
+```{r}
+variogram <- ngeo_variogram_uncertainty(
+  x, "response", measurement,
+  breaks = 5, model = "exponential",
+  nsim = 20, seed = 27
+)
+variogram$parameter_interval
+```
+
+## Kriging variance components
+
+```{r}
+prediction <- ngeo_kriging_uncertainty(
+  x, "response", variogram$fit,
+  targets = 1:4, neighbors = 8,
+  value_covariance = measurement,
+  variogram_uncertainty = variogram
+)
+prediction[, c(
+  "process_variance", "measurement_variance",
+  "parameter_variance", "support_variance", "total_variance"
+)]
+```
+
+GWR 的 alternative-bandwidth range 是 sensitivity range，不是 confidence
+interval。只有对预先声明的 support family 才能使用 total variance law
+合并 within-support 和 between-support variation。

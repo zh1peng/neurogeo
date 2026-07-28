@@ -1,0 +1,56 @@
+---
+title: "Schema 验证与可移植 manifest"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Schema 验证与可移植 manifest}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## 基础背景
+
+Schema validation 检查对象是否满足其声明的结构契约，包括 domain 类型、
+element/value alignment、measurement metadata、space identity，以及 topology
+和 map 的内部一致性。它不能证明研究设计正确，但能阻止结构错误进入统计计算。
+
+## 验证对象
+
+```{r}
+x <- ngeo_points(
+  cbind(x = c(0, 1, 0), y = c(0, 0, 1)),
+  values = cbind(signal = c(1, 2, 3)),
+  measures = ngeo_measure(spatial_semantics = "intensive"),
+  space = ngeo_space("reference-points", kind = "unknown")
+)
+ngeo_validate(x)
+```
+
+严格验证失败时，应修正产生对象的步骤，而不是跳过验证。schema table 是内部
+实现细节；用户只需要公共验证入口。
+
+## Manifest 与哈希
+
+manifest 使用 canonical JSON 和 SHA-256 绑定规范性 metadata，但不重复保存
+values block。它适合完整性验证和交换，不替代原始数据。
+
+```{r}
+manifest <- ngeo_object_manifest(x)
+manifest
+ngeo_validate_manifest(manifest, x)
+```
+
+写入和读回采用原子 JSON 交换：
+
+```{r eval=FALSE}
+output <- write_ngeo_manifest(manifest, "x.ngcs-manifest.json")
+restored <- read_ngeo_manifest(output$path)
+ngeo_validate_manifest(restored, x)
+```
+
+如果 domain、元素顺序、metadata 或文件身份发生改变，原 manifest 不应继续
+被视为同一对象的证明。

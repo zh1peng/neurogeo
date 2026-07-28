@@ -19,10 +19,20 @@ knitr::opts_chunk$set(
 library(neurogeo)
 ```
 
+## Background
+
+A parcellation assigns fine-scale elements to regions. Aggregation then
+changes the observational support from vertices, voxels, or points to those
+regions. The correct reduction depends on what a variable measures: averaging
+a thickness is meaningful, while averaging a regional count would destroy
+its total.
+
 Aggregation follows declared measurement semantics. Intensive quantities
 use support-weighted means, extensive quantities and counts use sums,
 categorical values use a declared mode rule, and unknown semantics require
 an explicit function.
+
+## Construct a partition
 
 ```{r}
 coordinates <- matrix(
@@ -66,6 +76,8 @@ plot(partition, col = c("#3b82a0", "#e29b45"), border = NA)
 par(old_par)
 ```
 
+## Check measurement semantics
+
 The extensive map is conserved:
 
 ```{r}
@@ -105,6 +117,8 @@ legend("topleft", legend = c("Source sum", "Regional"),
        fill = c("#f3c985", "#d97b29"), bty = "n", cex = 0.8)
 par(old_par)
 ```
+
+## Labels, boundaries, and identity
 
 Label inputs can be used directly by name. Background and medial-wall values
 are never guessed; declare them explicitly.

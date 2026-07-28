@@ -10,80 +10,181 @@ if (!requireNamespace("neurogeo", quietly = TRUE)) {
   stop("Install neurogeo before rendering the tutorial site.")
 }
 
-documents <- data.frame(
-  source = c(
-    "vignettes/getting-started-zh.Rmd",
-    "vignettes/format-workflows-zh.Rmd",
+pairs <- data.frame(
+  zh_source = c(
+    "vignettes/core-concepts-zh.Rmd",
+    "vignettes/reading-data-zh.Rmd",
+    "vignettes/schema-validation-zh.Rmd",
+    "vignettes/interoperability-zh.Rmd",
+    "vignettes/scalable-io-zh.Rmd",
+    "vignettes/file-backed-io-zh.Rmd",
+    "vignettes/neighbors-and-weights-zh.Rmd",
+    "vignettes/parcellation-and-aggregation-zh.Rmd",
+    "vignettes/change-of-support-zh.Rmd",
+    "vignettes/real-world-support-mapping-zh.Rmd",
+    "vignettes/transform-aware-resampling-zh.Rmd",
+    "vignettes/space-transform-graph-zh.Rmd",
+    "vignettes/support-uncertainty-zh.Rmd",
+    "vignettes/support-aware-inference-zh.Rmd",
+    "vignettes/spatial-modelling-zh.Rmd",
+    "vignettes/model-uncertainty-zh.Rmd",
+    "vignettes/iterative-spatial-models-zh.Rmd",
+    "vignettes/spatiotemporal-analysis-zh.Rmd",
+    "vignettes/bounded-execution-zh.Rmd",
+    "vignettes/reproducible-replay-zh.Rmd"
+  ),
+  en_source = c(
     "vignettes/core-concepts.Rmd",
     "vignettes/reading-data.Rmd",
+    "vignettes/schema-validation.Rmd",
+    "vignettes/interoperability.Rmd",
+    "vignettes/scalable-io.Rmd",
+    "vignettes/file-backed-io.Rmd",
     "vignettes/neighbors-and-weights.Rmd",
     "vignettes/parcellation-and-aggregation.Rmd",
     "vignettes/change-of-support.Rmd",
-    "vignettes/spatial-modelling.Rmd",
     "vignettes/real-world-support-mapping.Rmd",
+    "vignettes/transform-aware-resampling.Rmd",
+    "vignettes/space-transform-graph.Rmd",
     "vignettes/support-uncertainty.Rmd",
     "vignettes/support-aware-inference.Rmd",
-    "vignettes/scalable-io.Rmd",
-    "vignettes/bounded-execution.Rmd",
+    "vignettes/spatial-modelling.Rmd",
     "vignettes/model-uncertainty.Rmd",
-    "vignettes/space-transform-graph.Rmd",
-    "vignettes/interoperability-29.Rmd",
-    "vignettes/schema-validation.Rmd",
-    "vignettes/file-backed-io.Rmd",
-    "vignettes/transform-aware-resampling.Rmd",
-    "vignettes/spatiotemporal-analysis.Rmd",
     "vignettes/iterative-spatial-models.Rmd",
+    "vignettes/spatiotemporal-analysis.Rmd",
+    "vignettes/bounded-execution.Rmd",
     "vignettes/reproducible-replay.Rmd"
   ),
-  target = c(
-    "website/tutorials/getting-started.md",
-    "website/tutorials/format-workflows.md",
+  zh_target = paste0(
+    "website/modules/",
+    c(
+      "core-concepts", "reading-data", "schema-validation",
+      "interoperability", "scalable-io", "file-backed-io",
+      "neighbors-and-weights", "parcellation-and-aggregation",
+      "change-of-support", "real-world-support-mapping",
+      "transform-aware-resampling", "space-transform-graph",
+      "support-uncertainty", "support-aware-inference",
+      "spatial-modelling", "model-uncertainty",
+      "iterative-spatial-models", "spatiotemporal-analysis",
+      "bounded-execution", "reproducible-replay"
+    ),
+    ".md"
+  ),
+  en_target = c(
     "website/en/tutorials/core-concepts.md",
     "website/en/tutorials/reading-data.md",
+    "website/en/modules/schema-validation.md",
+    "website/en/modules/interoperability.md",
+    "website/en/modules/scalable-io.md",
+    "website/en/modules/file-backed-io.md",
     "website/en/tutorials/neighbors-and-weights.md",
     "website/en/tutorials/parcellation-and-aggregation.md",
     "website/en/tutorials/change-of-support.md",
-    "website/en/tutorials/spatial-modelling.md",
     "website/en/modules/real-world-support-mapping.md",
+    "website/en/modules/transform-aware-resampling.md",
+    "website/en/modules/space-transform-graph.md",
     "website/en/modules/support-uncertainty.md",
     "website/en/modules/support-aware-inference.md",
-    "website/en/modules/scalable-io.md",
-    "website/en/modules/bounded-execution.md",
+    "website/en/tutorials/spatial-modelling.md",
     "website/en/modules/model-uncertainty.md",
-    "website/en/modules/space-transform-graph.md",
-    "website/en/modules/interoperability-29.md",
-    "website/en/modules/schema-validation.md",
-    "website/en/modules/file-backed-io.md",
-    "website/en/modules/transform-aware-resampling.md",
-    "website/en/modules/spatiotemporal-analysis.md",
     "website/en/modules/iterative-spatial-models.md",
+    "website/en/modules/spatiotemporal-analysis.md",
+    "website/en/modules/bounded-execution.md",
     "website/en/modules/reproducible-replay.md"
   ),
-  title = c(
-    "点数据空间统计：从 ngeo_points 到 Moran's I",
-    "标准格式 I/O：NIfTI、GIFTI、CIFTI 与 FreeSurfer",
+  zh_title = c(
+    "核心概念与对象契约",
+    "读取神经影像数据",
+    "Schema 验证与可移植 manifest",
+    "互操作与可审计交换",
+    "可扩展 values、CIFTI 与 BIDS derivatives",
+    "文件后端神经影像 values",
+    "邻接关系与空间权重",
+    "分区与聚合",
+    "空间支持变换与跨 atlas 分析",
+    "真实数据中的 support mapping",
+    "显式 transform 的 resampling",
+    "显式空间与 transform path",
+    "Support uncertainty 与 operator ensemble",
+    "Support-aware inference",
+    "有界空间建模",
+    "包含不确定性的空间模型",
+    "有界迭代空间模型",
+    "显式时间与时空分析",
+    "有界科学计算",
+    "可审计 replay 与 derivative artifact"
+  ),
+  en_title = c(
     "Core concepts",
     "Reading neuroimaging data",
+    "Schema validation and portable manifests",
+    "Interoperability and auditable exchange",
+    "Scalable values, CIFTI, and BIDS derivatives",
+    "File-backed neuroimaging values",
     "Neighbors and weights",
     "Parcellation and aggregation",
     "Change of support and cross-atlas analysis",
-    "Bounded spatial modelling",
     "Real-world support mapping",
+    "Transform-aware resampling",
+    "Explicit spaces and transform paths",
     "Support uncertainty and operator ensembles",
     "Support-aware inference",
-    "Scalable values, CIFTI, and BIDS derivatives",
-    "Bounded scientific execution",
+    "Bounded spatial modelling",
     "Uncertainty-aware spatial models",
-    "Explicit spaces and transform paths",
-    "Interoperability and auditable exchange",
-    "Schema validation and portable manifests",
-    "File-backed neuroimaging values",
-    "Transform-aware resampling",
-    "Explicit temporal and spatiotemporal analysis",
     "Bounded iterative spatial models",
+    "Explicit temporal and spatiotemporal analysis",
+    "Bounded scientific execution",
     "Auditable replay and derivative artifacts"
   ),
   stringsAsFactors = FALSE
+)
+
+documents <- rbind(
+  data.frame(
+    source = c(
+      "vignettes/getting-started-zh.Rmd",
+      "vignettes/format-workflows-zh.Rmd"
+    ),
+    target = c(
+      "website/tutorials/getting-started.md",
+      "website/tutorials/format-workflows.md"
+    ),
+    title = c(
+      "点数据空间统计：从 ngeo_points 到 Moran's I",
+      "标准格式 I/O：NIfTI、GIFTI、CIFTI 与 FreeSurfer"
+    ),
+    counterpart = NA_character_,
+    counterpart_label = NA_character_,
+    stringsAsFactors = FALSE
+  ),
+  data.frame(
+    source = pairs$zh_source,
+    target = pairs$zh_target,
+    title = pairs$zh_title,
+    counterpart = sub("^website", "", sub("\\.md$", "", pairs$en_target)),
+    counterpart_label = "English",
+    stringsAsFactors = FALSE
+  ),
+  data.frame(
+    source = pairs$en_source,
+    target = pairs$en_target,
+    title = pairs$en_title,
+    counterpart = sub("^website", "", sub("\\.md$", "", pairs$zh_target)),
+    counterpart_label = "简体中文",
+    stringsAsFactors = FALSE
+  )
+)
+
+documents <- rbind(
+  documents,
+  data.frame(
+    source = "vignettes/interoperability.Rmd",
+    target = "website/en/modules/interoperability-29.md",
+    title = "Interoperability and auditable exchange",
+    counterpart = "/modules/interoperability",
+    counterpart_label = "简体中文",
+    stringsAsFactors = FALSE
+  )
 )
 
 vignettes <- sort(list.files(
@@ -105,7 +206,7 @@ if (length(unlisted) || length(missing)) {
   )
 }
 
-replace_front_matter <- function(path, title) {
+replace_front_matter <- function(path, title, counterpart, counterpart_label) {
   lines <- readLines(path, encoding = "UTF-8", warn = FALSE)
   output_dir <- normalizePath(
     dirname(path),
@@ -139,6 +240,21 @@ replace_front_matter <- function(path, title) {
     lines <- lines[-seq_len(closing)]
   }
   escaped_title <- gsub('"', '\\"', title, fixed = TRUE)
+  language_link <- if (is.na(counterpart)) {
+    character()
+  } else {
+    language_prefix <- if (identical(counterpart_label, "English")) {
+      "**语言：**"
+    } else {
+      "**Language:**"
+    }
+    c(
+      paste0(
+        language_prefix, " [", counterpart_label, "](", counterpart, ")"
+      ),
+      ""
+    )
+  }
   writeLines(
     c(
       "---",
@@ -147,6 +263,7 @@ replace_front_matter <- function(path, title) {
       "editLink: false",
       "---",
       "",
+      language_link,
       lines
     ),
     path,
@@ -181,6 +298,11 @@ for (index in seq_len(nrow(documents))) {
     quiet = TRUE,
     envir = new.env(parent = globalenv())
   )
-  replace_front_matter(target, documents$title[[index]])
+  replace_front_matter(
+    target,
+    documents$title[[index]],
+    documents$counterpart[[index]],
+    documents$counterpart_label[[index]]
+  )
   message("Rendered ", source, " -> ", target)
 }

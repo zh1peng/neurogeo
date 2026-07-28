@@ -12,9 +12,20 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(neurogeo)
 ```
 
-NGCS invariants are enforced by one public validation entry point. The
-schema table is an internal implementation detail rather than a second
-runtime object model.
+## Background
+
+Schema validation checks structural claims before a scientific operation is
+allowed to use them. For a spatial dataset this includes domain type,
+element/value alignment, measurement metadata, space identity, and the
+internal consistency of topology and maps. Validation cannot prove that an
+experimental design is scientifically appropriate; it proves that the object
+satisfies its declared contract.
+
+NGCS invariants are enforced by one public validation entry point. The schema
+table is an internal implementation detail rather than a second runtime
+object model.
+
+## Validate an object
 
 ```{r}
 x <- ngeo_points(
@@ -25,6 +36,8 @@ x <- ngeo_points(
 )
 ngeo_validate(x)
 ```
+
+## Portable manifests
 
 A portable manifest binds the normative metadata using canonical JSON and
 SHA-256. It contains no duplicate values block.
@@ -42,6 +55,6 @@ output <- write_ngeo_manifest(manifest, "x.ngcs-manifest.json")
 restored <- read_ngeo_manifest(output$path)
 ```
 
-The public namespace is the authoritative API contract. Migration notes
-describe removals between releases without adding lifecycle objects to user
-workflows.
+The public namespace is the authoritative API contract. A manifest is an
+integrity and exchange record, not a substitute for the source values or a
+workflow engine.

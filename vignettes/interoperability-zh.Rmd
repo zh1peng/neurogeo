@@ -1,0 +1,67 @@
+---
+title: "互操作与可审计交换"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{互操作与可审计交换}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## 基础背景
+
+互操作不仅要求双方能读取同一种文件，还要求双方对 element order、space、
+measurement semantics 和完整性有相同解释。标准格式解决编码问题；validator、
+metadata 和 hash 解决语义及身份问题。
+
+这些交换接口不执行 registration、resampling、preprocessing 或 dataset
+orchestration。
+
+## BIDS derivative 名称
+
+名称由经过验证且顺序确定的实体生成：
+
+```{r}
+entities <- list(sub = "01", space = "fsLR", desc = "effect")
+name <- ngeo_bids_build_name(
+  entities,
+  suffix = "dscalar",
+  extension = ".dscalar.nii"
+)
+name
+ngeo_bids_parse_name(name)
+```
+
+## 稀疏 support map
+
+support operator 适合使用 Matrix Market 保存，JSON sidecar 记录 domain、
+语义与完整逻辑 hash。大矩阵可以分块，但分块不能改变逻辑对象。
+
+```{r eval=FALSE}
+bundle <- write_ngeo_support_bundle(
+  support_map, "support-map.ngcs", chunk_size = 100000L
+)
+ngeo_validate_support_bundle(bundle$path)
+restored <- read_ngeo_support_bundle(bundle$path)
+```
+
+## CIFTI 输出契约
+
+写出前应验证 CIFTI 类型、datatype 和 axis semantics：
+
+```{r eval=FALSE}
+ngeo_validate_cifti_contract(x, "dscalar", datatype = "float64")
+write_ngeo_cifti(
+  x,
+  "sub-01_desc-effect.dscalar.nii",
+  type = "dscalar",
+  datatype = "float64"
+)
+```
+
+conformance fixtures 用于实现验证；实际分析对象仍通过格式专用 validator 和
+`ngeo_validate()` 检查。

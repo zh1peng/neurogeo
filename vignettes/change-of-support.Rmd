@@ -19,8 +19,19 @@ knitr::opts_chunk$set(
 library(neurogeo)
 ```
 
-NGCS 2.0 represents support change with one sparse operator whose rows are
-target elements and columns are source elements.
+## Background
+
+Spatial support is the area, volume, vertex set, or other footprint over which
+a value is defined. Changing support is therefore not a simple rename: it is
+a linear or normalized transfer from source elements to target elements. Let
+\(A\) be a target-by-source sparse operator. For extensive variables the
+transfer is based on \(A x\); for intensive variables the weighted numerator
+must be divided by transferred support.
+
+`neurogeo` represents this relationship with one sparse operator whose rows
+are target elements and columns are source elements.
+
+## Build and audit a support map
 
 ```{r}
 source <- ngeo_points(
@@ -89,9 +100,13 @@ operator.
 plot(support_map, type = "membership", col = "#26a69a", border = "white")
 ```
 
+## Intensive and extensive variables
+
 Intensive maps use source-support weighted means. Extensive maps and counts
 use conservative allocation. Overlapping operators therefore require
 explicit column normalization before they can conserve totals.
+
+## Compare atlases
 
 Two atlas maps with a common source domain can be compared by physical
 support overlap:

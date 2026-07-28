@@ -19,9 +19,19 @@ knitr::opts_chunk$set(
 library(neurogeo)
 ```
 
+## Background
+
+Spatial statistics require a declared answer to “which locations can
+influence one another?” A weights matrix \(W\) encodes that answer: row \(i\)
+contains the influence assigned to neighbors of element \(i\). Different
+construction rules imply different scientific neighborhoods and can change
+the result even when the observed values are unchanged.
+
 Topology-derived relationships are sparse. Surface adjacency follows mesh
 edges, volume adjacency uses active-mask-limited 6/18/26 connectivity, and
 grayordinate adjacency remains block diagonal by default.
+
+## Construct and inspect weights
 
 ```{r}
 coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
@@ -62,6 +72,8 @@ segments(
 points(coordinates, pch = 21, bg = node_colors, col = "white", cex = 2.8)
 text(coordinates, labels = seq_len(nrow(coordinates)), font = 2)
 ```
+
+## Weight styles and symmetry
 
 `style = "W"` row-standardizes the relation, `style = "B"` makes it binary,
 and `style = "none"` retains raw edge or kernel weights. KNN construction
@@ -104,6 +116,8 @@ barplot(
 )
 par(old_par)
 ```
+
+## Distance and spatial association
 
 Distances require explicit sources and targets; the API guards against
 accidental dense all-pairs allocation.

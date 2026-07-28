@@ -1,0 +1,71 @@
+---
+title: "Support-aware inference"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Support-aware inference}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## 基础背景
+
+同一 source data 使用不同 atlas 或尺度汇总后，effect estimate 可能改变。若每个
+atlas 独立 permutation，会混入不同随机 null draw，并增加 false positive 的
+机会。common-support test 将预先声明的 atlas 视为同一个 inferential family。
+
+每个 replicate 先在 source domain 生成一次 null realization，再把相同
+realization 应用于所有 support map，由 joint null distribution 进行 maxT 等
+family-wise adjustment。
+
+## 定义 support family
+
+```{r}
+source <- ngeo_surface(
+  coordinates = cbind(
+    x = c(0,1,2,0,1,2), y = c(0,0,0,1,1,1), z = 0
+  ),
+  faces = matrix(
+    c(1,2,5, 1,5,4, 2,3,6, 2,6,5), ncol = 3, byrow = TRUE
+  ),
+  values = cbind(
+    outcome = c(1.1,2.9,5.2,2.8,7.1,10.9),
+    predictor = c(0,1,2,1,3,5)
+  ),
+  measures = rbind(
+    ngeo_measure(spatial_semantics = "intensive"),
+    ngeo_measure(spatial_semantics = "intensive")
+  ),
+  space = ngeo_space("support-inference-example", kind = "surface")
+)
+first <- ngeo_atlas_map(source, c("A","A","B","B","C","C"))
+second <- ngeo_atlas_map(
+  source, c("A","B","B","C","C","A"), target = first$target
+)
+maps <- list(first = first, second = second)
+targets <- rep(list(first$target), 2)
+```
+
+## 选择 null model
+
+```{r}
+family_test <- ngeo_common_support_test(
+  source, maps, targets,
+  outcome = "outcome", predictor = "predictor",
+  adjustment = "maxT", nsim = 99, seed = 2301
+)
+family_test$estimates
+```
+
+unconstrained permutation 必须标记为 non-spatial。需要保持空间自相关时，应使用
+与 weights 对应的 Moran spectral null，或具有有效球面配准坐标的 surface spin。
+
+## 解释
+
+heterogeneity、random-effects consensus 和 leave-one-atlas-out influence
+描述对所提供 support family 的稳健性，不证明局部 effect 与 parcellation 或
+scale 无关。
