@@ -3,6 +3,8 @@ title: neurogeo
 description: R reference implementation of the Neuroimaging Geoinformatics Core Specification
 ---
 
+<img class="ng-home-logo" src="/logo.png" alt="neurogeo logo representing neuroimaging geometry, spatial relations, and measurement">
+
 # neurogeo
 
 `neurogeo` is the R reference implementation of the Neuroimaging

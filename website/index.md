@@ -3,6 +3,8 @@ title: neurogeo
 description: Neuroimaging Geoinformatics Core Specification 的 R 参考实现
 ---
 
+<img class="ng-home-logo" src="/logo.png" alt="neurogeo：神经影像几何、空间关系与测量的标志">
+
 # neurogeo
 
 `neurogeo` 是 Neuroimaging Geoinformatics Core Specification（NGCS）的 R

@@ -3,6 +3,7 @@ import { defineConfig } from 'vitepress'
 const repository = 'https://github.com/zh1peng/neurogeo'
 
 const zhTheme = {
+  logo: '/logo.png',
   sidebar: [
     {
       text: '概览',
@@ -94,6 +95,7 @@ const zhTheme = {
 }
 
 const enTheme = {
+  logo: '/logo.png',
   sidebar: [
     {
       text: 'Overview',
@@ -167,7 +169,16 @@ export default defineConfig({
     math: true
   },
   head: [
-    ['meta', { name: 'theme-color', content: '#176b63' }]
+    ['meta', { name: 'theme-color', content: '#176b63' }],
+    ['link', {
+      rel: 'icon',
+      type: 'image/png',
+      href: '/neurogeo/favicon.png'
+    }],
+    ['link', {
+      rel: 'apple-touch-icon',
+      href: '/neurogeo/logo.png'
+    }]
   ],
   locales: {
     root: {

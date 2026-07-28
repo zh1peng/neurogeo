@@ -27,10 +27,26 @@
   max-width: 860px !important;
 }
 
+.VPNavBarTitle .logo {
+  width: 36px;
+  height: 36px;
+  margin-right: 10px;
+}
+
 .vp-doc {
   color: var(--vp-c-text-1);
   font-size: 16px;
   line-height: 1.82;
+}
+
+.vp-doc .ng-home-logo {
+  width: 184px;
+  max-height: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .vp-doc h1 {
@@ -106,5 +122,9 @@
 @media (max-width: 560px) {
   .vp-doc {
     font-size: 15.5px;
+  }
+
+  .vp-doc .ng-home-logo {
+    width: 148px;
   }
 }
