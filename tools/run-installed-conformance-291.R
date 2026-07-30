@@ -1,6 +1,6 @@
 args <- commandArgs(trailingOnly = TRUE)
 if (dir.exists(".r-lib")) {
-  .libPaths(c(.libPaths(), normalizePath(".r-lib")))
+  .libPaths(c(normalizePath(".r-lib"), .libPaths()))
 }
 output <- if (length(args)) args[[1L]] else
   file.path("release", "maintenance-291-validation.json")
@@ -100,6 +100,14 @@ if (utils::compareVersion(package_version, "4.2.1") >= 0L) {
     "API-tiers-4.2.1.md"
   )
 }
+if (utils::compareVersion(package_version, "4.2.2") >= 0L) {
+  required_specs <- c(
+    required_specs,
+    "API-4.2.2.md",
+    "migration-4.2.2.md",
+    "real-data-validation-4.2.2.md"
+  )
+}
 spec_paths <- system.file("spec", required_specs, package = "neurogeo")
 if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
     !nzchar(formats_path) || !file.exists(formats_path) ||
@@ -109,8 +117,10 @@ if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
 manifest <- neurogeo:::.ngeo_conformance_manifest()
 formats <- paste(readLines(formats_path, warn = FALSE), collapse = "\n")
 reviewed_status <- if (
-  utils::compareVersion(package_version, "4.2.1") >= 0L
+  utils::compareVersion(package_version, "4.2.2") >= 0L
 ) {
+  "Status: reviewed for neurogeo 4.2.2"
+} else if (utils::compareVersion(package_version, "4.2.1") >= 0L) {
   "Status: reviewed for neurogeo 4.2.1"
 } else {
   "Status: reviewed for neurogeo 4.2.0"
@@ -154,6 +164,31 @@ if (utils::compareVersion(package_version, "4.2.0") >= 0L) {
   ))
   if (!scientific_validation_consistent) {
     stop("Installed 4.2 scientific-validation contract is incomplete.")
+  }
+}
+
+real_data_validation_consistent <- NA
+if (utils::compareVersion(package_version, "4.2.2") >= 0L) {
+  real_data_path <- system.file(
+    "spec", "real-data-validation-4.2.2.md",
+    package = "neurogeo"
+  )
+  real_data_text <- paste(
+    readLines(real_data_path, warn = FALSE),
+    collapse = "\n"
+  )
+  real_data_validation_consistent <- all(vapply(
+    c(
+      "NIfTI", "GIFTI/FreeSurfer", "dscalar/dlabel/dtseries",
+      "download-only", "The evidence does not establish"
+    ),
+    grepl,
+    logical(1),
+    x = real_data_text,
+    fixed = TRUE
+  ))
+  if (!real_data_validation_consistent) {
+    stop("Installed 4.2.2 real-data validation contract is incomplete.")
   }
 }
 
@@ -216,6 +251,8 @@ result <- list(
     format_inventory_consistent = format_consistent,
     scientific_validation_consistent =
       scientific_validation_consistent,
+    real_data_validation_consistent =
+      real_data_validation_consistent,
     required_specs = required_specs,
     public_exports = length(exports),
     deprecated_exports = 0L

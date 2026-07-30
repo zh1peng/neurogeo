@@ -1,6 +1,6 @@
 # Risk register
 
-Status: reviewed for neurogeo 4.2.1
+Status: reviewed for neurogeo 4.2.2
 
 | Risk | Current status | Mitigation |
 |---|---|---|
@@ -19,6 +19,9 @@ Status: reviewed for neurogeo 4.2.1
 | Low adoption | open | native constructors, common readers, vignettes, converters |
 | Large public API is difficult to discover | controlled | publish stable core, advanced, and exchange/governance tiers; require runnable examples for core workflows |
 | Coverage percentage is mistaken for scientific validity | controlled | use coverage only as a regression signal and retain independent reference, calibration, invariant, and real-data gates |
+| An upstream package license is mistaken for a data license | controlled | record package license and original data terms separately; keep 4.2.2 fixtures download-only |
+| Validation silently loads an older installed neurogeo | controlled | prepend the project-local library in every validation and build script; report the loaded package version |
+| A scale claimed by the plan lacks a compatible fixture | controlled | machine-readable exercised/not-exercised scale inventory; no synthetic result is presented as real-data evidence |
 | Cross-platform behavior diverges | controlled | Windows, macOS, Ubuntu release, oldrel, and devel checks are release gates |
 | Overlapping support duplicates extensive mass | controlled | reject non-unit allocation unless explicit column normalization is selected |
 | Atlas transfer presented as inverse reconstruction | controlled | require and record the piecewise-constant model; expose the transfer operator and uncertainty |

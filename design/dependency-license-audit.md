@@ -1,6 +1,6 @@
 # Dependency and fixture audit
 
-Status: completed for the local 1.0 release candidate
+Status: reviewed for neurogeo 4.2.2
 
 ## Runtime
 
@@ -31,3 +31,11 @@ The golden generator is retained in `tools/generate-golden-fixtures.R`.
 External workflow validation uses example files from installed backend
 packages in place. Those files are not copied into `neurogeo`; the report
 records package versions and checksums.
+
+The 4.2.2 real-data suite uses a second, download-only fixture manifest.
+Conte69 CIFTI test files, HCP 32k surfaces, and a FreeSurfer MGZ are fetched
+from immutable CRAN mirror commits into `.tools/reference-4.2.2`. The source
+archive contains only the manifest and terms record. Package licensing,
+original data terms, byte size, SHA-256, and redistribution policy are
+separate fields. HCP files are not treated as unrestricted merely because
+they are distributed by an R package.

@@ -26,7 +26,7 @@ To install a local release archive:
 
 ```r
 install.packages(
-  "neurogeo_4.2.1.tar.gz",
+  "neurogeo_4.2.2.tar.gz",
   repos = NULL,
   type = "source"
 )
@@ -146,5 +146,7 @@ from the same R package sources.
 
 The supported entry points are grouped in the
 [4.2.1 API tiers](design/API-tiers-4.2.1.md), with compatibility notes in the
-[4.2.1 migration record](design/migration-4.2.1.md). Use
+[4.2.2 migration record](design/migration-4.2.2.md). The
+[4.2.2 real-data contract](design/real-data-validation-4.2.2.md) records
+download-only fixture governance, exercised scales, and non-claims. Use
 `citation("neurogeo")` for the installed citation.

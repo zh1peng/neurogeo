@@ -1,6 +1,6 @@
 # Supported standard formats
 
-Status: reviewed for neurogeo 4.2.1
+Status: reviewed for neurogeo 4.2.2
 
 ## Input
 
@@ -49,6 +49,15 @@ is enabled by default.
 The suite covers a NIfTI volume, GIFTI surface geometry, CIFTI fsLR dscalar,
 FreeSurfer surface and curv failure cases, and an MGH volume that requires an
 explicit affine. These are format fixtures rather than clinical data.
+
+## Download-only 4.2.2 validation data
+
+The 4.2.2 manifest names real Conte69 dscalar/dlabel/dtseries files, HCP 32k
+bilateral GIFTI surfaces, and a 256-cubed FreeSurfer MGZ. They are not
+installed or redistributed by neurogeo. Release tooling downloads immutable
+upstream bytes to an ignored cache and verifies size and SHA-256 before use.
+The manifest records original terms separately from upstream R package
+licenses.
 
 ## Safety rules
 

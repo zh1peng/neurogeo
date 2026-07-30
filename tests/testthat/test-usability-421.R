@@ -1,6 +1,9 @@
 test_that("4.2.1 distribution metadata is discoverable", {
   description <- utils::packageDescription("neurogeo")
-  expect_identical(as.character(description$Version), "4.2.1")
+  expect_gte(
+    utils::compareVersion(as.character(description$Version), "4.2.1"),
+    0L
+  )
   expect_match(description$URL, "github.com/zh1peng/neurogeo", fixed = TRUE)
   expect_match(
     description$BugReports,
