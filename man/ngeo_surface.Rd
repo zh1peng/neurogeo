@@ -51,3 +51,19 @@ An `ngeo_surface` object.
 \description{
 Construct a surface dataset
 }
+\examples{
+coordinates <- matrix(
+  c(0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0),
+  ncol = 3, byrow = TRUE
+)
+faces <- matrix(c(1, 2, 3, 1, 3, 4), ncol = 3, byrow = TRUE)
+surface <- ngeo_surface(
+  coordinates, faces,
+  values = cbind(thickness = c(2.1, 2.3, 2.2, 2.4))
+)
+ngeo_domain_type(surface)
+ngeo_elements(surface)
+ngeo_values(surface)
+ngeo_vertex_area(surface)
+ngeo_validate(surface, "strict")
+}

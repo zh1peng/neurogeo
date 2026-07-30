@@ -41,3 +41,18 @@ An `ngeo_gwr` data frame.
 \description{
 Fit geographically weighted regression with conditioning diagnostics
 }
+\examples{
+coordinates <- as.matrix(expand.grid(x = 0:3, y = 0:3))
+predictor <- coordinates[, 1] - coordinates[, 2]
+points <- ngeo_points(
+  coordinates,
+  values = cbind(
+    response = 1 + 2 * predictor + 0.05 * coordinates[, 1],
+    predictor = predictor
+  )
+)
+head(ngeo_gwr(
+  points, "response", "predictor",
+  bandwidth = 2.5, singular = "error"
+))
+}

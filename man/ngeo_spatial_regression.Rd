@@ -37,3 +37,20 @@ SAR and SEM use a bounded exact dense log determinant. They are intended
 for reference-sized problems; larger inputs fail rather than silently
 changing approximation.
 }
+\examples{
+coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
+predictor <- coordinates[, 1] + coordinates[, 2]
+data <- ngeo_points(
+  coordinates,
+  values = cbind(
+    response = 1 + 1.5 * predictor + rep(c(-0.2, 0, 0.2), 3),
+    predictor = predictor
+  )
+)
+weights <- ngeo_weights(
+  data, method = "knn", k = 4, symmetry = "union"
+)
+ngeo_spatial_regression(
+  data, "response", "predictor", weights, model = "sar"
+)
+}

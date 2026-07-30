@@ -37,3 +37,18 @@ A sparse probabilistic or overlapping `ngeo_support_map`.
 \description{
 Build a support map from aligned probabilistic atlas memberships
 }
+\examples{
+source <- ngeo_points(
+  matrix(c(0, 0, 1, 0, 2, 0), ncol = 2, byrow = TRUE)
+)
+probability <- matrix(
+  c(1, 0, 0.5, 0.5, 0, 1),
+  nrow = 3, byrow = TRUE,
+  dimnames = list(NULL, c("A", "B"))
+)
+atlas <- ngeo_probabilistic_atlas_map(
+  source, probability, source_support = rep(1, 3)
+)
+atlas
+ngeo_support_diagnostics(atlas)
+}

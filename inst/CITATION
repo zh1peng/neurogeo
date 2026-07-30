@@ -1,0 +1,10 @@
+citHeader("To cite neurogeo in publications, use:")
+
+bibentry(
+  bibtype = "Manual",
+  title = "neurogeo: Neuroimaging Geoinformatics Core Objects",
+  author = person("zh1peng"),
+  year = "2026",
+  note = "R package version 4.2.1",
+  url = "https://github.com/zh1peng/neurogeo"
+)

@@ -29,3 +29,13 @@ An `ngeo_variogram_fit`.
 \description{
 Fit a bounded weighted least-squares variogram model
 }
+\examples{
+coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
+signal <- sin(coordinates[, 1] / 2) + cos(coordinates[, 2] / 2)
+points <- ngeo_points(coordinates, values = cbind(signal = signal))
+fit <- ngeo_fit_variogram(
+  points, "signal", breaks = c(0, 1.1, 2.1, 3.1, 4.5, 6),
+  model = "spherical"
+)
+fit
+}

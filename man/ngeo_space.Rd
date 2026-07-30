@@ -38,3 +38,15 @@ An `ngeo_space` object.
 \description{
 Construct a coordinate-space description
 }
+\examples{
+fs_lr <- ngeo_space(
+  "fsLR-32k",
+  kind = "surface",
+  units = "mm",
+  structure = "CORTEX_LEFT",
+  template = "fsLR",
+  density = "32k"
+)
+fs_lr
+ngeo_space_hash(fs_lr)
+}

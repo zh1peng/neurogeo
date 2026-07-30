@@ -58,3 +58,30 @@ jobs:
       - name: NGCS 2.0 support-map conformance
         if: matrix.config.os == 'ubuntu-latest' && matrix.config.r == 'release'
         run: Rscript tools/run-support-map-conformance.R
+
+  coverage:
+    name: line coverage and examples
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            any::covr
+            any::jsonlite
+          needs: check
+
+      - name: Measure tests and examples
+        run: Rscript tools/run-coverage-421.R coverage-421.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-421
+          path: coverage-421.json

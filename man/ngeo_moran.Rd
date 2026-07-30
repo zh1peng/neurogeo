@@ -46,3 +46,15 @@ An `ngeo_global_stat` result.
 \description{
 Global Moran's I
 }
+\examples{
+points <- ngeo_points(
+  matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
+  values = cbind(signal = c(1, 2, 4, 3))
+)
+weights <- ngeo_weights(points, method = "knn", k = 2)
+ngeo_moran(points, weights, "signal")
+ngeo_moran(
+  points, weights, "signal",
+  control = ngeo_permutation_control(19, seed = 42)
+)
+}

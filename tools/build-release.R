@@ -31,7 +31,7 @@ validation_catalog <- data.frame(
     "2.1.0", "2.1.0", "2.1.0", "2.2.0", "2.3.0",
     "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0",
     "2.9.0", "2.9.1", "3.0.0", "3.1.0", "3.2.0",
-    "3.3.0", "3.4.0", "3.5.0", "4.1.0", "4.2.0"
+    "3.3.0", "3.4.0", "3.5.0", "4.1.0", "4.2.0", "4.2.1"
   ),
   report = c(
     "conformance.json",
@@ -58,7 +58,8 @@ validation_catalog <- data.frame(
     "iterative-models-34-validation.json",
     "reproducibility-35-validation.json",
     "format-reference-41-validation.json",
-    "scientific-validation-42.json"
+    "scientific-validation-42.json",
+    "coverage-421.json"
   ),
   stringsAsFactors = FALSE
 )

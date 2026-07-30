@@ -46,3 +46,11 @@ An `ngeo_global_stat` result.
 \description{
 Global Geary's C
 }
+\examples{
+points <- ngeo_points(
+  matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
+  values = cbind(signal = c(1, 2, 4, 3))
+)
+weights <- ngeo_weights(points, method = "knn", k = 2)
+ngeo_geary(points, weights, "signal")
+}

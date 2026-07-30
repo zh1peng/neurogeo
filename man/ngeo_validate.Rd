@@ -18,3 +18,14 @@ checks, or scientific semantic diagnostics.}
 \description{
 Validate an NGCS object
 }
+\examples{
+points <- ngeo_points(
+  matrix(c(0, 0, 1, 0, 1, 1), ncol = 2, byrow = TRUE),
+  values = cbind(signal = c(1, 2, 3))
+)
+ngeo_validate(points, "basic")
+ngeo_validate(points, "strict")
+\dontshow{
+suppressWarnings(ngeo_validate(points, "scientific"))
+}
+}

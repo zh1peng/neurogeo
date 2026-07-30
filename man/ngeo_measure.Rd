@@ -30,3 +30,15 @@ A one-row measurement metadata data frame.
 \description{
 Construct measurement semantics
 }
+\examples{
+ngeo_measure(
+  value_type = "continuous",
+  spatial_semantics = "intensive",
+  units = "mm"
+)
+ngeo_measure(
+  value_type = "integer",
+  spatial_semantics = "count",
+  units = "events"
+)
+}

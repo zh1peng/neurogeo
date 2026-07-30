@@ -32,3 +32,19 @@ An `ngeo_grayordinates` object.
 \description{
 Construct a grayordinates dataset
 }
+\examples{
+gray <- ngeo_grayordinates(
+  components = list(
+    list(
+      component_id = "left",
+      kind = "surface",
+      structure = "CORTEX_LEFT",
+      vertex_index = c(0L, 2L),
+      surface_vertex_count = 4L,
+      source_index_base = 0L
+    )
+  ),
+  values = cbind(statistic = c(1.2, 0.7))
+)
+ngeo_elements(gray)
+}

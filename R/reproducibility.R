@@ -276,6 +276,12 @@ ngeo_environment_snapshot <- function() {
 #' @param x An NGCS object or JSON-compatible value.
 #' @param budget Resource limits for reading in-memory values.
 #' @return A lowercase SHA-256 string.
+#' @examples
+#' points <- ngeo_points(
+#'   matrix(c(0, 0, 1, 0, 1, 1), ncol = 2, byrow = TRUE),
+#'   values = cbind(signal = c(1, 2, 3))
+#' )
+#' ngeo_logical_hash(points)
 #' @export
 ngeo_logical_hash <- function(
     x,

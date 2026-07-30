@@ -21,3 +21,12 @@ Domain elements and value rows are always changed together. Surface faces,
 volume masks, grayordinate component mappings, and region metadata are
 rebuilt as required.
 }
+\examples{
+points <- ngeo_points(
+  matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
+  values = cbind(first = 1:4, second = 5:8)
+)
+subset <- ngeo_subset(points, elements = c(1, 3), maps = "second")
+ngeo_elements(subset)
+ngeo_values(subset)
+}

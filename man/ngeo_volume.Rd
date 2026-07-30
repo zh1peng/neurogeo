@@ -41,3 +41,14 @@ An `ngeo_volume` object.
 \description{
 Construct a volume dataset
 }
+\examples{
+image <- array(seq_len(8), dim = c(2, 2, 2))
+volume <- ngeo_volume(
+  values = image,
+  dim = dim(image),
+  affine = diag(4)
+)
+ngeo_voxel_volume(volume)
+ngeo_support_size(volume)
+ngeo_validate(volume, "strict")
+}

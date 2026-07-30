@@ -10,6 +10,17 @@
 #' @param source_metadata Source metadata retained by an importer.
 #'
 #' @return An `ngeo_space` object.
+#' @examples
+#' fs_lr <- ngeo_space(
+#'   "fsLR-32k",
+#'   kind = "surface",
+#'   units = "mm",
+#'   structure = "CORTEX_LEFT",
+#'   template = "fsLR",
+#'   density = "32k"
+#' )
+#' fs_lr
+#' ngeo_space_hash(fs_lr)
 #' @export
 ngeo_space <- function(space_id = "unknown",
                        kind = c("unknown", "surface", "volume", "hybrid"),
@@ -54,4 +65,3 @@ print.ngeo_space <- function(x, ...) {
   )
   invisible(x)
 }
-

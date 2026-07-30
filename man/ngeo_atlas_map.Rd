@@ -30,3 +30,16 @@ A sparse crisp `ngeo_support_map`.
 \description{
 Build a crisp support map from aligned atlas labels
 }
+\examples{
+source <- ngeo_points(
+  matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
+  values = cbind(signal = c(1, 2, 4, 5)),
+  measures = ngeo_measure(spatial_semantics = "intensive")
+)
+atlas <- ngeo_atlas_map(
+  source, c("A", "A", "B", "B"), source_support = rep(1, 4)
+)
+ngeo_support_diagnostics(atlas)
+regional <- ngeo_change_support(source, atlas$target, atlas)
+ngeo_values(regional)
+}

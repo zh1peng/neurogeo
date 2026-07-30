@@ -17,3 +17,10 @@ A lowercase SHA-256 string.
 \description{
 Compute a scientific logical hash independent of provenance timestamps
 }
+\examples{
+points <- ngeo_points(
+  matrix(c(0, 0, 1, 0, 1, 1), ncol = 2, byrow = TRUE),
+  values = cbind(signal = c(1, 2, 3))
+)
+ngeo_logical_hash(points)
+}

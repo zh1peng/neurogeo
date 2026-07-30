@@ -526,8 +526,8 @@
     return(list(
       type = x$type,
       method = x$method,
-      source_space_sha256 = ngeo_space_hash(x$from),
-      target_space_sha256 = ngeo_space_hash(x$to),
+      source_space_sha256 = ngeo_space_hash(x$source_space),
+      target_space_sha256 = ngeo_space_hash(x$target_space),
       transform_sha256 = ngeo_transform_hash(x)
     ))
   }
@@ -667,6 +667,14 @@
 #'
 #' @param x A valid registered NGCS object.
 #' @return A JSON-compatible `ngeo_object_manifest`.
+#' @examples
+#' points <- ngeo_points(
+#'   matrix(c(0, 0, 1, 0, 1, 1), ncol = 2, byrow = TRUE),
+#'   values = cbind(signal = c(1, 2, 3))
+#' )
+#' manifest <- ngeo_object_manifest(points)
+#' manifest$object_schema
+#' ngeo_validate_manifest(manifest, points)
 #' @export
 ngeo_object_manifest <- function(x) {
   report <- .ngeo_schema_report(x)

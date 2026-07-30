@@ -32,3 +32,10 @@ An `ngeo_variogram` data frame.
 \description{
 Empirical semivariogram
 }
+\examples{
+points <- ngeo_points(
+  matrix(c(0, 0, 1, 0, 2, 0, 3, 0, 4, 0), ncol = 2, byrow = TRUE),
+  values = cbind(signal = c(1, 2, 2.5, 4, 5))
+)
+ngeo_variogram(points, "signal", breaks = c(0, 1.5, 3, 5))
+}

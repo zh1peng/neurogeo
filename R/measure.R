@@ -8,6 +8,17 @@
 #' @param default_aggregation Default aggregation rule.
 #'
 #' @return A one-row measurement metadata data frame.
+#' @examples
+#' ngeo_measure(
+#'   value_type = "continuous",
+#'   spatial_semantics = "intensive",
+#'   units = "mm"
+#' )
+#' ngeo_measure(
+#'   value_type = "integer",
+#'   spatial_semantics = "count",
+#'   units = "events"
+#' )
 #' @export
 ngeo_measure <- function(value_type = "continuous",
                          spatial_semantics = c(
@@ -46,4 +57,3 @@ ngeo_measure <- function(value_type = "continuous",
     stringsAsFactors = FALSE
   )
 }
-

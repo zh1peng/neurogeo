@@ -88,6 +88,21 @@
 #'   backend has already converted face indices.
 #'
 #' @return An `ngeo_surface` object.
+#' @examples
+#' coordinates <- matrix(
+#'   c(0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0),
+#'   ncol = 3, byrow = TRUE
+#' )
+#' faces <- matrix(c(1, 2, 3, 1, 3, 4), ncol = 3, byrow = TRUE)
+#' surface <- ngeo_surface(
+#'   coordinates, faces,
+#'   values = cbind(thickness = c(2.1, 2.3, 2.2, 2.4))
+#' )
+#' ngeo_domain_type(surface)
+#' ngeo_elements(surface)
+#' ngeo_values(surface)
+#' ngeo_vertex_area(surface)
+#' ngeo_validate(surface, "strict")
 #' @export
 ngeo_surface <- function(coordinates,
                          faces,
@@ -274,6 +289,16 @@ ngeo_surface <- function(coordinates,
 #' @param index_base Source IJK index base to preserve.
 #'
 #' @return An `ngeo_volume` object.
+#' @examples
+#' image <- array(seq_len(8), dim = c(2, 2, 2))
+#' volume <- ngeo_volume(
+#'   values = image,
+#'   dim = dim(image),
+#'   affine = diag(4)
+#' )
+#' ngeo_voxel_volume(volume)
+#' ngeo_support_size(volume)
+#' ngeo_validate(volume, "strict")
 #' @export
 ngeo_volume <- function(values = NULL,
                         dim,
