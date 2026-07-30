@@ -227,8 +227,8 @@ test_that("spherical seam faces and boundaries render as wrapped copies", {
     map$provenance$seam_faces,
     metadata$invariants$seam_faces
   )
-  output <- tempfile(fileext = ".svg")
-  grDevices::svg(output, width = 6, height = 3)
+  output <- tempfile(fileext = ".pdf")
+  grDevices::pdf(output, width = 6, height = 3)
   expect_silent(plot(map, show_boundaries = TRUE))
   grDevices::dev.off()
   expect_gt(file.info(output)$size, 1000)
@@ -367,7 +367,7 @@ test_that("degenerate source geometry is rejected before distortion claims", {
   )
 })
 
-test_that("base rendering and multi-panel layout produce SVG output", {
+test_that("base rendering and multi-panel layout produce portable output", {
   flat <- ngeo_flatten_surface(
     cartography_disk(),
     "harmonic",
@@ -384,8 +384,8 @@ test_that("base rendering and multi-panel layout produce SVG output", {
     ncol = 2L,
     labels = c("continuous", "categorical")
   )
-  output <- tempfile(fileext = ".svg")
-  grDevices::svg(output, width = 8, height = 4)
+  output <- tempfile(fileext = ".pdf")
+  grDevices::pdf(output, width = 8, height = 4)
   expect_silent(plot(layout, show_boundaries = TRUE))
   grDevices::dev.off()
 
@@ -394,8 +394,8 @@ test_that("base rendering and multi-panel layout produce SVG output", {
   expect_identical(layout$ncol, 2L)
   expect_gt(file.info(output)$size, 1000)
 
-  no_legend <- tempfile(fileext = ".svg")
-  grDevices::svg(no_legend, width = 4, height = 4)
+  no_legend <- tempfile(fileext = ".pdf")
+  grDevices::pdf(no_legend, width = 4, height = 4)
   expect_silent(plot(first, show_legend = FALSE))
   grDevices::dev.off()
   expect_gt(file.info(no_legend)$size, 1000)
