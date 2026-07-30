@@ -1,6 +1,8 @@
-# 2.1 risk register
+# Risk register
 
-| Risk | Status at 1.0 RC | Mitigation |
+Status: reviewed for neurogeo 4.1.1
+
+| Risk | Current status | Mitigation |
 |---|---|---|
 | Pure-R CIFTI coverage incomplete | controlled | dscalar/dlabel/dtseries golden tests and a 59,412-grayordinate external workflow |
 | Object model becomes too complex | controlled | five domains; one domain and one aligned values block |
@@ -13,7 +15,7 @@
 | Scope expands into a general toolbox | controlled | frozen non-goals and API review |
 | Reference result disagreement | controlled | spdep comparison, golden I/O, conformance fixtures |
 | Low adoption | open | native constructors, common readers, vignettes, converters |
-| Remote Linux/macOS evidence unavailable locally | release gate | CI workflow is ready; run after an authorized remote is designated |
+| Cross-platform behavior diverges | controlled | Windows, macOS, Ubuntu release, oldrel, and devel checks are release gates |
 | Overlapping support duplicates extensive mass | controlled | reject non-unit allocation unless explicit column normalization is selected |
 | Atlas transfer presented as inverse reconstruction | controlled | require and record the piecewise-constant model; expose the transfer operator and uncertainty |
 | Support operators become dense | controlled | target-by-source sparse representation, composition guards, and 100k-by-1k performance regression |

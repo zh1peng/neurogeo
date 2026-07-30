@@ -79,6 +79,11 @@ if (utils::compareVersion(package_version, "4.1.0") >= 0L) {
     required_specs, "API-4.1.md", "migration-4.1.md"
   )
 }
+if (utils::compareVersion(package_version, "4.1.1") >= 0L) {
+  required_specs <- c(
+    required_specs, "API-4.1.1.md", "migration-4.1.1.md"
+  )
+}
 spec_paths <- system.file("spec", required_specs, package = "neurogeo")
 if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
     !nzchar(formats_path) || !file.exists(formats_path) ||
@@ -88,7 +93,7 @@ if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
 manifest <- neurogeo:::.ngeo_conformance_manifest()
 formats <- paste(readLines(formats_path, warn = FALSE), collapse = "\n")
 required_format_text <- c(
-  "Status: neurogeo 2.9.1",
+  "Status: reviewed for neurogeo 4.1.1",
   "pure-R CIFTI-2 writer",
   "NGCS support map schema 2",
   "BIDS derivative data + JSON"

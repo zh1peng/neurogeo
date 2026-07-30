@@ -1,13 +1,13 @@
 # Distribution route decision
 
-Status: accepted for 1.0 planning
+Status: reviewed for neurogeo 4.1.1; CRAN submission not yet authorized
 
 ## Decision
 
-Target CRAN as the primary public package distribution route after the local
-1.0 release candidate has passed policy and platform checks. Maintain a
-Bioconductor-compatible dependency posture, but do not make Bioconductor the
-1.0 release gate.
+Target CRAN as the primary public package distribution route after the
+maintainer explicitly authorizes submission. Maintain a
+Bioconductor-compatible dependency posture, but do not make Bioconductor a
+release gate for the current package line.
 
 ## Rationale
 
@@ -28,5 +28,5 @@ submission would be evaluated separately and must not change NGCS semantics.
 - Treat R CMD check on current release/devel R and three operating systems as
   a release gate.
 - Keep examples and vignettes runnable without downloading private datasets.
-- Do not publish automatically; repository creation and public submission
-  require explicit maintainer authorization.
+- GitHub releases may follow the established release workflow. CRAN or
+  Bioconductor submission requires separate explicit maintainer authorization.

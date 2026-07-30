@@ -26,7 +26,7 @@ To install a local release archive:
 
 ```r
 install.packages(
-  "neurogeo_4.1.0.tar.gz",
+  "neurogeo_4.1.1.tar.gz",
   repos = NULL,
   type = "source"
 )

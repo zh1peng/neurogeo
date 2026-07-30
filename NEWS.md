@@ -1,3 +1,14 @@
+# neurogeo 4.1.1
+
+* Removed the final direct `dgCMatrix` coercion from spatial-model weight
+  subsetting and added a regression test for warning-free sparse conversion.
+* Updated package-maintainer metadata and synchronized the installed format
+  inventory, risk register, and distribution-route status with the 4.1
+  release line. Disambiguated the Chinese support-inference vignette index
+  title so package checks no longer report a duplicate-title note.
+* Added maintenance API and migration records. Scientific objects, numerical
+  methods, and NGCS 3.5 semantics are unchanged.
+
 # neurogeo 4.1.0
 
 * Added six byte-pinned, license-audited upstream NIfTI, GIFTI, CIFTI, and

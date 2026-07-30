@@ -2,7 +2,7 @@
 title: "Support-aware inference"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Support-aware inference}
+  %\VignetteIndexEntry{Support-aware inference（中文）}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

@@ -25,6 +25,20 @@ test_that("OLS and SLX recover simulated coefficients", {
   expect_true(is.finite(slx$residual_moran))
 })
 
+test_that("model weight subsetting uses warning-free sparse coercion", {
+  fixture <- model_grid()
+  expect_no_warning(
+    fit <- ngeo_spatial_lm(
+      fixture$x,
+      response = "response",
+      predictors = "predictor",
+      weights = fixture$weights,
+      model = "slx"
+    )
+  )
+  expect_s3_class(fit, "ngeo_spatial_lm")
+})
+
 test_that("spatial models reject mismatched weights and categorical maps", {
   fixture <- model_grid()
   mismatch <- fixture$weights

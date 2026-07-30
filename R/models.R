@@ -52,9 +52,8 @@
       "ngeo_error_domain_mismatch"
     )
   }
-  raw <- methods::as(
-    weights$raw_matrix[index, index, drop = FALSE],
-    "dgCMatrix"
+  raw <- .ngeo_as_dgCMatrix(
+    weights$raw_matrix[index, index, drop = FALSE]
   )
   matrix <- switch(
     weights$normalization,
