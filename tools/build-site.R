@@ -1,5 +1,5 @@
 if (dir.exists(".r-lib")) {
-  .libPaths(c(.libPaths(), normalizePath(".r-lib")))
+  .libPaths(c(normalizePath(".r-lib"), .libPaths()))
 }
 pkgdown::build_reference(pkg = ".")
 pkgdown::build_articles(pkg = ".")

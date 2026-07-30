@@ -1,3 +1,21 @@
+# neurogeo 4.2.2
+
+- Added an immutable, license-separated external fixture manifest and verified
+  download cache for real Conte69 CIFTI, HCP 32k GIFTI, and FreeSurfer MGZ
+  validation data; external data remain outside the source archive.
+- Added four machine-readable real-data workflows covering NIfTI,
+  GIFTI/FreeSurfer, CIFTI dscalar/dlabel/dtseries, and atlas/change-of-support
+  behavior with sparse/file-backed resource gates and adversarial failures.
+- Recorded which representative scales are exercised and explicitly report
+  164k/91k scale cases as not exercised when no fixture with compatible terms
+  is available. No external neuroimaging application is a runtime or CI
+  dependency.
+- Corrected validation/build library precedence so a project-local install is
+  loaded before an older system installation when both are present.
+- Corrected the unit-test runner to execute source tests through the package
+  loading environment instead of silently succeeding when an ordinary
+  installation contains no installed test files.
+
 # neurogeo 4.2.1
 
 * Added package, documentation-site, issue-tracker, and installed citation

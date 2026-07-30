@@ -28,7 +28,7 @@ test_that("installed format inventory matches implemented 2.9 capabilities", {
   formats <- paste(readLines(formats_path, warn = FALSE), collapse = "\n")
 
   expect_match(
-    formats, "Status: reviewed for neurogeo 4.2.1", fixed = TRUE
+    formats, "Status: reviewed for neurogeo 4.2.2", fixed = TRUE
   )
   expect_match(formats, "pure-R CIFTI-2 writer", fixed = TRUE)
   expect_match(formats, "NGCS support map schema 2", fixed = TRUE)

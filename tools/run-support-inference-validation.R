@@ -1,6 +1,6 @@
 args <- commandArgs(trailingOnly = TRUE)
 if (dir.exists(".r-lib")) {
-  .libPaths(c(.libPaths(), normalizePath(".r-lib")))
+  .libPaths(c(normalizePath(".r-lib"), .libPaths()))
 }
 output <- if (length(args)) {
   args[[1L]]
