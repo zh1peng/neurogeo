@@ -32,6 +32,7 @@ $scripts = @(
     "tools/run-coverage-421.R",
     "tools/fetch-reference-422.R",
     "tools/run-real-data-validation-422.R",
+    "tools/run-cartography-43-validation.R",
     "tools/run-release-performance.R"
 )
 

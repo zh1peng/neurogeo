@@ -26,7 +26,7 @@ To install a local release archive:
 
 ```r
 install.packages(
-  "neurogeo_4.2.2.tar.gz",
+  "neurogeo_4.3.0.tar.gz",
   repos = NULL,
   type = "source"
 )
@@ -89,6 +89,33 @@ x <- read_ngeo_cifti_filebacked(
 ngeo_value_chunks(x, chunk_size = 4096, FUN = colMeans)
 ```
 
+## Cortical cartography
+
+Version 4.3 draws the source surface itself rather than selecting a fixed
+atlas template. Add an imported flat chart, parameterize an already-cut disk,
+or create an explicitly non-metric view; then bind any aligned vertex values
+and atlas:
+
+```r
+flat <- ngeo_flatten_surface(
+  surface_disk,
+  method = "harmonic",
+  boundary = ordered_boundary
+)
+cortex <- ngeo_cortical_map(
+  flat,
+  values = vertex_values,
+  atlas = atlas_labels
+)
+plot(cortex)
+plot_data <- ngeo_cortical_map_data(cortex)
+```
+
+Harmonic parameterization rejects closed surfaces and never invents a cut.
+Orthographic, PCA, and spherical results from `ngeo_project_surface()` are
+labelled viewing projections, not registration or metric flattening. See the
+[4.3 cartography contract](design/cortical-cartography-4.3.md).
+
 ## Minimal workflow
 
 ```r
@@ -146,7 +173,7 @@ from the same R package sources.
 
 The supported entry points are grouped in the
 [4.2.1 API tiers](design/API-tiers-4.2.1.md), with compatibility notes in the
-[4.2.2 migration record](design/migration-4.2.2.md). The
+[4.3 migration record](design/migration-4.3.md). The
 [4.2.2 real-data contract](design/real-data-validation-4.2.2.md) records
 download-only fixture governance, exercised scales, and non-claims. Use
 `citation("neurogeo")` for the installed citation.

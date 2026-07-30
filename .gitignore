@@ -39,6 +39,7 @@ website/en/modules/transform-aware-resampling.md
 website/en/modules/spatiotemporal-analysis.md
 website/en/modules/iterative-spatial-models.md
 website/en/modules/reproducible-replay.md
+website/en/modules/cortical-cartography.md
 website/en/modules/*_files/
 neurogeo_*.tar.gz
 release/runs/

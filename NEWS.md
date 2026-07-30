@@ -1,3 +1,21 @@
+# neurogeo 4.3.0
+
+* Added atlas-independent cortical cartography with
+  `ngeo_flatten_surface()`, `ngeo_project_surface()`,
+  `ngeo_cortical_map()`, `ngeo_cortical_map_data()`, and
+  `ngeo_cortical_layout()`.
+* Added imported and harmonic disk parameterizations plus explicitly
+  non-metric orthographic, PCA, and spherical viewing projections.
+  Closed surfaces are never cut automatically, and spherical views require
+  an explicit seam.
+* Added source vertex/face identity, topology invariants, seam-crossing
+  metadata, per-face area/angular distortion, chart/domain hashes, and
+  provenance to cortical map exchange data.
+* Added arbitrary aligned continuous or categorical vertex maps, aligned
+  vector or `ngeo_partition` atlases, atlas boundaries, base-R rendering,
+  hemisphere/multi-map layouts, semantic golden fixtures, real HCP 32k
+  validation, and a Chinese tutorial.
+
 # neurogeo 4.2.2
 
 - Added an immutable, license-separated external fixture manifest and verified

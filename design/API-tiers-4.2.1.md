@@ -42,6 +42,18 @@ the existing lifecycle policy.
 - `ngeo_example_data()`, `ngeo_object_manifest()`, `ngeo_logical_hash()`,
   and provenance access/export.
 
+### Cortical cartography (added in 4.3)
+
+- chart construction: `ngeo_flatten_surface()` and
+  `ngeo_project_surface()`;
+- vertex/atlas maps: `ngeo_cortical_map()` and
+  `ngeo_cortical_map_data()`;
+- independent panel composition: `ngeo_cortical_layout()`.
+
+These are stable core entry points subject to the explicit topology,
+projection, seam, distortion, and non-registration contract in
+`cortical-cartography-4.3.md`.
+
 ## Advanced scientific API
 
 This tier contains null models, common-support inference, uncertainty,

@@ -1,6 +1,6 @@
 # Risk register
 
-Status: reviewed for neurogeo 4.2.2
+Status: reviewed for neurogeo 4.3.0
 
 | Risk | Current status | Mitigation |
 |---|---|---|
@@ -8,6 +8,14 @@ Status: reviewed for neurogeo 4.2.2
 | Object model becomes too complex | controlled | five domains; one domain and one aligned values block |
 | Object model too simple | controlled | explicit capabilities; regions and grayordinates are first-class |
 | 32k/164k memory growth | controlled | sparse topology, bounded distances, 32k/164k regression runs |
+| A viewing projection is presented as metric flattening | controlled | chart kind and `is_metric_flattening = FALSE` are mandatory for orthographic, PCA, and spherical views |
+| A closed cortex is silently cut | controlled | harmonic parameterization requires an explicit complete disk boundary and rejects closed/multi-boundary topology |
+| A spherical seam creates false cross-map polygons | controlled | record seam-crossing edges/faces and render wrapped copies clipped at both longitude limits |
+| A folded or highly distorted chart is hidden | controlled | retain per-face signed area, fold, area ratio, and angular-error diagnostics plus summary metadata |
+| Atlas labels select a hidden template geometry | controlled | atlas-independent source charts; exact vertex alignment and source-domain hash checks |
+| A partition is reused after unrelated domain mutation | controlled | require the current domain hash or the exact source hash recorded by the selected chart |
+| Face interpolation is mistaken for source measurement | controlled | retain source vertex values and identify face means/modes as rendering data only |
+| Cortical rendering exhausts memory | controlled | one face table, vectorized base rendering, no dense pairwise distance, and real 32k resource validation |
 | Missing coordinate-space metadata | accepted | explicit `unknown`; no implicit conversion |
 | Incorrect measurement semantics | controlled | unknown-by-default and aggregation refusal without `fun` |
 | CIFTI surface mismatch | controlled | structure, vertex-count, and mapping validation |

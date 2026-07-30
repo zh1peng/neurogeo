@@ -19,6 +19,7 @@ articles:
   - core-concepts-zh
   - reading-data-zh
   - schema-validation-zh
+  - cortical-cartography-zh
   - interoperability-zh
   - scalable-io-zh
   - file-backed-io-zh
@@ -42,6 +43,7 @@ articles:
   - core-concepts
   - reading-data
   - schema-validation
+  - cortical-cartography
   - interoperability
   - scalable-io
   - file-backed-io
@@ -265,6 +267,15 @@ reference:
   - plot.ngeo_weights
   - plot.ngeo_partition
   - plot.ngeo_global_stat
+- title: Cortical cartography
+  contents:
+  - ngeo_flatten_surface
+  - ngeo_project_surface
+  - ngeo_cortical_map
+  - ngeo_cortical_map_data
+  - ngeo_cortical_layout
+  - plot.ngeo_cortical_map
+  - plot.ngeo_cortical_layout
 - title: Interoperability
   contents:
   - as_igraph
