@@ -1,5 +1,8 @@
 # neurogeo 4.2.1 to 4.3 development plan
 
+Status: 4.2.1 and 4.2.2 released; the 4.3.0 release candidate and all local
+release gates are complete. Remote CI and GitHub release remain pending.
+
 ## Final objective
 
 Move neurogeo from a scientifically calibrated core to a distributable,
@@ -92,7 +95,7 @@ without a cut, overlap, or distortion. The API therefore distinguishes:
 
 - an imported or caller-supplied flat chart;
 - a disk-topology harmonic/Tutte parameterization with an explicit boundary;
-- a spherical-registration projection with an explicit seam;
+- a spherical-coordinate viewing projection with an explicit seam;
 - an orthographic/PCA viewing projection that is never described as a
   flattening or metric chart.
 
@@ -106,6 +109,8 @@ The minimal public surface is:
 
 - `ngeo_flatten_surface()` to add one audited 2D chart using a supported
   method;
+- `ngeo_project_surface()` to add an explicitly non-metric orthographic,
+  deterministic PCA, or spherical viewing projection;
 - `ngeo_cortical_map()` to bind one chart to vertex data or a matching
   `ngeo_partition`;
 - `ngeo_cortical_map_data()` to expose bounded face, vertex, boundary, and
@@ -129,7 +134,8 @@ The existing `ngeo_set_chart()` and `ngeo_as_sf()` remain compatible.
   injectivity claim;
 - signed face area, fold count, area scale, angular distortion, boundary,
   seam, domain hash, algorithm, tolerances, and provenance are inspectable;
-- partitions must match the exact source-domain hash;
+- partitions must match the current domain hash or the exact source-domain
+  hash recorded by the selected chart;
 - vertex data must be exactly aligned and no atlas-specific template is
   hard-coded;
 - rendering is bounded and never creates an all-pairs distance matrix.

@@ -3,6 +3,7 @@
 | Operation | Surface | Volume | Points | Grayordinates | Regions |
 |---|---:|---:|---:|---:|---:|
 | explicit coordinates | yes | world affine | yes | when geometry/affine exists | with centroids |
+| audited 2D cartography | imported/harmonic disk chart or explicit non-metric view | no | no | surface components must be mapped separately | no |
 | implicit adjacency | mesh | 6/18/26 voxel | no | component-local | when supplied/derived |
 | support size | vertex area | voxel volume | unknown by default | per component | stored/derived |
 | Euclidean distance | coordinate set | world coordinates | coordinates | when complete | centroids |

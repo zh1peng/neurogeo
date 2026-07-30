@@ -87,7 +87,7 @@ jobs:
           path: coverage-421.json
 
   real-data-validation:
-    name: real-data 4.2.2
+    name: real-data 4.2.2 + cartography 4.3
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -114,7 +114,14 @@ jobs:
           Rscript tools/run-real-data-validation-422.R
           real-data-422-validation.json
 
+      - name: Run cortical cartography workflows
+        run: >-
+          Rscript tools/run-cartography-43-validation.R
+          cartography-43-validation.json
+
       - uses: actions/upload-artifact@v4
         with:
-          name: real-data-422-validation
-          path: real-data-422-validation.json
+          name: real-data-and-cartography-validation
+          path: |
+            real-data-422-validation.json
+            cartography-43-validation.json

@@ -29,6 +29,7 @@ const zhTheme = {
         { text: '核心概念与对象契约', link: '/modules/core-concepts' },
         { text: '读取神经影像数据', link: '/modules/reading-data' },
         { text: 'Schema 验证与 manifest', link: '/modules/schema-validation' },
+        { text: '皮层二维地图', link: '/modules/cortical-cartography' },
         { text: '互操作与可审计交换', link: '/modules/interoperability' },
         { text: '可扩展 I/O', link: '/modules/scalable-io' },
         { text: '文件后端 values', link: '/modules/file-backed-io' }
@@ -111,6 +112,7 @@ const enTheme = {
         { text: 'Core concepts', link: '/en/tutorials/core-concepts' },
         { text: 'Reading data', link: '/en/tutorials/reading-data' },
         { text: 'Schema validation', link: '/en/modules/schema-validation' },
+        { text: 'Cortical cartography', link: '/en/modules/cortical-cartography' },
         { text: 'Interoperability', link: '/en/modules/interoperability' },
         { text: 'Scalable I/O', link: '/en/modules/scalable-io' },
         { text: 'File-backed values', link: '/en/modules/file-backed-io' }

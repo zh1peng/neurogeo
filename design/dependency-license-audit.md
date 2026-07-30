@@ -1,6 +1,6 @@
 # Dependency and fixture audit
 
-Status: reviewed for neurogeo 4.2.2
+Status: reviewed for neurogeo 4.3.0
 
 ## Runtime
 
@@ -39,3 +39,9 @@ archive contains only the manifest and terms record. Package licensing,
 original data terms, byte size, SHA-256, and redistribution policy are
 separate fields. HCP files are not treated as unrestricted merely because
 they are distributed by an R package.
+
+The 4.3 cartography gate reuses the same checksum-pinned left/right HCP 32k
+GIFTI surfaces and Conte69 32k CIFTI values. It downloads no new fixture and
+does not redistribute those bytes. The eight-sector atlas used for alignment
+and boundary stress testing is generated during validation and is not
+presented as an anatomical atlas.

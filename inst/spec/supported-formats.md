@@ -1,6 +1,6 @@
 # Supported standard formats
 
-Status: reviewed for neurogeo 4.2.2
+Status: reviewed for neurogeo 4.3.0
 
 ## Input
 
@@ -58,6 +58,10 @@ installed or redistributed by neurogeo. Release tooling downloads immutable
 upstream bytes to an ignored cache and verifies size and SHA-256 before use.
 The manifest records original terms separately from upstream R package
 licenses.
+
+The 4.3 cartography validation reuses the checksum-verified HCP 32k GIFTI
+surface from this download-only cache. No surface or atlas is embedded as a
+fixed plotting template, and no additional data license is introduced.
 
 ## Safety rules
 

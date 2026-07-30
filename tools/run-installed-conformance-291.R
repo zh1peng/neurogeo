@@ -108,6 +108,14 @@ if (utils::compareVersion(package_version, "4.2.2") >= 0L) {
     "real-data-validation-4.2.2.md"
   )
 }
+if (utils::compareVersion(package_version, "4.3.0") >= 0L) {
+  required_specs <- c(
+    required_specs,
+    "API-4.3.md",
+    "migration-4.3.md",
+    "cortical-cartography-4.3.md"
+  )
+}
 spec_paths <- system.file("spec", required_specs, package = "neurogeo")
 if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
     !nzchar(formats_path) || !file.exists(formats_path) ||
@@ -117,6 +125,10 @@ if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
 manifest <- neurogeo:::.ngeo_conformance_manifest()
 formats <- paste(readLines(formats_path, warn = FALSE), collapse = "\n")
 reviewed_status <- if (
+  utils::compareVersion(package_version, "4.3.0") >= 0L
+) {
+  "Status: reviewed for neurogeo 4.3.0"
+} else if (
   utils::compareVersion(package_version, "4.2.2") >= 0L
 ) {
   "Status: reviewed for neurogeo 4.2.2"
@@ -192,6 +204,43 @@ if (utils::compareVersion(package_version, "4.2.2") >= 0L) {
   }
 }
 
+cartography_consistent <- NA
+if (utils::compareVersion(package_version, "4.3.0") >= 0L) {
+  cartography_path <- system.file(
+    "spec", "cortical-cartography-4.3.md",
+    package = "neurogeo"
+  )
+  cartography_text <- paste(
+    readLines(cartography_path, warn = FALSE),
+    collapse = "\n"
+  )
+  cartography_consistent <- all(vapply(
+    c(
+      "atlas-independent",
+      "MUST NOT invent a cut",
+      "is_metric_flattening = FALSE",
+      "seam-crossing",
+      "source domain hash",
+      "does not perform surface reconstruction"
+    ),
+    grepl,
+    logical(1),
+    x = cartography_text,
+    fixed = TRUE
+  ))
+  cartography_exports <- c(
+    "ngeo_flatten_surface",
+    "ngeo_project_surface",
+    "ngeo_cortical_map",
+    "ngeo_cortical_map_data",
+    "ngeo_cortical_layout"
+  )
+  if (!cartography_consistent ||
+      any(!cartography_exports %in% getNamespaceExports("neurogeo"))) {
+    stop("Installed 4.3 cortical-cartography contract is incomplete.")
+  }
+}
+
 source_documents_equal <- NA
 if (file.exists(file.path("design", "supported-formats.md")) &&
     file.exists(file.path("inst", "spec", "supported-formats.md"))) {
@@ -253,6 +302,7 @@ result <- list(
       scientific_validation_consistent,
     real_data_validation_consistent =
       real_data_validation_consistent,
+    cartography_consistent = cartography_consistent,
     required_specs = required_specs,
     public_exports = length(exports),
     deprecated_exports = 0L

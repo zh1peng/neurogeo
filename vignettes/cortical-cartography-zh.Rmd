@@ -1,0 +1,186 @@
+---
+title: "皮层二维地图：从 vertex 数据到任意 atlas"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{皮层二维地图：从 vertex 数据到任意 atlas}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## 这个模块解决什么问题
+
+`neurogeo` 4.3 不使用预先画好的 atlas 模板。二维地图来自你正在分析的
+surface，因此同一套流程可以显示任意逐 vertex 连续值、离散值和严格对齐的
+atlas。二维坐标、原始 vertex、三角面、空间、畸变和 provenance 始终可以追溯。
+
+需要先区分两类操作：
+
+- **parameterization** 把已经有边界的盘状表面参数化到二维；
+- **view projection** 只是从某个方向看表面，不代表保距展开或 registration。
+
+闭合的皮层半球不可能在没有切口、重叠或畸变的情况下双射到一个平面。
+因此本包不会自动为闭合表面制造切口。
+
+## 构造一个可运行的盘状 surface
+
+下面的五个 vertex 和四个三角面组成一个带边界的盘。第五个 vertex 位于内部。
+atlas 可以在创建二维 chart 之前建立。
+
+```{r disk}
+coordinates <- matrix(
+  c(
+    0, 0, 0,
+    1, 0, 0,
+    1, 1, 0,
+    0, 1, 0,
+    0.5, 0.5, 0.2
+  ),
+  ncol = 3,
+  byrow = TRUE
+)
+faces <- matrix(
+  c(1, 2, 5, 2, 3, 5, 3, 4, 5, 4, 1, 5),
+  ncol = 3,
+  byrow = TRUE
+)
+surface <- ngeo_surface(
+  coordinates,
+  faces,
+  values = cbind(thickness = c(2.1, 2.4, 2.9, 2.5, 2.7)),
+  measures = ngeo_measure(
+    value_type = "continuous",
+    spatial_semantics = "intensive",
+    units = "mm"
+  )
+)
+atlas_labels <- c(
+  "frontal", "frontal", "parietal", "parietal", "central"
+)
+atlas <- ngeo_partition(surface, atlas_labels)
+```
+
+## 生成可审计的二维参数化
+
+`method = "harmonic"` 要求完整且有顺序的边界环。这里的边界是
+`1 -> 2 -> 3 -> 4 -> 1`。
+
+```{r flatten}
+flat <- ngeo_flatten_surface(
+  surface,
+  method = "harmonic",
+  boundary = c(1, 2, 3, 4),
+  name = "flat"
+)
+chart <- flat$domain$charts$flat
+chart$kind
+chart$invariants[c("euler_characteristic", "disk", "boundary_edges")]
+chart$distortion_summary
+head(ngeo_chart_distortion(flat, "flat"))
+```
+
+记录中包含 source vertex、source face、边界、算法、容差、fold 数量、逐面面积比
+和角度误差。原始三维坐标和 faces 没有被替换。
+
+如果你已有 FreeSurfer、GIFTI 或其他工具生成的 flat coordinates，可以导入而
+不重新计算：
+
+```{r imported}
+imported_xy <- flat$domain$coordinates$flat
+imported <- ngeo_flatten_surface(
+  surface,
+  method = "imported",
+  coordinates = imported_xy,
+  name = "external_flat"
+)
+```
+
+## 绘制任意 vertex 数据和 atlas
+
+`ngeo_cortical_map()` 不认识 atlas 名称，也不会按名称查找隐藏模板。它只使用
+当前 surface、所选 chart、严格对齐的 vertex 数据和 atlas membership。
+
+```{r continuous-map, fig.width=5, fig.height=5}
+thickness_map <- ngeo_cortical_map(
+  flat,
+  map = "thickness",
+  chart = "flat",
+  atlas = atlas,
+  palette = "viridis"
+)
+plot(thickness_map, show_boundaries = TRUE)
+```
+
+也可以把任意对齐 atlas 的 membership 本身作为离散 vertex 数据绘制，不需要
+为 atlas 制作另一套几何模板：
+
+```{r categorical-map, fig.width=5, fig.height=5}
+atlas_map <- ngeo_cortical_map(
+  flat,
+  values = atlas_labels,
+  chart = "flat",
+  atlas = atlas,
+  palette = "Set 3",
+  na_color = "grey90"
+)
+plot(atlas_map)
+```
+
+连续数据按每个三角面的有限 vertex 均值着色；离散数据按三角面的众数着色。
+这些 face 值只是绘图派生量，原始 vertex 值仍保留在交换数据中。
+
+## 左右半球或多幅地图
+
+每个 panel 保留自己的 domain，不会因为排版而合并空间语义。
+
+```{r layout, fig.width=8, fig.height=4}
+layout <- ngeo_cortical_layout(
+  thickness_map,
+  atlas_map,
+  ncol = 2,
+  labels = c("连续 vertex 数据", "任意 atlas membership")
+)
+plot(layout)
+```
+
+## 给 ggplot2 或其他绘图系统的数据
+
+核心包不强制依赖某个绘图库。交换对象提供 vertex、face、atlas boundary、
+legend 和完整 chart metadata：
+
+```{r exchange}
+plot_data <- ngeo_cortical_map_data(thickness_map)
+names(plot_data)
+head(plot_data$vertices)
+head(plot_data$faces)
+head(plot_data$boundaries)
+plot_data$metadata$provenance
+```
+
+下游绘图时必须保留 `source_vertex`、`source_face` 和 seam metadata，不能仅复制
+颜色后丢弃空间来源。
+
+## 闭合表面应该怎样处理
+
+对于闭合半球，应优先导入一个可信的 flat chart。若只是快速查看，可以明确创建
+非度量投影：
+
+```{r view}
+viewed <- ngeo_project_surface(surface, method = "pca", name = "pca_view")
+viewed$domain$charts$pca_view$kind
+viewed$domain$charts$pca_view$is_metric_flattening
+```
+
+球面查看要求显式 `seam`（弧度）。跨 seam 的面和 atlas 边界会被记录并在左右
+边界分别绘制，而不会形成横跨整幅地图的伪多边形。
+
+## 科学边界
+
+本模块不执行 surface reconstruction、自动 cutting、registration、resampling、
+统计推断或 QC。PCA、正交和球面图都是查看投影；畸变指标是诊断信息，不会把
+查看投影变成保距地图。对正式结果，应报告 chart 来源、方法、seam/边界、
+fold 数量和适用的畸变摘要。

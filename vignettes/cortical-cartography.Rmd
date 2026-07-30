@@ -1,0 +1,119 @@
+---
+title: "Cortical cartography for arbitrary vertex data and atlases"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Cortical cartography for arbitrary vertex data and atlases}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## One source surface, no fixed atlas drawing
+
+The 4.3 cartography module uses the geometry and topology of the actual
+`ngeo_surface`. Atlas names never select hidden template geometry. A chart,
+source vertices, source faces, distortion, space, and provenance remain
+inspectable.
+
+```{r disk}
+coordinates <- matrix(
+  c(
+    0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0,
+    0.5, 0.5, 0.2
+  ),
+  ncol = 3,
+  byrow = TRUE
+)
+faces <- matrix(
+  c(1, 2, 5, 2, 3, 5, 3, 4, 5, 4, 1, 5),
+  ncol = 3,
+  byrow = TRUE
+)
+surface <- ngeo_surface(
+  coordinates,
+  faces,
+  values = cbind(thickness = c(2.1, 2.4, 2.9, 2.5, 2.7)),
+  measures = ngeo_measure(
+    value_type = "continuous",
+    spatial_semantics = "intensive",
+    units = "mm"
+  )
+)
+atlas_labels <- c(
+  "frontal", "frontal", "parietal", "parietal", "central"
+)
+atlas <- ngeo_partition(surface, atlas_labels)
+```
+
+## Parameterize an explicit disk
+
+Harmonic parameterization requires one connected triangulated disk and its
+complete ordered boundary. It never cuts a closed surface.
+
+```{r flatten}
+flat <- ngeo_flatten_surface(
+  surface,
+  "harmonic",
+  boundary = c(1, 2, 3, 4)
+)
+flat$domain$charts$flat$distortion_summary
+head(ngeo_chart_distortion(flat, "flat"))
+```
+
+A caller-supplied flat coordinate matrix can instead be preserved with
+`method = "imported"`.
+
+## Map aligned vertex values and any aligned atlas
+
+```{r map, fig.width=5, fig.height=5}
+map <- ngeo_cortical_map(
+  flat,
+  map = "thickness",
+  atlas = atlas
+)
+plot(map)
+```
+
+An arbitrary aligned atlas can itself be rendered as categorical vertex
+data without substituting another geometry. Multiple maps or hemispheres
+remain independent when arranged:
+
+```{r layout, fig.width=8, fig.height=4}
+atlas_map <- ngeo_cortical_map(
+  flat,
+  values = atlas_labels,
+  atlas = atlas,
+  palette = "Set 3"
+)
+plot(ngeo_cortical_layout(map, atlas_map, ncol = 2))
+```
+
+## Exchange plotting data
+
+```{r exchange}
+data <- ngeo_cortical_map_data(map)
+names(data)
+head(data$vertices)
+head(data$faces)
+head(data$boundaries)
+```
+
+Downstream renderers should preserve source indices, chart metadata, and
+seam metadata.
+
+## Viewing projections are not flattening
+
+```{r view}
+viewed <- ngeo_project_surface(surface, "pca")
+viewed$domain$charts$view$kind
+viewed$domain$charts$view$is_metric_flattening
+```
+
+Orthographic, PCA, and spherical outputs are explicitly non-metric views.
+Spherical viewing requires a seam longitude and records seam-crossing faces.
+The module does not reconstruct surfaces, estimate registration, resample
+data, perform inference, or run quality control.

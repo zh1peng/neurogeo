@@ -187,6 +187,30 @@ documents <- rbind(
   )
 )
 
+documents <- rbind(
+  documents,
+  data.frame(
+    source = c(
+      "vignettes/cortical-cartography-zh.Rmd",
+      "vignettes/cortical-cartography.Rmd"
+    ),
+    target = c(
+      "website/modules/cortical-cartography.md",
+      "website/en/modules/cortical-cartography.md"
+    ),
+    title = c(
+      "皮层二维地图：从 vertex 数据到任意 atlas",
+      "Cortical cartography for arbitrary vertex data and atlases"
+    ),
+    counterpart = c(
+      "/en/modules/cortical-cartography",
+      "/modules/cortical-cartography"
+    ),
+    counterpart_label = c("English", "简体中文"),
+    stringsAsFactors = FALSE
+  )
+)
+
 vignettes <- sort(list.files(
   "vignettes",
   pattern = "\\.Rmd$",
