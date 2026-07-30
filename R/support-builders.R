@@ -857,6 +857,18 @@ ngeo_voxel_overlap_map <- function(
 #' @param source_support Optional positive source support.
 #'
 #' @return A sparse crisp `ngeo_support_map`.
+#' @examples
+#' source <- ngeo_points(
+#'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
+#'   values = cbind(signal = c(1, 2, 4, 5)),
+#'   measures = ngeo_measure(spatial_semantics = "intensive")
+#' )
+#' atlas <- ngeo_atlas_map(
+#'   source, c("A", "A", "B", "B"), source_support = rep(1, 4)
+#' )
+#' ngeo_support_diagnostics(atlas)
+#' regional <- ngeo_change_support(source, atlas$target, atlas)
+#' ngeo_values(regional)
 #' @export
 ngeo_atlas_map <- function(
     source,
@@ -947,6 +959,20 @@ ngeo_atlas_map <- function(
 #' @param source_support Optional positive source support.
 #'
 #' @return A sparse probabilistic or overlapping `ngeo_support_map`.
+#' @examples
+#' source <- ngeo_points(
+#'   matrix(c(0, 0, 1, 0, 2, 0), ncol = 2, byrow = TRUE)
+#' )
+#' probability <- matrix(
+#'   c(1, 0, 0.5, 0.5, 0, 1),
+#'   nrow = 3, byrow = TRUE,
+#'   dimnames = list(NULL, c("A", "B"))
+#' )
+#' atlas <- ngeo_probabilistic_atlas_map(
+#'   source, probability, source_support = rep(1, 3)
+#' )
+#' atlas
+#' ngeo_support_diagnostics(atlas)
 #' @export
 ngeo_probabilistic_atlas_map <- function(
     source,

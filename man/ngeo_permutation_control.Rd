@@ -29,3 +29,9 @@ multiple-testing policy across spatial statistics. When supplied to a
 statistic, its fields override that function's corresponding scalar
 arguments.
 }
+\examples{
+control <- ngeo_permutation_control(
+  permutations = 99, seed = 42, alternative = "two.sided"
+)
+control
+}

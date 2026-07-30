@@ -86,6 +86,22 @@
 #' @param zero_policy Whether to retain isolates.
 #'
 #' @return An `ngeo_spatial_lm` object.
+#' @examples
+#' coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
+#' predictor <- coordinates[, 1] + coordinates[, 2]
+#' data <- ngeo_points(
+#'   coordinates,
+#'   values = cbind(
+#'     response = 1 + 2 * predictor + rep(c(-0.1, 0, 0.1), 3),
+#'     predictor = predictor
+#'   )
+#' )
+#' weights <- ngeo_weights(
+#'   data, method = "knn", k = 4, symmetry = "union"
+#' )
+#' ngeo_spatial_lm(
+#'   data, "response", "predictor", weights, model = "slx"
+#' )
 #' @export
 ngeo_spatial_lm <- function(
     x,

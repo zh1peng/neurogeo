@@ -20,3 +20,8 @@ Returns metadata and installed paths for the small upstream reference
 files used by the format tutorials and conformance tests. Each file is
 pinned by source commit, byte size, license, and SHA-256.
 }
+\examples{
+fixtures <- ngeo_example_data()
+fixtures[, c("name", "format", "verified")]
+ngeo_example_data("rnifti-example")$path
+}

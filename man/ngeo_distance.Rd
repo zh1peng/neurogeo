@@ -20,8 +20,7 @@ ngeo_distance(
 
 \item{to}{Target positions or IDs. `NULL` means all elements.}
 
-\item{metric}{A controlled metric name; `NULL` selects the
-domain-specific default.}
+\item{metric}{A metric name; `NULL` selects the domain-specific default.}
 
 \item{max_distance}{Distances beyond this limit remain infinite.}
 

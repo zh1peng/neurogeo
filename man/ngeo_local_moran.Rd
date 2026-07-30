@@ -50,3 +50,11 @@ An `ngeo_lisa` data frame aligned to the analysed elements.
 \description{
 Local Moran statistics (LISA)
 }
+\examples{
+points <- ngeo_points(
+  matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
+  values = cbind(signal = c(1, 2, 4, 3))
+)
+weights <- ngeo_weights(points, method = "knn", k = 2)
+ngeo_local_moran(points, weights, "signal", permutations = 19, seed = 7)
+}

@@ -168,6 +168,11 @@
 #' @param adjust A method accepted by [stats::p.adjust()].
 #'
 #' @return An `ngeo_permutation_control` object.
+#' @examples
+#' control <- ngeo_permutation_control(
+#'   permutations = 99, seed = 42, alternative = "two.sided"
+#' )
+#' control
 #' @export
 ngeo_permutation_control <- function(
     permutations = 999L,
@@ -366,6 +371,17 @@ ngeo_permutation_control <- function(
 #'   inference arguments.
 #'
 #' @return An `ngeo_global_stat` result.
+#' @examples
+#' points <- ngeo_points(
+#'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
+#'   values = cbind(signal = c(1, 2, 4, 3))
+#' )
+#' weights <- ngeo_weights(points, method = "knn", k = 2)
+#' ngeo_moran(points, weights, "signal")
+#' ngeo_moran(
+#'   points, weights, "signal",
+#'   control = ngeo_permutation_control(19, seed = 42)
+#' )
 #' @export
 ngeo_moran <- function(x,
                        weights,
@@ -397,6 +413,13 @@ ngeo_moran <- function(x,
 #' @inheritParams ngeo_moran
 #'
 #' @return An `ngeo_global_stat` result.
+#' @examples
+#' points <- ngeo_points(
+#'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
+#'   values = cbind(signal = c(1, 2, 4, 3))
+#' )
+#' weights <- ngeo_weights(points, method = "knn", k = 2)
+#' ngeo_geary(points, weights, "signal")
 #' @export
 ngeo_geary <- function(x,
                        weights,
@@ -430,6 +453,13 @@ ngeo_geary <- function(x,
 #'   total randomization of the complete centered vector.
 #'
 #' @return An `ngeo_lisa` data frame aligned to the analysed elements.
+#' @examples
+#' points <- ngeo_points(
+#'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
+#'   values = cbind(signal = c(1, 2, 4, 3))
+#' )
+#' weights <- ngeo_weights(points, method = "knn", k = 2)
+#' ngeo_local_moran(points, weights, "signal", permutations = 19, seed = 7)
 #' @export
 ngeo_local_moran <- function(x,
                              weights,
@@ -571,6 +601,12 @@ ngeo_local_moran <- function(x,
 #' @param na_action Whether to fail or omit non-finite values.
 #'
 #' @return An `ngeo_variogram` data frame.
+#' @examples
+#' points <- ngeo_points(
+#'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0, 4, 0), ncol = 2, byrow = TRUE),
+#'   values = cbind(signal = c(1, 2, 2.5, 4, 5))
+#' )
+#' ngeo_variogram(points, "signal", breaks = c(0, 1.5, 3, 5))
 #' @export
 ngeo_variogram <- function(x,
                            map = 1L,

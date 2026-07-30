@@ -47,3 +47,13 @@ An `ngeo_regions` object.
 \description{
 Construct a regions dataset
 }
+\examples{
+regions <- ngeo_regions(
+  data.frame(region_id = c("A", "B"), name = c("anterior", "posterior")),
+  values = cbind(mean_signal = c(1.4, 2.1)),
+  centroid = matrix(c(0, 0, 1, 0), ncol = 2, byrow = TRUE),
+  support_size = c(10, 15)
+)
+ngeo_elements(regions)
+ngeo_support_size(regions)
+}

@@ -37,3 +37,20 @@ This foundational adapter fits OLS or SLX (spatial lags of predictors).
 It does not estimate SAR lag/error parameters. Residual Moran's I is
 reported when weights are supplied.
 }
+\examples{
+coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
+predictor <- coordinates[, 1] + coordinates[, 2]
+data <- ngeo_points(
+  coordinates,
+  values = cbind(
+    response = 1 + 2 * predictor + rep(c(-0.1, 0, 0.1), 3),
+    predictor = predictor
+  )
+)
+weights <- ngeo_weights(
+  data, method = "knn", k = 4, symmetry = "union"
+)
+ngeo_spatial_lm(
+  data, "response", "predictor", weights, model = "slx"
+)
+}

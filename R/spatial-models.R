@@ -22,6 +22,15 @@
 #' @param start Optional named nugget, partial-sill, and range start.
 #'
 #' @return An `ngeo_variogram_fit`.
+#' @examples
+#' coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
+#' signal <- sin(coordinates[, 1] / 2) + cos(coordinates[, 2] / 2)
+#' points <- ngeo_points(coordinates, values = cbind(signal = signal))
+#' fit <- ngeo_fit_variogram(
+#'   points, "signal", breaks = c(0, 1.1, 2.1, 3.1, 4.5, 6),
+#'   model = "spherical"
+#' )
+#' fit
 #' @export
 ngeo_fit_variogram <- function(
     x,
@@ -153,6 +162,21 @@ print.ngeo_variogram_fit <- function(x, ...) {
 #'   Euclidean-eligible.
 #'
 #' @return An `ngeo_kriging` data frame.
+#' @examples
+#' coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
+#' signal <- sin(coordinates[, 1] / 2) + cos(coordinates[, 2] / 2)
+#' points <- ngeo_points(coordinates, values = cbind(signal = signal))
+#' fit <- ngeo_fit_variogram(
+#'   points, "signal", breaks = c(0, 1.1, 2.1, 3.1, 4.5, 6)
+#' )
+#' ngeo_kriging(
+#'   points, "signal", fit,
+#'   targets = matrix(
+#'     c(1.5, 1.5, 0, 2.5, 2.5, 0),
+#'     ncol = 3, byrow = TRUE
+#'   ),
+#'   neighbors = 12
+#' )
 #' @export
 ngeo_kriging <- function(
     x,
@@ -433,6 +457,20 @@ ngeo_gwr_bandwidth <- function(
 #' @param bandwidth Positive bandwidth or `ngeo_gwr_bandwidth`.
 #'
 #' @return An `ngeo_gwr` data frame.
+#' @examples
+#' coordinates <- as.matrix(expand.grid(x = 0:3, y = 0:3))
+#' predictor <- coordinates[, 1] - coordinates[, 2]
+#' points <- ngeo_points(
+#'   coordinates,
+#'   values = cbind(
+#'     response = 1 + 2 * predictor + 0.05 * coordinates[, 1],
+#'     predictor = predictor
+#'   )
+#' )
+#' head(ngeo_gwr(
+#'   points, "response", "predictor",
+#'   bandwidth = 2.5, singular = "error"
+#' ))
 #' @export
 ngeo_gwr <- function(
     x,
@@ -575,6 +613,22 @@ print.ngeo_gwr <- function(x, ...) {
 #' @param model OLS, SLX, spatial lag (SAR), or spatial error (SEM).
 #'
 #' @return An `ngeo_spatial_regression`.
+#' @examples
+#' coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
+#' predictor <- coordinates[, 1] + coordinates[, 2]
+#' data <- ngeo_points(
+#'   coordinates,
+#'   values = cbind(
+#'     response = 1 + 1.5 * predictor + rep(c(-0.2, 0, 0.2), 3),
+#'     predictor = predictor
+#'   )
+#' )
+#' weights <- ngeo_weights(
+#'   data, method = "knn", k = 4, symmetry = "union"
+#' )
+#' ngeo_spatial_regression(
+#'   data, "response", "predictor", weights, model = "sar"
+#' )
 #' @export
 ngeo_spatial_regression <- function(
     x,

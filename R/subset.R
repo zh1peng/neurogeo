@@ -243,6 +243,14 @@
 #' @param maps Map positions, map IDs/names, or a logical mask.
 #'
 #' @return An object of the same `ngeo` subclass.
+#' @examples
+#' points <- ngeo_points(
+#'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
+#'   values = cbind(first = 1:4, second = 5:8)
+#' )
+#' subset <- ngeo_subset(points, elements = c(1, 3), maps = "second")
+#' ngeo_elements(subset)
+#' ngeo_values(subset)
 #' @export
 ngeo_subset <- function(x, elements = NULL, maps = NULL) {
   ngeo_validate(x, "basic")
@@ -289,4 +297,3 @@ ngeo_subset <- function(x, elements = NULL, maps = NULL) {
   ngeo_validate(result, "basic")
   result
 }
-

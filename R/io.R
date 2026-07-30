@@ -150,6 +150,24 @@
 #' @param ... Format-specific arguments.
 #'
 #' @return An `ngeo` object.
+#' @examples
+#' if (requireNamespace("RNifti", quietly = TRUE)) {
+#'   path <- system.file(
+#'     "extdata", "golden", "tiny.nii.gz",
+#'     package = "neurogeo"
+#'   )
+#'   volume <- read_ngeo(path)
+#'   ngeo_validate(volume, "strict")
+#' }
+#'
+#' if (requireNamespace("gifti", quietly = TRUE)) {
+#'   geometry <- system.file(
+#'     "extdata", "golden", "tetra.surf.gii",
+#'     package = "neurogeo"
+#'   )
+#'   surface <- read_ngeo(geometry)
+#'   ngeo_domain_type(surface)
+#' }
 #' @export
 read_ngeo <- function(x = NULL,
                       geometry = NULL,

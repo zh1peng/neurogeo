@@ -27,3 +27,18 @@ An `ngeo_partition` object.
 \description{
 Construct a crisp partition
 }
+\examples{
+surface <- ngeo_surface(
+  matrix(
+    c(0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0),
+    ncol = 3, byrow = TRUE
+  ),
+  matrix(c(1, 2, 3, 1, 3, 4), ncol = 3, byrow = TRUE),
+  values = cbind(signal = c(1, 2, 4, 3)),
+  measures = ngeo_measure(spatial_semantics = "intensive")
+)
+partition <- ngeo_partition(surface, c("A", "A", "B", "B"))
+ngeo_boundary(surface, partition)
+ngeo_region_adjacency(surface, partition)
+ngeo_aggregate(surface, partition)
+}

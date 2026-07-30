@@ -29,6 +29,7 @@ $scripts = @(
     "tools/run-reproducibility-35-validation.R",
     "tools/run-format-reference-41-validation.R",
     "tools/run-scientific-validation-42.R",
+    "tools/run-coverage-421.R",
     "tools/run-release-performance.R"
 )
 

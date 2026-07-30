@@ -41,3 +41,12 @@ An `ngeo_points` object.
 \description{
 Construct a points dataset
 }
+\examples{
+points <- ngeo_points(
+  matrix(c(0, 0, 1, 0, 1, 1, 0, 1), ncol = 2, byrow = TRUE),
+  values = cbind(signal = c(1, 2, 4, 3))
+)
+ngeo_domain_hash(points)
+ngeo_distance(points, from = 1, to = 3, metric = "euclidean")
+ngeo_weights(points, method = "knn", k = 2)
+}

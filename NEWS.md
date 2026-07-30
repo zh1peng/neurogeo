@@ -1,3 +1,19 @@
+# neurogeo 4.2.1
+
+* Added package, documentation-site, issue-tracker, and installed citation
+  metadata for standard discovery and attribution.
+* Classified the public API into stable core, advanced scientific, and
+  exchange/governance tiers without changing any exported function.
+* Added executable examples and clearer scientific boundaries to the main
+  construction, spatial relationship, support, statistics, modelling, I/O,
+  validation, and provenance entry points.
+* Added reproducible line-coverage reporting and a non-regression CI gate.
+  Scientific estimators, defaults, object schemas, and NGCS 3.5 semantics are
+  unchanged.
+* Corrected transform manifest generation to hash the canonical
+  `source_space` and `target_space` fields; valid transforms can now produce
+  portable audit manifests.
+
 # neurogeo 4.2.0
 
 * Added an auditable scientific-validation gate for global and local spatial

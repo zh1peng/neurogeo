@@ -40,3 +40,16 @@ Intensive maps use support-normalized weighted means. Extensive and count
 maps use conservative allocation; overlapping columns require explicit
 normalization. Categorical maps use support-weighted modes.
 }
+\examples{
+source <- ngeo_points(
+  matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
+  values = cbind(amount = c(1, 2, 3, 4)),
+  measures = ngeo_measure(spatial_semantics = "extensive")
+)
+atlas <- ngeo_atlas_map(
+  source, c("A", "A", "B", "B"), source_support = rep(1, 4)
+)
+result <- ngeo_change_support(source, atlas$target, atlas)
+ngeo_values(result)
+sum(ngeo_values(result))
+}

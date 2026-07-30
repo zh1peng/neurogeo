@@ -478,6 +478,18 @@ ngeo_support_map_hash <- function(x) {
 #' @param budget Resource limits for materialized source and target values.
 #'
 #' @return A new `ngeo` dataset on the target domain.
+#' @examples
+#' source <- ngeo_points(
+#'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
+#'   values = cbind(amount = c(1, 2, 3, 4)),
+#'   measures = ngeo_measure(spatial_semantics = "extensive")
+#' )
+#' atlas <- ngeo_atlas_map(
+#'   source, c("A", "A", "B", "B"), source_support = rep(1, 4)
+#' )
+#' result <- ngeo_change_support(source, atlas$target, atlas)
+#' ngeo_values(result)
+#' sum(ngeo_values(result))
 #' @export
 ngeo_change_support <- function(
     x,

@@ -26,7 +26,7 @@ To install a local release archive:
 
 ```r
 install.packages(
-  "neurogeo_4.2.0.tar.gz",
+  "neurogeo_4.2.1.tar.gz",
   repos = NULL,
   type = "source"
 )
@@ -143,3 +143,8 @@ complete the visual walkthrough from a spatial object to
 The [tutorial index](https://zh1peng.github.io/neurogeo/tutorials/) and
 [API reference](https://zh1peng.github.io/neurogeo/api/reference/) are built
 from the same R package sources.
+
+The supported entry points are grouped in the
+[4.2.1 API tiers](design/API-tiers-4.2.1.md), with compatibility notes in the
+[4.2.1 migration record](design/migration-4.2.1.md). Use
+`citation("neurogeo")` for the installed citation.

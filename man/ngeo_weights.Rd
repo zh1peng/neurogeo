@@ -43,3 +43,14 @@ An `ngeo_weights` object.
 \description{
 Construct sparse spatial weights
 }
+\examples{
+points <- ngeo_points(
+  matrix(c(0, 0, 1, 0, 1, 1, 0, 1), ncol = 2, byrow = TRUE)
+)
+weights <- ngeo_weights(
+  points, method = "knn", k = 2, style = "W", symmetry = "union"
+)
+weights
+ngeo_components(weights$matrix)
+Matrix::rowSums(weights$matrix)
+}

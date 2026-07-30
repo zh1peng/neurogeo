@@ -11,6 +11,14 @@
 #' @param index_base Source index base.
 #'
 #' @return An `ngeo_points` object.
+#' @examples
+#' points <- ngeo_points(
+#'   matrix(c(0, 0, 1, 0, 1, 1, 0, 1), ncol = 2, byrow = TRUE),
+#'   values = cbind(signal = c(1, 2, 4, 3))
+#' )
+#' ngeo_domain_hash(points)
+#' ngeo_distance(points, from = 1, to = 3, metric = "euclidean")
+#' ngeo_weights(points, method = "knn", k = 2)
 #' @export
 ngeo_points <- function(coordinates,
                         values = NULL,
@@ -248,6 +256,21 @@ ngeo_points <- function(coordinates,
 #' @param space A hybrid `ngeo_space`.
 #'
 #' @return An `ngeo_grayordinates` object.
+#' @examples
+#' gray <- ngeo_grayordinates(
+#'   components = list(
+#'     list(
+#'       component_id = "left",
+#'       kind = "surface",
+#'       structure = "CORTEX_LEFT",
+#'       vertex_index = c(0L, 2L),
+#'       surface_vertex_count = 4L,
+#'       source_index_base = 0L
+#'     )
+#'   ),
+#'   values = cbind(statistic = c(1.2, 0.7))
+#' )
+#' ngeo_elements(gray)
 #' @export
 ngeo_grayordinates <- function(components,
                                values = NULL,
@@ -343,6 +366,15 @@ ngeo_grayordinates <- function(components,
 #' @param space An `ngeo_space`.
 #'
 #' @return An `ngeo_regions` object.
+#' @examples
+#' regions <- ngeo_regions(
+#'   data.frame(region_id = c("A", "B"), name = c("anterior", "posterior")),
+#'   values = cbind(mean_signal = c(1.4, 2.1)),
+#'   centroid = matrix(c(0, 0, 1, 0), ncol = 2, byrow = TRUE),
+#'   support_size = c(10, 15)
+#' )
+#' ngeo_elements(regions)
+#' ngeo_support_size(regions)
 #' @export
 ngeo_regions <- function(regions,
                          values = NULL,
@@ -451,4 +483,3 @@ ngeo_regions <- function(regions,
     class = "ngeo_regions"
   )
 }
-

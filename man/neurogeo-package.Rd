@@ -8,8 +8,17 @@
 \description{
 The R reference implementation of NGCS.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/zh1peng/neurogeo}
+  \item \url{https://zh1peng.github.io/neurogeo/}
+  \item Report bugs at \url{https://github.com/zh1peng/neurogeo/issues}
+}
+
+}
 \author{
-\strong{Maintainer}: neurogeo contributors \email{maintainers@neurogeo.invalid}
+\strong{Maintainer}: zh1peng \email{zhipeng30@foxmail.com}
 
 }
 \keyword{internal}

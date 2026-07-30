@@ -311,6 +311,16 @@
 #'   checks, or scientific semantic diagnostics.
 #'
 #' @return `x`, invisibly.
+#' @examples
+#' points <- ngeo_points(
+#'   matrix(c(0, 0, 1, 0, 1, 1), ncol = 2, byrow = TRUE),
+#'   values = cbind(signal = c(1, 2, 3))
+#' )
+#' ngeo_validate(points, "basic")
+#' ngeo_validate(points, "strict")
+#' \dontshow{
+#' suppressWarnings(ngeo_validate(points, "scientific"))
+#' }
 #' @export
 ngeo_validate <- function(x, level = c("basic", "strict", "scientific")) {
   level <- match.arg(level)

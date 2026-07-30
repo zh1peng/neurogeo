@@ -39,3 +39,19 @@ An `ngeo_kriging` data frame.
 \description{
 Bounded local ordinary or universal kriging
 }
+\examples{
+coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
+signal <- sin(coordinates[, 1] / 2) + cos(coordinates[, 2] / 2)
+points <- ngeo_points(coordinates, values = cbind(signal = signal))
+fit <- ngeo_fit_variogram(
+  points, "signal", breaks = c(0, 1.1, 2.1, 3.1, 4.5, 6)
+)
+ngeo_kriging(
+  points, "signal", fit,
+  targets = matrix(
+    c(1.5, 1.5, 0, 2.5, 2.5, 0),
+    ncol = 3, byrow = TRUE
+  ),
+  neighbors = 12
+)
+}
