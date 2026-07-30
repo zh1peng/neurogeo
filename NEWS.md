@@ -1,3 +1,20 @@
+# neurogeo 4.2.0
+
+* Added an auditable scientific-validation gate for global and local spatial
+  association, SLX/SAR/SEM, variogram/ordinary kriging, and Gaussian GWR.
+  Common estimands are compared against `spdep`, `spatialreg`, `gstat`, and
+  `GWmodel` with explicit cross-platform tolerances.
+* Added seeded known-parameter simulations for Moran type-I error, SAR/SEM
+  parameter bias and RMSE, kriging prediction calibration, and GWR coefficient
+  bias. Edge cases cover weight normalization, isolates, missing values,
+  disconnected graphs, and reproducible permutations.
+* Corrected `na_action = "omit"` spatial statistics to rebuild the declared
+  W/B normalization on the retained raw-weight subgraph. Row-standardized
+  analyses with missing elements can therefore differ from 4.1 results.
+* Documented validated claims, parameterization translations, resource
+  boundaries, and claims that the evidence does not support. No public
+  function, class, model inventory, or NGCS 3.5 schema is added.
+
 # neurogeo 4.1.1
 
 * Removed the final direct `dgCMatrix` coercion from spatial-model weight

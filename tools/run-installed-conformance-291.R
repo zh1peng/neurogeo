@@ -84,6 +84,14 @@ if (utils::compareVersion(package_version, "4.1.1") >= 0L) {
     required_specs, "API-4.1.1.md", "migration-4.1.1.md"
   )
 }
+if (utils::compareVersion(package_version, "4.2.0") >= 0L) {
+  required_specs <- c(
+    required_specs,
+    "API-4.2.md",
+    "migration-4.2.md",
+    "scientific-validation-4.2.md"
+  )
+}
 spec_paths <- system.file("spec", required_specs, package = "neurogeo")
 if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
     !nzchar(formats_path) || !file.exists(formats_path) ||
@@ -93,7 +101,7 @@ if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
 manifest <- neurogeo:::.ngeo_conformance_manifest()
 formats <- paste(readLines(formats_path, warn = FALSE), collapse = "\n")
 required_format_text <- c(
-  "Status: reviewed for neurogeo 4.1.1",
+  "Status: reviewed for neurogeo 4.2.0",
   "pure-R CIFTI-2 writer",
   "NGCS support map schema 2",
   "BIDS derivative data + JSON"
@@ -107,6 +115,31 @@ format_consistent <- all(vapply(
 )) && !grepl("rejects CIFTI writing", formats, fixed = TRUE)
 if (!format_consistent) {
   stop("Installed supported-format inventory is inconsistent.")
+}
+
+scientific_validation_consistent <- NA
+if (utils::compareVersion(package_version, "4.2.0") >= 0L) {
+  scientific_path <- system.file(
+    "spec", "scientific-validation-4.2.md",
+    package = "neurogeo"
+  )
+  scientific_text <- paste(
+    readLines(scientific_path, warn = FALSE),
+    collapse = "\n"
+  )
+  scientific_validation_consistent <- all(vapply(
+    c(
+      "spdep", "spatialreg", "gstat", "GWmodel",
+      "type-I error", "The evidence does not establish"
+    ),
+    grepl,
+    logical(1),
+    x = scientific_text,
+    fixed = TRUE
+  ))
+  if (!scientific_validation_consistent) {
+    stop("Installed 4.2 scientific-validation contract is incomplete.")
+  }
 }
 
 source_documents_equal <- NA
@@ -166,6 +199,8 @@ result <- list(
     specification_count = length(manifest$specifications),
     fixture_count = length(manifest$fixtures),
     format_inventory_consistent = format_consistent,
+    scientific_validation_consistent =
+      scientific_validation_consistent,
     required_specs = required_specs,
     public_exports = length(exports),
     deprecated_exports = 0L

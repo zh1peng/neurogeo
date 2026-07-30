@@ -1,6 +1,6 @@
 # Risk register
 
-Status: reviewed for neurogeo 4.1.1
+Status: reviewed for neurogeo 4.2.0
 
 | Risk | Current status | Mitigation |
 |---|---|---|
@@ -13,7 +13,9 @@ Status: reviewed for neurogeo 4.1.1
 | CIFTI surface mismatch | controlled | structure, vertex-count, and mapping validation |
 | Backend API change | monitored | isolated adapters and cross-platform CI matrix |
 | Scope expands into a general toolbox | controlled | frozen non-goals and API review |
-| Reference result disagreement | controlled | spdep comparison, golden I/O, conformance fixtures |
+| Reference result disagreement | controlled | 4.2 comparisons with spdep, spatialreg, gstat, and GWmodel plus seeded calibration |
+| Reference package updates change fitted results | monitored | record exact reference versions and retain explicit numeric tolerances in every 4.2 report |
+| Calibration gates are mistaken for universal validity | controlled | publish matched estimands, simulation design, and explicit non-claims with the installed specification |
 | Low adoption | open | native constructors, common readers, vignettes, converters |
 | Cross-platform behavior diverges | controlled | Windows, macOS, Ubuntu release, oldrel, and devel checks are release gates |
 | Overlapping support duplicates extensive mass | controlled | reject non-unit allocation unless explicit column normalization is selected |

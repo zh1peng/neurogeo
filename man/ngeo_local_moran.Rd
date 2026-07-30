@@ -31,7 +31,8 @@ ngeo_local_moran(
 
 \item{seed}{Optional reproducible random seed.}
 
-\item{na_action}{Whether to fail or omit non-finite values.}
+\item{na_action}{Whether to fail or omit non-finite values. Omission
+rebuilds the declared normalization on the retained raw-weight subgraph.}
 
 \item{zero_policy}{Whether to retain observations with no neighbours.}
 

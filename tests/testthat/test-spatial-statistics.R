@@ -220,7 +220,9 @@ test_that("exact-order correlogram matches spdep graph lags", {
   skip_if_not_installed("spdep")
   fixture <- statistics_grid()
   values <- as.numeric(fixture$x$values[, 1L])
-  lag_nb <- spdep::nblag(as_spdep_nb(fixture$weights), maxlag = 3)
+  lag_nb <- suppressWarnings(
+    spdep::nblag(as_spdep_nb(fixture$weights), maxlag = 3)
+  )
   reference <- vapply(lag_nb, function(nb) {
     listw <- spdep::nb2listw(nb, style = "W", zero.policy = TRUE)
     spdep::moran(

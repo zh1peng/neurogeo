@@ -26,7 +26,7 @@ To install a local release archive:
 
 ```r
 install.packages(
-  "neurogeo_4.1.1.tar.gz",
+  "neurogeo_4.2.0.tar.gz",
   repos = NULL,
   type = "source"
 )
@@ -127,6 +127,14 @@ result <- ngeo_moran(
   seed = 2026
 )
 ```
+
+## Scientific validation
+
+Version 4.2 independently compares matched spatial statistics and model
+quantities with `spdep`, `spatialreg`, `gstat`, and `GWmodel`, then applies
+seeded calibration gates. The exact estimands, tolerances, simulations, and
+non-claims are recorded in
+[the 4.2 scientific-validation contract](design/scientific-validation-4.2.md).
 
 Start with the
 [Chinese learning path](https://zh1peng.github.io/neurogeo/guide/), then

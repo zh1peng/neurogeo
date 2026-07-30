@@ -52,11 +52,14 @@
       "ngeo_error_statistic"
     )
   }
-  matrix <- .ngeo_as_dgCMatrix(
-    weights$matrix[index, index, drop = FALSE]
-  )
   raw_matrix <- .ngeo_as_dgCMatrix(
     weights$raw_matrix[index, index, drop = FALSE]
+  )
+  matrix <- switch(
+    weights$normalization,
+    W = .ngeo_row_standardize(raw_matrix),
+    B = .ngeo_binary(raw_matrix),
+    none = raw_matrix
   )
   if (length(matrix@x) && any(!is.finite(matrix@x))) {
     .ngeo_abort(
@@ -355,7 +358,8 @@ ngeo_permutation_control <- function(
 #' @param permutations Number of Monte Carlo permutations.
 #' @param alternative Permutation-test alternative.
 #' @param seed Optional reproducible random seed.
-#' @param na_action Whether to fail or omit non-finite values.
+#' @param na_action Whether to fail or omit non-finite values. Omission
+#'   rebuilds the declared normalization on the retained raw-weight subgraph.
 #' @param zero_policy Whether to retain observations with no neighbours.
 #' @param adjust A method accepted by [stats::p.adjust()].
 #' @param control Optional [ngeo_permutation_control()] overriding permutation

@@ -1,6 +1,6 @@
 Package: neurogeo
 Title: Neuroimaging Geoinformatics Core Objects
-Version: 4.1.1
+Version: 4.2.0
 Authors@R:
     person("zh1peng",
            email = "zhipeng30@foxmail.com",
@@ -26,7 +26,9 @@ Suggests:
     cifti,
     dbscan,
     freesurferformats,
+    gstat,
     gifti,
+    GWmodel,
     igraph,
     jsonlite,
     knitr,
@@ -34,6 +36,7 @@ Suggests:
     rmarkdown,
     sf,
     spdep,
+    spatialreg,
     testthat (>= 3.0.0),
     xml2
 VignetteBuilder: knitr
