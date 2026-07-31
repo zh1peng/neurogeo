@@ -1,0 +1,99 @@
+---
+title: "多图层空间耦合"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{多图层空间耦合}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## 问题与边界
+
+4.6 比较同一受试者的两种脑图层，但不把 vertex 当成独立受试者，也不做
+vertex-wise GLM。输出仍是一个受试者 × endpoint 的小矩阵，供 4.7 的组间推断使用。
+
+```{r construct}
+library(neurogeo)
+
+n <- 8L
+subject <- rep(c("sub-01", "sub-02"), each = 2L)
+layer <- rep(c("thickness", "myelin"), 2L)
+base <- sin((1:n) / 2)
+x <- ngeo_points(
+  cbind(x = 1:n, y = 0),
+  values = cbind(base, 0.7 * base + cos(1:n),
+                 1.2 * base, -0.4 * base + cos((1:n) / 2)),
+  maps = data.frame(
+    map_id = paste0("map-", 1:4),
+    name = paste(subject, layer, sep = "_"),
+    subject_id = subject,
+    feature = layer
+  ),
+  measures = rbind(
+    ngeo_measure(spatial_semantics = "intensive", units = "a.u."),
+    ngeo_measure(spatial_semantics = "intensive", units = "a.u."),
+    ngeo_measure(spatial_semantics = "intensive", units = "a.u."),
+    ngeo_measure(spatial_semantics = "intensive", units = "a.u.")
+  )
+)
+index <- ngeo_validate_layers(x, complete = "error")
+weights <- ngeo_weights(
+  x, method = "distance_band", threshold = 1.01, style = "B"
+)
+basis <- ngeo_spatial_basis(
+  x, weights, support = "identity", n_modes = 7L
+)
+```
+
+## 同位置与频谱耦合
+
+```{r coupling}
+features <- ngeo_layer_coupling(
+  x,
+  index,
+  pairs = data.frame(x = "thickness", y = "myelin"),
+  basis = basis,
+  bands = list(low = 1:3, high = 4:7),
+  estimands = c("same_location", "spectral_coupling")
+)
+features
+features$endpoints[, c(
+  "estimand", "layer_x", "layer_y", "component", "band", "units"
+)]
+features$values
+```
+
+`spectral_coupling` 不能脱离 `band_energy_x`、`band_energy_y` 与
+`spectral_cross_energy` 单独解释。如果某层在某频带的能量低于预声明阈值，标准化
+coupling 为 `NA`，但能量和 cross-energy 仍保留。
+
+## 方向不是可忽略的标签
+
+```{r directional}
+directional <- ngeo_layer_coupling(
+  x,
+  index,
+  weights = ngeo_weights(
+    x, method = "distance_band", threshold = 1.01, style = "W"
+  ),
+  estimands = c("directional_lag", "classic_cross_moran"),
+  lag_direction = "both"
+)
+directional$endpoints[, c(
+  "estimand", "direction", "standardization", "weights_normalization"
+)]
+```
+
+`directional_lag` 是 support 加权的 lag correlation；
+`classic_cross_moran` 是与经典实现对齐的兼容统计量。二者公式不同，
+`x_to_y` 与 `y_to_x` 也不会被平均。
+
+## 推断单位与 non-claim
+
+这里的每一行仍是完整受试者。4.6 只生成 endpoint，不产生组间人口推断。
+单一 reference map 可使用显式 spatial-null transformation group，但结果会强制记录
+`population_inference = FALSE`。组间协变量调整与完整受试者置换由 4.7 完成。

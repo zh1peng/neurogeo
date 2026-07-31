@@ -22,6 +22,7 @@ articles:
   - quality-control-zh
   - multilayer-data-zh
   - spatial-basis-zh
+  - layer-coupling-zh
   - cortical-cartography-zh
   - interoperability-zh
   - scalable-io-zh
@@ -217,6 +218,7 @@ reference:
   - ngeo_validate_layers
   - ngeo_spatial_basis
   - ngeo_basis_project
+  - ngeo_layer_coupling
 - title: Input
   contents:
   - ngeo_example_data

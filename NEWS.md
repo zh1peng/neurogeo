@@ -1,3 +1,20 @@
+# neurogeo 4.6.0
+
+* Added one `ngeo_layer_coupling()` facade for support-weighted same-location,
+  fixed-basis spectral, directional lag, and classic bivariate Moran
+  endpoints without introducing a cohort or coupling container.
+* Spectral results jointly retain both layer energies, raw cross-energy,
+  normalized coupling, retained variance, low-energy diagnostics, component,
+  band, and fixed-basis identities.
+* Kept directional lag correlation separate from classic bivariate Moran and
+  validated both directions plus row-standardized and binary weights against
+  explicit formulas and `spdep::moran_bv()`.
+* Added an explicit reference-map spatial-null path that reuses declared
+  `ngeo_null` transformations, rejects invalid jointly transformed pairs, and
+  records `population_inference = FALSE` plus a transformation-group hash.
+* Cotangent Laplace--Beltrami and a general neighborhood-feature facade did
+  not pass a stable promotion gate and remain unexported.
+
 # neurogeo 4.5.0
 
 * Added exact `unit x layer` map indexing with duplicate, completeness, and

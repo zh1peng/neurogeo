@@ -1,6 +1,6 @@
 # Multilayer inference decisions
 
-Status: frozen for the 4.5 implementation stage
+Status: frozen through the 4.6 implementation stage
 
 ## Domain and indexing
 

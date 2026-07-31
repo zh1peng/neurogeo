@@ -114,3 +114,9 @@ Status: reviewed for neurogeo 4.4.2
 | A dense full-domain eigensystem is constructed | controlled | partial component-local eigensolvers, output/workspace budget estimates, and 32k/91k validation |
 | Eigenvector signs are interpreted as scientific changes | controlled | canonical signs aid reproducibility; scientific band energy is sign-invariant |
 | A band splits a near-degenerate eigenspace | controlled | band validation rejects partial inclusion of an eigenvalue cluster |
+| Spectral coupling is interpreted without usable band energy | controlled | both layer energies, cross-energy, retained variance, coupling, and low-energy flags are returned together |
+| Directional layer statistics are averaged silently | controlled | `x_to_y` and `y_to_x` are distinct endpoint identities |
+| Area-weighted lag correlation is mislabeled classic Moran | controlled | separate estimand names, formulas, standardizations, and reference tests |
+| A jointly transformed layer pair creates an uninformative map null | controlled | each tested pair must cross explicit randomized and fixed stacks |
+| A reference-map p-value is reported as population inference | controlled | null results force `inference_unit = spatial_map` and `population_inference = FALSE` |
+| Optional cotangent or neighborhood features expand the stable surface prematurely | controlled | both promotion gates remain closed and unexported in 4.6 |

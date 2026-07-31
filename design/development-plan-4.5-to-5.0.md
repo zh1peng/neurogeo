@@ -1,6 +1,6 @@
 # neurogeo 4.5 to 5.0 execution plan
 
-Status: 4.5 complete; 4.6 in progress
+Status: 4.5-4.6 complete; 4.7 in progress
 
 Authoritative detailed plan: `../neurogeo_4.5-5.0_development_plan_zh.md`.
 Scientific-method issue: <https://github.com/zh1peng/neurogeo/issues/6>.
@@ -50,6 +50,23 @@ criteria, promotion rules, resource gates, and the final Definition of Done.
   pre-existing tutorial examples that depend on absent files or obsolete
   calls; this remains a documented 5.0 distribution blocker rather than a
   4.5 scientific claim.
+
+### 4.6.0
+
+- One API returns same-location, band structure, spectral coupling,
+  directional lag, and classic cross-Moran endpoints in the existing compact
+  `ngeo_subject_features` representation.
+- Support replication, area imbalance, missing unit-layers, constant maps,
+  intensive measurement semantics, energy-only changes, coupling-only
+  changes, eigenvector signs, and complete-degenerate-band rotations pass.
+- Classic bivariate Moran matches `spdep::moran_bv()` exactly in the reference
+  case; direction and weight normalization remain endpoint identity.
+- Reference-map nulls require explicit randomized/fixed stacks and a shared
+  transformation group, reject invalid joint targets, and record a group hash
+  plus `population_inference = FALSE`.
+- The 32,400- and 91,200-element by six delayed-map gates pass with 64 modes,
+  two-map projection chunks, finite endpoints, and no dense full-domain
+  matrix. Cotangent and general neighborhood features remain unexported.
 
 ## Workflow policy
 
