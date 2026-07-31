@@ -1,0 +1,28 @@
+{
+  "schema": "neurogeo/simulation-corpus-5.0",
+  "version": "1.0.0",
+  "frozen_at_package_version": "5.0.0",
+  "basis_rule": "fixed topology-derived graph Laplacian",
+  "independent_unit": "subject",
+  "scenarios": [
+    {"id": "pure-null", "seed": 4701, "expected": "family-wise error below the predeclared binomial upper gate"},
+    {"id": "nuisance-null", "seed": 4702, "expected": "Freedman-Lane controls family-wise error with correlated nuisance"},
+    {"id": "site-block-null", "seed": 4703, "expected": "within-block schedule controls family-wise error"},
+    {"id": "sign-flip-null", "seed": 4704, "expected": "paired or one-sample sign-flip type-I error is controlled"},
+    {"id": "sparse-coupling-signal", "seed": 4711, "expected": "single-step max-T recovers a localized endpoint"},
+    {"id": "distributed-energy-signal", "seed": 4712, "expected": "sum-of-squares omnibus recovers distributed change"},
+    {"id": "correlated-support-null", "seed": 4800, "expected": "one common schedule controls the full support family"},
+    {"id": "support-sign-reversal", "seed": 4800, "expected": "direction disagreement remains visible and is not labelled invariant"},
+    {"id": "zero-energy-band", "seed": 4600, "expected": "normalized coupling is missing with an explicit diagnostic"},
+    {"id": "degenerate-eigenspace", "seed": 4500, "expected": "complete degenerate bands are rotation invariant; split bands fail"},
+    {"id": "missing-unit-layer", "seed": 4500, "expected": "missing unit-layer cells are reported or rejected by policy"},
+    {"id": "selection-leakage", "seed": 4900, "expected": "same-data frozen ordination is rejected without independent training"}
+  ],
+  "evidence": {
+    "basis_and_projection": "tests/testthat/test-spatial-basis-45.R",
+    "coupling": "tests/testthat/test-layer-coupling-46.R",
+    "group_calibration": "tools/run-group-inference-47-validation.R",
+    "support_calibration": "tools/run-support-family-48-validation.R",
+    "experimental_boundaries": "tests/testthat/test-spatial-ordination-49.R"
+  }
+}
