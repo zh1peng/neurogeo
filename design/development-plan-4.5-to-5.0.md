@@ -1,6 +1,6 @@
 # neurogeo 4.5 to 5.0 execution plan
 
-Status: 4.5-4.8 complete; 4.9 evaluation in progress
+Status: 4.5-4.9 complete; 5.0 freeze and validation in progress
 
 Authoritative detailed plan: `../neurogeo_4.5-5.0_development_plan_zh.md`.
 Scientific-method issue: <https://github.com/zh1peng/neurogeo/issues/6>.
@@ -104,6 +104,23 @@ criteria, promotion rules, resource gates, and the final Definition of Done.
   retention, and no automatic support-uncertainty combination.
 - The Chinese support-family vignette, full unit suite, package examples, and
   tarball core checks pass.
+
+### 4.9.0
+
+- `ngeo_spatial_ordination()` delegates to `adespatial::multispati()`, labels
+  reference-map work as non-population inference, and blocks frozen projection
+  unless independent training is declared.
+- One uniformly sampled and hashed pair schedule drives all auto/cross
+  empirical variograms; complete-pair values match `gstat` exactly.
+- `ngeo_coregionalization()` delegates LMC fitting to `gstat`, records
+  stationarity/isotropy, checks every sill matrix for PSD, and exposes no
+  co-kriging.
+- `ngeo_mgwr()` passes a bounded NGCS distance matrix and fixed term-specific
+  bandwidths to `GWmodel`, returns effective-N/conditioning diagnostics, and
+  exposes no nominal local p-value map.
+- All three APIs remain experimental. Dense MGWR distances are limited to
+  small domains and explicitly prevent full-cortex use; unresolved spatial
+  null, bandwidth-uncertainty, and support-replication gates are retained.
 
 ## Workflow policy
 

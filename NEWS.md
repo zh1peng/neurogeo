@@ -1,3 +1,18 @@
+# neurogeo 4.9.0
+
+* Added an explicitly experimental `adespatial::multispati()` adapter for
+  descriptive reference-map ordination and independently trained frozen
+  projection. It returns no p-values and blocks undeclared full-data reuse.
+* Added bounded, seeded cross-variogram pair sampling and an experimental
+  `gstat::fit.lmc()` facade with recorded metric/bin/convention identities,
+  convergence diagnostics, PSD sill checks, and no co-kriging.
+* Added a resource-gated `GWmodel::gwr.multiscale()` adapter that accepts
+  fixed predictor-specific NGCS bandwidths, reports local effective N and
+  conditioning, and deliberately suppresses nominal local p-value maps.
+* Kept all three methods outside the stable 5.0 multilayer inference surface;
+  MGWR records unresolved calibration, support-replication, and scalability
+  blockers.
+
 # neurogeo 4.8.0
 
 * Extended `ngeo_group_test()` to a named list of support-specific subject

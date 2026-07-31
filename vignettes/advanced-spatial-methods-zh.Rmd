@@ -1,0 +1,77 @@
+---
+title: "实验性高级空间方法：何时使用，何时停止"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{实验性高级空间方法：何时使用，何时停止}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## 科学问题与边界
+
+4.9 评估三个高级方向：多图层共同空间轴、共享变异尺度，以及预测变量具有不同局部带宽的回归。它们用于探索方法可行性，不替代 5.0 的固定空间基、尺度耦合和受试者置换推断主线。
+
+数据仍遵守一个 domain 加一个严格对齐 values block。reference-map 的推断单位是空间地图，不是 vertex/region，也不是受试者；因此其结果不包含总体推断。
+
+## 空间排序
+
+```{r ordination}
+coordinates <- cbind(1:24, sin((1:24) / 3))
+a <- scale(coordinates[, 1])[, 1]
+b <- 0.7 * a + 0.3 * scale(coordinates[, 2])[, 1]
+x <- ngeo_points(coordinates, values = cbind(a = a, b = b))
+w <- ngeo_weights(x, method = "knn", k = 2, style = "W",
+                  symmetry = "union")
+
+if (all(vapply(c("adespatial", "ade4", "spdep"),
+               requireNamespace, logical(1), quietly = TRUE))) {
+  ord <- ngeo_spatial_ordination(x, c("a", "b"), w, axes = 2)
+  ord
+  ord$population_inference
+}
+```
+
+这里的 estimand 是兼顾图层协方差和空间滞后结构的共同轴。允许的 claim 是“该 reference map stack 存在某个描述性共同空间轴”；不允许的 claim 是“该轴在某个人群中显著”。如果需要后续组间推断，训练基必须来自独立数据，或采用经过校准的 cross-fitting，或在每次 permutation 内重新拟合。
+
+## 交叉变异函数与 LMC
+
+`ngeo_coregionalization()` 先从所有无序元素对中进行显式、可复现的均匀抽样，再由 `gstat` 拟合共享尺度。输出保留 pair sampling、metric、bin edges、seed、cross-semivariance convention 和 PSD diagnostics。
+
+```{r lmc}
+if (all(vapply(c("gstat", "sf"), requireNamespace,
+               logical(1), quietly = TRUE))) {
+  lmc <- ngeo_coregionalization(
+    x, c("a", "b"), pair_sample = 150,
+    breaks = 5, model = "Exp", range = 8, seed = 49
+  )
+  lmc
+  lmc$psd_diagnostics
+  lmc$assumptions
+}
+```
+
+该结果只支持“在声明的二阶平稳、各向同性模型下观察到共享尺度结构”。它不提供 co-kriging，也不能把 support sensitivity 称为 atlas-independent。
+
+## MGWR 可行性适配
+
+MGWR 后端需要稠密距离矩阵。因此 neurogeo 在分配前设置小规模资源上限，并要求用户给定 intercept 和每个 predictor 的固定带宽。它适合验证局部系数、effective N、condition number 和带宽敏感性，不适合直接运行 32k/91k 皮层。
+
+```{r mgwr, eval=FALSE}
+fit <- ngeo_mgwr(
+  x, response = "a", predictors = "b",
+  bandwidths = c(`(Intercept)` = 8, b = 6)
+)
+fit$local
+fit$promotion_blockers
+```
+
+不报告 nominal local p map 是有意的科学限制。若 bandwidth uncertainty、local collinearity、spatial null 和跨 support 复现没有同时解决，MGWR 不进入稳定 API。
+
+## 推荐路径
+
+确认性研究仍应使用固定、与组别无关的 topology basis，生成每位受试者的小型尺度耦合 endpoint，再由完整受试者置换和共同 support schedule 完成推断。4.9 的三个入口用于提出新假设和审查方法假设，而不是绕过这一闭环。

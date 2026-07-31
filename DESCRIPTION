@@ -1,6 +1,6 @@
 Package: neurogeo
 Title: Neuroimaging Geoinformatics Core Objects
-Version: 4.8.0
+Version: 4.9.0
 Authors@R:
     person("zh1peng",
            email = "zhipeng30@foxmail.com",
@@ -26,6 +26,8 @@ Imports:
     parallel,
     stats
 Suggests:
+    ade4,
+    adespatial,
     cifti,
     covr,
     dbscan,

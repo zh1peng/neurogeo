@@ -37,6 +37,7 @@ $scripts = @(
     "tools/run-coupling-46-validation.R",
     "tools/run-group-inference-47-validation.R",
     "tools/run-support-family-48-validation.R",
+    "tools/run-experimental-49-validation.R",
     "tools/run-full-performance.R"
 )
 

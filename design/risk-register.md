@@ -135,3 +135,9 @@ Status: reviewed for neurogeo 4.4.2
 | Boundary permutation p-values become subject-level evidence | controlled | boundary diagnostics are carried as metadata and `boundary_p_values_reused = FALSE` |
 | Atlas dispersion is added to sampling variance | controlled | support dispersion is explicitly descriptive and kept separate from permutation uncertainty |
 | Results are called parcellation invariant automatically | controlled | claims are restricted to the named hashed family and no binary stability label is generated |
+| Full-data ordination selection is followed by ordinary group testing | controlled | reference maps are descriptive; frozen projection requires an explicit independent-training declaration and contains no p-values |
+| Cross-variograms implicitly enumerate the full cortex | controlled | uniform pair sampling is explicit, seeded, hashed, and bounded before distance evaluation |
+| An LMC fit is accepted despite an indefinite sill matrix | controlled | every fitted structure receives a numerical PSD eigenvalue check and classed failure |
+| LMC assumptions or co-kriging capability are implied | controlled | second-order stationarity/isotropy are explicit and the facade advertises shared-scale decomposition only |
+| MGWR nominal local t maps are presented as confirmation | controlled | local p/statistic columns are not returned and spatial-null calibration remains an explicit blocker |
+| MGWR constructs a full cortical distance matrix | controlled | a small experimental element limit is checked before the backend-required dense matrix allocation |
