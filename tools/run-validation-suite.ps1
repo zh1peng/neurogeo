@@ -85,5 +85,8 @@ $parent = Split-Path -Parent $Output
 if ($parent) {
     New-Item -ItemType Directory -Force -Path $parent | Out-Null
 }
-$report | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $Output -Encoding utf8
+$absoluteOutput = [System.IO.Path]::GetFullPath($Output)
+$json = $report | ConvertTo-Json -Depth 5
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($absoluteOutput, $json, $utf8NoBom)
 Write-Output (Resolve-Path -LiteralPath $Output)
