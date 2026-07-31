@@ -104,3 +104,13 @@ Status: reviewed for neurogeo 4.4.2
 | Geometric coverage is confused with extensive conservation | controlled | separate coverage, missing-support, and conservation policies with independent adversarial tests |
 | Transform and support provenance diverge | controlled | plan, path, support-map, and joint SHA-256 identities are repeated in diagnostics and result provenance |
 | Resampling silently exceeds memory | controlled | pre-build sparse nonzero estimates and pre-materialization result budgets fail before their respective allocations |
+| Map metadata is mistaken for a cohort container | controlled | metadata indexes columns only; subject covariates remain a separate design table |
+| Duplicate unit-layer maps are averaged implicitly | controlled | `ngeo_validate_layers()` raises a classed error and requires explicit selection, aggregation, or contrast |
+| Map binding hides registration or resampling | controlled | exact ordered domain and space hashes are required; no geometric matching is attempted |
+| Delayed map binding defeats source mutation checks | controlled | the composite callback delegates every read to the original verified reader |
+| Row-standardized or directed weights define a false symmetric basis | controlled | graph bases consume symmetric non-negative raw weights and record any explicit symmetrization |
+| Disconnected topology loses constant modes | controlled | components are decomposed separately and observed nullity must match component count |
+| Irregular element support biases spatial projection | controlled | centering, orthogonality, coefficients, energy, and roughness use one positive support mass |
+| A dense full-domain eigensystem is constructed | controlled | partial component-local eigensolvers, output/workspace budget estimates, and 32k/91k validation |
+| Eigenvector signs are interpreted as scientific changes | controlled | canonical signs aid reproducibility; scientific band energy is sign-invariant |
+| A band splits a near-degenerate eigenspace | controlled | band validation rejects partial inclusion of an eigenvalue cluster |

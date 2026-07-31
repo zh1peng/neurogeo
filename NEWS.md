@@ -1,3 +1,21 @@
+# neurogeo 4.5.0
+
+* Added exact `unit x layer` map indexing with duplicate, completeness, and
+  measurement-consistency diagnostics without materializing aligned values.
+* Added exact ordered-domain map-column binding for in-memory, delayed, and
+  verified file-backed values. Binding never registers or resamples inputs
+  and preserves source identities and mutation checks.
+* Added fixed support-weighted graph-Laplacian bases with component-separated
+  sparse partial eigensystems, residual/nullity/orthogonality diagnostics,
+  immutable hashes, and explicit resource gates.
+* Added chunked basis projection to one compact independent-unit by endpoint
+  matrix. Coefficients, band energy, retained variance, residual energy, and
+  roughness share one support-weighted geometry.
+* Validated path, cycle, and grid spectra, complete small-case reconstruction,
+  delayed/in-memory equality, and 32,400/91,200-element 64-mode workflows
+  without a dense full-domain matrix. This version does not yet claim layer
+  coupling or subject-level inference.
+
 # neurogeo 4.4.2
 
 * Consolidated installed specifications under `inst/spec/` and documented

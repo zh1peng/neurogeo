@@ -1,0 +1,97 @@
+---
+title: "固定空间基与多尺度投影"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{固定空间基与多尺度投影}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## 科学问题
+
+如何把每张脑图分解为由 topology 决定、与组标签无关的空间尺度？4.5 使用
+固定 graph-Laplacian basis。它只依赖 domain、raw spatial weights 和 support，
+不读取 group、clinical outcome 或 effect size。
+
+```{r basis}
+library(neurogeo)
+
+n <- 8L
+values <- cbind(
+  sub01 = sin((1:n) / 2),
+  sub02 = cos((1:n) / 3)
+)
+x <- ngeo_points(
+  cbind(x = 1:n, y = 0),
+  values = values,
+  maps = data.frame(
+    map_id = c("sub01", "sub02"),
+    name = c("sub01", "sub02"),
+    subject_id = c("sub01", "sub02"),
+    feature = "signal"
+  ),
+  measures = rbind(
+    ngeo_measure(spatial_semantics = "intensive", units = "a.u."),
+    ngeo_measure(spatial_semantics = "intensive", units = "a.u.")
+  )
+)
+w <- ngeo_weights(
+  x,
+  method = "distance_band",
+  threshold = 1.01,
+  style = "B"
+)
+basis <- ngeo_spatial_basis(
+  x,
+  weights = w,
+  support = "identity",
+  n_modes = 7
+)
+basis
+```
+
+## 数学 estimand
+
+对 stiffness `L` 和 support mass `A`，每个 connected component 解
+`L u = lambda A u`，并满足 `t(U) A U = I`。返回的是非恒定 modes；加权均值
+单独保存，因此小图上的完整非恒定 basis 可以重建中心化 map。
+
+```{r projection}
+index <- ngeo_validate_layers(x, complete = "error")
+features <- ngeo_basis_project(
+  x,
+  basis,
+  index = index,
+  bands = list(low = 1:3, high = 4:7),
+  summaries = c(
+    "absolute_energy", "relative_energy", "roughness",
+    "retained_variance", "residual_energy"
+  ),
+  chunk_rows = 3,
+  chunk_maps = 1
+)
+features
+features$endpoints[, c("estimand", "band", "component")]
+features$values
+```
+
+## Diagnostics
+
+应同时检查 eigen residual、加权正交误差、zero-mode 数量、retained variance
+和 residual energy。band 不能切开 near-degenerate eigenspace。大 domain 只求
+有限 eigenpairs，并受到 `ngeo_resource_budget()` 约束。
+
+## 有效推断单位
+
+投影产生 subject-level endpoints，但 4.5 尚不计算人口 p 值。后续置换必须
+移动完整 subject record，不能置换 vertices。
+
+## Claim 与 non-claim
+
+可以把结果解释为声明 graph operator 下的 rank-matched spatial modes。不能
+把 graph rank 自动解释成毫米波长，也不能使用二维 flatmap coordinates 构造
+统计 basis。

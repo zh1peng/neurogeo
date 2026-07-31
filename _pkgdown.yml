@@ -20,6 +20,8 @@ articles:
   - reading-data-zh
   - schema-validation-zh
   - quality-control-zh
+  - multilayer-data-zh
+  - spatial-basis-zh
   - cortical-cartography-zh
   - interoperability-zh
   - scalable-io-zh
@@ -209,6 +211,12 @@ reference:
   - ngeo_car_uncertainty
   - ngeo_support_model_ensemble
   - ngeo_model_calibration
+- title: Multilayer spatial analysis
+  contents:
+  - ngeo_bind_maps
+  - ngeo_validate_layers
+  - ngeo_spatial_basis
+  - ngeo_basis_project
 - title: Input
   contents:
   - ngeo_example_data
