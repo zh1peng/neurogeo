@@ -4,7 +4,7 @@
 \alias{ngeo_cortical_layout}
 \title{Combine cortical maps into an auditable panel layout}
 \usage{
-ngeo_cortical_layout(..., ncol = NULL, labels = NULL)
+ngeo_cortical_layout(..., ncol = NULL, labels = NULL, shared_scale = FALSE)
 }
 \arguments{
 \item{...}{`ngeo_cortical_map` objects or one list of them.}
@@ -12,6 +12,10 @@ ngeo_cortical_layout(..., ncol = NULL, labels = NULL)
 \item{ncol}{Number of panel columns.}
 
 \item{labels}{Optional panel labels.}
+
+\item{shared_scale}{Whether every panel must use one continuous scale or
+one categorical color contract and one legend. Categorical maps with
+conflicting colors for the same label are rejected.}
 }
 \value{
 An `ngeo_cortical_layout`.

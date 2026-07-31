@@ -1,3 +1,28 @@
+# neurogeo 4.4.0
+
+* Added one bounded `ngeo_qc()` entry point for scientific conditions that do
+  not necessarily invalidate an NGCS object. It reports space and measurement
+  metadata, bounded value summaries, sparse topology, cortical-chart
+  distortion, optional support coverage/conservation, and provenance without
+  mutating inputs.
+* Added machine-readable QC status records plus compact print and plot methods.
+  Large values blocks and topology checks are explicitly marked as not
+  evaluated when they exceed their declared budgets.
+* Kept `ngeo_validate()` authoritative for structural invariants. QC does not
+  repair objects, infer semantics, register spaces, or add a new object schema.
+
+# neurogeo 4.3.2
+
+* Added optional shared continuous scales and categorical color contracts to
+  bilateral and multi-panel cortical layouts. Shared layouts draw one legend
+  while preserving each panel's source domain, face mapping, mask, underlay,
+  and provenance.
+* Conflicting categorical label colors, mixed continuous/categorical panels,
+  and differing continuous palettes now fail before a misleading shared
+  legend can be rendered.
+* Added focused semantic and portable-rendering tests without adding a
+  plotting dependency or atlas-specific geometry.
+
 # neurogeo 4.3.1
 
 * Replaced the illustrative toy-map workflow with a real cortical-sheet

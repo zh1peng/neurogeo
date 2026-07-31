@@ -19,6 +19,7 @@ articles:
   - core-concepts-zh
   - reading-data-zh
   - schema-validation-zh
+  - quality-control-zh
   - cortical-cartography-zh
   - interoperability-zh
   - scalable-io-zh
@@ -43,6 +44,7 @@ articles:
   - core-concepts
   - reading-data
   - schema-validation
+  - quality-control
   - cortical-cartography
   - interoperability
   - scalable-io
@@ -237,6 +239,8 @@ reference:
   - ngeo_domain_type
   - ngeo_subset
   - ngeo_validate
+  - ngeo_qc
+  - plot.ngeo_qc
 - title: Reproducibility and artifact integrity
   contents:
   - ngeo_logical_hash

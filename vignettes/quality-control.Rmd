@@ -1,0 +1,58 @@
+---
+title: "Unified scientific quality control"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Unified scientific quality control}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## Validation and QC answer different questions
+
+`ngeo_validate()` enforces NGCS structural invariants. `ngeo_qc()` reports
+conditions that can be valid but require a scientific decision. QC does not
+repair data or infer missing metadata.
+
+```{r basic}
+x <- ngeo_points(
+  matrix(c(0, 0, 1, 0, 2, 0), ncol = 2, byrow = TRUE),
+  values = cbind(signal = c(1, 2, 3), constant = c(5, 5, 5))
+)
+
+qc <- ngeo_qc(x)
+qc
+qc$checks
+qc$map_summary
+```
+
+```{r plot, fig.width=6, fig.height=4}
+plot(qc)
+```
+
+The status vocabulary is `pass`, `info`, `warning`, `not_evaluated`, and
+`not_applicable`. A large values block is never read beyond
+`max_value_cells`:
+
+```{r budget}
+ngeo_qc(x, max_value_cells = 2)$checks
+```
+
+An aligned support map adds sparse coverage and conservation checks:
+
+```{r support}
+atlas <- ngeo_atlas_map(
+  x,
+  c("A", "A", NA),
+  source_support = rep(1, 3)
+)
+ngeo_qc(x, support_map = atlas)$checks
+```
+
+QC does not perform registration, resampling, preprocessing, outlier
+removal, or statistical inference. A passing report is not a substitute for
+the study design and measurement assumptions.

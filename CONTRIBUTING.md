@@ -23,11 +23,10 @@ R.exe CMD INSTALL --install-tests --library=.r-lib .
 Rscript tools/run-unit-tests.R
 ```
 
-For a release-affecting change, run:
+Before pushing a behavior change to `main`, run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools/run-release-validations.ps1
-Rscript tools/build-release.R
 ```
 
 ## Tests
@@ -49,7 +48,10 @@ Public functions require R documentation. User-facing workflows belong in a
 vignette and must be executable unless an external file is intentionally
 required. Update `NEWS.md` for every release-visible change.
 
-## Pull requests
+## Development workflow
 
-Keep changes narrow. Explain scientific impact, user impact, validation,
-and migration. Do not mix unrelated cleanup with a scientific change.
+Keep changes narrow, test them locally, and commit them directly to `main`.
+Do not create a pull request, version tag, or GitHub Release unless the
+maintainer explicitly changes that policy. Explain scientific impact, user
+impact, validation, and migration in the commit and documentation. Do not mix
+unrelated cleanup with a scientific change.

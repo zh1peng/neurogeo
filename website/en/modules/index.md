@@ -10,6 +10,7 @@ description: Technical documentation for neurogeo objects, I/O, spatial relation
 - [Core concepts](/en/tutorials/core-concepts)
 - [Reading neuroimaging data](/en/tutorials/reading-data)
 - [Schema validation and portable manifests](/en/modules/schema-validation)
+- [Unified scientific quality control](/en/modules/quality-control)
 - [Real cortical flatmaps for vertex data and arbitrary atlases](/en/modules/cortical-cartography)
 - [Interoperability and auditable exchange](/en/modules/interoperability)
 - [Scalable values, CIFTI, and BIDS derivatives](/en/modules/scalable-io)

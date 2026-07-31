@@ -229,6 +229,30 @@ documents <- rbind(
   )
 )
 
+documents <- rbind(
+  documents,
+  data.frame(
+    source = c(
+      "vignettes/quality-control-zh.Rmd",
+      "vignettes/quality-control.Rmd"
+    ),
+    target = c(
+      "website/modules/quality-control.md",
+      "website/en/modules/quality-control.md"
+    ),
+    title = c(
+      "统一科学质量控制：从有效对象到可分析对象",
+      "Unified scientific quality control"
+    ),
+    counterpart = c(
+      "/en/modules/quality-control",
+      "/modules/quality-control"
+    ),
+    counterpart_label = c("English", "简体中文"),
+    stringsAsFactors = FALSE
+  )
+)
+
 vignettes <- sort(list.files(
   "vignettes",
   pattern = "\\.Rmd$",

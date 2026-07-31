@@ -164,3 +164,28 @@ model_grid <- function() {
   weights$domain_hash <- ngeo_domain_hash(x)
   list(x = x, weights = weights)
 }
+qc_cartography_disk <- function() {
+  ngeo_surface(
+    matrix(
+      c(
+        -1, -1, 0,
+        1, -1, 0,
+        1, 1, 0,
+        -1, 1, 0,
+        0, 0, 0.2
+      ),
+      ncol = 3L,
+      byrow = TRUE
+    ),
+    matrix(
+      c(
+        1, 2, 5,
+        2, 3, 5,
+        3, 4, 5,
+        4, 1, 5
+      ),
+      ncol = 3L,
+      byrow = TRUE
+    )
+  )
+}

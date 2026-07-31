@@ -22,11 +22,11 @@ remotes::install_github(
 )
 ```
 
-To install a local release archive:
+To install a local source archive:
 
 ```r
 install.packages(
-  "neurogeo_4.3.0.tar.gz",
+  "neurogeo_4.4.0.tar.gz",
   repos = NULL,
   type = "source"
 )
@@ -91,7 +91,7 @@ ngeo_value_chunks(x, chunk_size = 4096, FUN = colMeans)
 
 ## Real cortical flatmaps
 
-Version 4.3.1 draws a registered cortical sheet rather than selecting a fixed
+Version 4.4.0 draws a registered cortical sheet rather than selecting a fixed
 atlas template or substituting a simplified polygon. Bind the source surface
 to an aligned flat GIFTI surface, then add a mask, anatomical underlay, vertex
 values, and any aligned atlas:
@@ -115,12 +115,41 @@ plot(cortex, show_boundaries = TRUE, show_outline = TRUE)
 plot_data <- ngeo_cortical_map_data(cortex)
 ```
 
+Use one scale and one legend for bilateral or multi-panel maps:
+
+```r
+bilateral <- ngeo_cortical_layout(
+  left_map,
+  right_map,
+  ncol = 2,
+  labels = c("Left", "Right"),
+  shared_scale = TRUE
+)
+plot(bilateral)
+```
+
 The importer verifies ordered vertices and maps flat triangles back to source
 faces. It does not infer a cortical cut, registration, or resampling.
 Orthographic, PCA, and spherical results from `ngeo_project_surface()` remain
 viewing projections, not cortical flattening. See the
 [real-flatmap contract](design/cortical-flatmap-4.3.1.md) and the
 [Chinese tutorial](vignettes/cortical-cartography-zh.Rmd).
+
+## Scientific quality control
+
+`ngeo_qc()` reports analysis risks in an otherwise valid object without
+changing it:
+
+```r
+qc <- ngeo_qc(x)
+qc$checks
+plot(qc)
+```
+
+The report distinguishes warnings, descriptive information, conditions that
+are not applicable, and checks skipped because a values block exceeds the
+explicit scan budget. Structural validity remains the responsibility of
+`ngeo_validate()`.
 
 ## Minimal workflow
 

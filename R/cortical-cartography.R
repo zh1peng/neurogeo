@@ -1193,9 +1193,16 @@ ngeo_cortical_map_data <- function(x) {
 #' @param ... `ngeo_cortical_map` objects or one list of them.
 #' @param ncol Number of panel columns.
 #' @param labels Optional panel labels.
+#' @param shared_scale Whether every panel must use one continuous scale or
+#'   one categorical color contract and one legend. Categorical maps with
+#'   conflicting colors for the same label are rejected.
 #' @return An `ngeo_cortical_layout`.
 #' @export
-ngeo_cortical_layout <- function(..., ncol = NULL, labels = NULL) {
+ngeo_cortical_layout <- function(
+    ...,
+    ncol = NULL,
+    labels = NULL,
+    shared_scale = FALSE) {
   maps <- list(...)
   if (length(maps) == 1L && is.list(maps[[1L]]) &&
       !inherits(maps[[1L]], "ngeo_cortical_map")) {
@@ -1207,6 +1214,95 @@ ngeo_cortical_layout <- function(..., ncol = NULL, labels = NULL) {
       "A cortical layout requires one or more cortical maps.",
       "ngeo_error_argument"
     )
+  }
+  if (!is.logical(shared_scale) || length(shared_scale) != 1L ||
+      is.na(shared_scale)) {
+    .ngeo_abort(
+      "`shared_scale` must be TRUE or FALSE.",
+      "ngeo_error_argument"
+    )
+  }
+  shared_legend <- NULL
+  if (isTRUE(shared_scale)) {
+    value_type <- unique(vapply(maps, `[[`, character(1), "value_type"))
+    if (length(value_type) != 1L) {
+      .ngeo_abort(
+        "A shared cortical scale requires one common value type.",
+        "ngeo_error_alignment"
+      )
+    }
+    if (identical(value_type, "continuous")) {
+      palette <- unique(vapply(maps, `[[`, character(1), "palette"))
+      if (length(palette) != 1L) {
+        .ngeo_abort(
+          "A shared continuous scale requires one common palette.",
+          "ngeo_error_alignment"
+        )
+      }
+      finite <- unlist(lapply(maps, function(map) {
+        value <- map$face_data$value[map$face_data$included]
+        value[is.finite(value)]
+      }), use.names = FALSE)
+      limits <- if (length(finite)) range(finite) else c(0, 1)
+      maps <- lapply(maps, function(map) {
+        scale <- .ngeo_cortical_colors(
+          map$face_data$value,
+          "continuous",
+          map$palette,
+          limits,
+          map$na_color
+        )
+        scale$color[!map$face_data$included] <- NA_character_
+        map$face_data$color <- scale$color
+        map$legend <- scale$legend
+        map$limits <- scale$limits
+        map
+      })
+      shared_legend <- maps[[1L]]$legend
+    } else {
+      entries <- do.call(rbind, lapply(maps, function(map) {
+        data.frame(
+          value = as.character(map$legend$value),
+          color = as.character(map$legend$color),
+          stringsAsFactors = FALSE
+        )
+      }))
+      level <- unique(entries$value)
+      color <- vapply(level, function(current) {
+        candidate <- unique(entries$color[entries$value == current])
+        if (length(candidate) != 1L) {
+          .ngeo_abort(
+            sprintf(
+              "Categorical label `%s` has conflicting panel colors.",
+              current
+            ),
+            "ngeo_error_alignment"
+          )
+        }
+        candidate
+      }, character(1))
+      shared_legend <- data.frame(
+        value = level,
+        color = unname(color),
+        stringsAsFactors = FALSE
+      )
+      lookup <- stats::setNames(shared_legend$color, shared_legend$value)
+      maps <- lapply(maps, function(map) {
+        scale <- .ngeo_cortical_colors(
+          map$face_data$value,
+          "categorical",
+          map$palette,
+          NULL,
+          map$na_color,
+          lookup
+        )
+        scale$color[!map$face_data$included] <- NA_character_
+        map$face_data$color <- scale$color
+        map$legend <- shared_legend
+        map$colors <- lookup
+        map
+      })
+    }
   }
   ncol <- ncol %||% ceiling(sqrt(length(maps)))
   ncol <- .ngeo_as_integer(ncol, "ncol")
@@ -1225,7 +1321,19 @@ ngeo_cortical_layout <- function(..., ncol = NULL, labels = NULL) {
       maps = maps,
       ncol = ncol,
       nrow = as.integer(ceiling(length(maps) / ncol)),
-      labels = labels
+      labels = labels,
+      shared_scale = shared_scale,
+      legend = shared_legend,
+      legend_title = if (length(unique(vapply(
+        maps,
+        `[[`,
+        character(1),
+        "map_name"
+      ))) == 1L) {
+        maps[[1L]]$map_name
+      } else {
+        "Shared scale"
+      }
     ),
     class = "ngeo_cortical_layout"
   )
@@ -1513,9 +1621,58 @@ print.ngeo_cortical_layout <- function(x, ...) {
     "<ngeo_cortical_layout>\n",
     "  panels: ", length(x$maps), "\n",
     "  arrangement: ", x$nrow, " x ", x$ncol, "\n",
+    "  shared scale: ", isTRUE(x$shared_scale), "\n",
     sep = ""
   )
   invisible(x)
+}
+
+.ngeo_plot_cortical_layout_legend <- function(x, cex = 0.75) {
+  map <- x$maps[[1L]]
+  graphics::plot.new()
+  graphics::plot.window(xlim = c(0, 1), ylim = c(0, 1))
+  if (identical(map$value_type, "continuous")) {
+    left <- 0.25
+    right <- 0.75
+    bottom <- 0.43
+    top <- 0.62
+    color_bar <- matrix(
+      .ngeo_cartography_palette(256L, map$palette),
+      nrow = 1L
+    )
+    graphics::rasterImage(
+      grDevices::as.raster(color_bar),
+      left,
+      bottom,
+      right,
+      top,
+      interpolate = TRUE
+    )
+    graphics::rect(left, bottom, right, top, border = "grey30")
+    graphics::text(
+      c(left, right),
+      bottom - 0.08,
+      labels = format(signif(map$limits, 5L), trim = TRUE),
+      cex = cex
+    )
+    graphics::text(
+      0.5,
+      top + 0.08,
+      labels = x$legend_title,
+      cex = cex
+    )
+  } else {
+    graphics::legend(
+      "center",
+      legend = as.character(x$legend$value),
+      fill = x$legend$color,
+      title = x$legend_title,
+      bty = "n",
+      cex = cex,
+      ncol = min(6L, nrow(x$legend))
+    )
+  }
+  invisible(NULL)
 }
 
 #' Plot a cortical multi-panel layout
@@ -1527,9 +1684,39 @@ print.ngeo_cortical_layout <- function(x, ...) {
 plot.ngeo_cortical_layout <- function(x, ...) {
   old <- graphics::par(no.readonly = TRUE)
   on.exit(graphics::par(old), add = TRUE)
-  graphics::par(mfrow = c(x$nrow, x$ncol))
+  dots <- list(...)
+  show_legend <- (is.null(dots$show_legend) ||
+    isTRUE(dots$show_legend)) &&
+    (!isTRUE(x$shared_scale) || nrow(x$legend) > 0L)
+  dots$show_legend <- if (isTRUE(x$shared_scale)) FALSE else
+    dots$show_legend
+  if (isTRUE(x$shared_scale) && show_legend) {
+    panel <- matrix(
+      seq_len(x$nrow * x$ncol),
+      nrow = x$nrow,
+      ncol = x$ncol,
+      byrow = TRUE
+    )
+    panel[panel > length(x$maps)] <- 0L
+    graphics::layout(
+      rbind(panel, rep.int(length(x$maps) + 1L, x$ncol)),
+      heights = c(rep.int(1, x$nrow), 0.22)
+    )
+  } else {
+    graphics::par(mfrow = c(x$nrow, x$ncol))
+  }
   for (i in seq_along(x$maps)) {
-    plot(x$maps[[i]], main = x$labels[[i]], ...)
+    current <- dots
+    current$x <- x$maps[[i]]
+    current$main <- x$labels[[i]]
+    do.call(graphics::plot, current)
+  }
+  if (isTRUE(x$shared_scale) && show_legend) {
+    graphics::par(mar = rep.int(0, 4L))
+    .ngeo_plot_cortical_layout_legend(
+      x,
+      cex = dots$legend_cex %||% 0.75
+    )
   }
   invisible(x)
 }

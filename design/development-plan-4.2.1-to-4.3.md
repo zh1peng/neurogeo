@@ -1,7 +1,7 @@
 # neurogeo 4.2.1 to 4.3 development plan
 
-Status: 4.2.1 and 4.2.2 released; the 4.3.0 release candidate and all local
-release gates are complete. Remote CI and GitHub release remain pending.
+Status: completed through the 4.3.1 real-flatmap correction. Remote CI passed;
+the repository no longer publishes per-version GitHub Releases.
 
 ## Final objective
 

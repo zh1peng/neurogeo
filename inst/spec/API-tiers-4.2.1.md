@@ -6,7 +6,8 @@ change, foundational statistics/models, standard format I/O, validation,
 identity, provenance, and the 4.3 atlas-independent cortical cartography
 entry points `ngeo_flatten_surface()`, `ngeo_project_surface()`,
 `ngeo_cortical_map()`, `ngeo_cortical_map_data()`, and
-`ngeo_cortical_layout()`.
+`ngeo_cortical_layout()`. The 4.4 bounded `ngeo_qc()` report is also a stable
+core entry point.
 
 Advanced scientific functions cover explicit nulls, uncertainty,
 resampling, time/space-time analysis, iterative models, transform graphs,

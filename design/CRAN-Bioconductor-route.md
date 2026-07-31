@@ -1,6 +1,6 @@
 # Distribution route decision
 
-Status: reviewed for neurogeo 4.3.0; CRAN submission not yet authorized
+Status: reviewed for neurogeo 4.4.0; CRAN submission not yet authorized
 
 ## Decision
 
@@ -28,5 +28,6 @@ submission would be evaluated separately and must not change NGCS semantics.
 - Treat R CMD check on current release/devel R and three operating systems as
   a release gate.
 - Keep examples and vignettes runnable without downloading private datasets.
-- GitHub releases may follow the established release workflow. CRAN or
-  Bioconductor submission requires separate explicit maintainer authorization.
+- Do not publish GitHub Releases or create version tags under the current
+  maintainer policy. CRAN or Bioconductor submission requires separate
+  explicit maintainer authorization.

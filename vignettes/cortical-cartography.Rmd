@@ -179,7 +179,8 @@ plot(ngeo_cortical_layout(
   left_map,
   right_map,
   ncol = 2,
-  labels = c("Left hemisphere", "Right hemisphere")
+  labels = c("Left hemisphere", "Right hemisphere"),
+  shared_scale = TRUE
 ))
 
 plot_data <- ngeo_cortical_map_data(atlas_map)

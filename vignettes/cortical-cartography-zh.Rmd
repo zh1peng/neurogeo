@@ -207,7 +207,8 @@ bilateral <- ngeo_cortical_layout(
   left_map,
   right_map,
   ncol = 2,
-  labels = c("Left hemisphere", "Right hemisphere")
+  labels = c("Left hemisphere", "Right hemisphere"),
+  shared_scale = TRUE
 )
 plot(bilateral)
 ```

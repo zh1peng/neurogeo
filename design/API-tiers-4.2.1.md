@@ -15,7 +15,7 @@ the existing lifecycle policy.
 - access: `ngeo_domain()`, `ngeo_elements()`, `ngeo_values()`, `ngeo_maps()`,
   `ngeo_measures()`, `ngeo_labels()`, `ngeo_subset()`;
 - semantics and identity: `ngeo_space()`, `ngeo_measure()`,
-  `ngeo_domain_hash()`, `ngeo_validate()`.
+  `ngeo_domain_hash()`, `ngeo_validate()`, `ngeo_qc()`.
 
 ### Geometry, topology, and weights
 

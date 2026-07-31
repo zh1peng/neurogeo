@@ -1,6 +1,6 @@
 # Risk register
 
-Status: reviewed for neurogeo 4.3.0
+Status: reviewed for neurogeo 4.4.0
 
 | Risk | Current status | Mitigation |
 |---|---|---|
@@ -16,6 +16,11 @@ Status: reviewed for neurogeo 4.3.0
 | A partition is reused after unrelated domain mutation | controlled | require the current domain hash or the exact source hash recorded by the selected chart |
 | Face interpolation is mistaken for source measurement | controlled | retain source vertex values and identify face means/modes as rendering data only |
 | Cortical rendering exhausts memory | controlled | one face table, vectorized base rendering, no dense pairwise distance, and real 32k resource validation |
+| Shared panels imply comparable scales when palettes differ | controlled | shared continuous layouts require one palette and pool one finite face-value range |
+| Shared atlas labels silently receive conflicting colors | controlled | reject the layout when one categorical label has more than one declared color |
+| QC is mistaken for structural validation or automatic repair | controlled | `ngeo_validate()` remains authoritative; QC is non-mutating and reports risks only |
+| QC materializes a large values block | controlled | explicit `max_value_cells` gate and `not_evaluated` status before materialization |
+| QC densifies topology or support operators | controlled | sparse adjacency/support summaries and an explicit topology element guard |
 | Missing coordinate-space metadata | accepted | explicit `unknown`; no implicit conversion |
 | Incorrect measurement semantics | controlled | unknown-by-default and aggregation refusal without `fun` |
 | CIFTI surface mismatch | controlled | structure, vertex-count, and mapping validation |
