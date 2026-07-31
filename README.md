@@ -89,32 +89,38 @@ x <- read_ngeo_cifti_filebacked(
 ngeo_value_chunks(x, chunk_size = 4096, FUN = colMeans)
 ```
 
-## Cortical cartography
+## Real cortical flatmaps
 
-Version 4.3 draws the source surface itself rather than selecting a fixed
-atlas template. Add an imported flat chart, parameterize an already-cut disk,
-or create an explicitly non-metric view; then bind any aligned vertex values
-and atlas:
+Version 4.3.1 draws a registered cortical sheet rather than selecting a fixed
+atlas template or substituting a simplified polygon. Bind the source surface
+to an aligned flat GIFTI surface, then add a mask, anatomical underlay, vertex
+values, and any aligned atlas:
 
 ```r
 flat <- ngeo_flatten_surface(
-  surface_disk,
-  method = "harmonic",
-  boundary = ordered_boundary
+  source_surface,
+  method = "imported",
+  coordinates = flat_surface
 )
 cortex <- ngeo_cortical_map(
   flat,
-  values = vertex_values,
-  atlas = atlas_labels
+  map = "thickness",
+  atlas = "schaefer100",
+  mask = cortical_mask,
+  underlay = "sulc",
+  overlay_alpha = 0.78,
+  na_color = NA_character_
 )
-plot(cortex)
+plot(cortex, show_boundaries = TRUE, show_outline = TRUE)
 plot_data <- ngeo_cortical_map_data(cortex)
 ```
 
-Harmonic parameterization rejects closed surfaces and never invents a cut.
-Orthographic, PCA, and spherical results from `ngeo_project_surface()` are
-labelled viewing projections, not registration or metric flattening. See the
-[4.3 cartography contract](design/cortical-cartography-4.3.md).
+The importer verifies ordered vertices and maps flat triangles back to source
+faces. It does not infer a cortical cut, registration, or resampling.
+Orthographic, PCA, and spherical results from `ngeo_project_surface()` remain
+viewing projections, not cortical flattening. See the
+[real-flatmap contract](design/cortical-flatmap-4.3.1.md) and the
+[Chinese tutorial](vignettes/cortical-cartography-zh.Rmd).
 
 ## Minimal workflow
 

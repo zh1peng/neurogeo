@@ -43,6 +43,7 @@ website/en/modules/cortical-cartography.md
 website/en/modules/*_files/
 neurogeo_*.tar.gz
 release/runs/
+release/flatmap-431/
 release/LATEST
 release/*.json
 release/*.log

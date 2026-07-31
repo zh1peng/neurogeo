@@ -10,10 +10,18 @@
   show_boundaries = TRUE,
   boundary_color = "grey10",
   boundary_lwd = 0.7,
+  show_outline = TRUE,
+  outline_color = "grey10",
+  outline_lwd = 1,
+  show_labels = FALSE,
+  label_regions = NULL,
+  label_color = "grey10",
+  label_cex = 0.65,
+  label_font = 2,
   main = x$map_name,
   axes = FALSE,
   show_legend = TRUE,
-  legend_position = "topright",
+  legend_position = NULL,
   legend_cex = 0.75,
   xlim = NULL,
   ylim = NULL,
@@ -31,13 +39,26 @@
 
 \item{boundary_lwd}{Atlas boundary line width.}
 
+\item{show_outline}{Draw the visible cortical-sheet outline.}
+
+\item{outline_color}{Cortical outline color.}
+
+\item{outline_lwd}{Cortical outline line width.}
+
+\item{show_labels}{Draw atlas labels at vertex-constrained anchors.}
+
+\item{label_regions}{Optional atlas labels to draw.}
+
+\item{label_color, label_cex, label_font}{Atlas-label appearance.}
+
 \item{main}{Plot title.}
 
 \item{axes}{Draw coordinate axes.}
 
 \item{show_legend}{Draw the value legend.}
 
-\item{legend_position}{Position passed to [graphics::legend()].}
+\item{legend_position}{Categorical legend position, or `"bottom"` for a
+horizontal continuous color bar.}
 
 \item{legend_cex}{Legend text scaling.}
 

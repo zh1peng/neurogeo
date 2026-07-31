@@ -18,7 +18,7 @@ description: neurogeo 的对象、I/O、空间关系、模型、执行和复现�
 - [核心概念与对象契约](/modules/core-concepts)
 - [读取神经影像数据](/modules/reading-data)
 - [Schema 验证与可移植 manifest](/modules/schema-validation)
-- [皮层二维地图：从 vertex 数据到任意 atlas](/modules/cortical-cartography)
+- [真实皮层二维地图：vertex 数据、沟回底图与任意 atlas](/modules/cortical-cartography)
 - [互操作与可审计交换](/modules/interoperability)
 - [可扩展 values、CIFTI 与 BIDS derivatives](/modules/scalable-io)
 - [文件后端神经影像 values](/modules/file-backed-io)

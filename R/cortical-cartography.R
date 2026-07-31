@@ -36,21 +36,119 @@
   value
 }
 
+.ngeo_cartography_imported_coordinates <- function(x, coordinates) {
+  if (!inherits(coordinates, "ngeo_surface")) {
+    return(list(
+      coordinates = .ngeo_cartography_coordinates(x, coordinates, 2L),
+      invariants = list(
+        imported = TRUE,
+        topology_assumed = FALSE,
+        topology_verified = FALSE,
+        source_kind = "matrix"
+      )
+    ))
+  }
+
+  .ngeo_cartography_surface(coordinates)
+  if (nrow(coordinates$domain$elements) != nrow(x$domain$elements) ||
+      !identical(
+        coordinates$domain$elements$element_id,
+        x$domain$elements$element_id
+      ) ||
+      !identical(
+        coordinates$domain$elements$source_index,
+        x$domain$elements$source_index
+      )) {
+    .ngeo_abort(
+      paste0(
+        "An imported flat surface must have the same ordered source vertices ",
+        "as `x`."
+      ),
+      "ngeo_error_alignment"
+    )
+  }
+  source_face <- x$domain$faces
+  imported_face <- coordinates$domain$faces
+  face_key <- function(face) {
+    first <- pmin.int(face[, 1L], face[, 2L], face[, 3L])
+    third <- pmax.int(face[, 1L], face[, 2L], face[, 3L])
+    second <- rowSums(face) - first - third
+    paste(first, second, third, sep = ":")
+  }
+  source_key <- face_key(source_face)
+  imported_key <- face_key(imported_face)
+  source_face_in_chart <- match(imported_key, source_key)
+  if (anyNA(source_face_in_chart) || anyDuplicated(imported_key)) {
+    .ngeo_abort(
+      paste0(
+        "Every imported flat-surface face must map uniquely to a source ",
+        "surface face."
+      ),
+      "ngeo_error_alignment"
+    )
+  }
+  topology_relation <- if (
+    length(source_face_in_chart) == nrow(source_face) &&
+      identical(source_face_in_chart, seq_len(nrow(source_face)))
+  ) {
+    "identical"
+  } else {
+    "face_subset"
+  }
+
+  available <- coordinates$domain$coordinate_meta
+  candidate <- available$name[
+    available$role == "chart" & available$dimension == 2L
+  ]
+  name <- if (length(candidate) == 1L) {
+    candidate[[1L]]
+  } else {
+    active <- coordinates$domain$active_coordinates
+    if (ncol(coordinates$domain$coordinates[[active]]) == 2L) {
+      active
+    } else {
+      .ngeo_abort(
+        paste0(
+          "The imported surface must have exactly one two-dimensional chart ",
+          "or a two-dimensional active coordinate set."
+        ),
+        "ngeo_error_chart"
+      )
+    }
+  }
+
+  list(
+    coordinates = coordinates$domain$coordinates[[name]],
+    invariants = list(
+      imported = TRUE,
+      topology_assumed = FALSE,
+      topology_verified = TRUE,
+      topology_relation = topology_relation,
+      source_face_in_chart = source_face_in_chart,
+      source_kind = "ngeo_surface",
+      source_chart = name,
+      imported_surface_domain_hash = ngeo_domain_hash(coordinates)
+    )
+  )
+}
+
 .ngeo_cartography_edges <- function(faces) {
   directed <- rbind(
     faces[, c(1L, 2L), drop = FALSE],
     faces[, c(2L, 3L), drop = FALSE],
     faces[, c(3L, 1L), drop = FALSE]
   )
-  edges <- t(apply(directed, 1L, sort))
-  key <- paste(edges[, 1L], edges[, 2L], sep = ":")
-  count <- table(key)
-  unique_edges <- edges[!duplicated(key), , drop = FALSE]
+  from <- pmin.int(directed[, 1L], directed[, 2L])
+  to <- pmax.int(directed[, 1L], directed[, 2L])
+  key <- paste(from, to, sep = ":")
+  keep <- !duplicated(key)
+  unique_key <- key[keep]
+  group <- match(key, unique_key)
   data.frame(
-    from = unique_edges[, 1L],
-    to = unique_edges[, 2L],
-    count = as.integer(count[key[!duplicated(key)]]),
-    key = key[!duplicated(key)],
+    from = from[keep],
+    to = to[keep],
+    count = tabulate(group, nbins = length(unique_key)),
+    key = unique_key,
     stringsAsFactors = FALSE
   )
 }
@@ -189,10 +287,23 @@
     invariants = list(),
     tolerance = 1e-12) {
   distortion <- .ngeo_cartography_distortion(x, chart, tolerance)
+  source_face_in_chart <- invariants$source_face_in_chart %||%
+    seq_len(nrow(distortion))
+  distortion$charted <- seq_len(nrow(distortion)) %in%
+    source_face_in_chart
+  charted <- distortion$charted
+  finite_angle <- distortion$maximum_angle_error[
+    charted & is.finite(distortion$maximum_angle_error)
+  ]
   distortion_summary <- list(
-    folded_faces = sum(distortion$folded),
-    finite_area_ratio = all(is.finite(distortion$area_ratio)),
-    maximum_angle_error = max(distortion$maximum_angle_error)
+    charted_faces = sum(charted),
+    folded_faces = sum(distortion$folded[charted]),
+    finite_area_ratio = all(is.finite(distortion$area_ratio[charted])),
+    maximum_angle_error = if (length(finite_angle)) {
+      max(finite_angle)
+    } else {
+      NA_real_
+    }
   )
   result <- ngeo_set_chart(
     x,
@@ -225,7 +336,8 @@
         boundary = boundary,
         seam = seam,
         tolerance = tolerance,
-        folded_faces = sum(distortion$folded)
+        charted_faces = sum(charted),
+        folded_faces = sum(distortion$folded[charted])
       )
     ))
   )
@@ -242,8 +354,11 @@
 #'
 #' @param x An `ngeo_surface`.
 #' @param method Imported coordinates or harmonic disk parameterization.
-#' @param coordinates Required finite vertex-by-two coordinates for imported
-#'   charts.
+#' @param coordinates For imported charts, either a finite vertex-by-two
+#'   coordinate matrix or an aligned `ngeo_surface` carrying a flat chart.
+#'   A surface input verifies ordered source vertices and maps every imported
+#'   face to the source topology; a registered flat surface may contain a
+#'   verified subset of source faces around its cut or medial wall.
 #' @param boundary Required ordered boundary loop for harmonic charts.
 #' @param name New chart coordinate-set name.
 #' @param tolerance Degenerate-face tolerance.
@@ -278,11 +393,9 @@ ngeo_flatten_surface <- function(
     )
   }
   if (identical(method, "imported")) {
-    chart <- .ngeo_cartography_coordinates(x, coordinates, 2L)
-    invariants <- list(
-      imported = TRUE,
-      topology_assumed = FALSE
-    )
+    imported <- .ngeo_cartography_imported_coordinates(x, coordinates)
+    chart <- imported$coordinates
+    invariants <- imported$invariants
   } else {
     invariants <- .ngeo_boundary_invariants(x, boundary)
     boundary <- invariants$boundary
@@ -478,13 +591,32 @@ ngeo_project_surface <- function(
 }
 
 .ngeo_face_mode <- function(values, faces) {
-  apply(faces, 1L, function(index) {
-    current <- values[index]
-    current <- current[!is.na(current)]
-    if (!length(current)) return(NA_character_)
-    count <- table(as.character(current))
-    names(count)[which.max(count)]
-  })
+  first <- as.character(values[faces[, 1L]])
+  second <- as.character(values[faces[, 2L]])
+  third <- as.character(values[faces[, 3L]])
+  result <- rep.int(NA_character_, nrow(faces))
+
+  pair <- !is.na(first) & !is.na(second) & first == second
+  result[pair] <- first[pair]
+  unresolved <- is.na(result)
+  pair <- unresolved & !is.na(first) & !is.na(third) & first == third
+  result[pair] <- first[pair]
+  unresolved <- is.na(result)
+  pair <- unresolved & !is.na(second) & !is.na(third) & second == third
+  result[pair] <- second[pair]
+
+  unresolved <- is.na(result)
+  if (any(unresolved)) {
+    sentinel <- "\U0010FFFF"
+    lexical <- pmin(
+      ifelse(is.na(first[unresolved]), sentinel, first[unresolved]),
+      ifelse(is.na(second[unresolved]), sentinel, second[unresolved]),
+      ifelse(is.na(third[unresolved]), sentinel, third[unresolved])
+    )
+    lexical[lexical == sentinel] <- NA_character_
+    result[unresolved] <- lexical
+  }
+  result
 }
 
 .ngeo_cartography_palette <- function(n, palette) {
@@ -499,8 +631,20 @@ ngeo_project_surface <- function(
   )
 }
 
-.ngeo_cortical_colors <- function(values, type, palette, limits, na_color) {
+.ngeo_cortical_colors <- function(
+    values,
+    type,
+    palette,
+    limits,
+    na_color,
+    colors = NULL) {
   if (identical(type, "continuous")) {
+    if (!is.null(colors)) {
+      .ngeo_abort(
+        "`colors` can only be used for categorical cortical maps.",
+        "ngeo_error_argument"
+      )
+    }
     finite <- is.finite(values)
     limits <- limits %||% if (any(finite)) range(values[finite]) else c(0, 1)
     if (!is.numeric(limits) || length(limits) != 2L ||
@@ -533,8 +677,48 @@ ngeo_project_surface <- function(
     ))
   }
   level <- unique(as.character(values[!is.na(values)]))
-  color <- .ngeo_cartography_palette(max(1L, length(level)), palette)
-  lookup <- stats::setNames(color[seq_along(level)], level)
+  if (is.null(colors)) {
+    color <- .ngeo_cartography_palette(max(1L, length(level)), palette)
+    lookup <- stats::setNames(color[seq_along(level)], level)
+  } else {
+    if (!is.character(colors) || !length(colors) || anyNA(colors)) {
+      .ngeo_abort(
+        "`colors` must be a non-missing character palette.",
+        "ngeo_error_argument"
+      )
+    }
+    tryCatch(
+      grDevices::col2rgb(colors),
+      error = function(...) {
+        .ngeo_abort(
+          "`colors` contains an invalid R color.",
+          "ngeo_error_argument"
+        )
+      }
+    )
+    if (is.null(names(colors)) || any(!nzchar(names(colors)))) {
+      if (length(colors) < length(level)) {
+        .ngeo_abort(
+          "`colors` must provide one color per categorical level.",
+          "ngeo_error_alignment"
+        )
+      }
+      lookup <- stats::setNames(colors[seq_along(level)], level)
+    } else {
+      missing <- setdiff(level, names(colors))
+      if (length(missing)) {
+        .ngeo_abort(
+          paste0(
+            "`colors` is missing categorical levels: ",
+            paste(missing, collapse = ", "),
+            "."
+          ),
+          "ngeo_error_alignment"
+        )
+      }
+      lookup <- colors[level]
+    }
+  }
   result <- rep.int(na_color, length(values))
   keep <- !is.na(values)
   result[keep] <- lookup[as.character(values[keep])]
@@ -549,8 +733,73 @@ ngeo_project_surface <- function(
   )
 }
 
+.ngeo_cortical_label_table <- function(table, membership) {
+  if (is.null(table) || !is.data.frame(table) || !nrow(table)) {
+    return(list(
+      membership = as.character(membership),
+      colors = NULL
+    ))
+  }
+  lower <- tolower(names(table))
+  key_index <- match("key", lower)
+  label_index <- match("label", lower)
+  if (is.na(key_index) || is.na(label_index)) {
+    return(list(
+      membership = as.character(membership),
+      colors = NULL
+    ))
+  }
+
+  key <- as.character(table[[key_index]])
+  label <- as.character(table[[label_index]])
+  lookup <- stats::setNames(label, key)
+  translated <- unname(lookup[as.character(membership)])
+  missing <- is.na(translated) & !is.na(membership)
+  translated[missing] <- as.character(membership[missing])
+
+  channel <- match(c("red", "green", "blue", "alpha"), lower)
+  colors <- NULL
+  if (!anyNA(channel)) {
+    rgba <- suppressWarnings(
+      apply(table[, channel, drop = FALSE], 2L, as.numeric)
+    )
+    if (is.matrix(rgba) && nrow(rgba) == nrow(table) &&
+        all(is.finite(rgba))) {
+      maximum <- if (max(rgba) > 1) 255 else 1
+      colors <- grDevices::rgb(
+        rgba[, 1L],
+        rgba[, 2L],
+        rgba[, 3L],
+        rgba[, 4L],
+        maxColorValue = maximum
+      )
+      colors <- stats::setNames(colors, label)
+    }
+  }
+  list(membership = translated, colors = colors)
+}
+
 .ngeo_cortical_atlas <- function(x, atlas, chart) {
   if (is.null(atlas)) return(NULL)
+  if (is.character(atlas) && length(atlas) == 1L &&
+      atlas %in% names(x$labels)) {
+    source <- x$labels[[atlas]]
+    if (!is.list(source) || is.null(source$values) ||
+        length(source$values) != nrow(x$domain$elements)) {
+      .ngeo_abort(
+        sprintf("Label source `%s` is not vertex aligned.", atlas),
+        "ngeo_error_alignment"
+      )
+    }
+    decoded <- .ngeo_cortical_label_table(source$table, source$values)
+    return(list(
+      membership = decoded$membership,
+      colors = decoded$colors,
+      table = source$table,
+      name = atlas,
+      source = "labels"
+    ))
+  }
   if (inherits(atlas, "ngeo_partition")) {
     .ngeo_validate_partition(atlas)
     chart_source_hash <- x$domain$charts[[chart]]$source_domain_hash
@@ -568,7 +817,13 @@ ngeo_project_surface <- function(
         "ngeo_error_domain_mismatch"
       )
     }
-    return(atlas$membership)
+    return(list(
+      membership = atlas$membership,
+      colors = NULL,
+      table = NULL,
+      name = "atlas",
+      source = "ngeo_partition"
+    ))
   }
   if (!is.atomic(atlas) || !is.null(dim(atlas)) ||
       length(atlas) != nrow(x$domain$elements)) {
@@ -577,7 +832,70 @@ ngeo_project_surface <- function(
       "ngeo_error_alignment"
     )
   }
-  as.character(atlas)
+  list(
+    membership = as.character(atlas),
+    colors = NULL,
+    table = NULL,
+    name = "atlas",
+    source = "vector"
+  )
+}
+
+.ngeo_cortical_mask <- function(x, mask) {
+  mask <- mask %||% x$domain$mask
+  if (!is.logical(mask) || length(mask) != nrow(x$domain$elements) ||
+      anyNA(mask)) {
+    .ngeo_abort(
+      "`mask` must be a non-missing logical vector with one item per vertex.",
+      "ngeo_error_alignment"
+    )
+  }
+  mask
+}
+
+.ngeo_cortical_underlay <- function(x, underlay) {
+  if (is.null(underlay)) return(NULL)
+  if (is.numeric(underlay) &&
+      length(underlay) == nrow(x$domain$elements)) {
+    value <- underlay
+    name <- "underlay"
+  } else {
+    selected <- .ngeo_plot_map(x, underlay)
+    value <- selected$values
+    name <- selected$name
+  }
+  if (!is.numeric(value) || length(value) != nrow(x$domain$elements)) {
+    .ngeo_abort(
+      "`underlay` must resolve to one numeric value per surface vertex.",
+      "ngeo_error_alignment"
+    )
+  }
+  list(values = value, name = name)
+}
+
+.ngeo_cortical_label_positions <- function(coordinates, atlas, mask) {
+  if (is.null(atlas)) return(data.frame())
+  keep <- mask & !is.na(atlas)
+  level <- unique(as.character(atlas[keep]))
+  if (!length(level)) return(data.frame())
+  result <- lapply(level, function(current) {
+    candidate <- which(keep & as.character(atlas) == current)
+    center <- c(
+      stats::median(coordinates[candidate, 1L]),
+      stats::median(coordinates[candidate, 2L])
+    )
+    distance <- (coordinates[candidate, 1L] - center[[1L]])^2 +
+      (coordinates[candidate, 2L] - center[[2L]])^2
+    anchor <- candidate[[which.min(distance)]]
+    data.frame(
+      label = current,
+      x = coordinates[anchor, 1L],
+      y = coordinates[anchor, 2L],
+      source_vertex = anchor,
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, result)
 }
 
 #' Build an atlas-independent cortical map
@@ -593,6 +911,17 @@ ngeo_project_surface <- function(
 #' @param palette HCL palette name.
 #' @param limits Optional continuous color limits.
 #' @param na_color Missing-value color.
+#' @param fill Whether face colors represent vertex values or atlas membership.
+#' @param mask Optional logical vertex mask. By default the domain mask is used.
+#'   A face is visible only when all three vertices are included.
+#' @param underlay Optional numeric vertex vector or map selector used as a
+#'   grayscale or colored anatomical underlay.
+#' @param underlay_palette HCL palette for the underlay.
+#' @param underlay_limits Optional underlay color limits.
+#' @param colors Optional categorical colors. Named colors are matched to
+#'   category labels. Label-table colors are used automatically for
+#'   `fill = "atlas"` when available.
+#' @param overlay_alpha Opacity of the value or atlas layer over the underlay.
 #' @return An `ngeo_cortical_map`.
 #' @examples
 #' surface <- ngeo_surface(
@@ -615,23 +944,78 @@ ngeo_cortical_map <- function(
     atlas = NULL,
     palette = "viridis",
     limits = NULL,
-    na_color = "grey85") {
+    na_color = "grey85",
+    fill = c("values", "atlas"),
+    mask = NULL,
+    underlay = NULL,
+    underlay_palette = "Grays",
+    underlay_limits = NULL,
+    colors = NULL,
+    overlay_alpha = 1) {
   .ngeo_cartography_surface(x)
   .ngeo_assert_scalar_character(palette, "palette")
-  .ngeo_assert_scalar_character(na_color, "na_color")
-  tryCatch(
-    grDevices::col2rgb(na_color),
-    error = function(...) {
+  .ngeo_assert_scalar_character(underlay_palette, "underlay_palette")
+  if (!is.character(na_color) || length(na_color) != 1L) {
+    .ngeo_abort(
+      "`na_color` must be one valid R color or `NA`.",
+      "ngeo_error_argument"
+    )
+  }
+  if (!is.na(na_color)) {
+    tryCatch(
+      grDevices::col2rgb(na_color),
+      error = function(...) {
+        .ngeo_abort(
+          "`na_color` must be one valid R color or `NA`.",
+          "ngeo_error_argument"
+        )
+      }
+    )
+  }
+  if (!is.numeric(overlay_alpha) || length(overlay_alpha) != 1L ||
+      is.na(overlay_alpha) || !is.finite(overlay_alpha) ||
+      overlay_alpha < 0 || overlay_alpha > 1) {
+    .ngeo_abort(
+      "`overlay_alpha` must be one number between zero and one.",
+      "ngeo_error_argument"
+    )
+  }
+  fill <- match.arg(fill)
+  chart_info <- .ngeo_chart_coordinates(x, chart)
+  chart <- chart_info$name
+  atlas_info <- .ngeo_cortical_atlas(x, atlas, chart)
+  value <- if (identical(fill, "atlas")) {
+    if (is.null(atlas_info)) {
       .ngeo_abort(
-        "`na_color` must be a valid R color.",
+        "`fill = \"atlas\"` requires an aligned `atlas`.",
         "ngeo_error_argument"
       )
     }
-  )
-  chart_info <- .ngeo_chart_coordinates(x, chart)
-  chart <- chart_info$name
-  value <- .ngeo_cortical_vertex_values(x, map, values)
+    if (is.null(colors)) colors <- atlas_info$colors
+    list(
+      values = atlas_info$membership,
+      name = atlas_info$name,
+      type = "categorical"
+    )
+  } else {
+    .ngeo_cortical_vertex_values(x, map, values)
+  }
   faces <- x$domain$faces
+  mask <- .ngeo_cortical_mask(x, mask)
+  charted_face <- rep.int(FALSE, nrow(faces))
+  source_face_in_chart <-
+    x$domain$charts[[chart]]$invariants$source_face_in_chart %||%
+    seq_len(nrow(faces))
+  charted_face[source_face_in_chart] <- TRUE
+  included_face <- rowSums(
+    matrix(mask[faces], ncol = 3L)
+  ) == 3L & charted_face
+  if (!any(included_face)) {
+    .ngeo_abort(
+      "`mask` excludes every complete surface face.",
+      "ngeo_error_coverage"
+    )
+  }
   face_value <- if (identical(value$type, "continuous")) {
     matrix_value <- matrix(value$values[faces], ncol = 3L)
     matrix_value[!is.finite(matrix_value)] <- NA_real_
@@ -646,24 +1030,53 @@ ngeo_cortical_map <- function(
     value$type,
     palette,
     limits,
-    na_color
+    na_color,
+    colors
   )
-  atlas_value <- .ngeo_cortical_atlas(x, atlas, chart)
+  color$color[!included_face] <- NA_character_
+  underlay_info <- .ngeo_cortical_underlay(x, underlay)
+  underlay_value <- rep.int(NA_real_, nrow(faces))
+  underlay_color <- rep.int(NA_character_, nrow(faces))
+  if (!is.null(underlay_info)) {
+    matrix_underlay <- matrix(underlay_info$values[faces], ncol = 3L)
+    matrix_underlay[!is.finite(matrix_underlay)] <- NA_real_
+    underlay_value <- rowMeans(matrix_underlay, na.rm = TRUE)
+    underlay_value[rowSums(is.finite(matrix_underlay)) == 0L] <- NA_real_
+    underlay_scale <- .ngeo_cortical_colors(
+      underlay_value,
+      "continuous",
+      underlay_palette,
+      underlay_limits,
+      NA_character_
+    )
+    underlay_color <- underlay_scale$color
+    underlay_color[!included_face] <- NA_character_
+    underlay_limits <- underlay_scale$limits
+  }
+  atlas_value <- atlas_info$membership %||% NULL
   boundary <- data.frame()
+  visible_edges <- .ngeo_cartography_edges(
+    faces[included_face, , drop = FALSE]
+  )
   if (!is.null(atlas_value)) {
-    edges <- .ngeo_cartography_edges(faces)
-    left <- atlas_value[edges$from]
-    right <- atlas_value[edges$to]
+    left <- atlas_value[visible_edges$from]
+    right <- atlas_value[visible_edges$to]
     keep <- (is.na(left) != is.na(right)) |
       (!is.na(left) & !is.na(right) & left != right)
     boundary <- data.frame(
-      from = edges$from[keep],
-      to = edges$to[keep],
+      from = visible_edges$from[keep],
+      to = visible_edges$to[keep],
       left = left[keep],
       right = right[keep],
       stringsAsFactors = FALSE
     )
   }
+  outline_edges <- visible_edges[visible_edges$count == 1L, , drop = FALSE]
+  outline <- data.frame(
+    from = outline_edges$from,
+    to = outline_edges$to,
+    stringsAsFactors = FALSE
+  )
   coordinates <- chart_info$coordinates
   atlas_column <- atlas_value %||%
     rep.int(NA_character_, nrow(coordinates))
@@ -674,6 +1087,7 @@ ngeo_cortical_map <- function(
     y = coordinates[, 2L],
     value = value$values,
     atlas = atlas_column,
+    included = mask,
     stringsAsFactors = FALSE
   )
   face_data <- data.frame(
@@ -683,7 +1097,16 @@ ngeo_cortical_map <- function(
     vertex_3 = faces[, 3L],
     value = face_value,
     color = color$color,
+    underlay_value = underlay_value,
+    underlay_color = underlay_color,
+    charted = charted_face,
+    included = included_face,
     stringsAsFactors = FALSE
+  )
+  label_positions <- .ngeo_cortical_label_positions(
+    coordinates,
+    atlas_value,
+    mask
   )
   result <- list(
     source_domain_hash = ngeo_domain_hash(x),
@@ -694,18 +1117,30 @@ ngeo_cortical_map <- function(
     vertices = vertices,
     face_data = face_data,
     boundaries = boundary,
+    outline = outline,
+    label_positions = label_positions,
     legend = color$legend,
     limits = color$limits,
     map_name = value$name,
     value_type = value$type,
+    fill = fill,
     palette = palette,
     na_color = na_color,
+    colors = colors,
+    mask = mask,
+    underlay_name = underlay_info$name %||% NULL,
+    underlay_palette = underlay_palette,
+    underlay_limits = underlay_limits,
+    overlay_alpha = overlay_alpha,
     provenance = list(
       source_domain_hash = ngeo_domain_hash(x),
       chart_source_domain_hash =
         x$domain$charts[[chart]]$source_domain_hash,
       seam_faces =
         x$domain$charts[[chart]]$invariants$seam_faces %||% integer(),
+      atlas_source = atlas_info$source %||% NULL,
+      included_vertices = sum(mask),
+      included_faces = sum(included_face),
       source_vertex = seq_len(nrow(coordinates)),
       source_face = seq_len(nrow(faces))
     )
@@ -730,6 +1165,8 @@ ngeo_cortical_map_data <- function(x) {
     vertices = x$vertices,
     faces = x$face_data,
     boundaries = x$boundaries,
+    outline = x$outline,
+    label_positions = x$label_positions,
     legend = x$legend,
     metadata = list(
       source_domain_hash = x$source_domain_hash,
@@ -737,9 +1174,15 @@ ngeo_cortical_map_data <- function(x) {
       chart_metadata = x$chart_metadata,
       map_name = x$map_name,
       value_type = x$value_type,
+      fill = x$fill,
       limits = x$limits,
       palette = x$palette,
       na_color = x$na_color,
+      colors = x$colors,
+      underlay_name = x$underlay_name,
+      underlay_palette = x$underlay_palette,
+      underlay_limits = x$underlay_limits,
+      overlay_alpha = x$overlay_alpha,
       provenance = x$provenance
     )
   )
@@ -795,7 +1238,9 @@ print.ngeo_cortical_map <- function(x, ...) {
     "  chart: ", x$chart, "\n",
     "  map: ", x$map_name, " (", x$value_type, ")\n",
     "  vertices: ", nrow(x$vertices), "\n",
-    "  faces: ", nrow(x$face_data), "\n",
+    "  visible faces: ", sum(x$face_data$included), " / ",
+    nrow(x$face_data), "\n",
+    "  outline edges: ", nrow(x$outline), "\n",
     "  atlas boundaries: ", nrow(x$boundaries), "\n",
     sep = ""
   )
@@ -809,10 +1254,17 @@ print.ngeo_cortical_map <- function(x, ...) {
 #' @param show_boundaries Draw aligned atlas boundary edges.
 #' @param boundary_color Atlas boundary color.
 #' @param boundary_lwd Atlas boundary line width.
+#' @param show_outline Draw the visible cortical-sheet outline.
+#' @param outline_color Cortical outline color.
+#' @param outline_lwd Cortical outline line width.
+#' @param show_labels Draw atlas labels at vertex-constrained anchors.
+#' @param label_regions Optional atlas labels to draw.
+#' @param label_color,label_cex,label_font Atlas-label appearance.
 #' @param main Plot title.
 #' @param axes Draw coordinate axes.
 #' @param show_legend Draw the value legend.
-#' @param legend_position Position passed to [graphics::legend()].
+#' @param legend_position Categorical legend position, or `"bottom"` for a
+#'   horizontal continuous color bar.
 #' @param legend_cex Legend text scaling.
 #' @param xlim,ylim Plot limits. Spherical views default to the complete
 #'   longitude/latitude range.
@@ -825,10 +1277,18 @@ plot.ngeo_cortical_map <- function(
     show_boundaries = TRUE,
     boundary_color = "grey10",
     boundary_lwd = 0.7,
+    show_outline = TRUE,
+    outline_color = "grey10",
+    outline_lwd = 1,
+    show_labels = FALSE,
+    label_regions = NULL,
+    label_color = "grey10",
+    label_cex = 0.65,
+    label_font = 2,
     main = x$map_name,
     axes = FALSE,
     show_legend = TRUE,
-    legend_position = "topright",
+    legend_position = NULL,
     legend_cex = 0.75,
     xlim = NULL,
     ylim = NULL,
@@ -836,12 +1296,19 @@ plot.ngeo_cortical_map <- function(
   coordinates <- x$coordinates
   faces <- x$faces
   spherical <- identical(x$chart_metadata$method, "spherical")
+  legend_position <- legend_position %||%
+    if (identical(x$value_type, "continuous")) "bottom" else "topright"
   if (is.null(xlim)) {
     xlim <- if (spherical) c(-pi, pi) else range(coordinates[, 1L])
   }
   if (is.null(ylim)) {
     ylim <- if (spherical) c(-pi / 2, pi / 2) else
       range(coordinates[, 2L])
+  }
+  if (isTRUE(show_legend) &&
+      identical(x$value_type, "continuous") &&
+      identical(legend_position, "bottom")) {
+    ylim <- c(ylim[[1L]] - 0.16 * diff(ylim), ylim[[2L]])
   }
   graphics::plot(
     coordinates,
@@ -856,12 +1323,14 @@ plot.ngeo_cortical_map <- function(
     ...
   )
   seam_faces <- x$chart_metadata$invariants$seam_faces %||% integer()
+  included_faces <- which(x$face_data$included)
   regular_faces <- if (length(seam_faces)) {
-    setdiff(seq_len(nrow(faces)), seam_faces)
+    intersect(setdiff(seq_len(nrow(faces)), seam_faces), included_faces)
   } else {
-    seq_len(nrow(faces))
+    included_faces
   }
-  draw_faces <- function(index, shift = NULL) {
+  seam_faces <- intersect(seam_faces, included_faces)
+  draw_faces <- function(index, colors, shift = NULL, mesh = FALSE) {
     if (!length(index)) return(invisible(NULL))
     current <- faces[index, , drop = FALSE]
     face_x <- matrix(coordinates[current, 1L], ncol = 3L)
@@ -874,20 +1343,53 @@ plot.ngeo_cortical_map <- function(
     graphics::polygon(
       as.vector(t(cbind(face_x, NA_real_))),
       as.vector(t(cbind(face_y, NA_real_))),
-      col = x$face_data$color[index],
-      border = if (isTRUE(show_mesh)) "grey70" else NA
+      col = colors[index],
+      border = if (isTRUE(mesh)) "grey70" else NA
     )
     invisible(NULL)
   }
-  draw_faces(regular_faces)
-  if (length(seam_faces)) {
-    draw_faces(seam_faces, "positive")
-    draw_faces(seam_faces, "negative")
+  if (any(!is.na(x$face_data$underlay_color[included_faces]))) {
+    draw_faces(
+      regular_faces,
+      x$face_data$underlay_color,
+      mesh = FALSE
+    )
+    if (length(seam_faces)) {
+      draw_faces(
+        seam_faces,
+        x$face_data$underlay_color,
+        "positive",
+        mesh = FALSE
+      )
+      draw_faces(
+        seam_faces,
+        x$face_data$underlay_color,
+        "negative",
+        mesh = FALSE
+      )
+    }
   }
-  if (isTRUE(show_boundaries) && nrow(x$boundaries)) {
-    boundary <- x$boundaries
-    from_x <- coordinates[boundary$from, 1L]
-    to_x <- coordinates[boundary$to, 1L]
+  overlay_color <- x$face_data$color
+  keep_color <- !is.na(overlay_color)
+  if (x$overlay_alpha < 1 && any(keep_color)) {
+    overlay_color[keep_color] <- grDevices::adjustcolor(
+      overlay_color[keep_color],
+      alpha.f = x$overlay_alpha
+    )
+  }
+  draw_faces(
+    regular_faces,
+    overlay_color,
+    mesh = show_mesh
+  )
+  if (length(seam_faces)) {
+    draw_faces(seam_faces, overlay_color, "positive", show_mesh)
+    draw_faces(seam_faces, overlay_color, "negative", show_mesh)
+  }
+  draw_edges <- function(edge, color, line_width) {
+    if (!nrow(edge)) return(invisible(NULL))
+    from_x <- coordinates[edge$from, 1L]
+    to_x <- coordinates[edge$to, 1L]
     crossing <- spherical & abs(from_x - to_x) > pi
     draw_segments <- function(index, shift = NULL) {
       if (!length(index)) return(invisible(NULL))
@@ -902,37 +1404,105 @@ plot.ngeo_cortical_map <- function(
       }
       graphics::segments(
         x0,
-        coordinates[boundary$from[index], 2L],
+        coordinates[edge$from[index], 2L],
         x1,
-        coordinates[boundary$to[index], 2L],
-        col = boundary_color,
-        lwd = boundary_lwd
+        coordinates[edge$to[index], 2L],
+        col = color,
+        lwd = line_width
       )
       invisible(NULL)
     }
     draw_segments(which(!crossing))
     draw_segments(which(crossing), "positive")
     draw_segments(which(crossing), "negative")
+    invisible(NULL)
+  }
+  if (isTRUE(show_boundaries) && nrow(x$boundaries)) {
+    draw_edges(x$boundaries, boundary_color, boundary_lwd)
+  }
+  if (isTRUE(show_outline) && nrow(x$outline)) {
+    draw_edges(x$outline, outline_color, outline_lwd)
+  }
+  if (isTRUE(show_labels) && nrow(x$label_positions)) {
+    label <- x$label_positions
+    if (!is.null(label_regions)) {
+      if (!is.character(label_regions)) {
+        .ngeo_abort(
+          "`label_regions` must be a character vector.",
+          "ngeo_error_argument"
+        )
+      }
+      label <- label[label$label %in% label_regions, , drop = FALSE]
+    }
+    graphics::text(
+      label$x,
+      label$y,
+      labels = label$label,
+      col = label_color,
+      cex = label_cex,
+      font = label_font
+    )
   }
   if (isTRUE(show_legend) && nrow(x$legend)) {
-    legend_label <- if (identical(x$value_type, "continuous")) {
-      format(signif(x$legend$value, 5L), trim = TRUE)
+    if (identical(x$value_type, "continuous") &&
+        identical(legend_position, "bottom")) {
+      user <- graphics::par("usr")
+      width <- diff(user[1:2])
+      height <- diff(user[3:4])
+      left <- user[[1L]] + 0.28 * width
+      right <- user[[1L]] + 0.72 * width
+      bottom <- user[[3L]] + 0.04 * height
+      top <- user[[3L]] + 0.075 * height
+      color_bar <- matrix(
+        .ngeo_cartography_palette(256L, x$palette),
+        nrow = 1L
+      )
+      graphics::rasterImage(
+        grDevices::as.raster(color_bar),
+        left,
+        bottom,
+        right,
+        top,
+        interpolate = TRUE
+      )
+      graphics::rect(left, bottom, right, top, border = "grey30")
+      graphics::text(
+        c(left, right),
+        bottom - 0.018 * height,
+        labels = format(signif(x$limits, 5L), trim = TRUE),
+        adj = c(0.5, 1),
+        cex = legend_cex
+      )
+      graphics::text(
+        (left + right) / 2,
+        top + 0.012 * height,
+        labels = x$map_name,
+        adj = c(0.5, 0),
+        cex = legend_cex
+      )
     } else {
-      as.character(x$legend$value)
+      legend_label <- if (identical(x$value_type, "continuous")) {
+        format(signif(x$legend$value, 5L), trim = TRUE)
+      } else {
+        as.character(x$legend$value)
+      }
+      legend_color <- x$legend$color
+      visible_color <- x$face_data$color[x$face_data$included]
+      has_missing <- !is.na(x$na_color) &&
+        any(!is.na(visible_color) & visible_color == x$na_color)
+      if (has_missing) {
+        legend_label <- c(legend_label, "NA")
+        legend_color <- c(legend_color, x$na_color)
+      }
+      graphics::legend(
+        legend_position,
+        legend = legend_label,
+        fill = legend_color,
+        title = x$map_name,
+        bty = "n",
+        cex = legend_cex
+      )
     }
-    legend_color <- x$legend$color
-    if (any(x$face_data$color == x$na_color)) {
-      legend_label <- c(legend_label, "NA")
-      legend_color <- c(legend_color, x$na_color)
-    }
-    graphics::legend(
-      legend_position,
-      legend = legend_label,
-      fill = legend_color,
-      title = x$map_name,
-      bty = "n",
-      cex = legend_cex
-    )
   }
   invisible(x)
 }

@@ -300,6 +300,140 @@ test_that("cortical maps support vertex data, atlas boundaries, and exchange", {
   )
 })
 
+test_that("imported flat surfaces verify and retain source-face subsets", {
+  source <- cartography_disk()
+  flat_surface <- ngeo_surface(
+    coordinates = matrix(
+      c(
+        0, 0,
+        2, 0,
+        2, 1,
+        0, 1,
+        1, 0.5
+      ),
+      ncol = 2L,
+      byrow = TRUE
+    ),
+    faces = source$domain$faces[1:3, , drop = FALSE],
+    coordinate_roles = "chart",
+    index_base = "one"
+  )
+  flat <- ngeo_flatten_surface(
+    source,
+    "imported",
+    coordinates = flat_surface
+  )
+  metadata <- flat$domain$charts$flat
+  map <- ngeo_cortical_map(flat, chart = "flat")
+
+  expect_true(metadata$invariants$topology_verified)
+  expect_identical(
+    metadata$invariants$topology_relation,
+    "face_subset"
+  )
+  expect_identical(metadata$invariants$source_face_in_chart, 1:3)
+  expect_identical(sum(map$face_data$charted), 3L)
+  expect_identical(sum(map$face_data$included), 3L)
+  expect_gt(nrow(map$outline), 0L)
+
+  flat_surface$domain$faces[1L, ] <- c(1L, 2L, 4L)
+  expect_error(
+    ngeo_flatten_surface(
+      source,
+      "imported",
+      coordinates = flat_surface,
+      name = "bad"
+    ),
+    class = "ngeo_error_alignment"
+  )
+
+  flat_surface <- ngeo_surface(
+    coordinates = matrix(
+      c(0, 0, 2, 0, 2, 1, 0, 1, 1, 0.5),
+      ncol = 2L,
+      byrow = TRUE
+    ),
+    faces = source$domain$faces[1:3, , drop = FALSE],
+    coordinate_roles = "chart",
+    index_base = "one"
+  )
+  flat_surface$domain$elements$element_id[[1L]] <- "different"
+  expect_error(
+    ngeo_flatten_surface(
+      source,
+      "imported",
+      coordinates = flat_surface,
+      name = "misidentified"
+    ),
+    class = "ngeo_error_alignment"
+  )
+})
+
+test_that("flatmaps combine masks, underlays, label atlases, and source colors", {
+  source <- cartography_disk()
+  source$labels$atlas <- list(
+    values = c(1L, 1L, 2L, 2L, 2L),
+    table = data.frame(
+      label = c("anterior", "posterior"),
+      Key = c(1L, 2L),
+      Red = c(0.8, 0.1),
+      Green = c(0.2, 0.5),
+      Blue = c(0.1, 0.9),
+      Alpha = c(1, 1),
+      stringsAsFactors = FALSE
+    )
+  )
+  flat <- ngeo_flatten_surface(
+    source,
+    "harmonic",
+    boundary = 1:4
+  )
+  map <- ngeo_cortical_map(
+    flat,
+    chart = "flat",
+    atlas = "atlas",
+    fill = "atlas",
+    mask = c(TRUE, TRUE, TRUE, FALSE, TRUE),
+    underlay = "signal",
+    overlay_alpha = 0.6,
+    na_color = NA_character_
+  )
+  data <- ngeo_cortical_map_data(map)
+
+  expect_identical(map$fill, "atlas")
+  expect_identical(map$map_name, "atlas")
+  expect_setequal(map$legend$value, c("anterior", "posterior"))
+  expect_true(all(grepl("^#[0-9A-F]{8}$", map$legend$color)))
+  expect_identical(sum(map$vertices$included), 4L)
+  expect_identical(sum(map$face_data$included), 2L)
+  expect_gt(nrow(data$outline), 0L)
+  expect_gt(nrow(data$label_positions), 0L)
+  expect_true(all(data$label_positions$source_vertex %in%
+    which(map$vertices$included)))
+  expect_true(any(is.finite(data$faces$underlay_value)))
+  expect_identical(data$metadata$underlay_name, "signal")
+  expect_identical(data$metadata$overlay_alpha, 0.6)
+  expect_identical(
+    data$metadata$provenance$atlas_source,
+    "labels"
+  )
+
+  expect_error(
+    ngeo_cortical_map(
+      flat,
+      chart = "flat",
+      atlas = c("A", "A", "B", "B", "B"),
+      fill = "atlas",
+      colors = c(A = "red")
+    ),
+    class = "ngeo_error_alignment"
+  )
+  expect_error(
+    ngeo_cortical_map(flat, chart = "flat", fill = "atlas"),
+    class = "ngeo_error_argument"
+  )
+})
+
 test_that("cortical map alignment and chart selection fail explicitly", {
   x <- cartography_disk()
   expect_error(

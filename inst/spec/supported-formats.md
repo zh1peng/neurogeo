@@ -1,6 +1,6 @@
 # Supported standard formats
 
-Status: reviewed for neurogeo 4.3.0
+Status: reviewed for neurogeo 4.3.1
 
 ## Input
 
@@ -60,8 +60,13 @@ The manifest records original terms separately from upstream R package
 licenses.
 
 The 4.3 cartography validation reuses the checksum-verified HCP 32k GIFTI
-surface from this download-only cache. No surface or atlas is embedded as a
-fixed plotting template, and no additional data license is introduced.
+surface from this download-only cache.
+
+The 4.3.1 manifest adds checksum-pinned HCP S1200 Conte69 flat and
+midthickness surfaces, atlas-ROI masks, and Schaefer 2018 Conte69 GIFTI label
+files. The real-flatmap gate verifies a registered face-subset chart and
+renders bilateral continuous and atlas maps. No surface or atlas is embedded
+as a fixed plotting template.
 
 ## Safety rules
 
