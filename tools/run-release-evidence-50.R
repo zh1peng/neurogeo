@@ -24,7 +24,7 @@ evidence_paths <- c(
 )
 reports <- lapply(evidence_paths, read_report)
 check_log <- file.path(
-  "check-output", "rcheck-50-standard", "neurogeo.Rcheck", "00check.log"
+  "check-output", "rcheck-50-final", "neurogeo.Rcheck", "00check.log"
 )
 if (!file.exists(check_log)) stop("Missing R CMD check log: ", check_log)
 check_lines <- readLines(check_log, warn = FALSE)
