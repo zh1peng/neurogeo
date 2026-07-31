@@ -18,8 +18,11 @@ ngeo_flatten_surface(
 
 \item{method}{Imported coordinates or harmonic disk parameterization.}
 
-\item{coordinates}{Required finite vertex-by-two coordinates for imported
-charts.}
+\item{coordinates}{For imported charts, either a finite vertex-by-two
+coordinate matrix or an aligned `ngeo_surface` carrying a flat chart.
+A surface input verifies ordered source vertices and maps every imported
+face to the source topology; a registered flat surface may contain a
+verified subset of source faces around its cut or medial wall.}
 
 \item{boundary}{Required ordered boundary loop for harmonic charts.}
 

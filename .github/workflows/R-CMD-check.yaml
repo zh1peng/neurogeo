@@ -87,7 +87,7 @@ jobs:
           path: coverage-421.json
 
   real-data-validation:
-    name: real-data 4.2.2 + cartography 4.3
+    name: real-data 4.2.2 + cortical flatmap 4.3.1
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -107,7 +107,9 @@ jobs:
         run: R CMD INSTALL .
 
       - name: Fetch checksum-pinned download-only fixtures
-        run: Rscript tools/fetch-reference-422.R
+        run: |
+          Rscript tools/fetch-reference-422.R
+          Rscript tools/fetch-reference-431.R
 
       - name: Run real-data workflows
         run: >-
@@ -119,9 +121,19 @@ jobs:
           Rscript tools/run-cartography-43-validation.R
           cartography-43-validation.json
 
+      - name: Run real bilateral cortical flatmap workflow
+        run: >-
+          Rscript tools/run-flatmap-431-validation.R
+          flatmap-431-validation.json
+          .tools/reference-4.2.2
+          .tools/reference-flatmap
+          flatmap-431
+
       - uses: actions/upload-artifact@v4
         with:
           name: real-data-and-cartography-validation
           path: |
             real-data-422-validation.json
             cartography-43-validation.json
+            flatmap-431-validation.json
+            flatmap-431/*.png

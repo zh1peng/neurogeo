@@ -10,6 +10,24 @@ if (!requireNamespace("neurogeo", quietly = TRUE)) {
   stop("Install neurogeo before rendering the tutorial site.")
 }
 
+flatmap_figures <- c(
+  "conte69-vertex-flatmap.png",
+  "conte69-atlas-flatmap.png"
+)
+flatmap_sources <- file.path("vignettes", "figures", flatmap_figures)
+if (all(file.exists(flatmap_sources))) {
+  flatmap_target <- file.path("website", "public", "images")
+  dir.create(flatmap_target, recursive = TRUE, showWarnings = FALSE)
+  copied <- file.copy(
+    flatmap_sources,
+    file.path(flatmap_target, flatmap_figures),
+    overwrite = TRUE
+  )
+  if (!all(copied)) {
+    stop("Could not copy cortical flatmap figures into the website.")
+  }
+}
+
 pairs <- data.frame(
   zh_source = c(
     "vignettes/core-concepts-zh.Rmd",
@@ -199,8 +217,8 @@ documents <- rbind(
       "website/en/modules/cortical-cartography.md"
     ),
     title = c(
-      "皮层二维地图：从 vertex 数据到任意 atlas",
-      "Cortical cartography for arbitrary vertex data and atlases"
+      "真实皮层二维地图：vertex 数据、沟回底图与任意 atlas",
+      "Real cortical flatmaps for vertex data and arbitrary atlases"
     ),
     counterpart = c(
       "/en/modules/cortical-cartography",

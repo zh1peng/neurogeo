@@ -1,6 +1,6 @@
 # Dependency and fixture audit
 
-Status: reviewed for neurogeo 4.3.0
+Status: reviewed for neurogeo 4.3.1
 
 ## Runtime
 
@@ -40,8 +40,15 @@ original data terms, byte size, SHA-256, and redistribution policy are
 separate fields. HCP files are not treated as unrestricted merely because
 they are distributed by an R package.
 
-The 4.3 cartography gate reuses the same checksum-pinned left/right HCP 32k
-GIFTI surfaces and Conte69 32k CIFTI values. It downloads no new fixture and
-does not redistribute those bytes. The eight-sector atlas used for alignment
-and boundary stress testing is generated during validation and is not
-presented as an anatomical atlas.
+The 4.3 cartography gate reuses the checksum-pinned left/right HCP 32k GIFTI
+surfaces and Conte69 32k CIFTI values. Its generated eight-sector atlas is
+only an alignment and boundary stress fixture.
+
+The 4.3.1 real-flatmap gate has a separate download-only manifest. It adds
+HCP S1200 Conte69 flat and midthickness surfaces, atlas-ROI masks, and
+Schaefer 2018 Conte69 label files from an immutable GPL-3.0 micapipe commit.
+Original data terms, source license, byte size, SHA-256, and redistribution
+policy are recorded per file. The package redistributes neither the source
+neuroimaging files nor atlas membership; tutorial PNGs are generated
+validation outputs and acknowledge HCP and Schaefer in their accompanying
+text.

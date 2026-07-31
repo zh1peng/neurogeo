@@ -1,3 +1,21 @@
+# neurogeo 4.3.1
+
+* Replaced the illustrative toy-map workflow with a real cortical-sheet
+  workflow built from an imported, registered flat surface. Imported GIFTI
+  surfaces may retain a verified subset of source faces while preserving
+  exact source-vertex identity and a source-face mapping.
+* Added mask-aware cortical outlines, anatomical underlays, transparent
+  continuous or categorical overlays, atlas label-table colors, region
+  boundaries, label anchors, and aligned atlas lookup by label-map name.
+* Added checksum-pinned, download-only HCP S1200 Conte69 flatmap and
+  Schaefer 2018 validation fixtures. Bilateral 32k validation now produces
+  real continuous-vertex and atlas/network maps without FreeSurfer,
+  Connectome Workbench, or other external neuroimaging binaries.
+* Reworked the Chinese and English cortical-cartography tutorials around the
+  real bilateral flatmap workflow and made the scientific boundary explicit:
+  neurogeo verifies an existing chart; it does not infer a cortical cut,
+  registration, or resampling.
+
 # neurogeo 4.3.0
 
 * Added atlas-independent cortical cartography with

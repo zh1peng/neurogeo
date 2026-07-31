@@ -12,7 +12,14 @@ ngeo_cortical_map(
   atlas = NULL,
   palette = "viridis",
   limits = NULL,
-  na_color = "grey85"
+  na_color = "grey85",
+  fill = c("values", "atlas"),
+  mask = NULL,
+  underlay = NULL,
+  underlay_palette = "Grays",
+  underlay_limits = NULL,
+  colors = NULL,
+  overlay_alpha = 1
 )
 }
 \arguments{
@@ -31,6 +38,24 @@ ngeo_cortical_map(
 \item{limits}{Optional continuous color limits.}
 
 \item{na_color}{Missing-value color.}
+
+\item{fill}{Whether face colors represent vertex values or atlas membership.}
+
+\item{mask}{Optional logical vertex mask. By default the domain mask is used.
+A face is visible only when all three vertices are included.}
+
+\item{underlay}{Optional numeric vertex vector or map selector used as a
+grayscale or colored anatomical underlay.}
+
+\item{underlay_palette}{HCL palette for the underlay.}
+
+\item{underlay_limits}{Optional underlay color limits.}
+
+\item{colors}{Optional categorical colors. Named colors are matched to
+category labels. Label-table colors are used automatically for
+`fill = "atlas"` when available.}
+
+\item{overlay_alpha}{Opacity of the value or atlas layer over the underlay.}
 }
 \value{
 An `ngeo_cortical_map`.
