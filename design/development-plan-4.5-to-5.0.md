@@ -1,6 +1,6 @@
 # neurogeo 4.5 to 5.0 execution plan
 
-Status: 4.5-4.7 complete; 4.8 in progress
+Status: 4.5-4.8 complete; 4.9 evaluation in progress
 
 Authoritative detailed plan: `../neurogeo_4.5-5.0_development_plan_zh.md`.
 Scientific-method issue: <https://github.com/zh1peng/neurogeo/issues/6>.
@@ -85,6 +85,25 @@ criteria, promotion rules, resource gates, and the final Definition of Done.
   run streams without retaining endpoint nulls or permuting vertices.
 - The installed end-to-end Chinese vignette, full unit suite, package
   examples, and tarball core checks pass.
+
+### 4.8.0
+
+- A named list extends the existing group facade without adding a public API
+  or support-family container. Endpoint columns are bound before one common
+  schedule and one full-family max-T calculation.
+- Exact unit order, support names/hashes, analysis order, family hash, and
+  complete-family subjects are enforced across every declared support.
+- Semantic keys gate direction/dispersion/persistence/leave-one-out summaries;
+  rank-matched, physical, and unmatched scales remain explicitly distinct.
+- Existing boundary diagnostics are descriptive only. No boundary p-value is
+  reused as subject inference, no support variance is added to sampling
+  variance, and no stable/parcellation-invariant label is generated.
+- In 100 correlated-support null replicates, endpoint type-I is 0.0369 and
+  full-family FWER is 0.01. The 160-subject, 10-support, 640-endpoint,
+  999-transformation gate completes with one schedule hash, no endpoint null
+  retention, and no automatic support-uncertainty combination.
+- The Chinese support-family vignette, full unit suite, package examples, and
+  tarball core checks pass.
 
 ## Workflow policy
 

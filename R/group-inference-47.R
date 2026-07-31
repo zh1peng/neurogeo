@@ -516,7 +516,8 @@
 #' endpoint. The default streams endpoint exceedances, family maxima, and
 #' omnibus nulls without retaining a full permutation-by-endpoint matrix.
 #'
-#' @param features One `ngeo_subject_features` object.
+#' @param features One `ngeo_subject_features` object or a named declared
+#'   support-family list of such objects.
 #' @param data Subject design table with `unit_id`.
 #' @param model One-sided full-model formula.
 #' @param test Tested formula term or named one-df contrast.
@@ -546,6 +547,12 @@ ngeo_group_test <- function(
     retain_null = FALSE,
     workers = 1L,
     budget = ngeo_resource_budget()) {
+  if (is.list(features) && !inherits(features, "ngeo_subject_features")) {
+    return(.ngeo_group_support_test(
+      features, data, model, test, exchangeability, family, transform,
+      adjustment, omnibus, missing, retain_null, workers, budget
+    ))
+  }
   transform <- match.arg(transform)
   adjustment <- match.arg(adjustment)
   missing <- match.arg(missing)

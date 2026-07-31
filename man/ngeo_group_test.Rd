@@ -21,7 +21,8 @@ ngeo_group_test(
 )
 }
 \arguments{
-\item{features}{One `ngeo_subject_features` object.}
+\item{features}{One `ngeo_subject_features` object or a named declared
+support-family list of such objects.}
 
 \item{data}{Subject design table with `unit_id`.}
 

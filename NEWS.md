@@ -1,3 +1,18 @@
+# neurogeo 4.8.0
+
+* Extended `ngeo_group_test()` to a named list of support-specific subject
+  endpoint matrices without adding another public function or container.
+* Bound all support columns before inference so one hashed subject schedule
+  drives every endpoint and the default max-T family spans the complete
+  endpoint-by-support family.
+* Added exact support semantic keys, rank/physical/unmatched scale handling,
+  direction agreement, descriptive effect dispersion, significance
+  persistence, and leave-one-support-out influence.
+* Carried existing boundary diagnostics forward as descriptive evidence only;
+  element-level boundary p-values are never reused as subject-level p-values.
+* Kept support dispersion separate from permutation sampling uncertainty and
+  added no automatic stable/unstable or parcellation-invariant claim.
+
 # neurogeo 4.7.0
 
 * Added normalized free, within-block, sign-flip, and user-supplied subject

@@ -128,3 +128,10 @@ Status: reviewed for neurogeo 4.4.2
 | Full permutation-by-endpoint null exhausts memory | controlled | endpoint nulls are opt-in and budgeted; default streams counts and family extrema |
 | Fisher z uses vertex count as sample size | controlled | transform is endpoint-value only, raw coupling is retained, and inference rows remain subjects |
 | Heteroscedasticity is claimed solved by ordinary permutation | controlled | group variance/leverage diagnostics and an explicit exchangeable-residual non-claim are retained |
+| Each atlas regenerates an independent subject schedule | controlled | all support endpoint columns are bound before one hashed schedule enters the 4.7 engine |
+| Max-T omits some declared supports | controlled | the default family contains every endpoint-by-support column and the partition hash is retained |
+| Semantically different bands are pooled as the same scale | controlled | exact semantic keys distinguish rank-matched, physical, and unmatched band definitions |
+| One atlas drives an apparently stable conclusion | controlled | leave-one-support-out influence and driving support are returned descriptively |
+| Boundary permutation p-values become subject-level evidence | controlled | boundary diagnostics are carried as metadata and `boundary_p_values_reused = FALSE` |
+| Atlas dispersion is added to sampling variance | controlled | support dispersion is explicitly descriptive and kept separate from permutation uncertainty |
+| Results are called parcellation invariant automatically | controlled | claims are restricted to the named hashed family and no binary stability label is generated |

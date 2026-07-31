@@ -1,0 +1,126 @@
+---
+title: "跨 support 的共同受试者推断"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{跨 support 的共同受试者推断}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## 为什么先独立生成 endpoint
+
+每个 atlas/support 都应先独立完成 change of support、topology/operator、固定 basis
+与 coupling endpoint。4.8 只在最后的受试者 endpoint 层合并，不会假设不同
+parcellation 具有同一 topology 或物理频率轴。
+
+```{r fine-data}
+library(neurogeo)
+
+set.seed(48)
+n_subject <- 14L
+n_fine <- 12L
+subject_id <- paste0("sub-", sprintf("%02d", 1:n_subject))
+group <- factor(rep(c("control", "case"), each = n_subject / 2L))
+layer <- rep(c("x", "y"), n_subject)
+subject <- rep(subject_id, each = 2L)
+base <- sin((1:n_fine) / 2)
+fine_values <- matrix(NA_real_, n_fine, 2L * n_subject)
+for (i in seq_len(n_subject)) {
+  fine_values[, 2L * i - 1L] <- base + rnorm(n_fine, sd = 0.15)
+  strength <- if (group[[i]] == "case") 0.85 else 0.45
+  fine_values[, 2L * i] <- strength * base + rnorm(n_fine, sd = 0.15)
+}
+maps <- data.frame(
+  map_id = paste0("map-", seq_len(ncol(fine_values))),
+  name = paste(subject, layer, sep = "_"),
+  subject_id = subject,
+  feature = layer
+)
+measures <- do.call(rbind, replicate(
+  ncol(fine_values),
+  ngeo_measure(spatial_semantics = "intensive", units = "a.u."),
+  simplify = FALSE
+))
+fine <- ngeo_points(
+  cbind(x = 1:n_fine, y = 0), values = fine_values,
+  maps = maps, measures = measures
+)
+fine_weights <- ngeo_weights(
+  fine, method = "distance_band", threshold = 1.01, style = "B"
+)
+fine_basis <- ngeo_spatial_basis(
+  fine, fine_weights, support = "identity", n_modes = 5L
+)
+fine_features <- ngeo_layer_coupling(
+  fine, ngeo_validate_layers(fine), basis = fine_basis,
+  bands = list(low = 1:3), estimands = "spectral_coupling"
+)
+```
+
+下面用成对平均构造一个教学用 coarse intensive support。真实分析应使用项目中显式的
+support map/change-of-support 工作流。
+
+```{r coarse-data}
+coarse_values <- rowsum(
+  fine_values, rep(1:(n_fine / 2L), each = 2L)
+) / 2
+n_coarse <- nrow(coarse_values)
+adjacency <- Matrix::sparseMatrix(
+  i = c(1:(n_coarse - 1L), 2:n_coarse),
+  j = c(2:n_coarse, 1:(n_coarse - 1L)),
+  x = 1, dims = c(n_coarse, n_coarse)
+)
+coarse <- ngeo_regions(
+  data.frame(region_id = seq_len(n_coarse)),
+  values = coarse_values,
+  support_size = rep(2, n_coarse),
+  adjacency = adjacency,
+  maps = maps,
+  measures = measures
+)
+coarse_weights <- ngeo_weights(
+  coarse, method = "region_contiguity", style = "B"
+)
+coarse_basis <- ngeo_spatial_basis(
+  coarse, coarse_weights, n_modes = 5L
+)
+coarse_features <- ngeo_layer_coupling(
+  coarse, ngeo_validate_layers(coarse), basis = coarse_basis,
+  bands = list(low = 1:3), estimands = "spectral_coupling"
+)
+```
+
+## 一个 schedule，覆盖全部 support
+
+```{r common-inference}
+schedule <- ngeo_exchangeability(
+  subject_id, permutations = 99L, seed = 2026L
+)
+design <- data.frame(unit_id = subject_id, group = group)
+result <- ngeo_group_test(
+  features = list(fine = fine_features, coarse = coarse_features),
+  data = design,
+  model = ~ group,
+  test = "group",
+  exchangeability = schedule
+)
+result$tests[, c(
+  "support_id", "estimand", "band", "coefficient", "p_raw", "p_maxT"
+)]
+result$support$stability
+```
+
+全部 support 在进入引擎前已合并，所以相同 schedule row 同时作用于所有 endpoint，
+默认 max-T 也覆盖完整 `support × endpoint` family。
+
+## 如何解释稳定性
+
+`direction_agreement`、effect range/IQR/SD、significance persistence 与
+leave-one-support-out influence 只描述这里明确列出的 support family。rank-matched
+band 不是相同毫米尺度；unmatched scale 不会被汇总。support dispersion 不会与
+sampling variance 相加，也不会自动产生 “stable”“unstable” 或
+“parcellation-invariant” 标签。
