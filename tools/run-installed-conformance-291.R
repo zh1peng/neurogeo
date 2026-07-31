@@ -144,6 +144,23 @@ if (utils::compareVersion(package_version, "4.4.2") >= 0L) {
     "migration-4.4.2.md"
   )
 }
+for (version in c("4.5", "4.6", "4.7", "4.8", "4.9")) {
+  if (utils::compareVersion(package_version, paste0(version, ".0")) >= 0L) {
+    required_specs <- c(
+      required_specs,
+      paste0("NGCS-", version, ".md"),
+      paste0("API-", version, ".md"),
+      paste0("migration-", version, ".md")
+    )
+  }
+}
+if (utils::compareVersion(package_version, "5.0.0") >= 0L) {
+  required_specs <- c(
+    required_specs,
+    "NGCS-5.0.md", "API-5.0.md", "migration-5.0.md",
+    "validation-5.0.md"
+  )
+}
 spec_paths <- system.file("spec", required_specs, package = "neurogeo")
 if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
     !nzchar(formats_path) || !file.exists(formats_path) ||

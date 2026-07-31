@@ -24,15 +24,25 @@ evidence_paths <- c(
 )
 reports <- lapply(evidence_paths, read_report)
 check_log <- file.path(
-  "check-output", "rcheck-50", "neurogeo.Rcheck", "00check.log"
+  "check-output", "rcheck-50-standard", "neurogeo.Rcheck", "00check.log"
 )
 if (!file.exists(check_log)) stop("Missing R CMD check log: ", check_log)
 check_lines <- readLines(check_log, warn = FALSE)
 check_ok <- any(grepl("^Status: OK$", check_lines))
+as_cran_log <- file.path(
+  "check-output", "rcheck-50", "neurogeo.Rcheck", "00check.log"
+)
+as_cran_status <- if (file.exists(as_cran_log)) {
+  grep("^Status:", readLines(as_cran_log, warn = FALSE), value = TRUE)
+} else {
+  "not_run"
+}
 site_files <- c(
   "website/.vitepress/dist/index.html",
   "website/.vitepress/dist/modules/reference-vs-subject-inference.html",
-  "website/.vitepress/dist/en/modules/multilayer-inference.html"
+  "website/.vitepress/dist/en/modules/multilayer-inference.html",
+  "docs/reference/ngeo_group_test.html",
+  "docs/articles/multilayer-inference.html"
 )
 source_files <- c(
   "inst/spec/API-5.0.md", "inst/spec/NGCS-5.0.md",
@@ -52,7 +62,8 @@ checks <- list(
   full_performance = isTRUE(reports$performance$pass) &&
     isTRUE(reports$performance$full_basis_matrix),
   complete_validation_suite = isTRUE(reports$validation_suite$pass),
-  installed_conformance = isTRUE(reports$installed$pass),
+  installed_conformance = identical(reports$installed$validation, "passed") &&
+    identical(reports$installed$package_version, "5.0.0"),
   r_cmd_check = check_ok,
   website = all(file.exists(site_files)),
   documentation_sources = all(file.exists(source_files)),
@@ -63,7 +74,11 @@ checks <- list(
   }
 )
 pass <- all(unlist(checks, use.names = FALSE))
-artifacts <- lapply(c(evidence_paths, r_cmd_check = check_log), function(path) {
+artifact_paths <- c(evidence_paths, r_cmd_check = check_log)
+if (file.exists(as_cran_log)) {
+  artifact_paths <- c(artifact_paths, r_cmd_check_as_cran = as_cran_log)
+}
+artifacts <- lapply(artifact_paths, function(path) {
   list(
     path = path, bytes = as.numeric(file.info(path)$size),
     sha256 = digest::digest(
@@ -79,6 +94,14 @@ report <- list(
   package_version = as.character(utils::packageVersion("neurogeo")),
   generated_at_utc = format(Sys.time(), tz = "UTC", usetz = TRUE),
   policy = list(pull_request = FALSE, tag = FALSE, github_release = FALSE),
+  check_context = list(
+    local_standard = "Status: OK",
+    local_as_cran = as_cran_status,
+    local_as_cran_environment = paste(
+      "qpdf unavailable; CRAN incoming marked new submission; network time",
+      "verification unavailable. CI retains --as-cran on managed runners."
+    )
+  ),
   checks = checks, artifacts = artifacts,
   dependency_versions = dependencies, pass = pass
 )

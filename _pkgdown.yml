@@ -1,6 +1,8 @@
 template:
   bootstrap: 5
 
+url: https://zh1peng.github.io/neurogeo/
+
 home:
   title: neurogeo
   description: Neuroimaging Geoinformatics Core Specification reference implementation
@@ -26,6 +28,7 @@ articles:
   - group-inference-zh
   - support-family-inference-zh
   - reference-vs-subject-inference-zh
+  - advanced-spatial-methods-zh
   - cortical-cartography-zh
   - interoperability-zh
   - scalable-io-zh
@@ -225,6 +228,12 @@ reference:
   - ngeo_layer_coupling
   - ngeo_exchangeability
   - ngeo_group_test
+- title: Experimental spatial methods
+  desc: Optional exploratory methods outside the stable 5.0 inference surface.
+  contents:
+  - ngeo_spatial_ordination
+  - ngeo_coregionalization
+  - ngeo_mgwr
 - title: Input
   contents:
   - ngeo_example_data

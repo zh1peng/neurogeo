@@ -2,8 +2,12 @@ args <- commandArgs(trailingOnly = TRUE)
 if (dir.exists(".r-lib")) {
   .libPaths(c(normalizePath(".r-lib"), .libPaths()))
 }
-output <- if (length(args)) args[[1L]] else
-  file.path("check-output", "multilayer-50-performance.json")
+full <- identical(tolower(Sys.getenv("NEUROGEO_50_FULL_PERF")), "true")
+output <- if (length(args)) args[[1L]] else file.path(
+  "check-output",
+  if (full) "multilayer-50-performance.json" else
+    "multilayer-50-performance-quick.json"
+)
 required <- c("jsonlite", "Matrix", "RSpectra")
 missing <- required[!vapply(required, requireNamespace, logical(1), quietly = TRUE)]
 if (length(missing)) stop("5.0 performance validation requires: ",
@@ -209,7 +213,6 @@ run_group_case <- function(subjects, endpoints, permutations, supports = 1L) {
   )
 }
 
-full <- identical(tolower(Sys.getenv("NEUROGEO_50_FULL_PERF")), "true")
 set.seed(5000L)
 checks <- list(
   file_layers_100_by_5 = run_layer_case(100L, 5L),

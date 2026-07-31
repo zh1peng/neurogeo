@@ -47,8 +47,14 @@ diagnostics, and finite endpoint results.
 ## Reproducibility and non-claims
 
 `tools/run-release-evidence-50.R` verifies report hashes, complete-suite
-status, installed conformance, full `R CMD check`, website outputs,
+status, installed conformance, a local `R CMD check` with `Status: OK`, website outputs,
 cross-platform CI configuration, exact dependency versions, and the 5.0
 documentation corpus. Passing this audit does not claim clinical validity,
 causal interpretation, universal exchangeability, equal physical scale across
 rank-matched atlases, or parcellation invariance.
+
+The local `--as-cran` run is retained separately. On the reference Windows
+machine it reports only environment/submission checks: unavailable `qpdf`, a
+new-submission note, and unavailable network time verification. Package code,
+installation, documentation, examples, tests, and vignette rebuilding pass;
+managed CI continues to run `--as-cran` on Linux, macOS, and Windows.
