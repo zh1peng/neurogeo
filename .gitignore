@@ -11,6 +11,8 @@ docs/
 node_modules/
 website/.vitepress/dist/
 website/.vitepress/cache/
+website/public/images/conte69-vertex-flatmap.png
+website/public/images/conte69-atlas-flatmap.png
 website/tutorials/getting-started.md
 website/tutorials/format-workflows.md
 website/tutorials/*_files/

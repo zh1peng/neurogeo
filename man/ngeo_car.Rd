@@ -34,5 +34,7 @@ selected by bounded leave-one-out-like generalized cross-validation.}
 An `ngeo_car`.
 }
 \description{
-Fit a foundational Gaussian CAR smoother
+This is an exact dense smoother. Its domain size is bounded by
+`getOption("neurogeo.max_exact_logdet", 2000L)` before dense work begins.
+Use [ngeo_car_iterative()] for larger supported problems.
 }

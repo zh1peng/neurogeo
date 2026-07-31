@@ -1,5 +1,9 @@
 #!/usr/bin/env Rscript
 
+if (dir.exists(".r-lib")) {
+  .libPaths(c(normalizePath(".r-lib"), .libPaths()))
+}
+
 if (!requireNamespace("rmarkdown", quietly = TRUE)) {
   stop("Rendering the tutorial site requires the `rmarkdown` package.")
 }

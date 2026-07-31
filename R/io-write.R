@@ -496,6 +496,10 @@ write_ngeo_freesurfer <- function(x, path, overwrite = FALSE) {
 
 #' Write a supported NGCS dataset
 #'
+#' Standard `.dscalar.nii`, `.dlabel.nii`, and `.dtseries.nii` paths dispatch
+#' to the pure-R CIFTI writer. Use [write_ngeo_cifti()] directly when explicit
+#' axis metadata is required.
+#'
 #' @param x An `ngeo` dataset.
 #' @param path Primary output path.
 #' @param format Output format.
@@ -505,17 +509,51 @@ write_ngeo_freesurfer <- function(x, path, overwrite = FALSE) {
 #' @export
 write_ngeo <- function(x,
                        path,
-                       format = c("auto", "nifti", "gifti", "freesurfer"),
+                       format = c(
+                         "auto", "nifti", "gifti", "cifti", "freesurfer"
+                       ),
                        ...) {
   format <- match.arg(format)
   if (identical(format, "auto")) {
-    format <- if (grepl("[.]nii([.]gz)?$", path, ignore.case = TRUE)) {
+    format <- if (grepl(
+      "[.](dscalar|dlabel|dtseries)[.]nii$",
+      path,
+      ignore.case = TRUE
+    )) {
+      "cifti"
+    } else if (grepl("[.]nii([.]gz)?$", path, ignore.case = TRUE)) {
       "nifti"
     } else if (grepl("[.]gii$", path, ignore.case = TRUE)) {
       "gifti"
     } else {
       "freesurfer"
     }
+  }
+  if (identical(format, "cifti")) {
+    arguments <- list(...)
+    if (is.null(arguments$type)) {
+      type <- sub(
+        "^.*[.](dscalar|dlabel|dtseries)[.]nii$",
+        "\\1",
+        tolower(path)
+      )
+      if (!type %in% c("dscalar", "dlabel", "dtseries")) {
+        .ngeo_abort(
+          "CIFTI output must use a standard dense CIFTI suffix.",
+          "ngeo_error_argument"
+        )
+      }
+      arguments$type <- type
+    }
+    output <- do.call(
+      write_ngeo_cifti,
+      c(list(x = x, path = path), arguments)
+    )
+    return(list(
+      format = "cifti",
+      data = output,
+      capabilities = c("brain_models", "map_order", "values", "map_axis")
+    ))
   }
   switch(
     format,

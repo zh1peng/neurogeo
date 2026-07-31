@@ -5,24 +5,24 @@ if (dir.exists(".r-lib")) {
 output <- if (length(args)) {
   args[[1L]]
 } else {
-  file.path("release", "performance.json")
+  file.path("check-output", "full-performance.json")
 }
 
 if (!requireNamespace("testthat", quietly = TRUE) ||
     !requireNamespace("jsonlite", quietly = TRUE)) {
-  stop("Release performance validation requires testthat and jsonlite.")
+  stop("Full performance validation requires testthat and jsonlite.")
 }
 
 dir.create(dirname(output), recursive = TRUE, showWarnings = FALSE)
 Sys.setenv(
   NOT_CRAN = "true",
-  NEUROGEO_RELEASE_PERF = "true"
+  NEUROGEO_FULL_PERF = "true"
 )
 started <- Sys.time()
 timing <- system.time(
   testthat::test_dir(
     "tests/testthat",
-    filter = "performance-release",
+    filter = "performance-full",
     reporter = "summary",
     load_package = "source",
     stop_on_failure = TRUE

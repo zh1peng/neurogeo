@@ -40,5 +40,7 @@ selected by bounded leave-one-out-like generalized cross-validation.}
 An `ngeo_car_uncertainty`.
 }
 \description{
-Compute Gaussian CAR MAP and posterior uncertainty
+This exact calculation materializes dense observation and posterior
+covariance matrices. Its domain size is bounded by
+`getOption("neurogeo.max_exact_logdet", 2000L)` before allocation.
 }

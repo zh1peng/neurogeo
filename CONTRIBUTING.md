@@ -26,7 +26,7 @@ Rscript tools/run-unit-tests.R
 Before pushing a behavior change to `main`, run:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools/run-release-validations.ps1
+powershell -ExecutionPolicy Bypass -File tools/run-validation-suite.ps1
 ```
 
 ## Tests

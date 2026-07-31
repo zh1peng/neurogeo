@@ -1,6 +1,6 @@
 # Risk register
 
-Status: reviewed for neurogeo 4.4.0
+Status: reviewed for neurogeo 4.4.2
 
 | Risk | Current status | Mitigation |
 |---|---|---|
@@ -21,6 +21,9 @@ Status: reviewed for neurogeo 4.4.0
 | QC is mistaken for structural validation or automatic repair | controlled | `ngeo_validate()` remains authoritative; QC is non-mutating and reports risks only |
 | QC materializes a large values block | controlled | explicit `max_value_cells` gate and `not_evaluated` status before materialization |
 | QC densifies topology or support operators | controlled | sparse adjacency/support summaries and an explicit topology element guard |
+| Exact CAR allocates dense matrices beyond a reviewed bound | controlled | shared exact-model dimension guard before smoother, precision, or covariance construction |
+| Package contracts diverge between two source directories | controlled | `inst/spec/` is canonical; `design/` retains plans and frozen historical rationale only |
+| Public API expands faster than it can be maintained | controlled | 4.4.1 and 4.4.2 add no exports or schemas; additions require an explicit scientific use case |
 | Missing coordinate-space metadata | accepted | explicit `unknown`; no implicit conversion |
 | Incorrect measurement semantics | controlled | unknown-by-default and aggregation refusal without `fun` |
 | CIFTI surface mismatch | controlled | structure, vertex-count, and mapping validation |
@@ -35,7 +38,7 @@ Status: reviewed for neurogeo 4.4.0
 | An upstream package license is mistaken for a data license | controlled | record package license and original data terms separately; keep 4.2.2 fixtures download-only |
 | Validation silently loads an older installed neurogeo | controlled | prepend the project-local library in every validation and build script; report the loaded package version |
 | A scale claimed by the plan lacks a compatible fixture | controlled | machine-readable exercised/not-exercised scale inventory; no synthetic result is presented as real-data evidence |
-| Cross-platform behavior diverges | controlled | Windows, macOS, Ubuntu release, oldrel, and devel checks are release gates |
+| Cross-platform behavior diverges | controlled | Windows, macOS, Ubuntu release, oldrel, and devel checks are distribution gates |
 | Overlapping support duplicates extensive mass | controlled | reject non-unit allocation unless explicit column normalization is selected |
 | Atlas transfer presented as inverse reconstruction | controlled | require and record the piecewise-constant model; expose the transfer operator and uncertainty |
 | Support operators become dense | controlled | target-by-source sparse representation, composition guards, and 100k-by-1k performance regression |

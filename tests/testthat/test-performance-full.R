@@ -1,4 +1,4 @@
-release_grid_surface <- function(side, values = FALSE) {
+full_grid_surface <- function(side, values = FALSE) {
   coordinates <- as.matrix(expand.grid(
     x = seq_len(side),
     y = seq_len(side)
@@ -37,9 +37,9 @@ release_grid_surface <- function(side, values = FALSE) {
 
 test_that("164k surface topology and statistics remain sparse", {
   skip_on_cran()
-  skip_if(Sys.getenv("NEUROGEO_RELEASE_PERF") != "true")
+  skip_if(Sys.getenv("NEUROGEO_FULL_PERF") != "true")
 
-  surface <- release_grid_surface(405L, values = TRUE)
+  surface <- full_grid_surface(405L, values = TRUE)
   timing <- system.time(
     weights <- ngeo_weights(
       surface,
@@ -61,10 +61,10 @@ test_that("164k surface topology and statistics remain sparse", {
 
 test_that("91k grayordinate topology stays block diagonal", {
   skip_on_cran()
-  skip_if(Sys.getenv("NEUROGEO_RELEASE_PERF") != "true")
+  skip_if(Sys.getenv("NEUROGEO_FULL_PERF") != "true")
 
-  left <- release_grid_surface(214L)
-  right <- release_grid_surface(214L)
+  left <- full_grid_surface(214L)
+  right <- full_grid_surface(214L)
   n_vertex <- nrow(left$domain$elements)
   grayordinates <- ngeo_grayordinates(list(
     list(
@@ -99,9 +99,9 @@ test_that("91k grayordinate topology stays block diagonal", {
 
 test_that("32k surface diagnostics stay bounded", {
   skip_on_cran()
-  skip_if(Sys.getenv("NEUROGEO_RELEASE_PERF") != "true")
+  skip_if(Sys.getenv("NEUROGEO_FULL_PERF") != "true")
 
-  surface <- release_grid_surface(180L, values = TRUE)
+  surface <- full_grid_surface(180L, values = TRUE)
   surface <- ngeo_set_chart(
     surface,
     surface$domain$coordinates$active[, 1:2, drop = FALSE],
@@ -121,7 +121,7 @@ test_that("32k surface diagnostics stay bounded", {
 
 test_that("100k coordinate KNN remains sparse", {
   skip_on_cran()
-  skip_if(Sys.getenv("NEUROGEO_RELEASE_PERF") != "true")
+  skip_if(Sys.getenv("NEUROGEO_FULL_PERF") != "true")
   skip_if_not_installed("dbscan")
 
   points <- ngeo_points(cbind(
@@ -145,7 +145,7 @@ test_that("100k coordinate KNN remains sparse", {
 
 test_that("100k-by-1k support change stays sparse and conservative", {
   skip_on_cran()
-  skip_if(Sys.getenv("NEUROGEO_RELEASE_PERF") != "true")
+  skip_if(Sys.getenv("NEUROGEO_FULL_PERF") != "true")
 
   n_source <- 100000L
   n_target <- 1000L
@@ -188,7 +188,7 @@ test_that("100k-by-1k support change stays sparse and conservative", {
 
 test_that("100k affine-grid support construction and diagnostics stay sparse", {
   skip_on_cran()
-  skip_if(Sys.getenv("NEUROGEO_RELEASE_PERF") != "true")
+  skip_if(Sys.getenv("NEUROGEO_FULL_PERF") != "true")
 
   source <- ngeo_volume(
     dim = c(100, 100, 10),
@@ -222,7 +222,7 @@ test_that("100k affine-grid support construction and diagnostics stay sparse", {
 
 test_that("100k uncertain support propagation remains sparse and bounded", {
   skip_on_cran()
-  skip_if(Sys.getenv("NEUROGEO_RELEASE_PERF") != "true")
+  skip_if(Sys.getenv("NEUROGEO_FULL_PERF") != "true")
 
   n_source <- 100000L
   n_target <- 1000L

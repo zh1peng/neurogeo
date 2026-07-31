@@ -9,10 +9,9 @@ test_that("CIFTI NamedMap metadata and datatypes round-trip", {
     list(Description = "standard error")
   )
   scalar_path <- tempfile(fileext = ".dscalar.nii")
-  write_ngeo_cifti(
+  manifest <- write_ngeo(
     scalar,
     scalar_path,
-    type = "dscalar",
     datatype = "float64",
     named_map_metadata = metadata
   )
@@ -26,14 +25,20 @@ test_that("CIFTI NamedMap metadata and datatypes round-trip", {
     scalar_restored$provenance$cifti$datatype,
     "float64"
   )
+  expect_identical(manifest$format, "cifti")
+  expect_identical(
+    manifest$data,
+    normalizePath(scalar_path, winslash = "/")
+  )
 
   label <- read_ngeo_cifti(
     golden_path("tiny.dlabel.nii"),
     checksum = FALSE
   )
   label_path <- tempfile(fileext = ".dlabel.nii")
-  write_ngeo_cifti(label, label_path, type = "dlabel")
+  label_manifest <- write_ngeo(label, label_path)
   label_restored <- read_ngeo_cifti(label_path, checksum = FALSE)
+  expect_identical(label_manifest$format, "cifti")
   expect_identical(label_restored$provenance$cifti$datatype, "int32")
   expect_identical(
     label_restored$labels$atlas$table$Label,
@@ -119,6 +124,8 @@ test_that("BIDS derivative transactions validate collision policies", {
     entities, "dscalar", ".dscalar.nii"
   )
   path <- file.path(directory, name)
+  built_sidecar <- ngeo_bids_sidecar(x, entities = entities)
+  expect_silent(ngeo_validate_bids_sidecar(built_sidecar, x))
   first <- write_ngeo_bids_derivative(
     x, path, entities = entities, strict_name = TRUE
   )

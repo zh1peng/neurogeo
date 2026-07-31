@@ -513,15 +513,27 @@ print.ngeo_gwr <- function(x, ...) {
   invisible(x)
 }
 
-.ngeo_spatial_ml <- function(y, design, weight, model) {
-  n <- length(y)
+.ngeo_assert_exact_model_size <- function(n, operation) {
   limit <- getOption("neurogeo.max_exact_logdet", 2000L)
+  if (!is.numeric(limit) || length(limit) != 1L ||
+      is.na(limit) || !is.finite(limit) || limit < 1) {
+    .ngeo_abort(
+      "`options(neurogeo.max_exact_logdet)` must be one positive number.",
+      "ngeo_error_argument"
+    )
+  }
   if (n > limit) {
     .ngeo_abort(
-      sprintf("Exact spatial likelihood is limited to %d observations.", limit),
+      sprintf("%s is limited to %.0f observations.", operation, limit),
       "ngeo_error_resource"
     )
   }
+  invisible(n)
+}
+
+.ngeo_spatial_ml <- function(y, design, weight, model) {
+  n <- length(y)
+  .ngeo_assert_exact_model_size(n, "Exact spatial likelihood")
   dense_weight <- as.matrix(weight)
   identity <- diag(n)
   eigenvalue <- eigen(dense_weight, only.values = TRUE)$values
@@ -722,6 +734,10 @@ print.ngeo_spatial_regression <- function(x, ...) {
 
 #' Fit a foundational Gaussian CAR smoother
 #'
+#' This is an exact dense smoother. Its domain size is bounded by
+#' `getOption("neurogeo.max_exact_logdet", 2000L)` before dense work begins.
+#' Use [ngeo_car_iterative()] for larger supported problems.
+#'
 #' @param x An `ngeo` dataset.
 #' @param response One numeric map.
 #' @param weights Matching symmetric spatial weights.
@@ -743,6 +759,10 @@ ngeo_car <- function(
     zero_policy = FALSE) {
   type <- match.arg(type)
   maps <- .ngeo_model_maps(x, response, character())
+  .ngeo_assert_exact_model_size(
+    nrow(x$domain$elements),
+    "Exact CAR smoothing"
+  )
   y <- as.numeric(x$values[, maps$response])
   if (any(!is.finite(y))) {
     .ngeo_abort("CAR response must be finite.", "ngeo_error_missing")

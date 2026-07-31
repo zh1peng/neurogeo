@@ -129,6 +129,21 @@ if (utils::compareVersion(package_version, "4.4.0") >= 0L) {
     "migration-4.4.md"
   )
 }
+if (utils::compareVersion(package_version, "4.4.1") >= 0L) {
+  required_specs <- c(
+    required_specs,
+    "API-4.4.1.md",
+    "migration-4.4.1.md"
+  )
+}
+if (utils::compareVersion(package_version, "4.4.2") >= 0L) {
+  required_specs <- c(
+    required_specs,
+    "README.md",
+    "API-4.4.2.md",
+    "migration-4.4.2.md"
+  )
+}
 spec_paths <- system.file("spec", required_specs, package = "neurogeo")
 if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
     !nzchar(formats_path) || !file.exists(formats_path) ||
@@ -138,6 +153,10 @@ if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
 manifest <- neurogeo:::.ngeo_conformance_manifest()
 formats <- paste(readLines(formats_path, warn = FALSE), collapse = "\n")
 reviewed_status <- if (
+  utils::compareVersion(package_version, "4.4.2") >= 0L
+) {
+  "Status: reviewed for neurogeo 4.4.2"
+} else if (
   utils::compareVersion(package_version, "4.3.1") >= 0L
 ) {
   "Status: reviewed for neurogeo 4.3.1"
@@ -310,22 +329,6 @@ if (utils::compareVersion(package_version, "4.4.0") >= 0L) {
   }
 }
 
-source_documents_equal <- NA
-if (file.exists(file.path("design", "supported-formats.md")) &&
-    file.exists(file.path("inst", "spec", "supported-formats.md"))) {
-  source_documents_equal <- identical(
-    readLines(
-      file.path("design", "supported-formats.md"), warn = FALSE
-    ),
-    readLines(
-      file.path("inst", "spec", "supported-formats.md"), warn = FALSE
-    )
-  )
-  if (!source_documents_equal) {
-    stop("Source and installed format documents differ.")
-  }
-}
-
 ci_matrix_configured <- NA
 ci_installed_gate <- NA
 workflow_path <- file.path(
@@ -379,7 +382,7 @@ result <- list(
     deprecated_exports = 0L
   ),
   source_audit = list(
-    format_documents_equal = source_documents_equal,
+    canonical_spec_source = "inst/spec",
     ci_matrix_configured = ci_matrix_configured,
     installed_conformance_gate = ci_installed_gate,
     remote_results_claimed = FALSE

@@ -26,7 +26,7 @@ To install a local source archive:
 
 ```r
 install.packages(
-  "neurogeo_4.4.0.tar.gz",
+  "neurogeo_4.4.2.tar.gz",
   repos = NULL,
   type = "source"
 )
@@ -91,7 +91,7 @@ ngeo_value_chunks(x, chunk_size = 4096, FUN = colMeans)
 
 ## Real cortical flatmaps
 
-Version 4.4.0 draws a registered cortical sheet rather than selecting a fixed
+Version 4.4.2 draws a registered cortical sheet rather than selecting a fixed
 atlas template or substituting a simplified polygon. Bind the source surface
 to an aligned flat GIFTI surface, then add a mask, anatomical underlay, vertex
 values, and any aligned atlas:

@@ -136,6 +136,26 @@ test_that("CAR smoothing records constraints and reduces graph roughness", {
   expect_lt(fitted_roughness, observed_roughness)
 })
 
+test_that("exact CAR fails before an oversized dense solve", {
+  fixture <- model_grid()
+  previous <- getOption("neurogeo.max_exact_logdet")
+  on.exit(
+    options(neurogeo.max_exact_logdet = previous),
+    add = TRUE
+  )
+  options(neurogeo.max_exact_logdet = 10L)
+
+  expect_error(
+    ngeo_car(
+      fixture$x,
+      "response",
+      fixture$weights,
+      precision = 1
+    ),
+    class = "ngeo_error_resource"
+  )
+})
+
 test_that("support models retain every map identity and scoped claim", {
   fixture <- inference_fixture()
   result <- ngeo_support_model(

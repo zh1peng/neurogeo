@@ -576,6 +576,10 @@ ngeo_spatial_regression_uncertainty <- function(
 
 #' Compute Gaussian CAR MAP and posterior uncertainty
 #'
+#' This exact calculation materializes dense observation and posterior
+#' covariance matrices. Its domain size is bounded by
+#' `getOption("neurogeo.max_exact_logdet", 2000L)` before allocation.
+#'
 #' @inheritParams ngeo_car
 #' @param value_covariance Positive-definite observation covariance.
 #' @param level Interval level.
@@ -593,6 +597,11 @@ ngeo_car_uncertainty <- function(
     zero_policy = FALSE,
     level = 0.95) {
   type <- match.arg(type)
+  ngeo_validate(x, "basic")
+  .ngeo_assert_exact_model_size(
+    nrow(x$domain$elements),
+    "Exact CAR uncertainty"
+  )
   covariance <- .ngeo_model_covariance_matrix(value_covariance, x)
   eigenvalue <- eigen(covariance, symmetric = TRUE, only.values = TRUE)$values
   if (min(eigenvalue) <= value_covariance$tolerance) {

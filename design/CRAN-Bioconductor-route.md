@@ -1,6 +1,6 @@
 # Distribution route decision
 
-Status: reviewed for neurogeo 4.4.0; CRAN submission not yet authorized
+Status: reviewed for neurogeo 4.4.2; CRAN submission not yet authorized
 
 ## Decision
 

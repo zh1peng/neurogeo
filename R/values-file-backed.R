@@ -614,8 +614,7 @@ read_ngeo_nifti_filebacked <- function(
   result <- cifti::get_cifti_type(path, verbose = FALSE)
   result$hdr <- cifti::nifti_2_hdr(path)
   nodes <- cifti::matrix_ind_map_nodes(path)
-  xml_attrs <- utils::getFromNamespace("xml_attrs", "xml2")
-  result$matrix_indices_attributes <- lapply(nodes, xml_attrs)
+  result$matrix_indices_attributes <- lapply(nodes, xml2::xml_attrs)
   result$data <- NULL
   result$filename <- path
   class(result) <- "cifti"

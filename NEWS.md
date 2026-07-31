@@ -1,3 +1,26 @@
+# neurogeo 4.4.2
+
+* Consolidated installed specifications under `inst/spec/` and documented
+  `design/` as the location for plans, audits, risks, and frozen historical
+  rationale. Current contracts no longer require a mirrored design copy.
+* Removed unused archive/Release builders, tracked historical check logs, and
+  duplicate website copies of cortical figures generated from vignette
+  sources.
+* Renamed the complete local validation and performance entry points to
+  maintenance-focused names. This version adds no public function, class, or
+  object schema.
+
+# neurogeo 4.4.1
+
+* Added a shared exact-model dimension guard before CAR smoothing and CAR
+  posterior uncertainty can construct dense matrices. Oversized requests fail
+  with `ngeo_error_resource`.
+* Extended `write_ngeo()` auto-dispatch to standard CIFTI dscalar, dlabel, and
+  dtseries suffixes while retaining the pure-R writer and dedicated API.
+* Replaced an internal `xml2` namespace lookup with the package's public API
+  and added direct regression coverage for previously indirect public
+  functions.
+
 # neurogeo 4.4.0
 
 * Added one bounded `ngeo_qc()` entry point for scientific conditions that do

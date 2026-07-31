@@ -131,17 +131,16 @@ test_that("QC validates arguments and support alignment", {
   )
 })
 
-test_that("4.4 API and migration contracts are installed and synchronized", {
+test_that("4.4 API and migration contracts are installed from canonical sources", {
   for (resource in c("API-4.4.md", "migration-4.4.md")) {
     installed <- system.file("spec", resource, package = "neurogeo")
     source <- testthat::test_path("..", "..", "inst", "spec", resource)
-    design <- testthat::test_path("..", "..", "design", resource)
     expect_true(nzchar(installed), info = resource)
     expect_true(file.exists(installed), info = resource)
-    if (file.exists(source) && file.exists(design)) {
+    if (file.exists(source)) {
       expect_identical(
+        readLines(installed, warn = FALSE),
         readLines(source, warn = FALSE),
-        readLines(design, warn = FALSE),
         info = resource
       )
     }

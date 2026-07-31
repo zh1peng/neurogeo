@@ -28,7 +28,7 @@ test_that("installed format inventory matches implemented 2.9 capabilities", {
   formats <- paste(readLines(formats_path, warn = FALSE), collapse = "\n")
 
   expect_match(
-    formats, "Status: reviewed for neurogeo 4.3.1", fixed = TRUE
+    formats, "Status: reviewed for neurogeo 4.4.2", fixed = TRUE
   )
   expect_match(formats, "pure-R CIFTI-2 writer", fixed = TRUE)
   expect_match(formats, "NGCS support map schema 2", fixed = TRUE)
@@ -38,7 +38,7 @@ test_that("installed format inventory matches implemented 2.9 capabilities", {
   ))
 })
 
-test_that("4.3 cartography contracts are installed and synchronized", {
+test_that("4.3 cartography contracts are installed from canonical sources", {
   resources <- c(
     "API-4.3.md",
     "migration-4.3.md",
@@ -49,21 +49,11 @@ test_that("4.3 cartography contracts are installed and synchronized", {
     source <- testthat::test_path(
       "..", "..", "inst", "spec", resource
     )
-    design <- testthat::test_path(
-      "..", "..", "design", resource
-    )
     expect_true(nzchar(installed), info = resource)
     expect_true(file.exists(installed), info = resource)
     if (file.exists(source)) {
       expect_identical(
         readLines(installed, warn = FALSE),
-        readLines(source, warn = FALSE),
-        info = resource
-      )
-    }
-    if (file.exists(design) && file.exists(source)) {
-      expect_identical(
-        readLines(design, warn = FALSE),
         readLines(source, warn = FALSE),
         info = resource
       )
@@ -83,4 +73,22 @@ test_that("4.3 cartography contracts are installed and synchronized", {
   expect_match(contract, "MUST NOT invent a cut", fixed = TRUE)
   expect_match(contract, "is_metric_flattening = FALSE", fixed = TRUE)
   expect_match(contract, "seam-crossing", fixed = TRUE)
+})
+
+test_that("4.4 maintenance contracts and source policy are installed", {
+  resources <- c(
+    "README.md",
+    "API-4.4.1.md",
+    "migration-4.4.1.md",
+    "API-4.4.2.md",
+    "migration-4.4.2.md"
+  )
+  paths <- system.file("spec", resources, package = "neurogeo")
+  expect_true(all(nzchar(paths)))
+  expect_true(all(file.exists(paths)))
+  expect_match(
+    paste(readLines(paths[[1L]], warn = FALSE), collapse = "\n"),
+    "canonical source",
+    fixed = TRUE
+  )
 })

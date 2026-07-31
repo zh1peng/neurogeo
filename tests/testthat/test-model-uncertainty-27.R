@@ -163,6 +163,27 @@ test_that("proper CAR posterior matches the direct Gaussian reference", {
   expect_true(all(result$map$standard_error > 0))
 })
 
+test_that("CAR uncertainty fails before oversized covariance materialization", {
+  fixture <- model_uncertainty_fixture()
+  previous <- getOption("neurogeo.max_exact_logdet")
+  on.exit(
+    options(neurogeo.max_exact_logdet = previous),
+    add = TRUE
+  )
+  options(neurogeo.max_exact_logdet = 10L)
+
+  expect_error(
+    ngeo_car_uncertainty(
+      fixture$x,
+      "response",
+      fixture$weights,
+      fixture$covariance,
+      precision = 1
+    ),
+    class = "ngeo_error_resource"
+  )
+})
+
 test_that("support ensembles use total variance and calibration is explicit", {
   fixture <- model_uncertainty_fixture()
   first <- ngeo_spatial_regression(

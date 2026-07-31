@@ -4,7 +4,12 @@
 \alias{write_ngeo}
 \title{Write a supported NGCS dataset}
 \usage{
-write_ngeo(x, path, format = c("auto", "nifti", "gifti", "freesurfer"), ...)
+write_ngeo(
+  x,
+  path,
+  format = c("auto", "nifti", "gifti", "cifti", "freesurfer"),
+  ...
+)
 }
 \arguments{
 \item{x}{An `ngeo` dataset.}
@@ -19,5 +24,7 @@ write_ngeo(x, path, format = c("auto", "nifti", "gifti", "freesurfer"), ...)
 A writer manifest.
 }
 \description{
-Write a supported NGCS dataset
+Standard `.dscalar.nii`, `.dlabel.nii`, and `.dtseries.nii` paths dispatch
+to the pure-R CIFTI writer. Use [write_ngeo_cifti()] directly when explicit
+axis metadata is required.
 }

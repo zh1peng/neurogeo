@@ -215,6 +215,7 @@ test_that("matrix-free spatiotemporal lag matches Kronecker references", {
       spatial, temporal, combination = combination,
       spatial_scale = 0.25
     )
+    expect_silent(ngeo_validate_spatiotemporal_weights(weights))
     reference <- ngeo_materialize_spatiotemporal_weights(weights)
     observed <- ngeo_spatiotemporal_lag(x, weights)
     expected <- matrix(

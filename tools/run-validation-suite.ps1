@@ -33,7 +33,7 @@ $scripts = @(
     "tools/fetch-reference-422.R",
     "tools/run-real-data-validation-422.R",
     "tools/run-cartography-43-validation.R",
-    "tools/run-release-performance.R"
+    "tools/run-full-performance.R"
 )
 
 if ($StartAt) {

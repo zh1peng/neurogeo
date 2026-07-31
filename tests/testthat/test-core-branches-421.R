@@ -1,3 +1,13 @@
+test_that("core domain and label accessors expose validated fields", {
+  x <- ngeo_points(
+    cbind(x = 1:3, y = 0),
+    values = cbind(signal = 1:3)
+  )
+
+  expect_identical(ngeo_domain(x), x$domain)
+  expect_identical(ngeo_labels(x), x$labels)
+})
+
 test_that("surface constructor rejects ambiguous geometry metadata", {
   coordinates <- matrix(
     c(0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0),

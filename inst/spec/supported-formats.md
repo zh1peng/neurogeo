@@ -1,6 +1,6 @@
 # Supported standard formats
 
-Status: reviewed for neurogeo 4.3.1
+Status: reviewed for neurogeo 4.4.2
 
 ## Input
 

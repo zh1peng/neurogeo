@@ -32,6 +32,7 @@ space_graph_fixture <- function() {
 
 test_that("space registry uses exact identities and explicit aliases", {
   fixture <- space_graph_fixture()
+  expect_silent(ngeo_validate_space_registry(fixture$registry))
   expect_identical(
     ngeo_resolve_space(fixture$registry, "native"),
     fixture$spaces$A
@@ -64,6 +65,16 @@ test_that("space registry uses exact identities and explicit aliases", {
 
 test_that("transform paths compose exactly and bind provenance", {
   fixture <- space_graph_fixture()
+  incremental <- ngeo_transform_graph(fixture$registry)
+  incremental <- ngeo_add_transform(
+    incremental,
+    fixture$transforms$ab,
+    edge_id = "ab"
+  )
+  expect_identical(
+    incremental$edges$transform_hash,
+    unname(ngeo_transform_hash(fixture$transforms$ab))
+  )
   graph <- ngeo_transform_graph(
     fixture$registry,
     fixture$transforms[c("ab", "bc")],
