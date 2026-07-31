@@ -1,3 +1,26 @@
+# neurogeo 5.0.0
+
+* Froze seven stable multilayer entry points spanning exact map binding,
+  unit-layer indexing, fixed topology bases, support-weighted projection,
+  layer coupling, exchangeability schedules, and subject/support-family
+  inference. No new core container or general feature facade was added.
+* Froze the 5.0 mathematical, API, migration, condition, claim, and non-claim
+  contracts. Reference-map, subject-level, and declared support-family nulls
+  remain separate; the three 4.9 methods remain experimental.
+* Added checksum-pinned, download-only ENIGMA example validation with 20 real
+  subjects, thickness and relative area-density layers, and independent DK68
+  subject plus DK68/Schaefer100/Schaefer200 support-family workflows.
+* Froze a machine-readable simulation corpus and retained calibrated null,
+  power, independent-package reference, missingness, degeneracy, low-energy,
+  support reversal, and selection-leakage evidence.
+* Added a performance corpus covering 32k/91k elements, 64/128 modes,
+  100/1000 subjects, 5/20 file-backed layers, 999/4999 transformations, and
+  multiple supports without dense element-pair or default endpoint-null
+  matrices.
+* Added an executable English end-to-end vignette and a Chinese guide that
+  distinguishes reference-map from population inference. The complete
+  vignette build and VitePress site now include the multilayer learning path.
+
 # neurogeo 4.9.0
 
 * Added an explicitly experimental `adespatial::multispati()` adapter for

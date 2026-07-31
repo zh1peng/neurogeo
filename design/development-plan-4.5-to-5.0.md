@@ -1,6 +1,6 @@
 # neurogeo 4.5 to 5.0 execution plan
 
-Status: 4.5-4.9 complete; 5.0 freeze and validation in progress
+Status: 4.5-5.0 complete
 
 Authoritative detailed plan: `../neurogeo_4.5-5.0_development_plan_zh.md`.
 Scientific-method issue: <https://github.com/zh1peng/neurogeo/issues/6>.
@@ -121,6 +121,30 @@ criteria, promotion rules, resource gates, and the final Definition of Done.
 - All three APIs remain experimental. Dense MGWR distances are limited to
   small domains and explicitly prevent full-cortex use; unresolved spatial
   null, bandwidth-uncertainty, and support-replication gates are retained.
+
+### 5.0.0
+
+- The new stable multilayer surface is frozen at seven entry points; exact
+  exports, formal arguments, result classes, lifecycle boundaries, and typed
+  errors are machine-audited. No additional container or group facade exists.
+- Twelve seeded simulation scenarios are frozen with expected relations and
+  source evidence. Full calibration retains the 4.7 null/power results and the
+  4.8 common-support family results.
+- Checksum-pinned download-only ENIGMA example data execute two separate
+  analyses: a DK68 subject workflow and a DK68/Schaefer100/Schaefer200 common
+  support-family workflow. Both use 20 aligned subjects and make no powered
+  clinical claim.
+- The full performance corpus passes 32,400/91,200 elements, 64/128 modes,
+  100/1000 subjects, 5/20 verified file-backed layers, 999/4999
+  transformations, and multiple supports. It retains no default endpoint null
+  matrix and constructs no dense element-pair matrix.
+- Chinese and English learning paths, API/method/migration specifications,
+  claims/non-claims, package reference, and website navigation are complete.
+  A full source build executes every vignette successfully.
+- Full tests, installed conformance, the complete validation suite,
+  cross-platform CI configuration, package checking, dependency versions,
+  and machine-readable 5.0 evidence are release gates. The workflow creates no
+  PR, tag, or GitHub Release.
 
 ## Workflow policy
 

@@ -1,6 +1,6 @@
 # Risk register
 
-Status: reviewed for neurogeo 4.4.2
+Status: reviewed for neurogeo 5.0.0
 
 | Risk | Current status | Mitigation |
 |---|---|---|
@@ -141,3 +141,8 @@ Status: reviewed for neurogeo 4.4.2
 | LMC assumptions or co-kriging capability are implied | controlled | second-order stationarity/isotropy are explicit and the facade advertises shared-scale decomposition only |
 | MGWR nominal local t maps are presented as confirmation | controlled | local p/statistic columns are not returned and spatial-null calibration remains an explicit blocker |
 | MGWR constructs a full cortical distance matrix | controlled | a small experimental element limit is checked before the backend-required dense matrix allocation |
+| The 5.0 stable multilayer API drifts after publication | controlled | exact export and formal-argument audit plus regression tests over the seven-entry surface |
+| Example-data package licensing is mistaken for permission to redistribute data | controlled | ENIGMA fixtures remain download-only with immutable URLs, checksums, package license, data-terms caveat, and citation record |
+| One real-data execution is mistaken for powered clinical validation | controlled | report the 20-subject example as numerical workflow evidence and state that it is not a clinical claim |
+| A nominally complete performance matrix skips the extended 91k-by-128 case | controlled | dedicated full mode recomputes the case and records residuals, basis size, wall time, and observed RSS |
+| Generated website pages diverge from vignette sources | controlled | one complete Rmd manifest generates the VitePress corpus and the site build runs in CI |

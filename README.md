@@ -26,7 +26,7 @@ To install a local source archive:
 
 ```r
 install.packages(
-  "neurogeo_4.4.2.tar.gz",
+  "neurogeo_5.0.0.tar.gz",
   repos = NULL,
   type = "source"
 )
@@ -74,6 +74,37 @@ between incompatible spatial supports.
 
 FreeSurfer, FSL, and Connectome Workbench are not runtime dependencies.
 Readers never register or resample data implicitly.
+
+## Multilayer spatial inference
+
+Version 5.0 provides one compact path from aligned subject maps to
+support-aware group inference:
+
+```r
+stack <- ngeo_bind_maps(subject_objects, metadata = map_metadata)
+index <- ngeo_validate_layers(stack, complete = "error")
+weights <- ngeo_weights(stack, method = "mesh_contiguity", style = "B")
+basis <- ngeo_spatial_basis(stack, weights = weights, n_modes = 64)
+features <- ngeo_layer_coupling(
+  stack, index, basis = basis,
+  bands = list(low_rank = 1:16, high_rank = 17:64),
+  estimands = c("spectral_coupling", "band_energy")
+)
+schedule <- ngeo_exchangeability(
+  subject_data$unit_id, permutations = 4999, seed = 5001
+)
+result <- ngeo_group_test(
+  features, subject_data, ~ age + sex + diagnosis,
+  "diagnosis", schedule
+)
+```
+
+The spatial basis is fixed independently of tested values, coupling and
+marginal energy are separate endpoints, and complete subjects are the
+inference units. A named list of support-specific feature objects uses one
+common schedule and one full-family max-T calculation. See the
+[English workflow](vignettes/multilayer-inference.Rmd) and the
+[Chinese null-regime guide](vignettes/reference-vs-subject-inference-zh.Rmd).
 
 Large supported files can remain file-backed:
 

@@ -1,6 +1,6 @@
 Package: neurogeo
 Title: Neuroimaging Geoinformatics Core Objects
-Version: 4.9.0
+Version: 5.0.0
 Authors@R:
     person("zh1peng",
            email = "zhipeng30@foxmail.com",

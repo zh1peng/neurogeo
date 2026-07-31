@@ -55,6 +55,9 @@ jobs:
       - name: Installed NGCS 1.0-2.9 conformance
         run: Rscript tools/run-installed-conformance-291.R
 
+      - name: Stable multilayer API freeze
+        run: Rscript tools/run-freeze-50-audit.R
+
       - name: NGCS 2.0 support-map conformance
         if: matrix.config.os == 'ubuntu-latest' && matrix.config.r == 'release'
         run: Rscript tools/run-support-map-conformance.R
@@ -87,7 +90,7 @@ jobs:
           path: coverage-421.json
 
   real-data-validation:
-    name: real-data 4.2.2 + cortical flatmap 4.3.1
+    name: real-data, cortical flatmap, and multilayer 5.0
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -110,6 +113,7 @@ jobs:
         run: |
           Rscript tools/fetch-reference-422.R
           Rscript tools/fetch-reference-431.R
+          Rscript tools/fetch-reference-50.R
 
       - name: Run real-data workflows
         run: >-
@@ -129,6 +133,16 @@ jobs:
           .tools/reference-flatmap
           flatmap-431
 
+      - name: Run real subject and support-family workflows
+        run: >-
+          Rscript tools/run-real-multilayer-50-validation.R
+          real-multilayer-50-validation.json
+
+      - name: Run bounded multilayer performance corpus
+        run: >-
+          Rscript tools/run-multilayer-50-performance.R
+          multilayer-50-performance.json
+
       - uses: actions/upload-artifact@v4
         with:
           name: real-data-and-cartography-validation
@@ -136,4 +150,6 @@ jobs:
             real-data-422-validation.json
             cartography-43-validation.json
             flatmap-431-validation.json
+            real-multilayer-50-validation.json
+            multilayer-50-performance.json
             flatmap-431/*.png

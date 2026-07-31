@@ -1,5 +1,6 @@
 param(
-    [string]$StartAt = ""
+    [string]$StartAt = "",
+    [string]$Output = "check-output/validation-suite-50.json"
 )
 
 $ErrorActionPreference = "Stop"
@@ -38,6 +39,10 @@ $scripts = @(
     "tools/run-group-inference-47-validation.R",
     "tools/run-support-family-48-validation.R",
     "tools/run-experimental-49-validation.R",
+    "tools/run-freeze-50-audit.R",
+    "tools/fetch-reference-50.R",
+    "tools/run-real-multilayer-50-validation.R",
+    "tools/run-multilayer-50-performance.R",
     "tools/run-full-performance.R"
 )
 
@@ -49,10 +54,36 @@ if ($StartAt) {
     $scripts = $scripts[$startIndex..($scripts.Count - 1)]
 }
 
+$started = [DateTime]::UtcNow
+$results = @()
 foreach ($script in $scripts) {
     Write-Output "Running $script"
+    $timer = [System.Diagnostics.Stopwatch]::StartNew()
     & Rscript.exe $script
+    $timer.Stop()
     if ($LASTEXITCODE -ne 0) {
         throw "$script failed with exit code $LASTEXITCODE"
     }
+    $results += [ordered]@{
+        script = $script
+        elapsed_seconds = [Math]::Round($timer.Elapsed.TotalSeconds, 3)
+        pass = $true
+    }
 }
+
+$description = Get-Content -LiteralPath "DESCRIPTION"
+$version = ($description | Where-Object { $_ -match '^Version:' }) -replace '^Version:\s*', ''
+$report = [ordered]@{
+    schema = "neurogeo/validation-suite-5.0"
+    package_version = $version
+    generated_at_utc = [DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")
+    started_at_utc = $started.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")
+    scripts = $results
+    pass = $true
+}
+$parent = Split-Path -Parent $Output
+if ($parent) {
+    New-Item -ItemType Directory -Force -Path $parent | Out-Null
+}
+$report | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $Output -Encoding utf8
+Write-Output (Resolve-Path -LiteralPath $Output)
