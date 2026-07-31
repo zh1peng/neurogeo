@@ -116,6 +116,12 @@ if (utils::compareVersion(package_version, "4.3.0") >= 0L) {
     "cortical-cartography-4.3.md"
   )
 }
+if (utils::compareVersion(package_version, "4.3.1") >= 0L) {
+  required_specs <- c(
+    required_specs,
+    "cortical-flatmap-4.3.1.md"
+  )
+}
 spec_paths <- system.file("spec", required_specs, package = "neurogeo")
 if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
     !nzchar(formats_path) || !file.exists(formats_path) ||
@@ -125,6 +131,10 @@ if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
 manifest <- neurogeo:::.ngeo_conformance_manifest()
 formats <- paste(readLines(formats_path, warn = FALSE), collapse = "\n")
 reviewed_status <- if (
+  utils::compareVersion(package_version, "4.3.1") >= 0L
+) {
+  "Status: reviewed for neurogeo 4.3.1"
+} else if (
   utils::compareVersion(package_version, "4.3.0") >= 0L
 ) {
   "Status: reviewed for neurogeo 4.3.0"
@@ -241,6 +251,34 @@ if (utils::compareVersion(package_version, "4.3.0") >= 0L) {
   }
 }
 
+flatmap_consistent <- NA
+if (utils::compareVersion(package_version, "4.3.1") >= 0L) {
+  flatmap_path <- system.file(
+    "spec", "cortical-flatmap-4.3.1.md",
+    package = "neurogeo"
+  )
+  flatmap_text <- paste(
+    readLines(flatmap_path, warn = FALSE),
+    collapse = "\n"
+  )
+  flatmap_consistent <- all(vapply(
+    c(
+      "face_subset",
+      "anatomical underlay",
+      "atlas boundaries",
+      "does not infer a cut",
+      "download-only HCP S1200 Conte69 32k"
+    ),
+    grepl,
+    logical(1),
+    x = flatmap_text,
+    fixed = TRUE
+  ))
+  if (!flatmap_consistent) {
+    stop("Installed 4.3.1 cortical-flatmap contract is incomplete.")
+  }
+}
+
 source_documents_equal <- NA
 if (file.exists(file.path("design", "supported-formats.md")) &&
     file.exists(file.path("inst", "spec", "supported-formats.md"))) {
@@ -303,6 +341,7 @@ result <- list(
     real_data_validation_consistent =
       real_data_validation_consistent,
     cartography_consistent = cartography_consistent,
+    flatmap_consistent = flatmap_consistent,
     required_specs = required_specs,
     public_exports = length(exports),
     deprecated_exports = 0L
