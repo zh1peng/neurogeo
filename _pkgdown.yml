@@ -23,6 +23,7 @@ articles:
   - multilayer-data-zh
   - spatial-basis-zh
   - layer-coupling-zh
+  - group-inference-zh
   - cortical-cartography-zh
   - interoperability-zh
   - scalable-io-zh
@@ -219,6 +220,8 @@ reference:
   - ngeo_spatial_basis
   - ngeo_basis_project
   - ngeo_layer_coupling
+  - ngeo_exchangeability
+  - ngeo_group_test
 - title: Input
   contents:
   - ngeo_example_data

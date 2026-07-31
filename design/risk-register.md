@@ -120,3 +120,11 @@ Status: reviewed for neurogeo 4.4.2
 | A jointly transformed layer pair creates an uninformative map null | controlled | each tested pair must cross explicit randomized and fixed stacks |
 | A reference-map p-value is reported as population inference | controlled | null results force `inference_unit = spatial_map` and `population_inference = FALSE` |
 | Optional cotangent or neighborhood features expand the stable surface prematurely | controlled | both promotion gates remain closed and unexported in 4.6 |
+| Spatial elements are permuted as if they were subjects | controlled | group inference accepts only compact unit-by-endpoint matrices and records `vertices_permuted = FALSE` |
+| Different endpoints receive different subject permutations | controlled | one hashed row-ordered exchangeability schedule drives all endpoint blocks |
+| Nuisance covariates are ignored during permutation | controlled | reduced-model residuals use the Freedman--Lane construction with shared QR decompositions |
+| Incomplete endpoints silently change the tested family | controlled | `complete_family` uses one retained unit set and requires a schedule built for that exact set |
+| Restricted schedules cross sites or contain duplicate/identity rows | controlled | normalization validates block membership, identity, duplicates, unit columns, and hash |
+| Full permutation-by-endpoint null exhausts memory | controlled | endpoint nulls are opt-in and budgeted; default streams counts and family extrema |
+| Fisher z uses vertex count as sample size | controlled | transform is endpoint-value only, raw coupling is retained, and inference rows remain subjects |
+| Heteroscedasticity is claimed solved by ordinary permutation | controlled | group variance/leverage diagnostics and an explicit exchangeable-residual non-claim are retained |

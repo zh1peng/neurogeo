@@ -1,6 +1,6 @@
 # neurogeo 4.5 to 5.0 execution plan
 
-Status: 4.5-4.6 complete; 4.7 in progress
+Status: 4.5-4.7 complete; 4.8 in progress
 
 Authoritative detailed plan: `../neurogeo_4.5-5.0_development_plan_zh.md`.
 Scientific-method issue: <https://github.com/zh1peng/neurogeo/issues/6>.
@@ -67,6 +67,24 @@ criteria, promotion rules, resource gates, and the final Definition of Done.
 - The 32,400- and 91,200-element by six delayed-map gates pass with 64 modes,
   two-map projection chunks, finite endpoints, and no dense full-domain
   matrix. Cotangent and general neighborhood features remain unexported.
+
+### 4.7.0
+
+- Free, within-block, sign-flip, and user schedules pass identity, duplicate,
+  alignment, restriction, exact-enumeration, hash, and resource tests.
+- The Freedman--Lane engine uses shared QR decompositions, complete subject
+  records, endpoint/permutation blocks, streamed exceedance/maxima, and no
+  endpoint null matrix by default.
+- Explicit fixed-schedule calculations and `permuco::lmperm()` match exactly;
+  one and two workers preserve schedule order and numerical results.
+- Full 100-replicate calibration gives FWER 0.06 (pure null), 0.06 (nuisance),
+  and 0.04 (site blocks), plus sign-flip type-I 0.05; all are below the
+  predeclared binomial 99.5% upper gate of 0.11.
+- Sparse max-T and distributed sum-of-squares power are 0.98 and 0.95 in the
+  declared simulations. A 200-subject by 256-endpoint by 999-transformation
+  run streams without retaining endpoint nulls or permuting vertices.
+- The installed end-to-end Chinese vignette, full unit suite, package
+  examples, and tarball core checks pass.
 
 ## Workflow policy
 

@@ -1,3 +1,20 @@
+# neurogeo 4.7.0
+
+* Added normalized free, within-block, sign-flip, and user-supplied subject
+  exchangeability schedules with fixed row order, exact unit alignment,
+  identity/duplicate checks, resource gates, and SHA-256 identities.
+* Added one `ngeo_group_test()` facade for one-df t and multi-df partial-F
+  Freedman--Lane inference over any compact subject endpoint matrix.
+* Reused one subject transformation across all endpoints and streamed raw
+  exceedance counts, max-T family extrema, and max/sum-of-squares omnibus
+  nulls. The full permutation-by-endpoint matrix is opt-in and budgeted.
+* Added effect coefficients, descriptive intervals, partial R-squared, raw
+  group summaries, design rank/leverage/variance diagnostics, and auditable
+  Fisher-z transforms that retain raw coupling values.
+* Validated explicit fixed-schedule calculations, `permuco::lmperm()`, exact
+  sign flips, block restrictions, missing-family behavior, and deterministic
+  one-versus-multiple-worker execution. Spatial elements are never permuted.
+
 # neurogeo 4.6.0
 
 * Added one `ngeo_layer_coupling()` facade for support-weighted same-location,

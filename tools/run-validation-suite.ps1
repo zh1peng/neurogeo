@@ -35,6 +35,7 @@ $scripts = @(
     "tools/run-cartography-43-validation.R",
     "tools/run-multilayer-45-validation.R",
     "tools/run-coupling-46-validation.R",
+    "tools/run-group-inference-47-validation.R",
     "tools/run-full-performance.R"
 )
 
