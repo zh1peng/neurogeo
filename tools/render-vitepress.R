@@ -257,6 +257,45 @@ documents <- rbind(
   )
 )
 
+documents <- rbind(
+  documents,
+  data.frame(
+    source = c(
+      "vignettes/multilayer-data-zh.Rmd",
+      "vignettes/spatial-basis-zh.Rmd",
+      "vignettes/layer-coupling-zh.Rmd",
+      "vignettes/group-inference-zh.Rmd",
+      "vignettes/support-family-inference-zh.Rmd",
+      "vignettes/reference-vs-subject-inference-zh.Rmd",
+      "vignettes/advanced-spatial-methods-zh.Rmd",
+      "vignettes/multilayer-inference.Rmd"
+    ),
+    target = c(
+      "website/modules/multilayer-data.md",
+      "website/modules/spatial-basis.md",
+      "website/modules/layer-coupling.md",
+      "website/modules/group-inference.md",
+      "website/modules/support-family-inference.md",
+      "website/modules/reference-vs-subject-inference.md",
+      "website/modules/advanced-spatial-methods.md",
+      "website/en/modules/multilayer-inference.md"
+    ),
+    title = c(
+      "多图层数据与严格索引",
+      "固定空间基与支持加权投影",
+      "多尺度图层耦合",
+      "从多图层脑图到组间置换推断",
+      "跨 support 的共同受试者推断",
+      "参考脑图推断与受试者推断：不要混用两种零假设",
+      "高级空间方法的实验边界",
+      "Multilayer spatial inference"
+    ),
+    counterpart = NA_character_,
+    counterpart_label = NA_character_,
+    stringsAsFactors = FALSE
+  )
+)
+
 vignettes <- sort(list.files(
   "vignettes",
   pattern = "\\.Rmd$",

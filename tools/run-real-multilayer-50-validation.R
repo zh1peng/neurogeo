@@ -212,21 +212,32 @@ design <- data.frame(
   sex = factor(covariates$Sex),
   stringsAsFactors = FALSE
 )
-schedule <- ngeo_exchangeability(
+subject_schedule <- ngeo_exchangeability(
+  design$unit_id, scheme = "free", permutations = 199L, seed = 5000L
+)
+subject_fit <- ngeo_group_test(
+  features = features$DK68,
+  data = design,
+  model = ~ diagnosis + age + sex,
+  test = "diagnosis",
+  exchangeability = subject_schedule,
+  adjustment = "maxT"
+)
+family_schedule <- ngeo_exchangeability(
   design$unit_id, scheme = "free", permutations = 199L, seed = 5001L
 )
-fit <- ngeo_group_test(
+family_fit <- ngeo_group_test(
   features = features,
   data = design,
   model = ~ diagnosis + age + sex,
   test = "diagnosis",
-  exchangeability = schedule,
+  exchangeability = family_schedule,
   adjustment = "maxT"
 )
 
 common_schedule <- identical(
-  fit$support$schedule_hash, schedule$schedule_hash
-) && isTRUE(fit$diagnostics$common_schedule_all_supports)
+  family_fit$support$schedule_hash, family_schedule$schedule_hash
+) && isTRUE(family_fit$diagnostics$common_schedule_all_supports)
 support_rows <- sum(vapply(support_inventory, `[[`, integer(1), "regions"))
 pass <- nrow(design) == 20L &&
   identical(as.integer(table(design$diagnosis)), c(10L, 10L)) &&
@@ -235,8 +246,10 @@ pass <- nrow(design) == 20L &&
     value$components == 2L && value$missing_endpoints == 0L &&
       value$maximum_eigen_residual < 1e-6
   }, logical(1))) && common_schedule &&
-  nrow(fit$tests) == sum(vapply(features, function(value) ncol(value$values),
-                                integer(1)))
+  nrow(subject_fit$tests) == ncol(features$DK68$values) &&
+  nrow(family_fit$tests) == sum(vapply(
+    features, function(value) ncol(value$values), integer(1)
+  ))
 if (!pass) {
   stop(
     "The real multilayer/support-family workflow failed its gates: ",
@@ -244,7 +257,8 @@ if (!pass) {
       groups = table(design$diagnosis),
       supports = support_inventory,
       common_schedule = common_schedule,
-      test_rows = nrow(fit$tests),
+      subject_test_rows = nrow(subject_fit$tests),
+      family_test_rows = nrow(family_fit$tests),
       expected_test_rows = sum(vapply(
         features, function(value) ncol(value$values), integer(1)
       ))
@@ -284,16 +298,26 @@ report <- list(
     relative_area_density = list(units = "1", semantics = "intensive")
   ),
   supports = support_inventory,
-  inference = list(
-    model = "~ diagnosis + age + sex",
-    test = "diagnosis",
-    permutations = schedule$permutations,
-    schedule_hash = schedule$schedule_hash,
-    common_schedule = common_schedule,
-    family_endpoints = nrow(fit$tests),
-    minimum_raw_p = min(fit$tests$p_raw),
-    minimum_maxT_p = min(fit$tests$p_maxT),
-    population_inference = TRUE,
+  workflows = list(
+    subject_level_multilayer = list(
+      support = "DK68", model = "~ diagnosis + age + sex",
+      test = "diagnosis", permutations = subject_schedule$permutations,
+      schedule_hash = subject_schedule$schedule_hash,
+      endpoints = nrow(subject_fit$tests),
+      minimum_raw_p = min(subject_fit$tests$p_raw),
+      minimum_maxT_p = min(subject_fit$tests$p_maxT),
+      population_inference = TRUE
+    ),
+    support_family_replication = list(
+      supports = names(features), model = "~ diagnosis + age + sex",
+      test = "diagnosis", permutations = family_schedule$permutations,
+      schedule_hash = family_schedule$schedule_hash,
+      common_schedule = common_schedule,
+      family_endpoints = nrow(family_fit$tests),
+      minimum_raw_p = min(family_fit$tests$p_raw),
+      minimum_maxT_p = min(family_fit$tests$p_maxT),
+      population_inference = TRUE
+    ),
     claim_scope = paste(
       "execution and numerical validation on the 20-subject ENIGMA example;",
       "not a powered clinical claim"

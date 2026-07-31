@@ -25,6 +25,7 @@ articles:
   - layer-coupling-zh
   - group-inference-zh
   - support-family-inference-zh
+  - reference-vs-subject-inference-zh
   - cortical-cartography-zh
   - interoperability-zh
   - scalable-io-zh
@@ -46,6 +47,7 @@ articles:
 - title: English documentation
   navbar: English
   contents:
+  - multilayer-inference
   - core-concepts
   - reading-data
   - schema-validation

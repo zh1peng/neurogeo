@@ -1,0 +1,121 @@
+---
+title: "Multilayer spatial inference"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Multilayer spatial inference}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## Scientific question and data contract
+
+This workflow asks whether two aligned cortical layers are coupled, at which
+retained spatial scales that coupling occurs, and whether coupling differs
+between subject groups. Every map belongs to one independent subject and one
+layer. Vertices or regions are spatial elements, not replicated subjects.
+
+```{r data}
+library(neurogeo)
+
+set.seed(50)
+n_element <- 10L
+n_subject <- 16L
+unit_id <- sprintf("sub-%02d", seq_len(n_subject))
+group <- factor(rep(c("control", "case"), each = n_subject / 2L))
+age <- seq(20, 55, length.out = n_subject)
+feature <- rep(c("thickness", "myelin"), n_subject)
+subject <- rep(unit_id, each = 2L)
+base <- sin(seq_len(n_element) / 2)
+values <- matrix(NA_real_, n_element, 2L * n_subject)
+for (i in seq_len(n_subject)) {
+  values[, 2L * i - 1L] <- base + rnorm(n_element, sd = 0.12)
+  strength <- if (group[[i]] == "case") 0.8 else 0.4
+  values[, 2L * i] <- strength * base + rnorm(n_element, sd = 0.12)
+}
+maps <- data.frame(
+  map_id = sprintf("map-%03d", seq_len(ncol(values))),
+  name = paste(subject, feature, sep = "_"),
+  subject_id = subject, feature = feature
+)
+measure <- ngeo_measure(spatial_semantics = "intensive", units = "a.u.")
+x <- ngeo_points(
+  cbind(x = seq_len(n_element), y = 0), values = values, maps = maps,
+  measures = measure[rep.int(1L, ncol(values)), , drop = FALSE]
+)
+index <- ngeo_validate_layers(
+  x, required_layers = c("thickness", "myelin"), complete = "error"
+)
+```
+
+## Fixed spatial estimand
+
+The graph basis below depends on coordinates, topology, and declared support,
+not on the values that will later be tested. The two named bands are
+rank-matched retained modes; they are not automatically physical wavelengths.
+
+```{r features}
+weights <- ngeo_weights(
+  x, method = "distance_band", threshold = 1.01, style = "B"
+)
+basis <- ngeo_spatial_basis(
+  x, weights, support = "identity", n_modes = n_element - 1L
+)
+features <- ngeo_layer_coupling(
+  x, index, basis = basis,
+  bands = list(low_rank = 1:4, high_rank = 5:9),
+  estimands = c("same_location", "spectral_coupling", "band_energy")
+)
+features
+```
+
+`spectral_coupling` is normalized cross-layer covariance in a band.
+`band_energy_x` and `band_energy_y` are marginal layer structure. Keeping them
+as separate endpoints prevents an energy change from being described as a
+coupling change.
+
+## Subject-level inference
+
+The exchangeability object transforms whole subjects. One schedule is reused
+for every endpoint; no vertex-wise pseudo-replication occurs.
+
+```{r inference}
+design <- data.frame(unit_id = unit_id, group = group, age = age)
+schedule <- ngeo_exchangeability(
+  unit_id, scheme = "free", permutations = 99L, seed = 5001L
+)
+result <- ngeo_group_test(
+  features, design, model = ~ age + group, test = "group",
+  exchangeability = schedule, transform = "auto", adjustment = "maxT"
+)
+result$tests[, c(
+  "estimand", "band", "coefficient", "partial_r2", "p_raw", "p_maxT"
+)]
+result$omnibus
+```
+
+The valid inference unit is the independent subject. The result supports a
+claim about the declared population only when residual exchangeability and the
+subject design are defensible. It does not establish causality, registration
+quality, equal physical scale across atlases, or parcellation invariance.
+
+## Declared support family
+
+Construct features independently on every atlas or support, then pass the
+named list to the same group call. This produces one common schedule and one
+full-family max-T calculation. Support dispersion remains descriptive.
+
+```{r support-family, eval=FALSE}
+family_result <- ngeo_group_test(
+  features = list(DK68 = dk_features, Schaefer100 = schaefer_features),
+  data = design, model = ~ age + group, test = "group",
+  exchangeability = schedule
+)
+family_result$support$stability
+```
+
+Use `ngeo_qc()` on the inputs and inspect basis diagnostics, missing endpoints,
+schedule hashes, and support scale labels before interpreting the tests.

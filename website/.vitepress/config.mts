@@ -54,6 +54,13 @@ const zhTheme = {
       items: [
         { text: 'Support uncertainty', link: '/modules/support-uncertainty' },
         { text: 'Support-aware inference', link: '/modules/support-aware-inference' },
+        { text: '多图层数据与严格索引', link: '/modules/multilayer-data' },
+        { text: '固定空间基', link: '/modules/spatial-basis' },
+        { text: '多尺度图层耦合', link: '/modules/layer-coupling' },
+        { text: '受试者组间推断', link: '/modules/group-inference' },
+        { text: '跨 support 共同推断', link: '/modules/support-family-inference' },
+        { text: '参考图与受试者 null', link: '/modules/reference-vs-subject-inference' },
+        { text: '实验方法边界', link: '/modules/advanced-spatial-methods' },
         { text: '有界空间建模', link: '/modules/spatial-modelling' },
         { text: '空间模型不确定性', link: '/modules/model-uncertainty' },
         { text: '迭代空间模型', link: '/modules/iterative-spatial-models' },
@@ -136,6 +143,7 @@ const enTheme = {
       items: [
         { text: 'Support uncertainty', link: '/en/modules/support-uncertainty' },
         { text: 'Support-aware inference', link: '/en/modules/support-aware-inference' },
+        { text: 'Multilayer spatial inference', link: '/en/modules/multilayer-inference' },
         { text: 'Spatial modelling', link: '/en/tutorials/spatial-modelling' },
         { text: 'Model uncertainty', link: '/en/modules/model-uncertainty' },
         { text: 'Iterative spatial models', link: '/en/modules/iterative-spatial-models' },

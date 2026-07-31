@@ -37,6 +37,13 @@ description: neurogeo 的对象、I/O、空间关系、模型、执行和复现�
 
 - [Support uncertainty 与 operator ensemble](/modules/support-uncertainty)
 - [Support-aware inference](/modules/support-aware-inference)
+- [多图层数据与严格索引](/modules/multilayer-data)
+- [固定空间基与支持加权投影](/modules/spatial-basis)
+- [多尺度图层耦合](/modules/layer-coupling)
+- [从多图层脑图到组间置换推断](/modules/group-inference)
+- [跨 support 的共同受试者推断](/modules/support-family-inference)
+- [参考脑图推断与受试者推断](/modules/reference-vs-subject-inference)
+- [高级空间方法的实验边界](/modules/advanced-spatial-methods)
 - [有界空间建模](/modules/spatial-modelling)
 - [包含不确定性的空间模型](/modules/model-uncertainty)
 - [有界迭代空间模型](/modules/iterative-spatial-models)

@@ -1,0 +1,92 @@
+---
+title: "参考脑图推断与受试者推断：不要混用两种零假设"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{参考脑图推断与受试者推断：不要混用两种零假设}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## 科学问题
+
+neurogeo 明确区分两类问题：固定的两张参考脑图在空间上是否呈现异常关系，以及多名
+独立受试者的图层关系是否存在总体组间差异。前者的随机性来自空间变换，后者来自完整
+受试者的抽样与交换；两类 p 值不能互换。
+
+## Reference-map regime
+
+参考脑图分析只有一个 map unit。空间 null 必须声明随机化哪一层、保持哪一层固定，且
+所有 endpoint 使用同一组空间变换。其结果应保留
+`population_inference = FALSE`。
+
+```{r reference-contract, eval=FALSE}
+reference_features <- ngeo_layer_coupling(
+  reference_maps,
+  reference_index,
+  basis = topology_basis,
+  bands = declared_bands,
+  null = list(
+    randomized_layer = "receptor",
+    fixed_layer = "thickness",
+    transformations = spin_mappings,
+    population_inference = FALSE
+  )
+)
+```
+
+这个检验可以回答“在所声明空间变换组下，这两张固定脑图的关系是否异常”，不能回答
+“患者总体与对照总体是否不同”。同一数据上学习 ordination basis 再做普通确认性检验
+会造成 selection leakage；除非明确使用独立训练数据，否则该路径会被拒绝。
+
+## Subject-level regime
+
+受试者推断先为每名受试者生成 coupling/energy endpoint，再用完整受试者作为 GLM 的一
+行。顶点、region、session 或 layer 都不能冒充独立受试者。
+
+```{r subject-contract, eval=FALSE}
+schedule <- ngeo_exchangeability(
+  subject_data$unit_id,
+  scheme = "within_block",
+  blocks = subject_data$site,
+  permutations = 4999L,
+  seed = 5001L
+)
+population_result <- ngeo_group_test(
+  subject_features,
+  subject_data,
+  model = ~ age + sex + site + diagnosis,
+  test = "diagnosis",
+  exchangeability = schedule,
+  adjustment = "maxT"
+)
+```
+
+Freedman--Lane 置换的是 reduced model 的完整受试者残差记录，并在声明的 block 内保持
+exchangeability。重复 session 必须先形成一个受试者 summary、配对 contrast，或交给能
+表达重复测量结构的外部模型；5.0 不实现 PALM-style exchangeability tree。
+
+## Support-family regime
+
+多个 atlas/support 的受试者 endpoint 可以作为一个预先声明的 family 一次进入
+`ngeo_group_test()`。它要求完全相同的受试者、模型、tested term 与共同 schedule，并在
+全部 `support × endpoint` 上做统一 max-T。跨 support 的 effect range、方向一致性和
+leave-one-support-out influence 是描述性敏感度，不是 atlas 抽样方差，也不会自动产生
+“parcellation-invariant”标签。
+
+## 快速判别表
+
+| 问题 | 随机单位 | 合法 null | 可以声称 | 不可以声称 |
+|---|---|---|---|---|
+| 两张固定脑图是否空间相关 | spatial mapping | spin/显式空间变换组 | 固定地图关系异常 | 人群组间差异 |
+| 患者与对照是否不同 | 完整受试者 | free/block/sign/user schedule | 声明总体中的 endpoint 差异 | vertex-wise 独立重复 |
+| 结论是否跨 atlas 一致 | 完整受试者 + 声明 support family | 一个共同 subject schedule | family 内敏感度与共同校正 | 普遍 parcellation invariance |
+
+## 审阅清单
+
+在解释结果前确认：basis 不依赖待检验 values；`unit_id` 唯一；map 与 design 顺序严格
+对齐；schedule hash 被记录；coupling 与 marginal energy 分开；rank-matched band 未被
+写成相同物理波长；报告明确写出 claim 与 non-claim。

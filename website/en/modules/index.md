@@ -29,6 +29,7 @@ description: Technical documentation for neurogeo objects, I/O, spatial relation
 
 - [Support uncertainty and operator ensembles](/en/modules/support-uncertainty)
 - [Support-aware inference](/en/modules/support-aware-inference)
+- [Multilayer spatial inference](/en/modules/multilayer-inference)
 - [Bounded spatial modelling](/en/tutorials/spatial-modelling)
 - [Uncertainty-aware spatial models](/en/modules/model-uncertainty)
 - [Bounded iterative spatial models](/en/modules/iterative-spatial-models)
