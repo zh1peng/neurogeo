@@ -15,6 +15,11 @@ test_that("4.2.1 distribution metadata is discoverable", {
   expect_gte(length(citation), 1L)
   citation_text <- paste(format(citation[[1L]]), collapse = "\n")
   expect_match(citation_text, "neurogeo", ignore.case = TRUE)
+  expect_match(
+    citation_text,
+    as.character(utils::packageVersion("neurogeo")),
+    fixed = TRUE
+  )
 })
 
 test_that("4.2.1 installed API navigation records are present", {
