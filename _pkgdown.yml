@@ -75,22 +75,22 @@ articles:
   - reproducible-replay
 
 reference:
-- title: Domains and semantics
+- title: Spatial bases and semantics
   contents:
   - ngeo_surface
   - ngeo_volume
-  - ngeo_points
-  - ngeo_grayordinates
-  - ngeo_regions
-  - ngeo_space
+  - ngeo_point
+  - ngeo_grayordinate
+  - ngeo_parcellation
+  - ngeo_coordinate_space
   - ngeo_transform
   - ngeo_validate_transform
   - ngeo_apply_transform
   - ngeo_compose_transform
   - ngeo_invert_transform
-  - ngeo_space_hash
-  - ngeo_space_audit
-  - ngeo_space_registry
+  - ngeo_coordinate_space_hash
+  - ngeo_coordinate_space_audit
+  - ngeo_coordinate_space_registry
   - ngeo_validate_space_registry
   - ngeo_register_space
   - ngeo_resolve_space
@@ -100,7 +100,7 @@ reference:
   - ngeo_validate_transform_graph
   - ngeo_transform_path
   - ngeo_transform_graph_diagnostics
-  - ngeo_transform_path_provenance
+  - ngeo_transform_path_history
   - ngeo_apply_transform_path
   - ngeo_measure
 - title: Topology, metrics, and weights
@@ -108,7 +108,7 @@ reference:
   - ngeo_adjacency
   - ngeo_distance
   - ngeo_neighbors
-  - ngeo_weights
+  - ngeo_spatial_weights
 - title: Temporal and spatiotemporal analysis
   contents:
   - ngeo_time_axis
@@ -156,7 +156,7 @@ reference:
   - ngeo_support_map_hash
   - ngeo_support_map_from_partition
   - ngeo_compose_support_map
-  - ngeo_change_support
+  - aggregate_to
   - ngeo_support_variance
   - ngeo_atlas_overlap
   - ngeo_atlas_compare
@@ -221,7 +221,7 @@ reference:
   - ngeo_model_calibration
 - title: Multilayer spatial analysis
   contents:
-  - ngeo_bind_maps
+  - ngeo_bind_layers
   - ngeo_validate_layers
   - ngeo_spatial_basis
   - ngeo_basis_project
@@ -238,10 +238,10 @@ reference:
   contents:
   - ngeo_example_data
   - starts_with("read_ngeo")
-- title: Output and provenance
+- title: Output and history
   contents:
   - starts_with("write_ngeo")
-  - ngeo_export_provenance
+  - ngeo_export_history
   - write_ngeo_cifti
   - ngeo_bids_sidecar
   - write_ngeo_bids_derivative
@@ -260,8 +260,8 @@ reference:
   contents:
   - ngeo_accessors
   - ngeo_capabilities
-  - ngeo_domain_hash
-  - ngeo_domain_type
+  - base_hash
+  - base_type
   - ngeo_subset
   - ngeo_validate
   - ngeo_qc
@@ -269,8 +269,8 @@ reference:
 - title: Reproducibility and artifact integrity
   contents:
   - ngeo_logical_hash
-  - ngeo_provenance_dag
-  - ngeo_validate_provenance_dag
+  - ngeo_history_dag
+  - ngeo_validate_history_dag
   - ngeo_environment_snapshot
   - ngeo_replay_step
   - ngeo_record_replay
@@ -293,7 +293,7 @@ reference:
   - ngeo_chart_distortion
   - ngeo_as_sf
   - plot.ngeo
-  - plot.ngeo_weights
+  - plot.ngeo_spatial_weights
   - plot.ngeo_partition
   - plot.ngeo_global_stat
 - title: Cortical cartography
