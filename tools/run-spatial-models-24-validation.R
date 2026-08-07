@@ -39,27 +39,27 @@ if (variogram_error > 0.03) {
 
 coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
 predictor <- coordinates[, 1L] + 0.25 * coordinates[, 2L]
-base <- ngeo_points(coordinates, values = cbind(predictor = predictor))
-weights <- ngeo_weights(
+base <- ngeo_point(coordinates, values = cbind(predictor = predictor))
+spatial_weights <- ngeo_spatial_weights(
   base, method = "distance_band", threshold = 1.01, style = "W"
 )
 set.seed(2401L)
 rho <- 0.35
 response <- as.numeric(solve(
-  diag(25) - rho * as.matrix(weights$matrix),
+  diag(25) - rho * as.matrix(spatial_weights$matrix),
   1 + 2 * predictor + stats::rnorm(25, sd = 0.03)
 ))
-x <- ngeo_points(
+x <- ngeo_point(
   coordinates,
   values = cbind(response = response, predictor = predictor),
   measures = rbind(
-    ngeo_measure(spatial_semantics = "intensive"),
-    ngeo_measure(spatial_semantics = "intensive")
+    ngeo_measure(support_behavior = "intensive"),
+    ngeo_measure(support_behavior = "intensive")
   )
 )
-weights$domain_hash <- ngeo_domain_hash(x)
+spatial_weights$base_hash <- base_hash(x)
 sar <- ngeo_spatial_regression(
-  x, "response", "predictor", weights, model = "sar"
+  x, "response", "predictor", spatial_weights, model = "sar"
 )
 rho_error <- abs(sar$spatial_parameter - rho)
 if (rho_error > 0.12 ||
@@ -83,7 +83,7 @@ if (gwr_error > 1e-8 || any(!is.finite(gwr$condition_number))) {
 }
 
 car <- ngeo_car(
-  x, "response", weights,
+  x, "response", spatial_weights,
   type = "intrinsic", precision = 1
 )
 if (!identical(car$constraint, "sum-to-zero spatial effect") ||

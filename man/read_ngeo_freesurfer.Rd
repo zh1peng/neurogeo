@@ -10,12 +10,12 @@ read_ngeo_freesurfer(
   coordinates = NULL,
   data = NULL,
   labels = NULL,
-  domain = c("auto", "surface", "volume"),
+  base = c("auto", "surface", "volume"),
   affine = NULL,
   mask = NULL,
-  maps = NULL,
+  layers = NULL,
   measures = NULL,
-  space = NULL,
+  coordinate_space = NULL,
   load_data = TRUE,
   strict = TRUE,
   checksum = TRUE
@@ -32,17 +32,17 @@ read_ngeo_freesurfer(
 
 \item{labels}{Optional annotation path.}
 
-\item{domain}{Explicit surface/volume domain, or safe automatic detection.}
+\item{base}{Explicit surface/volume base, or safe automatic detection.}
 
 \item{affine}{Optional explicit MGH/MGZ affine.}
 
 \item{mask}{Optional volume mask.}
 
-\item{maps}{Optional map metadata.}
+\item{layers}{Optional map metadata.}
 
 \item{measures}{Optional measurement semantics.}
 
-\item{space}{Optional `ngeo_space`.}
+\item{coordinate_space}{Optional `ngeo_coordinate_space`.}
 
 \item{load_data}{Whether to retain volume data.}
 

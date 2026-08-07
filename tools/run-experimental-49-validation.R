@@ -20,15 +20,15 @@ p1 <- scale(coordinates[, 1] + coordinates[, 2])[, 1] + rnorm(n, sd = 0.1)
 p2 <- 0.7 * p1 + scale(coordinates[, 1] - coordinates[, 2])[, 1] * 0.3 +
   rnorm(n, sd = 0.1)
 response <- 1 + 1.8 * p1 - 0.8 * p2 + rnorm(n, sd = 0.25)
-x <- ngeo_points(
+x <- ngeo_point(
   coordinates,
   values = cbind(response = response, p1 = p1, p2 = p2)
 )
-weights <- ngeo_weights(
+spatial_weights <- ngeo_spatial_weights(
   x, method = "knn", k = 4L, style = "W", symmetry = "union"
 )
 
-ordination <- ngeo_spatial_ordination(x, c("p1", "p2"), weights, axes = 2L)
+ordination <- ngeo_spatial_ordination(x, c("p1", "p2"), spatial_weights, axes = 2L)
 ordination_check <- list(
   backend = ordination$backend,
   axes = ncol(ordination$loadings),
@@ -46,7 +46,7 @@ empirical <- neurogeo:::.ngeo_cross_variograms(
 cross_check <- list(
   requested_pairs = empirical$sampling$requested_pairs,
   retained_pairs = empirical$sampling$retained_pairs,
-  metric = empirical$metric,
+  distance_method = empirical$distance_method,
   convention = empirical$sampling$convention,
   hash = empirical$sampling$hash,
   pass = empirical$sampling$retained_pairs == pair_count &&
@@ -101,7 +101,7 @@ report <- list(
   pass = pass,
   claim = paste(
     "Bounded experimental feasibility only; no population inference,",
-    "co-kriging, nominal local p maps, or full-cortex MGWR claim."
+    "co-kriging, nominal local p layers, or full-cortex MGWR claim."
   )
 )
 dir.create(dirname(output), recursive = TRUE, showWarnings = FALSE)

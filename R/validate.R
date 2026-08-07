@@ -1,5 +1,5 @@
 .ngeo_validate_common <- function(x) {
-  required <- c("domain", "values", "maps", "measures", "labels", "provenance")
+  required <- c("base", "values", "layers", "measures", "history")
   if (!inherits(x, "ngeo") || !is.list(x) ||
       any(!required %in% names(x))) {
     .ngeo_abort(
@@ -7,15 +7,15 @@
       "ngeo_error_object"
     )
   }
-  if (!inherits(x$domain, "ngeo_domain") ||
-      !is.data.frame(x$domain$elements)) {
+  if (!inherits(x$base, "ngeo_base") ||
+      !is.data.frame(x$base$elements)) {
     .ngeo_abort(
-      "`domain` must contain an element table.",
-      "ngeo_error_domain"
+      "`base` must contain an element table.",
+      "ngeo_error_base"
     )
   }
 
-  elements <- x$domain$elements
+  elements <- x$base$elements
   if (!"element_id" %in% names(elements) ||
       anyNA(elements$element_id) ||
       any(!nzchar(elements$element_id)) ||
@@ -34,42 +34,52 @@
     }
     if (nrow(x$values) != n_element) {
       .ngeo_abort(
-        "`values` is not aligned with domain elements.",
+        "`values` is not aligned with base elements.",
         "ngeo_error_alignment"
       )
     }
   }
 
-  if (!is.data.frame(x$maps) || !is.data.frame(x$measures) ||
-      nrow(x$measures) != nrow(x$maps)) {
+  if (!is.data.frame(x$layers) ||
+      any(!c("layer_id", "measure_id") %in% names(x$layers)) ||
+      anyNA(x$layers$layer_id) || anyDuplicated(x$layers$layer_id)) {
     .ngeo_abort(
-      "`maps` and `measures` must align with value columns.",
+      "`layers` must define unique layer IDs and a measure reference.",
       "ngeo_error_alignment"
     )
   }
-  if (!is.null(x$values) && ncol(x$values) != nrow(x$maps)) {
+  if (!is.null(x$values) && ncol(x$values) != nrow(x$layers)) {
     .ngeo_abort(
-      "`maps` and `measures` must align with value columns.",
+      "`layers` must align with value columns.",
       "ngeo_error_alignment"
+    )
+  }
+  if (!is.data.frame(x$measures) ||
+      !"measure_id" %in% names(x$measures) ||
+      anyNA(x$measures$measure_id) || anyDuplicated(x$measures$measure_id) ||
+      any(!x$layers$measure_id %in% x$measures$measure_id)) {
+    .ngeo_abort(
+      "Every layer must reference exactly one defined measure.",
+      "ngeo_error_measure"
     )
   }
   invisible(TRUE)
 }
 
-.ngeo_validate_points <- function(x) {
-  domain <- x$domain
-  coordinates <- domain$coordinates
-  if (!inherits(domain, "ngeo_points_domain") ||
+.ngeo_validate_point <- function(x) {
+  base <- x$base
+  coordinates <- base$geometry$coordinates
+  if (!inherits(base, "ngeo_point_base") ||
       !is.matrix(coordinates) || !is.numeric(coordinates) ||
       !ncol(coordinates) %in% c(2L, 3L) ||
-      nrow(coordinates) != nrow(domain$elements) ||
+      nrow(coordinates) != nrow(base$elements) ||
       anyNA(coordinates) || any(!is.finite(coordinates))) {
-    .ngeo_abort("Invalid points domain.", "ngeo_error_domain")
+    .ngeo_abort("Invalid point base.", "ngeo_error_base")
   }
-  if (!is.null(domain$uncertainty) &&
-      (length(domain$uncertainty) != nrow(domain$elements) ||
-        anyNA(domain$uncertainty) ||
-        any(domain$uncertainty < 0))) {
+  if (!is.null(base$geometry$uncertainty) &&
+      (length(base$geometry$uncertainty) != nrow(base$elements) ||
+        anyNA(base$geometry$uncertainty) ||
+        any(base$geometry$uncertainty < 0))) {
     .ngeo_abort(
       "Point uncertainty must align with elements and be non-negative.",
       "ngeo_error_alignment"
@@ -78,15 +88,15 @@
   invisible(TRUE)
 }
 
-.ngeo_validate_grayordinates <- function(x) {
-  domain <- x$domain
-  if (!inherits(domain, "ngeo_grayordinates_domain") ||
-      !is.list(domain$components) || !length(domain$components)) {
-    .ngeo_abort("Invalid grayordinates domain.", "ngeo_error_domain")
+.ngeo_validate_grayordinate <- function(x) {
+  base <- x$base
+  if (!inherits(base, "ngeo_grayordinate_base") ||
+      !is.list(base$geometry$components) || !length(base$geometry$components)) {
+    .ngeo_abort("Invalid grayordinate base.", "ngeo_error_base")
   }
 
-  n <- nrow(domain$elements)
-  rows <- unlist(lapply(domain$components, `[[`, "global_rows"))
+  n <- nrow(base$elements)
+  rows <- unlist(lapply(base$geometry$components, `[[`, "global_rows"))
   if (length(rows) != n || anyDuplicated(rows) ||
       !identical(sort(as.integer(rows)), seq_len(n))) {
     .ngeo_abort(
@@ -95,16 +105,16 @@
     )
   }
 
-  ids <- vapply(domain$components, `[[`, character(1), "component_id")
+  ids <- vapply(base$geometry$components, `[[`, character(1), "component_id")
   if (anyDuplicated(ids) ||
-      any(!domain$elements$component_id %in% ids)) {
+      any(!base$elements$component_id %in% ids)) {
     .ngeo_abort(
       "Grayordinate component IDs are inconsistent.",
-      "ngeo_error_domain"
+      "ngeo_error_base"
     )
   }
 
-  for (component in domain$components) {
+  for (component in base$geometry$components) {
     if (length(component$global_rows) != component$n_element) {
       .ngeo_abort(
         "Grayordinate component size is inconsistent.",
@@ -121,7 +131,7 @@
       }
       if (!is.null(component$geometry) &&
           (!inherits(component$geometry, "ngeo_surface") ||
-            nrow(component$geometry$domain$elements) !=
+            nrow(component$geometry$base$elements) !=
               component$surface_vertex_count)) {
         .ngeo_abort(
           "Attached grayordinate surface geometry is inconsistent.",
@@ -136,39 +146,39 @@
           !identical(dim(component$affine), c(4L, 4L))) {
         .ngeo_abort(
           "Grayordinate volume component is inconsistent.",
-          "ngeo_error_domain"
+          "ngeo_error_base"
         )
       }
     } else {
       .ngeo_abort(
         "Unknown grayordinate component kind.",
-        "ngeo_error_domain"
+        "ngeo_error_base"
       )
     }
   }
   invisible(TRUE)
 }
 
-.ngeo_validate_regions <- function(x) {
-  domain <- x$domain
-  n <- nrow(domain$elements)
-  if (!inherits(domain, "ngeo_regions_domain") ||
-      !"region_id" %in% names(domain$elements) ||
-      anyDuplicated(domain$elements$region_id) ||
-      length(domain$support_size) != n) {
-    .ngeo_abort("Invalid regions domain.", "ngeo_error_domain")
+.ngeo_validate_parcellation <- function(x) {
+  base <- x$base
+  n <- nrow(base$elements)
+  if (!inherits(base, "ngeo_parcellation_base") ||
+      !"region_id" %in% names(base$elements) ||
+      anyDuplicated(base$elements$region_id) ||
+      length(base$geometry$support_size) != n) {
+    .ngeo_abort("Invalid parcellation base.", "ngeo_error_base")
   }
-  if (!is.null(domain$centroid) &&
-      (!is.matrix(domain$centroid) ||
-        nrow(domain$centroid) != n ||
-        !ncol(domain$centroid) %in% c(2L, 3L))) {
+  if (!is.null(base$geometry$centroid) &&
+      (!is.matrix(base$geometry$centroid) ||
+        nrow(base$geometry$centroid) != n ||
+        !ncol(base$geometry$centroid) %in% c(2L, 3L))) {
     .ngeo_abort(
       "Region centroids must align with elements.",
       "ngeo_error_alignment"
     )
   }
-  if (!is.null(domain$adjacency) &&
-      !identical(dim(domain$adjacency), c(n, n))) {
+  if (!is.null(base$topology$adjacency) &&
+      !identical(dim(base$topology$adjacency), c(n, n))) {
     .ngeo_abort(
       "Region adjacency must align with elements.",
       "ngeo_error_alignment"
@@ -178,33 +188,33 @@
 }
 
 .ngeo_validate_surface <- function(x, strict) {
-  domain <- x$domain
-  if (!inherits(domain, "ngeo_surface_domain") ||
-      !is.list(domain$coordinates) || !length(domain$coordinates)) {
-    .ngeo_abort("Invalid surface domain.", "ngeo_error_domain")
+  base <- x$base
+  if (!inherits(base, "ngeo_surface_base") ||
+      !is.list(base$geometry$coordinates) || !length(base$geometry$coordinates)) {
+    .ngeo_abort("Invalid surface base.", "ngeo_error_base")
   }
 
-  n_vertex <- nrow(domain$elements)
-  coordinate_rows <- vapply(domain$coordinates, nrow, integer(1))
+  n_vertex <- nrow(base$elements)
+  coordinate_rows <- vapply(base$geometry$coordinates, nrow, integer(1))
   if (any(coordinate_rows != n_vertex)) {
     .ngeo_abort(
       "Surface coordinate rows must align with elements.",
       "ngeo_error_alignment"
     )
   }
-  coordinate_meta <- domain$coordinate_meta
+  coordinate_meta <- base$geometry$coordinate_meta
   required_meta <- c(
-    "name", "dimension", "role", "units", "metric_eligible"
+    "name", "dimension", "role", "unit", "metric_eligible"
   )
   if (!is.data.frame(coordinate_meta) ||
       any(!required_meta %in% names(coordinate_meta)) ||
-      nrow(coordinate_meta) != length(domain$coordinates) ||
+      nrow(coordinate_meta) != length(base$geometry$coordinates) ||
       !identical(
         as.character(coordinate_meta$name),
-        names(domain$coordinates)
+        names(base$geometry$coordinates)
       ) ||
       any(coordinate_meta$dimension != vapply(
-        domain$coordinates,
+        base$geometry$coordinates,
         ncol,
         integer(1)
       )) ||
@@ -222,20 +232,20 @@
   if (any(coordinate_meta$dimension[chart_rows] != 2L) ||
       any(coordinate_meta$metric_eligible[chart_rows])) {
     .ngeo_abort(
-      "Computational charts must be 2D and not metric-eligible.",
+      "Computational charts must be 2D and not distance_method-eligible.",
       "ngeo_error_chart"
     )
   }
-  if (!is.null(domain$charts)) {
-    if (!is.list(domain$charts) ||
-        any(!names(domain$charts) %in% coordinate_meta$name[chart_rows])) {
+  if (!is.null(base$charts)) {
+    if (!is.list(base$charts) ||
+        any(!names(base$charts) %in% coordinate_meta$name[chart_rows])) {
       .ngeo_abort(
         "Surface chart metadata does not match declared chart coordinates.",
         "ngeo_error_chart"
       )
     }
   }
-  faces <- domain$faces
+  faces <- base$geometry$faces
   if (!is.matrix(faces) || ncol(faces) != 3L ||
       (length(faces) && (min(faces) < 1L || max(faces) > n_vertex))) {
     .ngeo_abort("Surface face indices are invalid.", "ngeo_error_index")
@@ -264,14 +274,14 @@
 }
 
 .ngeo_validate_volume <- function(x) {
-  domain <- x$domain
-  if (!inherits(domain, "ngeo_volume_domain") ||
-      length(domain$dim) != 3L ||
-      !is.matrix(domain$affine) ||
-      !identical(dim(domain$affine), c(4L, 4L))) {
-    .ngeo_abort("Invalid volume domain.", "ngeo_error_domain")
+  base <- x$base
+  if (!inherits(base, "ngeo_volume_base") ||
+      length(base$geometry$dim) != 3L ||
+      !is.matrix(base$geometry$affine) ||
+      !identical(dim(base$geometry$affine), c(4L, 4L))) {
+    .ngeo_abort("Invalid volume base.", "ngeo_error_base")
   }
-  if (abs(det(domain$affine[1:3, 1:3, drop = FALSE])) <=
+  if (abs(det(base$geometry$affine[1:3, 1:3, drop = FALSE])) <=
       .Machine$double.eps) {
     .ngeo_abort(
       "Volume affine linear component is singular.",
@@ -279,16 +289,16 @@
     )
   }
 
-  index <- domain$voxel_index
+  index <- base$geometry$voxel_index
   if (!is.matrix(index) || ncol(index) != 3L ||
-      nrow(index) != nrow(domain$elements)) {
+      nrow(index) != nrow(base$elements)) {
     .ngeo_abort(
       "Volume voxel indices must align with elements.",
       "ngeo_error_alignment"
     )
   }
   for (axis in seq_len(3L)) {
-    if (any(index[, axis] < 1L | index[, axis] > domain$dim[axis])) {
+    if (any(index[, axis] < 1L | index[, axis] > base$geometry$dim[axis])) {
       .ngeo_abort(
         "Volume voxel index is outside the lattice.",
         "ngeo_error_index"
@@ -307,19 +317,19 @@
 #' Validate an NGCS object
 #'
 #' @param x An `ngeo` object or another registered NGCS object.
-#' @param level Validation level: basic structural invariants, strict domain
+#' @param level Validation level: basic structural invariants, strict base
 #'   checks, or scientific semantic diagnostics.
 #'
 #' @return `x`, invisibly.
 #' @examples
-#' points <- ngeo_points(
+#' point <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 1, 1), ncol = 2, byrow = TRUE),
 #'   values = cbind(signal = c(1, 2, 3))
 #' )
-#' ngeo_validate(points, "basic")
-#' ngeo_validate(points, "strict")
+#' ngeo_validate(point, "basic")
+#' ngeo_validate(point, "strict")
 #' \dontshow{
-#' suppressWarnings(ngeo_validate(points, "scientific"))
+#' suppressWarnings(ngeo_validate(point, "scientific"))
 #' }
 #' @export
 ngeo_validate <- function(x, level = c("basic", "strict", "scientific")) {
@@ -331,39 +341,39 @@ ngeo_validate <- function(x, level = c("basic", "strict", "scientific")) {
   }
   .ngeo_validate_common(x)
 
-  type <- x$domain$type
+  type <- x$base$type
   if (identical(type, "surface")) {
     .ngeo_validate_surface(x, strict = level != "basic")
   } else if (identical(type, "volume")) {
     .ngeo_validate_volume(x)
-  } else if (identical(type, "points")) {
-    .ngeo_validate_points(x)
-  } else if (identical(type, "grayordinates")) {
-    .ngeo_validate_grayordinates(x)
-  } else if (identical(type, "regions")) {
-    .ngeo_validate_regions(x)
+  } else if (identical(type, "point")) {
+    .ngeo_validate_point(x)
+  } else if (identical(type, "grayordinate")) {
+    .ngeo_validate_grayordinate(x)
+  } else if (identical(type, "parcellation")) {
+    .ngeo_validate_parcellation(x)
   } else {
     .ngeo_abort(
       sprintf("Domain type `%s` is not implemented by this prototype.", type),
-      "ngeo_error_domain"
+      "ngeo_error_base"
     )
   }
 
-  if (level != "basic" && !inherits(x$domain$space, "ngeo_space")) {
+  if (level != "basic" && !inherits(x$base$coordinate_space, "ngeo_coordinate_space")) {
     .ngeo_abort(
-      "Domain space must be an `ngeo_space` object.",
-      "ngeo_error_space"
+      "Domain coordinate_space must be an `ngeo_coordinate_space` object.",
+      "ngeo_error_coordinate_space"
     )
   }
   if (level == "scientific") {
-    if (identical(x$domain$space$space_id, "unknown")) {
+    if (identical(x$base$coordinate_space$space_id, "unknown")) {
       .ngeo_warn(
-        "Coordinate space is unknown; no named space was assumed.",
+        "Coordinate coordinate_space is unknown; no named coordinate_space was assumed.",
         "ngeo_warning_space_unknown"
       )
     }
     if (nrow(x$measures) &&
-        any(x$measures$spatial_semantics == "unknown")) {
+        any(x$measures$support_behavior == "unknown")) {
       .ngeo_warn(
         "At least one map has unknown measurement semantics.",
         "ngeo_warning_measure_unknown"

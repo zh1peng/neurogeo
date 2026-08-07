@@ -83,7 +83,7 @@ grid_coordinates <- function(size) {
 }
 
 make_rook_weights <- function(x, style = "W") {
-  ngeo_weights(
+  ngeo_spatial_weights(
     x,
     method = "distance_band",
     threshold = 1.01,
@@ -96,14 +96,14 @@ coordinates <- grid_coordinates(5L)
 signal <- sin(coordinates[, 1L]) +
   0.3 * coordinates[, 2L] +
   cos(coordinates[, 1L] * coordinates[, 2L] / 4)
-association_data <- ngeo_points(
+association_data <- ngeo_point(
   coordinates,
   values = cbind(signal = signal)
 )
 
 for (style in c("W", "B")) {
-  weights <- make_rook_weights(association_data, style)
-  listw <- as_spdep_listw(weights)
+  spatial_weights <- make_rook_weights(association_data, style)
+  listw <- as_spdep_listw(spatial_weights)
   n <- length(signal)
   s0 <- spdep::Szero(listw)
   moran_reference <- spdep::moran(
@@ -115,13 +115,13 @@ for (style in c("W", "B")) {
   )$C
   add_agreement(
     paste0("moran_", style),
-    ngeo_moran(association_data, weights)$estimate,
+    ngeo_moran(association_data, spatial_weights)$estimate,
     moran_reference,
     1e-10
   )
   add_agreement(
     paste0("geary_", style),
-    ngeo_geary(association_data, weights)$estimate,
+    ngeo_geary(association_data, spatial_weights)$estimate,
     geary_reference,
     1e-10
   )
@@ -148,7 +148,7 @@ add_agreement(
 
 # SLX against an independently assembled design matrix.
 predictor <- coordinates[, 1L] + 0.25 * coordinates[, 2L]
-slx_base <- ngeo_points(
+slx_base <- ngeo_point(
   coordinates,
   values = cbind(predictor = predictor)
 )
@@ -156,7 +156,7 @@ slx_weights <- make_rook_weights(slx_base, "W")
 lagged_predictor <- as.numeric(slx_weights$matrix %*% predictor)
 slx_response <- 2 + 3 * predictor + 1.5 * lagged_predictor +
   0.01 * sin(seq_along(predictor))
-slx_data <- ngeo_points(
+slx_data <- ngeo_point(
   coordinates,
   values = cbind(response = slx_response, predictor = predictor)
 )
@@ -164,7 +164,7 @@ slx_fit <- ngeo_spatial_lm(
   slx_data,
   response = "response",
   predictors = "predictor",
-  weights = slx_weights,
+  spatial_weights = slx_weights,
   model = "slx"
 )
 slx_reference <- stats::lm.fit(
@@ -188,7 +188,7 @@ model_predictor <- as.numeric(scale(
   sin(model_coordinates[, 1L] / 2) +
     0.2 * model_coordinates[, 2L]
 ))
-model_base <- ngeo_points(
+model_base <- ngeo_point(
   model_coordinates,
   values = cbind(predictor = model_predictor)
 )
@@ -206,11 +206,11 @@ sem_response <- as.numeric(
   model_design %*% c(1, 1.5) +
     solve(diag(model_n) - 0.30 * model_matrix, model_error)
 )
-sar_data <- ngeo_points(
+sar_data <- ngeo_point(
   model_coordinates,
   values = cbind(response = sar_response, predictor = model_predictor)
 )
-sem_data <- ngeo_points(
+sem_data <- ngeo_point(
   model_coordinates,
   values = cbind(response = sem_response, predictor = model_predictor)
 )
@@ -291,7 +291,7 @@ training_coordinates <- matrix(
 )
 training_values <- sin(training_coordinates[, 1L]) +
   cos(training_coordinates[, 2L])
-kriging_data <- ngeo_points(
+kriging_data <- ngeo_point(
   training_coordinates,
   values = cbind(signal = training_values)
 )
@@ -304,8 +304,8 @@ variogram_fit <- structure(
   list(
     model = "spherical",
     parameters = variogram_parameters,
-    metric = "euclidean",
-    domain_hash = ngeo_domain_hash(kriging_data)
+    distance_method = "euclidean",
+    base_hash = base_hash(kriging_data)
   ),
   class = "ngeo_variogram_fit"
 )
@@ -337,7 +337,7 @@ add_agreement(
 empirical <- ngeo_variogram(
   kriging_data,
   map = "signal",
-  metric = "euclidean",
+  distance_method = "euclidean",
   breaks = c(0, 1, 2, 3)
 )
 pair <- utils::combn(seq_len(nrow(training_coordinates)), 2L)
@@ -399,7 +399,7 @@ kriging_observed <- ngeo_kriging(
   variogram_fit,
   targets = target_coordinates_3d,
   neighbors = nrow(training_coordinates),
-  metric = "euclidean"
+  distance_method = "euclidean"
 )
 training_sf <- sf::st_as_sf(
   data.frame(
@@ -444,7 +444,7 @@ gwr_predictor <- sin(gwr_coordinates[, 1L]) +
   0.2 * gwr_coordinates[, 2L]
 gwr_response <- 1 + 2 * gwr_predictor +
   0.1 * gwr_coordinates[, 1L] * gwr_predictor
-gwr_data <- ngeo_points(
+gwr_data <- ngeo_point(
   gwr_coordinates,
   values = cbind(response = gwr_response, predictor = gwr_predictor)
 )
@@ -453,7 +453,7 @@ gwr_observed <- ngeo_gwr(
   "response",
   "predictor",
   bandwidth = 3,
-  metric = "euclidean",
+  distance_method = "euclidean",
   kernel = "gaussian"
 )
 gwr_sf <- sf::st_as_sf(
@@ -492,11 +492,11 @@ isolate_coordinates <- rbind(
   matrix(c(0, 0, 1, 0, 0, 1, 1, 1), ncol = 2L, byrow = TRUE),
   c(10, 10)
 )
-isolate_data <- ngeo_points(
+isolate_data <- ngeo_point(
   isolate_coordinates,
   values = cbind(signal = c(1, 2, 4, 8, 16))
 )
-isolate_weights <- ngeo_weights(
+isolate_weights <- ngeo_spatial_weights(
   isolate_data,
   method = "distance_band",
   threshold = 1.01,
@@ -520,7 +520,7 @@ add_boolean(
 
 missing_values <- signal
 missing_values[[1L]] <- NA_real_
-missing_data <- ngeo_points(
+missing_data <- ngeo_point(
   coordinates,
   values = cbind(signal = missing_values)
 )
@@ -554,11 +554,11 @@ disconnected_coordinates <- rbind(
   matrix(c(0, 0, 1, 0, 0, 1, 1, 1), ncol = 2L, byrow = TRUE),
   matrix(c(10, 0, 11, 0, 10, 1, 11, 1), ncol = 2L, byrow = TRUE)
 )
-disconnected_data <- ngeo_points(
+disconnected_data <- ngeo_point(
   disconnected_coordinates,
   values = cbind(signal = seq_len(8L))
 )
-disconnected_weights <- ngeo_weights(
+disconnected_weights <- ngeo_spatial_weights(
   disconnected_data,
   method = "distance_band",
   threshold = 1.01,
@@ -599,7 +599,7 @@ add_boolean(
 # Known-parameter calibration.
 set.seed(4210)
 moran_p <- vapply(seq_len(80L), function(i) {
-  current <- ngeo_points(
+  current <- ngeo_point(
     model_coordinates,
     values = cbind(signal = stats::rnorm(model_n))
   )
@@ -625,14 +625,14 @@ spatial_parameter <- replicate(50L, {
     model_design %*% c(1, 1.5) +
       solve(diag(model_n) - 0.30 * model_matrix, current_error)
   )
-  current_sar_data <- ngeo_points(
+  current_sar_data <- ngeo_point(
     model_coordinates,
     values = cbind(
       response = current_sar,
       predictor = model_predictor
     )
   )
-  current_sem_data <- ngeo_points(
+  current_sem_data <- ngeo_point(
     model_coordinates,
     values = cbind(
       response = current_sem,
@@ -715,21 +715,21 @@ for (i in seq_len(120L)) {
     t(kriging_cholesky) %*%
       stats::rnorm(nrow(kriging_covariance))
   )
-  current_data <- ngeo_points(
+  current_data <- ngeo_point(
     training_coordinates,
     values = cbind(
       signal = realization[seq_len(nrow(training_coordinates))]
     )
   )
   current_fit <- variogram_fit
-  current_fit$domain_hash <- ngeo_domain_hash(current_data)
+  current_fit$base_hash <- base_hash(current_data)
   current_prediction <- ngeo_kriging(
     current_data,
     "signal",
     current_fit,
     targets = target_coordinates_3d,
     neighbors = nrow(training_coordinates),
-    metric = "euclidean"
+    distance_method = "euclidean"
   )
   target_index <- nrow(training_coordinates) +
     seq_len(nrow(target_coordinates_2d))
@@ -770,7 +770,7 @@ gwr_calibration <- replicate(60L, {
   current_response <- 1 + 2 * model.matrix(
     ~ gwr_predictor
   )[, "gwr_predictor"] + stats::rnorm(length(gwr_predictor), sd = 0.35)
-  current_data <- ngeo_points(
+  current_data <- ngeo_point(
     gwr_coordinates,
     values = cbind(
       response = current_response,
@@ -782,7 +782,7 @@ gwr_calibration <- replicate(60L, {
     "response",
     "predictor",
     bandwidth = 3,
-    metric = "euclidean",
+    distance_method = "euclidean",
     kernel = "gaussian"
   )
   c(
@@ -864,9 +864,9 @@ report <- list(
     gwr = as.list(gwr_summary)
   ),
   claim_boundary = paste(
-    "Matched small-domain estimands and seeded calibration only;",
+    "Matched small-base estimands and seeded calibration only;",
     "not clinical validation, unknown registration, universal asymptotics,",
-    "Bayesian CAR, large-domain exact SAR/SEM, or group inference."
+    "Bayesian CAR, large-base exact SAR/SEM, or group inference."
   ),
   passed = all(passed)
 )

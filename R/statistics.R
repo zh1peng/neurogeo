@@ -1,19 +1,19 @@
 .ngeo_spatial_inputs <- function(x,
-                                 weights,
+                                 spatial_weights,
                                  map,
                                  na_action,
                                  zero_policy) {
   ngeo_validate(x, "basic")
-  if (!inherits(weights, "ngeo_weights")) {
+  if (!inherits(spatial_weights, "ngeo_spatial_weights")) {
     .ngeo_abort(
-      "`weights` must be an `ngeo_weights` object.",
+      "`spatial_weights` must be an `ngeo_spatial_weights` object.",
       "ngeo_error_argument"
     )
   }
-  if (!identical(weights$domain_hash, ngeo_domain_hash(x))) {
+  if (!identical(spatial_weights$base_hash, base_hash(x))) {
     .ngeo_abort(
-      "Weights domain hash does not match the dataset.",
-      "ngeo_error_domain_mismatch"
+      "Weights base hash does not match the dataset.",
+      "ngeo_error_base_mismatch"
     )
   }
   if (is.null(x$values)) {
@@ -22,22 +22,22 @@
       "ngeo_error_values"
     )
   }
-  map_index <- .ngeo_map_selection(x, map)
-  if (length(map_index) != 1L) {
+  layer_index <- .ngeo_layer_selection(x, map)
+  if (length(layer_index) != 1L) {
     .ngeo_abort(
       "`map` must select exactly one map.",
       "ngeo_error_argument"
     )
   }
-  measure <- x$measures[map_index, , drop = FALSE]
-  if (identical(measure$spatial_semantics[[1L]], "categorical")) {
+  measure <- .ngeo_measures_for_layers(x, layer_index)
+  if (identical(measure$support_behavior[[1L]], "categorical")) {
     .ngeo_abort(
-      "Categorical maps are not valid for this statistic.",
+      "Categorical layers are not valid for this statistic.",
       "ngeo_error_measure"
     )
   }
 
-  values <- as.numeric(x$values[, map_index])
+  values <- as.numeric(x$values[, layer_index])
   finite <- is.finite(values)
   if (identical(na_action, "fail") && !all(finite)) {
     .ngeo_abort(
@@ -53,10 +53,10 @@
     )
   }
   raw_matrix <- .ngeo_as_dgCMatrix(
-    weights$raw_matrix[index, index, drop = FALSE]
+    spatial_weights$raw_matrix[index, index, drop = FALSE]
   )
   matrix <- switch(
-    weights$normalization,
+    spatial_weights$normalization,
     W = .ngeo_row_standardize(raw_matrix),
     B = .ngeo_binary(raw_matrix),
     none = raw_matrix
@@ -93,12 +93,12 @@
     matrix = matrix,
     raw_matrix = raw_matrix,
     index = index,
-    element_id = x$domain$elements$element_id[index],
-    map_id = x$maps$map_id[[map_index]],
-    map_name = x$maps$name[[map_index]],
-    domain_hash = weights$domain_hash,
-    weights_method = weights$method,
-    normalization = weights$normalization,
+    element_id = x$base$elements$element_id[index],
+    layer_id = x$layers$layer_id[[layer_index]],
+    layer_name = x$layers$name[[layer_index]],
+    base_hash = spatial_weights$base_hash,
+    weights_method = spatial_weights$method,
+    normalization = spatial_weights$normalization,
     isolated = isolated
   )
 }
@@ -269,7 +269,7 @@ ngeo_permutation_control <- function(
 }
 
 .ngeo_global_statistic <- function(x,
-                                   weights,
+                                   spatial_weights,
                                    map,
                                    permutations,
                                    alternative,
@@ -292,7 +292,7 @@ ngeo_permutation_control <- function(
   seed <- inference$seed
   input <- .ngeo_spatial_inputs(
     x,
-    weights,
+    spatial_weights,
     map,
     na_action,
     zero_policy
@@ -338,17 +338,17 @@ ngeo_permutation_control <- function(
     permutations = permutations,
     simulated = simulated,
     n = length(input$values),
-    map_id = input$map_id,
-    map_name = input$map_name,
+    layer_id = input$layer_id,
+    layer_name = input$layer_name,
     element_id = input$element_id,
     values = input$values,
     standardized = as.numeric(scale(input$values)),
     spatial_lag = as.numeric(input$matrix %*% centered),
-    domain_hash = input$domain_hash,
+    base_hash = input$base_hash,
     weights_method = input$weights_method,
     normalization = input$normalization,
     zero_policy = isTRUE(zero_policy),
-    omitted = nrow(x$domain$elements) - length(input$values),
+    omitted = nrow(x$base$elements) - length(input$values),
     seed = seed
   )
   class(result) <- "ngeo_global_stat"
@@ -358,7 +358,7 @@ ngeo_permutation_control <- function(
 #' Global Moran's I
 #'
 #' @param x An `ngeo` dataset.
-#' @param weights Matching `ngeo_weights`.
+#' @param spatial_weights Matching `ngeo_spatial_weights`.
 #' @param map One map name, ID, or index.
 #' @param permutations Number of Monte Carlo permutations.
 #' @param alternative Permutation-test alternative.
@@ -372,19 +372,19 @@ ngeo_permutation_control <- function(
 #'
 #' @return An `ngeo_global_stat` result.
 #' @examples
-#' points <- ngeo_points(
+#' point <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
 #'   values = cbind(signal = c(1, 2, 4, 3))
 #' )
-#' weights <- ngeo_weights(points, method = "knn", k = 2)
-#' ngeo_moran(points, weights, "signal")
+#' spatial_weights <- ngeo_spatial_weights(point, method = "knn", k = 2)
+#' ngeo_moran(point, spatial_weights, "signal")
 #' ngeo_moran(
-#'   points, weights, "signal",
+#'   point, spatial_weights, "signal",
 #'   control = ngeo_permutation_control(19, seed = 42)
 #' )
 #' @export
 ngeo_moran <- function(x,
-                       weights,
+                       spatial_weights,
                        map = 1L,
                        permutations = 0L,
                        alternative = c("two.sided", "greater", "less"),
@@ -395,7 +395,7 @@ ngeo_moran <- function(x,
                        control = NULL) {
   .ngeo_global_statistic(
     x,
-    weights,
+    spatial_weights,
     map,
     permutations,
     alternative,
@@ -414,15 +414,15 @@ ngeo_moran <- function(x,
 #'
 #' @return An `ngeo_global_stat` result.
 #' @examples
-#' points <- ngeo_points(
+#' point <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
 #'   values = cbind(signal = c(1, 2, 4, 3))
 #' )
-#' weights <- ngeo_weights(points, method = "knn", k = 2)
-#' ngeo_geary(points, weights, "signal")
+#' spatial_weights <- ngeo_spatial_weights(point, method = "knn", k = 2)
+#' ngeo_geary(point, spatial_weights, "signal")
 #' @export
 ngeo_geary <- function(x,
-                       weights,
+                       spatial_weights,
                        map = 1L,
                        permutations = 0L,
                        alternative = c("two.sided", "greater", "less"),
@@ -433,7 +433,7 @@ ngeo_geary <- function(x,
                        control = NULL) {
   .ngeo_global_statistic(
     x,
-    weights,
+    spatial_weights,
     map,
     permutations,
     alternative,
@@ -454,15 +454,15 @@ ngeo_geary <- function(x,
 #'
 #' @return An `ngeo_lisa` data frame aligned to the analysed elements.
 #' @examples
-#' points <- ngeo_points(
+#' point <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
 #'   values = cbind(signal = c(1, 2, 4, 3))
 #' )
-#' weights <- ngeo_weights(points, method = "knn", k = 2)
-#' ngeo_local_moran(points, weights, "signal", permutations = 19, seed = 7)
+#' spatial_weights <- ngeo_spatial_weights(point, method = "knn", k = 2)
+#' ngeo_local_moran(point, spatial_weights, "signal", permutations = 19, seed = 7)
 #' @export
 ngeo_local_moran <- function(x,
-                             weights,
+                             spatial_weights,
                              map = 1L,
                              permutations = 0L,
                              alternative = c(
@@ -488,7 +488,7 @@ ngeo_local_moran <- function(x,
   seed <- inference$seed
   input <- .ngeo_spatial_inputs(
     x,
-    weights,
+    spatial_weights,
     map,
     na_action,
     zero_policy
@@ -575,9 +575,9 @@ ngeo_local_moran <- function(x,
     cluster = cluster,
     stringsAsFactors = FALSE
   )
-  attr(result, "map_id") <- input$map_id
-  attr(result, "map_name") <- input$map_name
-  attr(result, "domain_hash") <- input$domain_hash
+  attr(result, "layer_id") <- input$layer_id
+  attr(result, "layer_name") <- input$layer_name
+  attr(result, "base_hash") <- input$base_hash
   attr(result, "weights_method") <- input$weights_method
   attr(result, "normalization") <- input$normalization
   attr(result, "permutations") <- permutations
@@ -595,22 +595,22 @@ ngeo_local_moran <- function(x,
 #'
 #' @param x An `ngeo` dataset.
 #' @param map One map name, ID, or index.
-#' @param metric Explicit distance metric.
+#' @param distance_method Explicit distance distance_method.
 #' @param breaks Number of bins or a numeric vector of bin boundaries.
 #' @param max_distance Optional maximum pair distance.
 #' @param na_action Whether to fail or omit non-finite values.
 #'
 #' @return An `ngeo_variogram` data frame.
 #' @examples
-#' points <- ngeo_points(
+#' point <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0, 4, 0), ncol = 2, byrow = TRUE),
 #'   values = cbind(signal = c(1, 2, 2.5, 4, 5))
 #' )
-#' ngeo_variogram(points, "signal", breaks = c(0, 1.5, 3, 5))
+#' ngeo_variogram(point, "signal", breaks = c(0, 1.5, 3, 5))
 #' @export
 ngeo_variogram <- function(x,
                            map = 1L,
-                           metric = NULL,
+                           distance_method = NULL,
                            breaks = 10L,
                            max_distance = Inf,
                            na_action = c("fail", "omit")) {
@@ -622,23 +622,23 @@ ngeo_variogram <- function(x,
       "ngeo_error_values"
     )
   }
-  map_index <- .ngeo_map_selection(x, map)
-  if (length(map_index) != 1L) {
+  layer_index <- .ngeo_layer_selection(x, map)
+  if (length(layer_index) != 1L) {
     .ngeo_abort(
       "`map` must select exactly one map.",
       "ngeo_error_argument"
     )
   }
   if (identical(
-    x$measures$spatial_semantics[[map_index]],
+    .ngeo_measures_for_layers(x, layer_index)$support_behavior[[1L]],
     "categorical"
   )) {
     .ngeo_abort(
-      "Categorical maps do not have a numeric semivariogram.",
+      "Categorical layers do not have a numeric semivariogram.",
       "ngeo_error_measure"
     )
   }
-  values <- as.numeric(x$values[, map_index])
+  values <- as.numeric(x$values[, layer_index])
   finite <- is.finite(values)
   if (identical(na_action, "fail") && !all(finite)) {
     .ngeo_abort(
@@ -685,7 +685,7 @@ ngeo_variogram <- function(x,
       x,
       from = index[[i]],
       to = targets,
-      metric = metric,
+      distance_method = distance_method,
       max_distance = max_distance
     ))
     semivariance[range] <- 0.5 *
@@ -763,17 +763,17 @@ ngeo_variogram <- function(x,
   )
   result <- result[result$n_pairs > 0L, , drop = FALSE]
   rownames(result) <- NULL
-  attr(result, "map_id") <- x$maps$map_id[[map_index]]
-  attr(result, "map_name") <- x$maps$name[[map_index]]
-  attr(result, "domain_hash") <- ngeo_domain_hash(x)
-  attr(result, "metric") <- .ngeo_metric_name(
-    metric %||% switch(
-      x$domain$type,
+  attr(result, "layer_id") <- x$layers$layer_id[[layer_index]]
+  attr(result, "layer_name") <- x$layers$name[[layer_index]]
+  attr(result, "base_hash") <- base_hash(x)
+  attr(result, "distance_method") <- .ngeo_metric_name(
+    distance_method %||% switch(
+      x$base$type,
       surface = "edge_geodesic",
       volume = "world_euclidean",
-      points = "euclidean",
-      regions = "region_centroid",
-      grayordinates = "edge_geodesic"
+      point = "euclidean",
+      parcellation = "region_centroid",
+      grayordinate = "edge_geodesic"
     )
   )
   attr(result, "pair_count") <- length(distance)
@@ -805,7 +805,7 @@ print.ngeo_lisa <- function(x, ...) {
   cat(
     "<ngeo_lisa>\n",
     "  observations: ", nrow(x), "\n",
-    "  map: ", attr(x, "map_name"), "\n",
+    "  map: ", attr(x, "layer_name"), "\n",
     "  permutations: ", attr(x, "permutations"), "\n",
     sep = ""
   )
@@ -818,7 +818,7 @@ print.ngeo_variogram <- function(x, ...) {
     "<ngeo_variogram>\n",
     "  bins: ", nrow(x), "\n",
     "  pairs: ", attr(x, "pair_count"), "\n",
-    "  metric: ", attr(x, "metric"), "\n",
+    "  distance_method: ", attr(x, "distance_method"), "\n",
     sep = ""
   )
   invisible(x)
@@ -837,7 +837,7 @@ plot.ngeo_global_stat <- function(x, ...) {
     x$spatial_lag,
     xlab = "Standardized value",
     ylab = "Spatial lag",
-    main = paste(x$statistic, "-", x$map_name),
+    main = paste(x$statistic, "-", x$layer_name),
     ...
   )
   graphics::abline(h = 0, v = 0, col = "grey70", lty = 2)
@@ -853,7 +853,7 @@ plot.ngeo_lisa <- function(x, ...) {
     x$spatial_lag,
     xlab = "Centered value",
     ylab = "Spatial lag",
-    main = paste("Local Moran -", attr(x, "map_name")),
+    main = paste("Local Moran -", attr(x, "layer_name")),
     ...
   )
   graphics::abline(h = 0, v = 0, col = "grey70", lty = 2)
@@ -867,9 +867,9 @@ plot.ngeo_variogram <- function(x, ...) {
     x$distance,
     x$semivariance,
     type = "b",
-    xlab = paste("Distance (", attr(x, "metric"), ")", sep = ""),
+    xlab = paste("Distance (", attr(x, "distance_method"), ")", sep = ""),
     ylab = "Semivariance",
-    main = paste("Empirical variogram -", attr(x, "map_name")),
+    main = paste("Empirical variogram -", attr(x, "layer_name")),
     ...
   )
   invisible(x)

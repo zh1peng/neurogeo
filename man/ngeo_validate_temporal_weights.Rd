@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatiotemporal.R
 \name{ngeo_validate_temporal_weights}
 \alias{ngeo_validate_temporal_weights}
-\title{Validate temporal weights}
+\title{Validate temporal spatial_weights}
 \usage{
 ngeo_validate_temporal_weights(x)
 }
@@ -13,5 +13,5 @@ ngeo_validate_temporal_weights(x)
 `x`, invisibly.
 }
 \description{
-Validate temporal weights
+Validate temporal spatial_weights
 }

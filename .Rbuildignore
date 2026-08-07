@@ -19,4 +19,5 @@
 ^release$
 ^tools/check-repository$
 ^neurogeo\.Rcheck$
+^\.\.Rcheck$
 ^neurogeo_[0-9.]+\.tar\.gz$

@@ -2,14 +2,14 @@
 % Please edit documentation in R/weights.R
 \name{ngeo_neighbors}
 \alias{ngeo_neighbors}
-\title{Construct neighbours through the weights API}
+\title{Construct neighbours through the spatial_weights API}
 \usage{
 ngeo_neighbors(
   x,
   method = c("contiguity", "knn", "distance_band"),
   k = NULL,
   threshold = NULL,
-  metric = NULL,
+  distance_method = NULL,
   ...
 )
 }
@@ -22,13 +22,13 @@ ngeo_neighbors(
 
 \item{threshold}{Distance threshold.}
 
-\item{metric}{Explicit metric.}
+\item{distance_method}{Explicit distance_method.}
 
-\item{...}{Additional `ngeo_weights()` arguments.}
+\item{...}{Additional `ngeo_spatial_weights()` arguments.}
 }
 \value{
-An `ngeo_weights` object.
+An `ngeo_spatial_weights` object.
 }
 \description{
-Construct neighbours through the weights API
+Construct neighbours through the spatial_weights API
 }

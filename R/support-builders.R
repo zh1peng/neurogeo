@@ -1,7 +1,7 @@
 .ngeo_builder_support <- function(source, source_support = NULL) {
   candidate <- source_support %||% ngeo_support_size(source)
   if (!is.numeric(candidate) ||
-      length(candidate) != nrow(source$domain$elements) ||
+      length(candidate) != nrow(source$base$elements) ||
       anyNA(candidate) || any(!is.finite(candidate)) ||
       any(candidate <= 0)) {
     .ngeo_abort(
@@ -13,15 +13,15 @@
 }
 
 .ngeo_builder_registration <- function(source, target, registration) {
-  source_space <- source$domain$space
-  target_space <- target$domain$space
+  source_space <- source$base$coordinate_space
+  target_space <- target$base$coordinate_space
   source_structure <- source_space$structure
   target_structure <- target_space$structure
   if (!is.null(source_structure) && !is.null(target_structure) &&
       !identical(source_structure, target_structure)) {
     .ngeo_abort(
       "Support mapping across different brain structures is not allowed.",
-      "ngeo_error_space"
+      "ngeo_error_coordinate_space"
     )
   }
   same_known_space <- identical(
@@ -34,7 +34,7 @@
         "Different or unknown spaces require an explicit identifier for the",
         "already-known registration."
       ),
-      "ngeo_error_space"
+      "ngeo_error_coordinate_space"
     )
   }
   registration <- registration %||% source_space$space_id
@@ -53,22 +53,22 @@
                               weight_variance = NULL) {
   operator <- .ngeo_as_dgCMatrix(operator)
   source_support <- .ngeo_builder_support(source, source_support)
-  provenance <- list(operations = list(.ngeo_operation(
+  history <- list(operations = list(.ngeo_operation(
     operation,
     parameters
   )))
   .ngeo_support_map_structure(
     operator = operator,
     type = type,
-    source_hash = ngeo_domain_hash(source),
-    target_hash = ngeo_domain_hash(target),
-    source_id = source$domain$elements$element_id,
-    target_id = target$domain$elements$element_id,
+    source_hash = base_hash(source),
+    target_hash = base_hash(target),
+    source_id = source$base$elements$element_id,
+    target_id = target$base$elements$element_id,
     source_support = source_support,
     target_support = as.numeric(operator %*% source_support),
     weight_variance = weight_variance,
     coverage = coverage,
-    provenance = provenance
+    history = history
   )
 }
 
@@ -80,18 +80,18 @@
     )
   }
   coordinates <- if (identical(coordinates, "active")) {
-    x$domain$active_coordinates
+    x$base$geometry$active_coordinates
   } else {
     coordinates
   }
   .ngeo_assert_scalar_character(coordinates, argument)
-  if (!coordinates %in% names(x$domain$coordinates)) {
+  if (!coordinates %in% names(x$base$geometry$coordinates)) {
     .ngeo_abort(
       sprintf("Unknown %s coordinate set `%s`.", argument, coordinates),
       "ngeo_error_geometry"
     )
   }
-  value <- x$domain$coordinates[[coordinates]]
+  value <- x$base$geometry$coordinates[[coordinates]]
   if (ncol(value) == 2L) {
     value <- cbind(value, 0)
   }
@@ -183,8 +183,8 @@ ngeo_surface_nearest_map <- function(
       "ngeo_error_argument"
     )
   }
-  source_eligible <- which(source$domain$mask)
-  target_eligible <- which(target$domain$mask)
+  source_eligible <- which(source$base$geometry$mask)
+  target_eligible <- which(target$base$geometry$mask)
   nearest <- .ngeo_query_nearest(
     target_xyz$value[target_eligible, , drop = FALSE],
     source_xyz$value[source_eligible, , drop = FALSE]
@@ -197,11 +197,11 @@ ngeo_surface_nearest_map <- function(
     j = source_column,
     x = 1,
     dims = c(
-      nrow(target$domain$elements),
-      nrow(source$domain$elements)
+      nrow(target$base$elements),
+      nrow(source$base$elements)
     )
   )
-  complete <- length(source_column) == nrow(source$domain$elements)
+  complete <- length(source_column) == nrow(source$base$elements)
   .ngeo_builder_map(
     source,
     target,
@@ -217,7 +217,7 @@ ngeo_surface_nearest_map <- function(
       max_distance = max_distance,
       search_engine = nearest$engine,
       mapped = length(source_column),
-      unmapped = nrow(source$domain$elements) - length(source_column),
+      unmapped = nrow(source$base$elements) - length(source_column),
       distance_max = if (any(mapped)) max(nearest$distance[mapped]) else NA_real_
     )
   )
@@ -309,7 +309,7 @@ ngeo_surface_nearest_map <- function(
 #' Build a barycentric map in a known surface registration
 #'
 #' Each eligible source vertex is projected to the closest candidate target
-#' triangle. Non-negative barycentric weights form one operator column.
+#' triangle. Non-negative barycentric spatial_weights form one operator column.
 #'
 #' @inheritParams ngeo_surface_nearest_map
 #' @param candidate_faces Number of centroid-nearest target faces evaluated
@@ -356,9 +356,9 @@ ngeo_surface_barycentric_map <- function(
   target_xyz <- .ngeo_surface_coordinates(
     target, target_coordinates, "target_coordinates"
   )
-  faces <- target$domain$faces
+  faces <- target$base$geometry$faces
   face_keep <- apply(
-    matrix(target$domain$mask[faces], ncol = 3L),
+    matrix(target$base$geometry$mask[faces], ncol = 3L),
     1L,
     all
   )
@@ -375,14 +375,14 @@ ngeo_surface_barycentric_map <- function(
       xyz[faces[, 2L], , drop = FALSE] +
       xyz[faces[, 3L], , drop = FALSE]
   ) / 3
-  source_eligible <- which(source$domain$mask)
+  source_eligible <- which(source$base$geometry$mask)
   query <- source_xyz$value[source_eligible, , drop = FALSE]
   candidates <- .ngeo_triangle_candidates(
     centroid, query, candidate_faces
   )
   rows <- integer()
   columns <- integer()
-  weights <- numeric()
+  spatial_weights <- numeric()
   distances <- rep.int(Inf, length(source_eligible))
   for (q in seq_along(source_eligible)) {
     best <- NULL
@@ -418,16 +418,16 @@ ngeo_surface_barycentric_map <- function(
       columns,
       rep.int(source_eligible[[q]], sum(keep))
     )
-    weights <- c(weights, weight[keep])
+    spatial_weights <- c(spatial_weights, weight[keep])
     distances[[q]] <- best_distance
   }
   operator <- Matrix::sparseMatrix(
     i = rows,
     j = columns,
-    x = weights,
+    x = spatial_weights,
     dims = c(
-      nrow(target$domain$elements),
-      nrow(source$domain$elements)
+      nrow(target$base$elements),
+      nrow(source$base$elements)
     )
   )
   mapped <- Matrix::colSums(operator) > tolerance
@@ -514,20 +514,20 @@ ngeo_surface_registration_map <- function(
 }
 
 .ngeo_voxel_world <- function(x) {
-  index <- x$domain$source_voxel_index
+  index <- x$base$geometry$source_voxel_index
   homogeneous <- cbind(index, 1)
-  world <- homogeneous %*% t(x$domain$affine)
+  world <- homogeneous %*% t(x$base$geometry$affine)
   world[, 1:3, drop = FALSE]
 }
 
 .ngeo_target_fractional_index <- function(target, world) {
   homogeneous <- cbind(world, 1)
-  index <- homogeneous %*% t(solve(target$domain$affine))
+  index <- homogeneous %*% t(solve(target$base$geometry$affine))
   index[, 1:3, drop = FALSE]
 }
 
 .ngeo_internal_voxel_index <- function(x, source_index) {
-  source_index - x$domain$source_index_base + 1
+  source_index - x$base$geometry$source_index_base + 1
 }
 
 .ngeo_linear_voxel <- function(index, dim) {
@@ -539,7 +539,7 @@ ngeo_surface_registration_map <- function(
 .ngeo_active_voxel_rows <- function(x, internal_index) {
   inside <- apply(internal_index >= 1, 1L, all) &
     apply(
-      sweep(internal_index, 2L, x$domain$dim, "<="),
+      sweep(internal_index, 2L, x$base$geometry$dim, "<="),
       1L,
       all
     )
@@ -548,12 +548,12 @@ ngeo_surface_registration_map <- function(
     return(result)
   }
   target_linear <- .ngeo_linear_voxel(
-    x$domain$voxel_index,
-    x$domain$dim
+    x$base$geometry$voxel_index,
+    x$base$geometry$dim
   )
   query_linear <- .ngeo_linear_voxel(
     internal_index[inside, , drop = FALSE],
-    x$domain$dim
+    x$base$geometry$dim
   )
   result[inside] <- match(query_linear, target_linear)
   result
@@ -596,8 +596,8 @@ ngeo_affine_grid_map <- function(
   }
   world <- .ngeo_voxel_world(source)
   target_index <- .ngeo_target_fractional_index(target, world)
-  n_source <- nrow(source$domain$elements)
-  n_target <- nrow(target$domain$elements)
+  n_source <- nrow(source$base$elements)
+  n_target <- nrow(target$base$elements)
   if (identical(method, "nearest")) {
     internal <- .ngeo_internal_voxel_index(
       target, round(target_index)
@@ -677,8 +677,8 @@ ngeo_affine_grid_map <- function(
       registration = registration,
       outside = outside,
       tolerance = tolerance,
-      source_affine = source$domain$affine,
-      target_affine = target$domain$affine,
+      source_affine = source$base$geometry$affine,
+      target_affine = target$base$geometry$affine,
       mapped = sum(column_sum > tolerance),
       unmapped = sum(column_sum <= tolerance)
     )
@@ -727,10 +727,10 @@ ngeo_voxel_overlap_map <- function(
   )
   outside <- match.arg(outside)
   source_affine <- .ngeo_axis_aligned_affine(
-    source$domain$affine, tolerance
+    source$base$geometry$affine, tolerance
   )
   target_affine <- .ngeo_axis_aligned_affine(
-    target$domain$affine, tolerance
+    target$base$geometry$affine, tolerance
   )
   if (!is.numeric(max_contributions) ||
       length(max_contributions) != 1L ||
@@ -740,8 +740,8 @@ ngeo_voxel_overlap_map <- function(
       "ngeo_error_argument"
     )
   }
-  source_index <- source$domain$source_voxel_index
-  target_index <- target$domain$source_voxel_index
+  source_index <- source$base$geometry$source_voxel_index
+  target_index <- target$base$geometry$source_voxel_index
   source_center <- sweep(
     sweep(source_index, 2L, source_affine$scale, "*"),
     2L,
@@ -830,8 +830,8 @@ ngeo_voxel_overlap_map <- function(
       registration = registration,
       outside = outside,
       tolerance = tolerance,
-      source_affine = source$domain$affine,
-      target_affine = target$domain$affine,
+      source_affine = source$base$geometry$affine,
+      target_affine = target$base$geometry$affine,
       mapped = sum(column_sum > tolerance),
       unmapped = sum(column_sum <= tolerance)
     )
@@ -839,11 +839,11 @@ ngeo_voxel_overlap_map <- function(
 }
 
 .ngeo_atlas_target <- function(source, region_id) {
-  ngeo_regions(
+  ngeo_parcellation(
     data.frame(region_id = region_id, stringsAsFactors = FALSE),
-    base_domain = source,
+    source_base = source,
     support_size = rep.int(NA_real_, length(region_id)),
-    space = source$domain$space
+    coordinate_space = source$base$coordinate_space
   )
 }
 
@@ -851,24 +851,24 @@ ngeo_voxel_overlap_map <- function(
 #'
 #' @param source Source dataset.
 #' @param labels One hard label per source element.
-#' @param target Optional regions target. When omitted, a target template is
+#' @param target Optional parcellation target. When omitted, a target template is
 #'   constructed and stored in `map$target`.
 #' @param exclude Labels to leave unmapped.
 #' @param source_support Optional positive source support.
 #'
 #' @return A sparse crisp `ngeo_support_map`.
 #' @examples
-#' source <- ngeo_points(
+#' source <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
 #'   values = cbind(signal = c(1, 2, 4, 5)),
-#'   measures = ngeo_measure(spatial_semantics = "intensive")
+#'   measures = ngeo_measure(support_behavior = "intensive")
 #' )
 #' atlas <- ngeo_atlas_map(
 #'   source, c("A", "A", "B", "B"), source_support = rep(1, 4)
 #' )
 #' ngeo_support_diagnostics(atlas)
-#' regional <- ngeo_change_support(source, atlas$target, atlas)
-#' ngeo_values(regional)
+#' regional <- aggregate_to(source, atlas$target, atlas)
+#' values(regional)
 #' @export
 ngeo_atlas_map <- function(
     source,
@@ -877,7 +877,7 @@ ngeo_atlas_map <- function(
     exclude = NA,
     source_support = NULL) {
   ngeo_validate(source, "strict")
-  if (length(labels) != nrow(source$domain$elements) ||
+  if (length(labels) != nrow(source$base$elements) ||
       !(is.atomic(labels) || is.factor(labels))) {
     .ngeo_abort(
       "`labels` must be one atomic value per source element.",
@@ -899,13 +899,13 @@ ngeo_atlas_map <- function(
     target <- .ngeo_atlas_target(source, region_id)
   } else {
     ngeo_validate(target, "strict")
-    if (!inherits(target, "ngeo_regions")) {
+    if (!inherits(target, "ngeo_parcellation")) {
       .ngeo_abort(
-        "`target` must be an `ngeo_regions` template.",
+        "`target` must be an `ngeo_parcellation` template.",
         "ngeo_error_argument"
       )
     }
-    target_id <- as.character(target$domain$elements$region_id)
+    target_id <- as.character(target$base$elements$region_id)
     if (any(!region_id %in% target_id)) {
       .ngeo_abort(
         "Atlas labels contain identifiers absent from `target`.",
@@ -931,15 +931,15 @@ ngeo_atlas_map <- function(
     coverage = if (all(mapped)) "complete" else "partial",
     operation = "ngeo_atlas_map",
     parameters = list(
-      regions = region_id,
+      parcellation = region_id,
       excluded = sum(!mapped),
       target_constructed = constructed_target
     )
   )
   if (constructed_target) {
-    target$domain$support_size <- map$target_support
-    map$target_domain_hash <- ngeo_domain_hash(target)
-    map$target_element_id <- target$domain$elements$element_id
+    target$base$geometry$support_size <- map$target_support
+    map$target_base_hash <- base_hash(target)
+    map$target_element_id <- target$base$elements$element_id
     map$target <- target
     ngeo_validate_support_map(map)
   }
@@ -952,7 +952,7 @@ ngeo_atlas_map <- function(
 #' @param probabilities Source-element by region non-negative membership
 #'   matrix.
 #' @param region_id Region identifiers, defaulting to matrix column names.
-#' @param target Optional regions target. A target is stored in `map$target`
+#' @param target Optional parcellation target. A target is stored in `map$target`
 #'   when omitted.
 #' @param coverage Complete, partial, or infer from column sums.
 #' @param tolerance Numerical membership tolerance.
@@ -960,7 +960,7 @@ ngeo_atlas_map <- function(
 #'
 #' @return A sparse probabilistic or overlapping `ngeo_support_map`.
 #' @examples
-#' source <- ngeo_points(
+#' source <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 2, 0), ncol = 2, byrow = TRUE)
 #' )
 #' probability <- matrix(
@@ -985,7 +985,7 @@ ngeo_probabilistic_atlas_map <- function(
   ngeo_validate(source, "strict")
   coverage <- match.arg(coverage)
   if (!(is.matrix(probabilities) || inherits(probabilities, "Matrix")) ||
-      nrow(probabilities) != nrow(source$domain$elements)) {
+      nrow(probabilities) != nrow(source$base$elements)) {
     .ngeo_abort(
       "`probabilities` must be source-element by region.",
       "ngeo_error_alignment"
@@ -1034,9 +1034,9 @@ ngeo_probabilistic_atlas_map <- function(
     target <- .ngeo_atlas_target(source, region_id)
   } else {
     ngeo_validate(target, "strict")
-    if (!inherits(target, "ngeo_regions") ||
+    if (!inherits(target, "ngeo_parcellation") ||
         !identical(
-          as.character(target$domain$elements$region_id),
+          as.character(target$base$elements$region_id),
           region_id
         )) {
       .ngeo_abort(
@@ -1055,15 +1055,15 @@ ngeo_probabilistic_atlas_map <- function(
     coverage = coverage,
     operation = "ngeo_probabilistic_atlas_map",
     parameters = list(
-      regions = region_id,
+      parcellation = region_id,
       tolerance = tolerance,
       target_constructed = constructed_target
     )
   )
   if (constructed_target) {
-    target$domain$support_size <- map$target_support
-    map$target_domain_hash <- ngeo_domain_hash(target)
-    map$target_element_id <- target$domain$elements$element_id
+    target$base$geometry$support_size <- map$target_support
+    map$target_base_hash <- base_hash(target)
+    map$target_element_id <- target$base$elements$element_id
     map$target <- target
     ngeo_validate_support_map(map)
   }

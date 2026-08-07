@@ -290,13 +290,13 @@
   if (identical(specification$layout, "volume")) {
     return(as.vector(outer(
       specification$element_index[rows],
-      specification$map_index[columns] *
+      specification$layer_index[columns] *
         specification$full_element_count,
       "+"
     )))
   }
   row_position <- specification$element_index[rows]
-  map_position <- specification$map_index[columns]
+  map_position <- specification$layer_index[columns]
   as.vector(outer(
     row_position * specification$strides[
       specification$brain_axis
@@ -312,7 +312,7 @@
 #'
 #' @param path Source neuroimaging file.
 #' @param dim Selected element-by-map dimensions.
-#' @param map_names Selected map names.
+#' @param layer_names Selected map names.
 #' @param format NIfTI, CIFTI, MGH, or MGZ.
 #' @param selection Internal auditable binary selection specification.
 #' @param binary Internal binary datatype specification.
@@ -324,7 +324,7 @@
 ngeo_file_values <- function(
     path,
     dim,
-    map_names,
+    layer_names,
     format,
     selection,
     binary,
@@ -339,7 +339,7 @@ ngeo_file_values <- function(
   }
   dim <- .ngeo_as_integer(dim, "dim")
   if (length(dim) != 2L || any(dim < 1L) ||
-      length(map_names) != dim[[2L]]) {
+      length(layer_names) != dim[[2L]]) {
     .ngeo_abort("File-backed dimensions or map names are invalid.",
                 "ngeo_error_alignment")
   }
@@ -368,7 +368,7 @@ ngeo_file_values <- function(
     list(
       reader = reader,
       dim = dim,
-      dimnames = list(NULL, map_names),
+      dimnames = list(NULL, layer_names),
       source = identity$path,
       source_identity = identity,
       format = format,
@@ -404,7 +404,7 @@ ngeo_validate_file_values <- function(x) {
       !inherits(x$budget, "ngeo_resource_budget") ||
       !is.list(x$selection) ||
       length(x$selection$element_index) != x$dim[[1L]] ||
-      length(x$selection$map_index) != x$dim[[2L]] ||
+      length(x$selection$layer_index) != x$dim[[2L]] ||
       !is.list(x$binary) ||
       any(!required_binary %in% names(x$binary))) {
     .ngeo_abort("Invalid file-backed values block.",
@@ -426,7 +426,7 @@ ngeo_file_values_identity <- function(x) {
       source_size = x$source_identity$size,
       format = x$format,
       dim = x$dim,
-      map_names = x$dimnames[[2L]],
+      layer_names = x$dimnames[[2L]],
       selection = x$selection,
       binary = x$binary,
       verification = x$verify,
@@ -441,16 +441,16 @@ ngeo_file_values_identity <- function(x) {
     values,
     format,
     selected_elements,
-    selected_maps) {
+    selected_layers) {
   x$values <- values
-  colnames(x$values) <- x$maps$name
-  x$provenance$file_backed <- list(
+  colnames(x$values) <- x$layers$name
+  x$history$file_backed <- list(
     format = format,
     source = values$source,
     source_identity = ngeo_file_values_identity(values),
     verification = values$verify,
     selected_elements = selected_elements,
-    selected_maps = selected_maps,
+    selected_layers = selected_layers,
     materialized = FALSE
   )
   ngeo_validate(x, "strict")
@@ -473,7 +473,7 @@ ngeo_file_values_identity <- function(x) {
 #' Read NIfTI using a verified file-backed values block
 #'
 #' @inheritParams read_ngeo_nifti
-#' @param elements Optional one-based active-domain element selection.
+#' @param elements Optional one-based active-base element selection.
 #' @param verify Source mutation verification policy.
 #' @param budget Resource limits for materialized value blocks.
 #' @return An `ngeo_volume` with `ngeo_file_values`.
@@ -483,9 +483,9 @@ read_ngeo_nifti_filebacked <- function(
     mask = NULL,
     frames = NULL,
     elements = NULL,
-    maps = NULL,
+    layers = NULL,
     measures = NULL,
-    space = NULL,
+    coordinate_space = NULL,
     affine = c("auto", "sform", "qform"),
     strict = TRUE,
     checksum = TRUE,
@@ -507,9 +507,9 @@ read_ngeo_nifti_filebacked <- function(
   image_dim <- as.integer(
     header$dim[2:(as.integer(header$dim[[1L]]) + 1L)]
   )
-  n_map <- if (length(image_dim) <= 3L) 1L else
+  n_layer <- if (length(image_dim) <= 3L) 1L else
     prod(image_dim[-seq_len(3L)])
-  frames <- .ngeo_selection(frames, n_map, "frames")
+  frames <- .ngeo_selection(frames, n_layer, "frames")
   transforms <- list(
     qform = if (header$qform_code > 0L) {
       matrix(
@@ -531,19 +531,19 @@ read_ngeo_nifti_filebacked <- function(
     sform_code = header$sform_code
   )
   active <- .ngeo_nifti_affine(transforms, affine)
-  units <- (attr(header, "pixunits") %||% "mm")[[1L]]
-  space <- space %||% ngeo_space(
+  unit <- (attr(header, "pixunits") %||% "mm")[[1L]]
+  coordinate_space <- coordinate_space %||% ngeo_coordinate_space(
     "unknown",
     kind = "volume",
-    units = units,
+    unit = unit,
     source_metadata = list(
       qform_code = header$qform_code,
       sform_code = header$sform_code
     )
   )
   active_mask <- .ngeo_nifti_mask(mask, NULL, lattice_dim)
-  if (is.null(maps)) {
-    maps <- data.frame(
+  if (is.null(layers)) {
+    layers <- data.frame(
       name = paste0("frame_", frames),
       source_frame = frames - 1L,
       stringsAsFactors = FALSE
@@ -554,31 +554,31 @@ read_ngeo_nifti_filebacked <- function(
     dim = lattice_dim,
     affine = active$matrix,
     mask = active_mask,
-    maps = maps,
+    layers = layers,
     measures = measures,
-    space = space,
+    coordinate_space = coordinate_space,
     index_base = "zero"
   )
-  source_elements <- seq_len(nrow(x$domain$elements))
+  source_elements <- seq_len(nrow(x$base$elements))
   elements <- .ngeo_selection(
     elements, length(source_elements), "elements"
   )
   if (!identical(elements, source_elements)) {
     x <- ngeo_subset(x, elements = elements)
   }
-  voxel <- x$domain$voxel_index
+  voxel <- x$base$geometry$voxel_index
   linear <- (voxel[, 1L] - 1L) +
     (voxel[, 2L] - 1L) * lattice_dim[[1L]] +
     (voxel[, 3L] - 1L) * prod(lattice_dim[1:2])
   values <- ngeo_file_values(
     path = path,
-    dim = c(nrow(x$domain$elements), length(frames)),
-    map_names = x$maps$name,
+    dim = c(nrow(x$base$elements), length(frames)),
+    layer_names = x$layers$name,
     format = "nifti",
     selection = list(
       layout = "volume",
       element_index = as.numeric(linear),
-      map_index = as.numeric(frames - 1L),
+      layer_index = as.numeric(frames - 1L),
       full_element_count = prod(lattice_dim)
     ),
     binary = .ngeo_nifti_binary_spec(path, header),
@@ -586,12 +586,12 @@ read_ngeo_nifti_filebacked <- function(
     budget = budget,
     complete_selection = is.null(mask) &&
       identical(elements, seq_len(prod(lattice_dim))) &&
-      identical(frames, seq_len(n_map))
+      identical(frames, seq_len(n_layer))
   )
-  x$domain$header_transforms <- c(
+  x$base$geometry$header_transforms <- c(
     transforms, list(active = active$source)
   )
-  x$provenance$header_summary <- list(
+  x$history$header_summary <- list(
     version = attr(header, "version"),
     dim = header$dim,
     pixdim = header$pixdim,
@@ -642,7 +642,7 @@ read_ngeo_nifti_filebacked <- function(
 #' filtering.
 #' @param verify Source mutation verification policy.
 #' @param budget Resource limits for materialized value blocks.
-#' @return An `ngeo_grayordinates` with `ngeo_file_values`.
+#' @return An `ngeo_grayordinate` with `ngeo_file_values`.
 #' @export
 read_ngeo_cifti_filebacked <- function(
     path,
@@ -650,9 +650,9 @@ read_ngeo_cifti_filebacked <- function(
     frames = NULL,
     structures = NULL,
     elements = NULL,
-    maps = NULL,
+    layers = NULL,
     measures = NULL,
-    space = NULL,
+    coordinate_space = NULL,
     strict = TRUE,
     checksum = TRUE,
     verify = c("checksum", "metadata", "none"),
@@ -684,46 +684,46 @@ read_ngeo_cifti_filebacked <- function(
     cifti, brain_axis, surfaces
   )
   n_element <- axis_dim[[brain_axis]]
-  n_map <- axis_dim[[map_axis]]
-  file_maps <- .ngeo_cifti_maps(cifti, brain_axis, n_map)
+  n_layer <- axis_dim[[map_axis]]
+  file_maps <- .ngeo_cifti_maps(cifti, brain_axis, n_layer)
   named_metadata <- .ngeo_cifti_read_named_metadata(
     path, file_maps$name
   )
   if (any(lengths(named_metadata) > 0L)) {
     file_maps[["metadata"]] <- named_metadata
   }
-  frames <- .ngeo_selection(frames, n_map, "frames")
+  frames <- .ngeo_selection(frames, n_layer, "frames")
   file_maps <- file_maps[frames, , drop = FALSE]
   rownames(file_maps) <- NULL
-  maps <- maps %||% file_maps
+  layers <- layers %||% file_maps
   if (is.null(measures)) {
     is_label <- grepl("\\.dlabel\\.nii$", path, ignore.case = TRUE)
     measure <- ngeo_measure(
       value_type = if (is_label) "label" else "continuous",
-      spatial_semantics = if (is_label) "categorical" else "unknown"
+      support_behavior = if (is_label) "categorical" else "unknown"
     )
     measures <- measure[rep.int(1L, length(frames)), , drop = FALSE]
     rownames(measures) <- NULL
   }
-  space <- space %||% ngeo_space(
+  coordinate_space <- coordinate_space %||% ngeo_coordinate_space(
     "unknown",
     kind = "hybrid",
     source_metadata = list(
       matrix_indices_attributes = cifti$matrix_indices_attributes
     )
   )
-  x <- ngeo_grayordinates(
+  x <- ngeo_grayordinate(
     components = components,
     values = NULL,
-    maps = maps,
+    layers = layers,
     measures = measures,
-    space = space
+    coordinate_space = coordinate_space
   )
   source_rows <- seq_len(n_element)
   if (!is.null(structures)) {
     structures <- as.character(structures)
-    keep <- x$domain$elements$structure %in% structures |
-      x$domain$elements$component_id %in% tolower(structures)
+    keep <- x$base$elements$structure %in% structures |
+      x$base$elements$component_id %in% tolower(structures)
     if (!any(keep)) {
       .ngeo_abort("No requested CIFTI structure is present.",
                   "ngeo_error_index")
@@ -732,22 +732,22 @@ read_ngeo_cifti_filebacked <- function(
     x <- ngeo_subset(x, elements = which(keep))
   }
   elements <- .ngeo_selection(
-    elements, nrow(x$domain$elements), "elements"
+    elements, nrow(x$base$elements), "elements"
   )
-  if (!identical(elements, seq_len(nrow(x$domain$elements)))) {
+  if (!identical(elements, seq_len(nrow(x$base$elements)))) {
     source_rows <- source_rows[elements]
     x <- ngeo_subset(x, elements = elements)
   }
   strides <- cumprod(c(1, utils::head(axis_dim, -1L)))
   values <- ngeo_file_values(
     path = path,
-    dim = c(nrow(x$domain$elements), length(frames)),
-    map_names = x$maps$name,
+    dim = c(nrow(x$base$elements), length(frames)),
+    layer_names = x$layers$name,
     format = "cifti",
     selection = list(
       layout = "cifti",
       element_index = as.numeric(source_rows - 1L),
-      map_index = as.numeric(frames - 1L),
+      layer_index = as.numeric(frames - 1L),
       axis_dimensions = axis_dim,
       strides = strides,
       brain_axis = brain_axis,
@@ -758,22 +758,22 @@ read_ngeo_cifti_filebacked <- function(
     budget = budget,
     complete_selection = identical(
       source_rows, seq_len(n_element)
-    ) && identical(frames, seq_len(n_map))
+    ) && identical(frames, seq_len(n_layer))
   )
   lookup <- cifti$NamedMap$look_up_table %||% NULL
   if (!is.null(lookup)) {
     lookup <- lookup[frames]
-    x$labels <- stats::setNames(
+    x$base$labels <- stats::setNames(
       lapply(seq_along(lookup), function(i) {
-        list(table = lookup[[i]], map_id = x$maps$map_id[[i]])
+        list(table = lookup[[i]], layer_id = x$layers$layer_id[[i]])
       }),
-      x$maps$name[seq_along(lookup)]
+      x$layers$name[seq_along(lookup)]
     )
   }
-  x$provenance$cifti <- list(
+  x$history$cifti <- list(
     matrix_indices_attributes = cifti$matrix_indices_attributes,
     brain_model_count = length(cifti$BrainModel),
-    named_maps = cifti$NamedMap,
+    named_layers = cifti$NamedMap,
     named_map_metadata = named_metadata,
     datatype = .ngeo_cifti_header_datatype(path)
   )
@@ -795,8 +795,8 @@ read_ngeo_cifti_filebacked <- function(
 #' @param affine Optional affine when the header has no valid RAS transform.
 #' @param mask Optional logical volume mask.
 #' @param frames,elements Optional one-based selections.
-#' @param maps,measures,space Optional NGCS metadata.
-#' @param strict,checksum Validation and provenance controls.
+#' @param layers,measures,coordinate_space Optional NGCS metadata.
+#' @param strict,checksum Validation and history controls.
 #' @param verify Source mutation verification policy.
 #' @param budget Resource limits for materialized value blocks.
 #' @return An `ngeo_volume` with `ngeo_file_values`.
@@ -807,9 +807,9 @@ read_ngeo_mgh_filebacked <- function(
     mask = NULL,
     frames = NULL,
     elements = NULL,
-    maps = NULL,
+    layers = NULL,
     measures = NULL,
-    space = NULL,
+    coordinate_space = NULL,
     strict = TRUE,
     checksum = TRUE,
     verify = c("checksum", "metadata", "none"),
@@ -822,8 +822,8 @@ read_ngeo_mgh_filebacked <- function(
   }
   header <- .ngeo_mgh_header(path)
   lattice_dim <- header$dimensions[1:3]
-  n_map <- header$dimensions[[4L]]
-  frames <- .ngeo_selection(frames, n_map, "frames")
+  n_layer <- header$dimensions[[4L]]
+  frames <- .ngeo_selection(frames, n_layer, "frames")
   affine <- affine %||% header$affine
   if (is.null(affine)) {
     .ngeo_abort(
@@ -831,14 +831,14 @@ read_ngeo_mgh_filebacked <- function(
       "ngeo_error_transform"
     )
   }
-  if (is.null(maps)) {
-    maps <- data.frame(
+  if (is.null(layers)) {
+    layers <- data.frame(
       name = paste0("frame_", frames),
       source_frame = frames - 1L,
       stringsAsFactors = FALSE
     )
   }
-  space <- space %||% ngeo_space(
+  coordinate_space <- coordinate_space %||% ngeo_coordinate_space(
     "unknown",
     kind = "volume",
     source_metadata = list(
@@ -851,31 +851,31 @@ read_ngeo_mgh_filebacked <- function(
     dim = lattice_dim,
     affine = affine,
     mask = mask,
-    maps = maps,
+    layers = layers,
     measures = measures,
-    space = space,
+    coordinate_space = coordinate_space,
     index_base = "zero"
   )
-  source_elements <- seq_len(nrow(x$domain$elements))
+  source_elements <- seq_len(nrow(x$base$elements))
   elements <- .ngeo_selection(
     elements, length(source_elements), "elements"
   )
   if (!identical(elements, source_elements)) {
     x <- ngeo_subset(x, elements = elements)
   }
-  voxel <- x$domain$voxel_index
+  voxel <- x$base$geometry$voxel_index
   linear <- (voxel[, 1L] - 1L) +
     (voxel[, 2L] - 1L) * lattice_dim[[1L]] +
     (voxel[, 3L] - 1L) * prod(lattice_dim[1:2])
   values <- ngeo_file_values(
     path = path,
-    dim = c(nrow(x$domain$elements), length(frames)),
-    map_names = x$maps$name,
+    dim = c(nrow(x$base$elements), length(frames)),
+    layer_names = x$layers$name,
     format = if (header$compressed) "mgz" else "mgh",
     selection = list(
       layout = "volume",
       element_index = as.numeric(linear),
-      map_index = as.numeric(frames - 1L),
+      layer_index = as.numeric(frames - 1L),
       full_element_count = prod(lattice_dim)
     ),
     binary = .ngeo_mgh_binary_spec(path, header),
@@ -883,9 +883,9 @@ read_ngeo_mgh_filebacked <- function(
     budget = budget,
     complete_selection = is.null(mask) &&
       identical(elements, seq_len(prod(lattice_dim))) &&
-      identical(frames, seq_len(n_map))
+      identical(frames, seq_len(n_layer))
   )
-  x$provenance$header_summary <- header
+  x$history$header_summary <- header
   x <- .ngeo_append_import_provenance(
     x, path, "read_ngeo_mgh_filebacked",
     metadata = list(load_data = FALSE, frames = frames),

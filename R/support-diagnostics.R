@@ -60,7 +60,7 @@ ngeo_support_entropy <- function(x, normalized = TRUE) {
 #' @return An `ngeo_support_diagnostics` object with sparse summaries and
 #'   source/target tables.
 #' @examples
-#' source <- ngeo_points(
+#' source <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE)
 #' )
 #' atlas <- ngeo_atlas_map(
@@ -141,7 +141,7 @@ ngeo_support_diagnostics <- function(
     stringsAsFactors = FALSE
   )
   summary <- data.frame(
-    metric = c(
+    distance_method = c(
       "source_elements",
       "target_elements",
       "nonzero",
@@ -240,7 +240,7 @@ ngeo_support_diagnostics <- function(
 
 #' @export
 print.ngeo_support_diagnostics <- function(x, ...) {
-  value <- stats::setNames(x$summary$value, x$summary$metric)
+  value <- stats::setNames(x$summary$value, x$summary$distance_method)
   cat(
     "<ngeo_support_diagnostics>\n",
     "  type: ", x$type, "\n",
@@ -327,7 +327,7 @@ plot.ngeo_support_map <- function(x, ...) {
 #' @param nsim Number of sampled operators.
 #' @param seed Reproducible seed.
 #' @param normalization Column-normalize each non-empty source membership or
-#'   leave sampled weights unchanged.
+#'   leave sampled spatial_weights unchanged.
 #' @param tolerance Numerical mapping tolerance.
 #'
 #' @return An `ngeo_support_ensemble`.
@@ -403,9 +403,9 @@ ngeo_support_monte_carlo <- function(
           "partial"
         }
       }
-      provenance <- x$provenance
-      provenance$operations <- c(
-        provenance$operations %||% list(),
+      history <- x$history
+      history$operations <- c(
+        history$operations %||% list(),
         list(.ngeo_operation(
           "ngeo_support_monte_carlo",
           list(normalization = normalization)
@@ -414,8 +414,8 @@ ngeo_support_monte_carlo <- function(
       .ngeo_support_map_structure(
         operator,
         type,
-        x$source_domain_hash,
-        x$target_domain_hash,
+        x$source_base_hash,
+        x$target_base_hash,
         x$source_element_id,
         x$target_element_id,
         x$source_support,
@@ -426,17 +426,17 @@ ngeo_support_monte_carlo <- function(
         },
         NULL,
         coverage,
-        provenance
+        history
       )
     })
   })
   result <- list(
     samples = samples,
-    maps = samples,
+    layers = samples,
     kind = "operator",
-    weights = rep.int(1 / nsim, nsim),
-    source_domain_hash = x$source_domain_hash,
-    target_domain_hash = x$target_domain_hash,
+    spatial_weights = rep.int(1 / nsim, nsim),
+    source_base_hash = x$source_base_hash,
+    target_base_hash = x$target_base_hash,
     source_element_id = x$source_element_id,
     target_element_id = x$target_element_id,
     map_hashes = vapply(
@@ -447,14 +447,14 @@ ngeo_support_monte_carlo <- function(
     seed = .ngeo_seed(seed),
     normalization = normalization,
     assumptions = "independent Gaussian entry errors truncated at zero",
-    provenance = list(operations = list(.ngeo_operation(
+    history = list(operations = list(.ngeo_operation(
       "ngeo_support_monte_carlo",
       list(nsim = nsim, normalization = normalization)
     ))),
     spec_version = "2.2"
   )
   result$ensemble_hash <- .ngeo_support_ensemble_hash(
-    samples, result$kind, result$weights
+    samples, result$kind, result$spatial_weights
   )
   class(result) <- "ngeo_support_ensemble"
   ngeo_validate_support_ensemble(result)
@@ -466,12 +466,12 @@ ngeo_support_monte_carlo <- function(
 #' @param x Source `ngeo` dataset.
 #' @param target Shared target template or a list of identical target
 #'   templates.
-#' @param support_maps Two or more maps with common source and target domains.
-#' @param maps Optional value-map selection.
+#' @param support_maps Two or more layers with common source and target domains.
+#' @param layers Optional value-map selection.
 #' @param reference Reference support-map index.
 #' @param value_variance Optional source value variance propagated under each
 #'   support map.
-#' @param ... Passed to `ngeo_change_support()`.
+#' @param ... Passed to `aggregate_to()`.
 #'
 #' @return An `ngeo_support_sensitivity` object.
 #' @export
@@ -479,7 +479,7 @@ ngeo_support_sensitivity <- function(
     x,
     target,
     support_maps,
-    maps = NULL,
+    layers = NULL,
     reference = 1L,
     value_variance = NULL,
     ...) {
@@ -487,7 +487,7 @@ ngeo_support_sensitivity <- function(
   if (inherits(support_maps, "ngeo_support_ensemble")) {
     ngeo_validate_support_ensemble(support_maps)
     ensemble <- support_maps
-    support_maps <- ensemble$maps %||% ensemble$samples
+    support_maps <- ensemble$layers %||% ensemble$samples
   }
   if (!is.list(support_maps) || length(support_maps) < 2L ||
       !all(vapply(
@@ -497,7 +497,7 @@ ngeo_support_sensitivity <- function(
         what = "ngeo_support_map"
       ))) {
     .ngeo_abort(
-      "`support_maps` must contain at least two support maps.",
+      "`support_maps` must contain at least two support layers.",
       "ngeo_error_argument"
     )
   }
@@ -519,27 +519,27 @@ ngeo_support_sensitivity <- function(
   }
   source_hash <- vapply(
     support_maps,
-    function(map) map$source_domain_hash,
+    function(map) map$source_base_hash,
     character(1)
   )
   target_hash <- vapply(
     support_maps,
-    function(map) map$target_domain_hash,
+    function(map) map$target_base_hash,
     character(1)
   )
   if (length(unique(source_hash)) != 1L ||
       length(unique(target_hash)) != 1L) {
     .ngeo_abort(
       "Sensitivity comparison requires common source and target domains.",
-      "ngeo_error_domain_mismatch"
+      "ngeo_error_base_mismatch"
     )
   }
   changed <- lapply(seq_along(support_maps), function(i) {
-    ngeo_change_support(
+    aggregate_to(
       x,
       targets[[i]],
       support_maps[[i]],
-      maps = maps,
+      layers = layers,
       ...
     )
   })
@@ -565,7 +565,7 @@ ngeo_support_sensitivity <- function(
         targets[[i]],
         support_maps[[i]],
         value_variance = value_variance,
-        maps = maps,
+        layers = layers,
         ...
       )
     })
@@ -573,7 +573,7 @@ ngeo_support_sensitivity <- function(
   ensemble_weights <- if (is.null(ensemble)) {
     rep.int(1 / length(support_maps), length(support_maps))
   } else {
-    ensemble$weights
+    ensemble$spatial_weights
   }
   distribution <- do.call(rbind, lapply(
     seq_len(ncol(reference_values)),
@@ -627,8 +627,8 @@ ngeo_support_sensitivity <- function(
       ngeo_support_map_hash,
       character(1)
     ),
-    source_domain_hash = source_hash[[1L]],
-    target_domain_hash = target_hash[[1L]],
+    source_base_hash = source_hash[[1L]],
+    target_base_hash = target_hash[[1L]],
     ensemble_hash = if (is.null(ensemble)) {
       NULL
     } else {

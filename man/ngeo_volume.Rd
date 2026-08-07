@@ -9,10 +9,10 @@ ngeo_volume(
   dim,
   affine,
   mask = NULL,
-  maps = NULL,
+  layers = NULL,
   measures = NULL,
   labels = list(),
-  space = ngeo_space(kind = "volume"),
+  coordinate_space = ngeo_coordinate_space(kind = "volume"),
   index_base = c("one", "zero")
 )
 }
@@ -25,13 +25,13 @@ ngeo_volume(
 
 \item{mask}{Optional logical lattice mask.}
 
-\item{maps}{Optional map metadata.}
+\item{layers}{Optional map metadata.}
 
 \item{measures}{Optional measurement semantics.}
 
 \item{labels}{Optional label tables.}
 
-\item{space}{An `ngeo_space`.}
+\item{coordinate_space}{An `ngeo_coordinate_space`.}
 
 \item{index_base}{Source IJK index base to preserve.}
 }

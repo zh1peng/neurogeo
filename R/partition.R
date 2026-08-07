@@ -2,12 +2,12 @@
   if (!is.character(labels) || length(labels) != 1L) {
     return(list(values = labels, table = NULL, name = "partition"))
   }
-  if (labels %in% names(x$labels)) {
-    label <- x$labels[[labels]]
+  if (labels %in% names(x$base$labels)) {
+    label <- x$base$labels[[labels]]
     values <- label$values %||% NULL
-    if (is.null(values) && !is.null(label$map_id)) {
-      map_index <- match(label$map_id, x$maps$map_id)
-      values <- x$values[, map_index]
+    if (is.null(values) && !is.null(label$layer_id)) {
+      layer_index <- match(label$layer_id, x$layers$layer_id)
+      values <- x$values[, layer_index]
     }
     return(list(
       values = values,
@@ -15,12 +15,12 @@
       name = labels
     ))
   }
-  if (labels %in% x$maps$name || labels %in% x$maps$map_id) {
-    map_index <- .ngeo_map_selection(x, labels)
+  if (labels %in% x$layers$name || labels %in% x$layers$layer_id) {
+    layer_index <- .ngeo_layer_selection(x, labels)
     return(list(
-      values = x$values[, map_index],
+      values = x$values[, layer_index],
       table = NULL,
-      name = x$maps$name[[map_index]]
+      name = x$layers$name[[layer_index]]
     ))
   }
   .ngeo_abort(
@@ -69,7 +69,7 @@
 #'   ),
 #'   matrix(c(1, 2, 3, 1, 3, 4), ncol = 3, byrow = TRUE),
 #'   values = cbind(signal = c(1, 2, 4, 3)),
-#'   measures = ngeo_measure(spatial_semantics = "intensive")
+#'   measures = ngeo_measure(support_behavior = "intensive")
 #' )
 #' partition <- ngeo_partition(surface, c("A", "A", "B", "B"))
 #' ngeo_boundary(surface, partition)
@@ -88,7 +88,7 @@ ngeo_partition <- function(x,
     membership <- as.character(membership)
   }
   if (!is.atomic(membership) ||
-      length(membership) != nrow(x$domain$elements)) {
+      length(membership) != nrow(x$base$elements)) {
     .ngeo_abort(
       "`labels` must provide one crisp membership value per base element.",
       "ngeo_error_alignment"
@@ -108,12 +108,12 @@ ngeo_partition <- function(x,
   region_ids <- unique(membership[!is.na(membership)])
   if (!length(region_ids)) {
     .ngeo_abort(
-      "Partition has no non-background regions.",
+      "Partition has no non-background parcellation.",
       "ngeo_error_partition"
     )
   }
   region_names <- .ngeo_region_names(region_ids, label$table)
-  regions <- data.frame(
+  parcellation <- data.frame(
     region_id = region_ids,
     name = region_names,
     stringsAsFactors = FALSE
@@ -122,13 +122,13 @@ ngeo_partition <- function(x,
   partition <- base::structure(
     list(
       membership = membership,
-      base_domain_hash = ngeo_domain_hash(x),
-      regions = regions,
+      source_base_hash = base_hash(x),
+      parcellation = parcellation,
       background = background,
       unlabeled_policy = unlabeled_policy,
       overlap_policy = "disallow",
       source = label$name,
-      provenance = list(
+      history = list(
         operations = list(.ngeo_operation(
           "ngeo_partition",
           list(
@@ -148,26 +148,26 @@ ngeo_partition <- function(x,
 .ngeo_validate_partition <- function(partition, x = NULL) {
   if (!inherits(partition, "ngeo_partition") ||
       !is.atomic(partition$membership) ||
-      !is.data.frame(partition$regions) ||
-      !"region_id" %in% names(partition$regions) ||
-      anyDuplicated(partition$regions$region_id)) {
+      !is.data.frame(partition$parcellation) ||
+      !"region_id" %in% names(partition$parcellation) ||
+      anyDuplicated(partition$parcellation$region_id)) {
     .ngeo_abort("Invalid `ngeo_partition` object.", "ngeo_error_partition")
   }
   membership_ids <- unique(partition$membership[!is.na(partition$membership)])
-  if (any(!membership_ids %in% partition$regions$region_id)) {
+  if (any(!membership_ids %in% partition$parcellation$region_id)) {
     .ngeo_abort(
       "Partition membership references an unknown region.",
       "ngeo_error_partition"
     )
   }
   if (!is.null(x)) {
-    if (!identical(partition$base_domain_hash, ngeo_domain_hash(x))) {
+    if (!identical(partition$source_base_hash, base_hash(x))) {
       .ngeo_abort(
-        "Partition base-domain hash does not match the dataset.",
-        "ngeo_error_domain_mismatch"
+        "Partition source base hash does not match the dataset.",
+        "ngeo_error_base_mismatch"
       )
     }
-    if (length(partition$membership) != nrow(x$domain$elements)) {
+    if (length(partition$membership) != nrow(x$base$elements)) {
       .ngeo_abort(
         "Partition membership is not aligned with the dataset.",
         "ngeo_error_alignment"
@@ -181,7 +181,7 @@ ngeo_partition <- function(x,
 print.ngeo_partition <- function(x, ...) {
   cat(
     "<ngeo_partition>\n",
-    "  regions: ", nrow(x$regions), "\n",
+    "  parcellation: ", nrow(x$parcellation), "\n",
     "  elements: ", length(x$membership), "\n",
     "  excluded: ", sum(is.na(x$membership)), "\n",
     sep = ""
@@ -214,13 +214,13 @@ ngeo_region_adjacency <- function(x,
   left <- left[keep]
   right <- right[keep]
 
-  n_region <- nrow(partition$regions)
+  n_region <- nrow(partition$parcellation)
   if (!length(left)) {
     return(.ngeo_sparse_edges(n_region, NULL))
   }
   region_index <- stats::setNames(
     seq_len(n_region),
-    partition$regions$region_id
+    partition$parcellation$region_id
   )
   pairs <- cbind(
     as.integer(region_index[left]),
@@ -260,8 +260,8 @@ ngeo_boundary <- function(x, partition, connectivity = 6L) {
   keep <- !is.na(left_region) & !is.na(right_region) &
     left_region != right_region
   data.frame(
-    from = x$domain$elements$element_id[entries$i[keep]],
-    to = x$domain$elements$element_id[entries$j[keep]],
+    from = x$base$elements$element_id[entries$i[keep]],
+    to = x$base$elements$element_id[entries$j[keep]],
     from_region = left_region[keep],
     to_region = right_region[keep],
     stringsAsFactors = FALSE
@@ -293,18 +293,18 @@ ngeo_boundary <- function(x, partition, connectivity = 6L) {
 
 .ngeo_aggregate_map <- function(values,
                                 membership,
-                                regions,
+                                parcellation,
                                 support,
                                 measure,
                                 fun,
                                 na.rm,
                                 tie) {
-  result <- vector("list", length(regions))
-  semantics <- measure$spatial_semantics[[1L]]
+  result <- vector("list", length(parcellation))
+  semantics <- measure$support_behavior[[1L]]
   missing_policy <- measure$missing_policy[[1L]]
 
-  for (i in seq_along(regions)) {
-    index <- which(membership == regions[[i]])
+  for (i in seq_along(parcellation)) {
+    index <- which(membership == parcellation[[i]])
     current <- values[index]
     current_support <- support[index]
     if (!isTRUE(na.rm) || identical(missing_policy, "preserve")) {
@@ -344,8 +344,8 @@ ngeo_boundary <- function(x, partition, connectivity = 6L) {
   unlist(result, recursive = FALSE, use.names = FALSE)
 }
 
-.ngeo_region_support <- function(support, membership, regions) {
-  vapply(regions, function(region) {
+.ngeo_region_support <- function(support, membership, parcellation) {
+  vapply(parcellation, function(region) {
     current <- support[membership == region]
     if (!length(current) || all(is.na(current))) {
       NA_real_
@@ -355,7 +355,7 @@ ngeo_boundary <- function(x, partition, connectivity = 6L) {
   }, numeric(1))
 }
 
-.ngeo_region_centroid <- function(x, membership, regions, support) {
+.ngeo_region_centroid <- function(x, membership, parcellation, support) {
   coordinates <- tryCatch(
     .ngeo_element_coordinates(x),
     error = function(...) NULL
@@ -363,18 +363,18 @@ ngeo_boundary <- function(x, partition, connectivity = 6L) {
   if (is.null(coordinates) || anyNA(coordinates)) {
     return(NULL)
   }
-  result <- matrix(NA_real_, nrow = length(regions), ncol = ncol(coordinates))
-  for (i in seq_along(regions)) {
-    index <- which(membership == regions[[i]])
-    weights <- support[index]
-    if (anyNA(weights) || sum(weights) <= 0) {
-      weights <- rep.int(1, length(index))
+  result <- matrix(NA_real_, nrow = length(parcellation), ncol = ncol(coordinates))
+  for (i in seq_along(parcellation)) {
+    index <- which(membership == parcellation[[i]])
+    spatial_weights <- support[index]
+    if (anyNA(spatial_weights) || sum(spatial_weights) <= 0) {
+      spatial_weights <- rep.int(1, length(index))
     }
     result[i, ] <- vapply(
       seq_len(ncol(coordinates)),
       function(column) stats::weighted.mean(
         coordinates[index, column],
-        weights
+        spatial_weights
       ),
       numeric(1)
     )
@@ -382,21 +382,21 @@ ngeo_boundary <- function(x, partition, connectivity = 6L) {
   result
 }
 
-#' Aggregate values from a base domain to regions
+#' Aggregate values from a base base to parcellation
 #'
 #' @param x Base `ngeo` dataset.
 #' @param partition Matching crisp partition.
-#' @param maps Optional map selection.
+#' @param layers Optional map selection.
 #' @param fun Optional explicit aggregation function.
 #' @param na.rm Whether missing values may be excluded when policy allows.
 #' @param tie Categorical tie policy.
 #' @param connectivity Voxel connectivity for region adjacency.
 #'
-#' @return An `ngeo_regions` dataset.
+#' @return An `ngeo_parcellation` dataset.
 #' @export
 ngeo_aggregate <- function(x,
                            partition,
-                           maps = NULL,
+                           layers = NULL,
                            fun = NULL,
                            na.rm = TRUE,
                            tie = c("first", "error"),
@@ -413,39 +413,42 @@ ngeo_aggregate <- function(x,
     )
   }
 
-  map_index <- .ngeo_map_selection(x, maps)
+  layer_index <- .ngeo_layer_selection(x, layers)
   membership <- partition$membership
-  regions <- partition$regions$region_id
+  parcellation <- partition$parcellation$region_id
   support <- ngeo_support_size(x)
-  values <- vector("list", length(map_index))
-  for (i in seq_along(map_index)) {
-    map <- map_index[[i]]
+  values <- vector("list", length(layer_index))
+  for (i in seq_along(layer_index)) {
+    map <- layer_index[[i]]
     values[[i]] <- .ngeo_aggregate_map(
       x$values[, map],
       membership,
-      regions,
+      parcellation,
       support,
-      x$measures[map, , drop = FALSE],
+      .ngeo_measures_for_layers(x, map),
       fun,
       na.rm,
       tie
     )
   }
   values <- do.call(cbind, values)
-  maps_out <- x$maps[map_index, , drop = FALSE]
-  measures_out <- x$measures[map_index, , drop = FALSE]
+  maps_out <- x$layers[layer_index, , drop = FALSE]
+  layer_measures <- .ngeo_measures_for_layers(x, layer_index)
+  measures_out <- layer_measures[
+    !duplicated(layer_measures$measure_id), , drop = FALSE
+  ]
   rownames(maps_out) <- NULL
   rownames(measures_out) <- NULL
   if (!is.null(fun)) {
-    measures_out$default_aggregation <- "custom"
+    measures_out$aggregation <- "custom"
   }
   colnames(values) <- maps_out$name
 
-  region_support <- .ngeo_region_support(support, membership, regions)
+  region_support <- .ngeo_region_support(support, membership, parcellation)
   centroid <- .ngeo_region_centroid(
     x,
     membership,
-    regions,
+    parcellation,
     support
   )
   adjacency <- if (isTRUE(ngeo_capabilities(x)[["adjacency"]])) {
@@ -457,44 +460,44 @@ ngeo_aggregate <- function(x,
   } else {
     NULL
   }
-  result <- ngeo_regions(
-    partition$regions,
+  result <- ngeo_parcellation(
+    partition$parcellation,
     values = values,
     membership = membership,
-    base_domain = x,
+    source_base = x,
     centroid = centroid,
     support_size = region_support,
     adjacency = adjacency,
-    maps = maps_out,
+    layers = maps_out,
     measures = measures_out,
-    space = x$domain$space
+    coordinate_space = x$base$coordinate_space
   )
-  result$provenance$source_dataset <- list(
-    domain_hash = ngeo_domain_hash(x),
-    provenance = x$provenance
+  result$history$source_dataset <- list(
+    base_hash = base_hash(x),
+    history = x$history
   )
-  result$provenance$partition <- partition$provenance
-  result$provenance$operations <- c(
-    result$provenance$operations,
+  result$history$partition <- partition$history
+  result$history$operations <- c(
+    result$history$operations,
     list(.ngeo_operation(
       "ngeo_aggregate",
       list(
         partition_source = partition$source,
         excluded_elements = sum(is.na(membership)),
-        maps = maps_out$map_id,
+        layers = maps_out$layer_id,
         aggregation_rules = stats::setNames(
           if (is.null(fun)) {
-            measures_out$default_aggregation
+            layer_measures$aggregation
           } else {
             rep.int("custom", nrow(maps_out))
           },
-          maps_out$map_id
+          maps_out$layer_id
         ),
         custom_function = !is.null(fun),
         na_rm = na.rm,
         missing_policy = stats::setNames(
-          measures_out$missing_policy,
-          maps_out$map_id
+          layer_measures$missing_policy,
+          maps_out$layer_id
         ),
         output_support_size = region_support
       )

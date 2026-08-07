@@ -13,7 +13,7 @@ knitr::opts_chunk$set(eval = FALSE)
 
 ## Background
 
-Resampling evaluates source measurements on a target domain. It requires
+Resampling evaluates source measurements on a target base. It requires
 three separate declarations: a path connecting the coordinate spaces, an
 interpolation rule, and policies for coverage, conservation, missing values,
 and uncertainty. Registration estimates a spatial relationship; resampling
@@ -27,9 +27,9 @@ registration or executing resampling implicitly.
 
 Register exact spaces and supplied transforms first.
 
-```{r}
-native <- ngeo_space("native", kind = "volume")
-standard <- ngeo_space("standard", kind = "volume")
+```{r, eval=FALSE}
+native <- ngeo_coordinate_space("native", kind = "volume")
+standard <- ngeo_coordinate_space("standard", kind = "volume")
 
 affine <- diag(4)
 affine[1, 4] <- 10
@@ -41,7 +41,7 @@ known <- ngeo_transform(
   parameters = list(matrix = affine)
 )
 
-registry <- ngeo_space_registry(list(native, standard))
+registry <- ngeo_coordinate_space_registry(list(native, standard))
 graph <- ngeo_transform_graph(
   registry,
   transforms = list(known),
@@ -54,10 +54,10 @@ path <- ngeo_transform_path(graph, "native", "standard")
 
 ## Create an inert plan
 
-The source and target are ordinary NGCS objects. The target is a domain
+The source and target are ordinary NGCS objects. The target is a base
 template; its values are not used.
 
-```{r}
+```{r, eval=FALSE}
 plan <- ngeo_resampling_plan(
   source,
   target,
@@ -80,7 +80,7 @@ plan <- ngeo_resampling_plan(
 Plan creation is inert. Building a map or resampling requires explicit
 authorization.
 
-```{r}
+```{r, eval=FALSE}
 support_map <- ngeo_build_resampling_map(
   plan, authorize = TRUE
 )
@@ -107,7 +107,7 @@ interpretation.
 
 Uncertainty must be declared in the plan.
 
-```{r}
+```{r, eval=FALSE}
 uncertain_plan <- ngeo_resampling_plan(
   source,
   target,
@@ -123,6 +123,6 @@ uncertain <- ngeo_resample(
 uncertain$variance
 ```
 
-The result dataset still has exactly one target spatial domain and one
+The result dataset still has exactly one target spatial base and one
 aligned values block. Variance, the sparse map, diagnostics, and joint
 path/plan/map hashes are explicit result components.

@@ -17,7 +17,7 @@ library(neurogeo)
 A support map is valid only when the correspondence between source and target
 domains is already known. That evidence may be a registered surface, a voxel
 affine, or atlas probabilities defined on the same ordered elements.
-Interpolation constructs weights from that evidence; it does not discover
+Interpolation constructs spatial_weights from that evidence; it does not discover
 anatomical correspondence.
 
 NGCS separates the evidence that two domains correspond from the sparse
@@ -27,7 +27,7 @@ relationships.
 
 ## A known surface registration
 
-Both surfaces below declare one registered space. In practice the named
+Both surfaces below declare one registered coordinate_space. In practice the named
 coordinate sets can be registered spheres supplied by a standard workflow.
 
 ```{r}
@@ -37,7 +37,7 @@ coordinates <- matrix(
   byrow = TRUE
 )
 faces <- matrix(c(1, 2, 3, 1, 3, 4), ncol = 3, byrow = TRUE)
-space <- ngeo_space(
+coordinate_space <- ngeo_coordinate_space(
   "declared-registration",
   kind = "surface",
   structure = "CORTEX_LEFT"
@@ -46,10 +46,10 @@ source <- ngeo_surface(
   coordinates,
   faces,
   values = cbind(thickness = c(2.1, 2.4, 2.2, 2.5)),
-  measures = ngeo_measure(spatial_semantics = "intensive"),
-  space = space
+  measures = ngeo_measure(support_behavior = "intensive"),
+  coordinate_space = coordinate_space
 )
-target <- ngeo_surface(coordinates, faces, space = space)
+target <- ngeo_surface(coordinates, faces, coordinate_space = coordinate_space)
 
 surface_map <- ngeo_surface_registration_map(
   source,
@@ -57,7 +57,7 @@ surface_map <- ngeo_surface_registration_map(
   method = "barycentric"
 )
 ngeo_support_diagnostics(surface_map)
-resampled <- ngeo_change_support(source, target, surface_map)
+resampled <- aggregate_to(source, target, surface_map)
 resampled$values
 ```
 
@@ -70,17 +70,17 @@ Nearest and trilinear builders transform source voxel centres through the
 stored affines while respecting each object's source index base.
 
 ```{r}
-volume_space <- ngeo_space("template-grid", kind = "volume")
+volume_space <- ngeo_coordinate_space("template-grid", kind = "volume")
 source_grid <- ngeo_volume(
   dim = c(2, 2, 2),
   affine = diag(4),
-  space = volume_space,
+  coordinate_space = volume_space,
   index_base = "zero"
 )
 target_grid <- ngeo_volume(
   dim = c(2, 2, 2),
   affine = diag(4),
-  space = volume_space,
+  coordinate_space = volume_space,
   index_base = "zero"
 )
 grid_map <- ngeo_affine_grid_map(
@@ -104,7 +104,7 @@ atlas <- ngeo_atlas_map(
   source,
   c("anterior", "anterior", "posterior", "posterior")
 )
-regional <- ngeo_change_support(source, atlas$target, atlas)
+regional <- aggregate_to(source, atlas$target, atlas)
 regional$values
 ```
 

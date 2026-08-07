@@ -99,9 +99,9 @@
     importer = importer,
     checksum = checksum
   )
-  x$provenance$sources <- c(x$provenance$sources %||% list(), sources)
-  x$provenance$operations <- c(
-    x$provenance$operations %||% list(),
+  x$history$sources <- c(x$history$sources %||% list(), sources)
+  x$history$operations <- c(
+    x$history$operations %||% list(),
     list(.ngeo_operation(
       importer,
       list(
@@ -166,7 +166,7 @@
 #'     package = "neurogeo"
 #'   )
 #'   surface <- read_ngeo(geometry)
-#'   ngeo_domain_type(surface)
+#'   base_type(surface)
 #' }
 #' @export
 read_ngeo <- function(x = NULL,

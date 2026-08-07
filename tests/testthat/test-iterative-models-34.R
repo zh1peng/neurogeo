@@ -3,7 +3,7 @@ iterative_model_fixture <- function(n_side = 5L, seed = 34L) {
     x = seq_len(n_side) - 1,
     y = seq_len(n_side) - 1
   ))
-  base <- ngeo_points(
+  base <- ngeo_point(
     coordinates,
     values = cbind(
       response = seq_len(nrow(coordinates)),
@@ -11,13 +11,13 @@ iterative_model_fixture <- function(n_side = 5L, seed = 34L) {
       y = coordinates[, 2L]
     )
   )
-  weights <- ngeo_weights(
+  spatial_weights <- ngeo_spatial_weights(
     base,
     method = "distance_band",
     threshold = 1.01,
     style = "W"
   )
-  binary <- ngeo_weights(
+  binary <- ngeo_spatial_weights(
     base,
     method = "distance_band",
     threshold = 1.01,
@@ -28,14 +28,14 @@ iterative_model_fixture <- function(n_side = 5L, seed = 34L) {
     stats::rnorm(nrow(coordinates), sd = 0.2)
   })
   sar_response <- as.numeric(solve(
-    Matrix::Diagonal(nrow(coordinates)) - 0.25 * weights$matrix,
+    Matrix::Diagonal(nrow(coordinates)) - 0.25 * spatial_weights$matrix,
     design %*% c(2, 1, -0.5) + error
   ))
   sem_error <- as.numeric(solve(
-    Matrix::Diagonal(nrow(coordinates)) - 0.3 * weights$matrix,
+    Matrix::Diagonal(nrow(coordinates)) - 0.3 * spatial_weights$matrix,
     error
   ))
-  data <- ngeo_points(
+  data <- ngeo_point(
     coordinates,
     values = cbind(
       sar = sar_response,
@@ -44,7 +44,7 @@ iterative_model_fixture <- function(n_side = 5L, seed = 34L) {
       y = coordinates[, 2L]
     )
   )
-  list(data = data, weights = weights, binary = binary)
+  list(data = data, spatial_weights = spatial_weights, binary = binary)
 }
 
 test_that("solver controls are immutable and resource-bound", {
@@ -157,13 +157,13 @@ test_that("log-determinants expose exact and deterministic approximate error", {
   fixture <- iterative_model_fixture()
   parameter <- 0.2
   exact <- ngeo_logdet_approx(
-    fixture$weights,
+    fixture$spatial_weights,
     parameter,
     control = ngeo_solver_control(exact_threshold = 100),
     exact = TRUE
   )
   serial <- ngeo_logdet_approx(
-    fixture$weights,
+    fixture$spatial_weights,
     parameter,
     control = ngeo_solver_control(
       trace_order = 30,
@@ -175,7 +175,7 @@ test_that("log-determinants expose exact and deterministic approximate error", {
     exact = FALSE
   )
   parallel <- ngeo_logdet_approx(
-    fixture$weights,
+    fixture$spatial_weights,
     parameter,
     control = ngeo_solver_control(
       trace_order = 30,
@@ -187,7 +187,7 @@ test_that("log-determinants expose exact and deterministic approximate error", {
     exact = FALSE
   )
   direct <- determinant(
-    diag(25) - parameter * as.matrix(fixture$weights$matrix),
+    diag(25) - parameter * as.matrix(fixture$spatial_weights$matrix),
     logarithm = TRUE
   )
 
@@ -207,12 +207,12 @@ test_that("log-determinants expose exact and deterministic approximate error", {
   expect_gt(serial$standard_error, 0)
   expect_gte(serial$truncation_bound, 0)
   expect_error(
-    ngeo_logdet_approx(fixture$weights, 1.1),
+    ngeo_logdet_approx(fixture$spatial_weights, 1.1),
     class = "ngeo_error_logdet_bound"
   )
   expect_error(
     ngeo_logdet_approx(
-      fixture$weights,
+      fixture$spatial_weights,
       parameter,
       control = ngeo_solver_control(exact_threshold = 10),
       exact = TRUE
@@ -234,14 +234,14 @@ test_that("iterative SAR and SEM agree with exact-small likelihoods", {
       fixture$data,
       response = model,
       predictors = c("x", "y"),
-      weights = fixture$weights,
+      spatial_weights = fixture$spatial_weights,
       model = model
     )
     iterative <- ngeo_spatial_regression_iterative(
       fixture$data,
       response = model,
       predictors = c("x", "y"),
-      weights = fixture$weights,
+      spatial_weights = fixture$spatial_weights,
       model = model,
       control = control,
       logdet = "exact"
@@ -290,7 +290,7 @@ test_that("approximate spatial likelihood is explicit and deterministic", {
     fixture$data,
     "sar",
     c("x", "y"),
-    fixture$weights,
+    fixture$spatial_weights,
     control = control,
     logdet = "approximate"
   )
@@ -298,7 +298,7 @@ test_that("approximate spatial likelihood is explicit and deterministic", {
     fixture$data,
     "sar",
     c("x", "y"),
-    fixture$weights,
+    fixture$spatial_weights,
     control = control,
     logdet = "approximate"
   )
@@ -353,7 +353,7 @@ test_that("iterative CAR agrees with the direct small smoother", {
     ngeo_car_iterative(
       fixture$data,
       "sar",
-      fixture$weights,
+      fixture$spatial_weights,
       precision = 2
     ),
     class = "ngeo_error_weights"
@@ -367,13 +367,13 @@ test_that("3.4 schemas cover iterative model objects", {
     Matrix::Diagonal(3), 1:3, control = control
   )
   logdet <- ngeo_logdet_approx(
-    fixture$weights, 0.2, control = control, exact = TRUE
+    fixture$spatial_weights, 0.2, control = control, exact = TRUE
   )
   model <- ngeo_spatial_regression_iterative(
     fixture$data,
     "sar",
     c("x", "y"),
-    fixture$weights,
+    fixture$spatial_weights,
     control = control,
     logdet = "exact"
   )

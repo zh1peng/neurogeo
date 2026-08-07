@@ -18,15 +18,15 @@ if (!exists("ngeo_variogram_uncertainty", mode = "function")) {
 
 coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
 predictor <- coordinates[, 1L] + 0.25 * coordinates[, 2L]
-base <- ngeo_points(
+base <- ngeo_point(
   coordinates,
   values = cbind(response = 1 + 2 * predictor, predictor = predictor),
   measures = rbind(
-    ngeo_measure(spatial_semantics = "intensive"),
-    ngeo_measure(spatial_semantics = "intensive")
+    ngeo_measure(support_behavior = "intensive"),
+    ngeo_measure(support_behavior = "intensive")
   )
 )
-weights <- ngeo_weights(
+spatial_weights <- ngeo_spatial_weights(
   base,
   method = "distance_band",
   threshold = 1.01,
@@ -81,13 +81,13 @@ if (analytic_error > 1e-12 || monte_carlo_relative_error > 0.1) {
 car <- ngeo_car_uncertainty(
   base,
   "response",
-  weights,
+  spatial_weights,
   covariance,
   type = "proper",
   rho = 0.8,
   precision = 2
 )
-weight_matrix <- (weights$matrix + Matrix::t(weights$matrix)) / 2
+weight_matrix <- (spatial_weights$matrix + Matrix::t(spatial_weights$matrix)) / 2
 q <- as.matrix(
   Matrix::Diagonal(x = Matrix::rowSums(abs(weight_matrix))) -
     0.8 * weight_matrix
@@ -125,7 +125,7 @@ known_effect <- replicate(200L, {
     lower = coefficient$estimate - critical * coefficient$std.error,
     upper = coefficient$estimate + critical * coefficient$std.error,
     residual_moran = ngeo_moran(
-      residual_data, weights, "response"
+      residual_data, spatial_weights, "response"
     )$estimate
   )
 })
@@ -147,7 +147,7 @@ if (abs(calibration$bias) > 0.03 ||
 set.seed(27003)
 spatial_response <- as.numeric(
   solve(
-    diag(nrow(coordinates)) - 0.3 * as.matrix(weights$matrix),
+    diag(nrow(coordinates)) - 0.3 * as.matrix(spatial_weights$matrix),
     1 + 2 * predictor + stats::rnorm(nrow(coordinates), sd = 0.03)
   )
 )
@@ -157,7 +157,7 @@ one_worker <- ngeo_spatial_regression_uncertainty(
   spatial,
   "response",
   "predictor",
-  weights,
+  spatial_weights,
   model = "sar",
   value_covariance = covariance,
   nsim = 30L,
@@ -168,7 +168,7 @@ two_workers <- ngeo_spatial_regression_uncertainty(
   spatial,
   "response",
   "predictor",
-  weights,
+  spatial_weights,
   model = "sar",
   value_covariance = covariance,
   nsim = 30L,
@@ -183,7 +183,7 @@ if (!worker_identical) {
   stop("Seeded SAR simulations changed across worker counts.")
 }
 
-wrong_domain <- ngeo_points(
+wrong_domain <- ngeo_point(
   cbind(x = 1:4, y = 0),
   values = cbind(response = 1:4)
 )
@@ -193,14 +193,14 @@ wrong_covariance <- ngeo_support_covariance(
 mutation_rejected <- inherits(tryCatch(
   {
     ngeo_car_uncertainty(
-      base, "response", weights, wrong_covariance, precision = 1
+      base, "response", spatial_weights, wrong_covariance, precision = 1
     )
     NULL
   },
   error = identity
 ), "ngeo_error_domain_mismatch")
 if (!mutation_rejected) {
-  stop("Model covariance domain mutation was not rejected.")
+  stop("Model covariance base mutation was not rejected.")
 }
 
 result <- list(

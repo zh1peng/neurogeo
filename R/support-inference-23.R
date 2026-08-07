@@ -144,7 +144,7 @@ print.ngeo_support_adjustment <- function(x, ...) {
       q_p_value = NA_real_,
       i_squared = 0,
       tau_squared = 0,
-      weights = 1,
+      spatial_weights = 1,
       df = 0L
     ))
   }
@@ -177,7 +177,7 @@ print.ngeo_support_adjustment <- function(x, ...) {
     q_p_value = stats::pchisq(q, df = df, lower.tail = FALSE),
     i_squared = if (q > 0) max(0, (q - df) / q) else 0,
     tau_squared = tau_squared,
-    weights = weight / sum(weight),
+    spatial_weights = weight / sum(weight),
     df = df
   )
 }
@@ -256,7 +256,7 @@ ngeo_cross_atlas_consensus <- function(
       atlas = input$labels,
       estimate = input$estimate,
       standard_error = input$standard_error,
-      weight = fit$weights,
+      weight = fit$spatial_weights,
       support_map_hash = input$hashes,
       stringsAsFactors = FALSE
     ),
@@ -288,11 +288,11 @@ print.ngeo_cross_atlas_consensus <- function(x, ...) {
     selected,
     statistic) {
   vapply(seq_along(support_maps), function(i) {
-    changed <- ngeo_change_support(
+    changed <- aggregate_to(
       x,
       targets[[i]],
       support_maps[[i]],
-      maps = unname(selected)
+      layers = unname(selected)
     )
     if (identical(statistic, "correlation")) {
       value <- stats::cor(changed$values[, 1L], changed$values[, 2L])
@@ -318,11 +318,11 @@ print.ngeo_cross_atlas_consensus <- function(x, ...) {
   }, numeric(1))
 }
 
-#' Test effects under one common source-domain null
+#' Test effects under one common source-base null
 #'
 #' @inheritParams ngeo_support_test
 #' @param null Permutation, Moran spectral, or surface-spin null.
-#' @param weights Matching weights for a Moran spectral null.
+#' @param spatial_weights Matching spatial_weights for a Moran spectral null.
 #' @param coordinates Registration coordinate set for a spin null.
 #' @param strata Optional spin strata.
 #' @param workers Simulation workers.
@@ -338,7 +338,7 @@ ngeo_common_support_test <- function(
     predictor,
     statistic = c("correlation", "slope"),
     null = c("permutation", "moran", "spin"),
-    weights = NULL,
+    spatial_weights = NULL,
     coordinates = NULL,
     strata = NULL,
     nsim = 999L,
@@ -369,7 +369,7 @@ ngeo_common_support_test <- function(
     )
     if (!identical(support_maps[[i]]$coverage, "complete")) {
       .ngeo_abort(
-        "Common-support inference requires complete support maps.",
+        "Common-support inference requires complete support layers.",
         "ngeo_error_coverage"
       )
     }
@@ -384,15 +384,15 @@ ngeo_common_support_test <- function(
       replicate(nsim, sample(predictor_values))
     }),
     moran = {
-      if (is.null(weights)) {
+      if (is.null(spatial_weights)) {
         .ngeo_abort(
-          "A Moran null requires matching `weights`.",
+          "A Moran null requires matching `spatial_weights`.",
           "ngeo_error_argument"
         )
       }
       ngeo_moran_null(
         x,
-        weights,
+        spatial_weights,
         map = selected[["predictor"]],
         nsim = nsim,
         seed = seed,
@@ -465,7 +465,7 @@ ngeo_common_support_test <- function(
     nsim = nsim,
     seed = .ngeo_seed(seed),
     workers = workers,
-    source_domain_hash = ngeo_domain_hash(x),
+    source_base_hash = base_hash(x),
     support_map_hashes = estimates$support_map_hash,
     claim = paste(
       "common-source family inference;",
@@ -497,7 +497,7 @@ print.ngeo_common_support_test <- function(x, ...) {
 #' Inference over a declared support scale hierarchy
 #'
 #' @inheritParams ngeo_common_support_test
-#' @param scales Unique ordered scale labels aligned with support maps.
+#' @param scales Unique ordered scale labels aligned with support layers.
 #'
 #' @return An `ngeo_multiscale_inference`.
 #' @export
@@ -510,7 +510,7 @@ ngeo_multiscale_inference <- function(
     predictor,
     statistic = c("correlation", "slope"),
     null = c("permutation", "moran", "spin"),
-    weights = NULL,
+    spatial_weights = NULL,
     coordinates = NULL,
     strata = NULL,
     nsim = 999L,
@@ -532,7 +532,7 @@ ngeo_multiscale_inference <- function(
     predictor,
     statistic = match.arg(statistic),
     null = match.arg(null),
-    weights = weights,
+    spatial_weights = spatial_weights,
     coordinates = coordinates,
     strata = strata,
     nsim = nsim,
@@ -612,10 +612,10 @@ ngeo_boundary_test <- function(
     seed = NULL) {
   ngeo_validate_support_ensemble(ensemble)
   selected <- .ngeo_support_model_maps(x, outcome, predictor)
-  maps <- ensemble$maps
-  targets <- rep(list(target), length(maps))
+  layers <- ensemble$layers
+  targets <- rep(list(target), length(layers))
   observed_effect <- .ngeo_common_support_statistic(
-    x, maps, targets, selected, "slope"
+    x, layers, targets, selected, "slope"
   )
   observed_dispersion <- diff(range(observed_effect))
   simulated <- .ngeo_with_seed(seed, function() {
@@ -624,17 +624,17 @@ ngeo_boundary_test <- function(
       current$values[, selected[["predictor"]]] <-
         sample(x$values[, selected[["predictor"]]])
       effect <- .ngeo_common_support_statistic(
-        current, maps, targets, selected, "slope"
+        current, layers, targets, selected, "slope"
       )
       diff(range(effect))
     }, numeric(1))
   })
-  boundary <- ngeo_boundary_sensitivity(maps)
+  boundary <- ngeo_boundary_sensitivity(layers)
   result <- list(
     effects = data.frame(
       support_map_hash = ensemble$map_hashes,
       estimate = observed_effect,
-      weight = ensemble$weights,
+      weight = ensemble$spatial_weights,
       stringsAsFactors = FALSE
     ),
     observed_dispersion = observed_dispersion,

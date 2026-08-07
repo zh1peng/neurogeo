@@ -26,9 +26,9 @@ test_that("inflated GIFTI names are not mistaken for flat charts", {
   )
 })
 
-test_that("surface charts are auxiliary and non-metric", {
+test_that("surface charts are auxiliary and non-distance_method", {
   x <- chart_surface()
-  original_hash <- ngeo_domain_hash(x)
+  original_hash <- base_hash(x)
   original_area <- ngeo_vertex_area(x)
   chart <- matrix(
     c(0, 0, 2, 0, 2, 1, 0, 1),
@@ -43,16 +43,16 @@ test_that("surface charts are auxiliary and non-metric", {
     source = "test chart"
   )
 
-  expect_false("flat" %in% names(x$domain$coordinates))
-  expect_equal(result$domain$active_coordinates, "active")
+  expect_false("flat" %in% names(x$base$geometry$coordinates))
+  expect_equal(result$base$geometry$active_coordinates, "active")
   expect_equal(ngeo_vertex_area(result), original_area)
   expect_false(
-    result$domain$coordinate_meta$metric_eligible[
-      result$domain$coordinate_meta$name == "flat"
+    result$base$geometry$coordinate_meta$metric_eligible[
+      result$base$geometry$coordinate_meta$name == "flat"
     ]
   )
   expect_equal(
-    result$domain$charts$flat$source_domain_hash,
+    result$base$charts$flat$source_base_hash,
     original_hash
   )
   expect_equal(
@@ -96,7 +96,7 @@ test_that("sf export is explicit and retains NGCS identity", {
   expect_s3_class(vertices, "sf")
   expect_equal(nrow(vertices), 4L)
   expect_true("signal" %in% names(vertices))
-  expect_equal(attr(vertices, "ngeo_domain_hash"), ngeo_domain_hash(x))
+  expect_equal(attr(vertices, "base_hash"), base_hash(x))
   expect_equal(attr(vertices, "ngeo_chart"), "flat")
   expect_equal(nrow(faces), 2L)
   expect_true(all(sf::st_geometry_type(faces) == "POLYGON"))
@@ -121,14 +121,14 @@ test_that("sf export refuses implicit surface projection and oversized copies", 
   )
 })
 
-test_that("planar points and region centroids export without claiming a CRS", {
+test_that("planar point and region centroids export without claiming a CRS", {
   skip_if_not_installed("sf")
-  points <- ngeo_points(matrix(c(0, 0, 1, 1), ncol = 2, byrow = TRUE))
-  regions <- ngeo_regions(
+  point <- ngeo_point(matrix(c(0, 0, 1, 1), ncol = 2, byrow = TRUE))
+  parcellation <- ngeo_parcellation(
     data.frame(region_id = c("A", "B")),
     centroid = matrix(c(0, 0, 2, 2), ncol = 2, byrow = TRUE)
   )
 
-  expect_s3_class(ngeo_as_sf(points), "sf")
-  expect_s3_class(ngeo_as_sf(regions), "sf")
+  expect_s3_class(ngeo_as_sf(point), "sf")
+  expect_s3_class(ngeo_as_sf(parcellation), "sf")
 })

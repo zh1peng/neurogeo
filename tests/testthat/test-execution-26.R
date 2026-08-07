@@ -15,7 +15,7 @@ execution_fixture <- function(delayed = FALSE) {
     neurogeo:::.ngeo_delayed_values(
       function(rows, columns) values[rows, columns, drop = FALSE],
       dim(values),
-      map_names = colnames(values),
+      layer_names = colnames(values),
       source = "test callback"
     )
   } else {
@@ -24,20 +24,20 @@ execution_fixture <- function(delayed = FALSE) {
   semantics <- c(
     "intensive", "extensive", "count", "categorical", "intensive"
   )
-  x <- ngeo_points(
+  x <- ngeo_point(
     coordinates,
     values = values_block,
     measures = do.call(rbind, lapply(semantics, function(value) {
       ngeo_measure(
         value_type = if (value == "categorical") "label" else "continuous",
-        spatial_semantics = value
+        support_behavior = value
       )
     }))
   )
-  target <- ngeo_regions(
+  target <- ngeo_parcellation(
     data.frame(region_id = c("A", "B", "C")),
     support_size = rep(NA_real_, 3),
-    space = x$domain$space
+    coordinate_space = x$base$coordinate_space
   )
   operator <- Matrix::sparseMatrix(
     i = rep(1:3, each = 4),
@@ -60,12 +60,12 @@ test_that("sparse change of support preserves every measurement semantic", {
   fixture <- execution_fixture(delayed = TRUE)
   direct_source <- fixture$x
   direct_source$values <- as.matrix(direct_source$values)
-  reference <- ngeo_change_support(
+  reference <- aggregate_to(
     direct_source,
     fixture$target,
     fixture$map
   )
-  changed <- ngeo_change_support(
+  changed <- aggregate_to(
     fixture$x,
     fixture$target,
     fixture$map
@@ -99,18 +99,18 @@ test_that("streaming summaries covariance and regression match memory", {
 
 test_that("streaming Moran matches the in-memory statistic", {
   fixture <- execution_fixture(delayed = TRUE)
-  weights <- ngeo_weights(
+  spatial_weights <- ngeo_spatial_weights(
     fixture$x,
     method = "distance_band",
     threshold = 1.01,
     style = "W"
   )
   streamed <- ngeo_stream_moran(
-    fixture$x, weights, "intensive", chunk_size = 4L
+    fixture$x, spatial_weights, "intensive", chunk_size = 4L
   )
   memory <- fixture$x
   memory$values <- as.matrix(memory$values)
-  reference <- ngeo_moran(memory, weights, "intensive")
+  reference <- ngeo_moran(memory, spatial_weights, "intensive")
 
   expect_equal(streamed$estimate, reference$estimate, tolerance = 1e-12)
   expect_false(streamed$materialized_values)
@@ -119,7 +119,7 @@ test_that("streaming Moran matches the in-memory statistic", {
 test_that("resource budgets reject work before execution", {
   fixture <- execution_fixture()
   expect_error(
-    ngeo_change_support(
+    aggregate_to(
       fixture$x,
       fixture$target,
       fixture$map,
@@ -135,15 +135,15 @@ test_that("randomized sparse support results preserve intensive values", {
     n <- sample(12:30, 1L)
     target_n <- sample(3:6, 1L)
     values <- stats::rnorm(n)
-    x <- ngeo_points(
+    x <- ngeo_point(
       cbind(x = seq_len(n), y = 0),
       values = cbind(signal = values),
-      measures = ngeo_measure(spatial_semantics = "intensive")
+      measures = ngeo_measure(support_behavior = "intensive")
     )
-    target <- ngeo_regions(
+    target <- ngeo_parcellation(
       data.frame(region_id = paste0("r", seq_len(target_n))),
       support_size = rep(NA_real_, target_n),
-      space = x$domain$space
+      coordinate_space = x$base$coordinate_space
     )
     membership <- sample(seq_len(target_n), n, replace = TRUE)
     source_support <- stats::runif(n, 0.5, 2)
@@ -158,7 +158,7 @@ test_that("randomized sparse support results preserve intensive values", {
       ),
       source_support = source_support
     )
-    result <- ngeo_change_support(x, target, map)
+    result <- aggregate_to(x, target, map)
     expected <- vapply(
       seq_len(target_n),
       function(region) {

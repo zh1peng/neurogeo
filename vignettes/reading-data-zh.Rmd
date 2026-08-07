@@ -49,7 +49,7 @@ freesurfer <- read_ngeo_freesurfer(
 ```
 
 `read_ngeo()` 可以根据标准后缀分派。MGH/MGZ 的用途可能不明确，此时应使用
-格式专用读取器并显式声明 domain。
+格式专用读取器并显式声明 base。
 
 ## 读入后的检查
 
@@ -57,14 +57,14 @@ freesurfer <- read_ngeo_freesurfer(
 
 1. `ngeo_validate(x, "strict")` 是否通过；
 2. 元素数与 values 行数是否一致；
-3. space、affine 或 surface structure 是否符合预期；
+3. coordinate_space、affine 或 surface structure 是否符合预期；
 4. 文件没有编码的 measurement semantics 是否已由分析者补充。
 
 ```{r workflow, eval=FALSE}
 ngeo_validate(surface, "strict")
-surface$measures$spatial_semantics <- "intensive"
-surface$measures$units <- "mm"
-w <- ngeo_weights(surface, method = "mesh_contiguity", style = "W")
+surface$measures$support_behavior <- "intensive"
+surface$measures$unit <- "mm"
+w <- ngeo_spatial_weights(surface, method = "mesh_contiguity", style = "W")
 ngeo_moran(surface, w, "thickness", permutations = 999, seed = 2026)
 ```
 

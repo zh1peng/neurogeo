@@ -14,7 +14,7 @@ library(neurogeo)
 
 ## 基础背景
 
-互操作不仅要求双方能读取同一种文件，还要求双方对 element order、space、
+互操作不仅要求双方能读取同一种文件，还要求双方对 element order、coordinate_space、
 measurement semantics 和完整性有相同解释。标准格式解决编码问题；validator、
 metadata 和 hash 解决语义及身份问题。
 
@@ -38,7 +38,7 @@ ngeo_bids_parse_name(name)
 
 ## 稀疏 support map
 
-support operator 适合使用 Matrix Market 保存，JSON sidecar 记录 domain、
+support operator 适合使用 Matrix Market 保存，JSON sidecar 记录 base、
 语义与完整逻辑 hash。大矩阵可以分块，但分块不能改变逻辑对象。
 
 ```{r eval=FALSE}

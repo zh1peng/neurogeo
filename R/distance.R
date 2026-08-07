@@ -1,13 +1,13 @@
-.ngeo_metric_name <- function(metric) {
-  if (!is.null(metric) &&
-      (!is.character(metric) || length(metric) != 1L || is.na(metric))) {
+.ngeo_metric_name <- function(distance_method) {
+  if (!is.null(distance_method) &&
+      (!is.character(distance_method) || length(distance_method) != 1L || is.na(distance_method))) {
     .ngeo_abort(
-      "`metric` must be one declared metric name.",
+      "`distance_method` must be one declared distance_method name.",
       "ngeo_error_metric"
     )
   }
   match.arg(
-    metric,
+    distance_method,
     c(
       "euclidean", "world_euclidean",
       "edge_geodesic", "hops", "region_centroid"
@@ -22,29 +22,29 @@
 }
 
 .ngeo_element_coordinates <- function(x) {
-  type <- x$domain$type
+  type <- x$base$type
   coordinates <- switch(
     type,
-    surface = x$domain$coordinates[[x$domain$active_coordinates]],
-    points = x$domain$coordinates,
+    surface = x$base$geometry$coordinates[[x$base$geometry$active_coordinates]],
+    point = x$base$geometry$coordinates,
     volume = .ngeo_world_coordinates(
-      x$domain$source_voxel_index,
-      x$domain$affine
+      x$base$geometry$source_voxel_index,
+      x$base$geometry$affine
     ),
-    regions = x$domain$centroid,
-    grayordinates = {
+    parcellation = x$base$geometry$centroid,
+    grayordinate = {
       result <- matrix(
         NA_real_,
-        nrow = nrow(x$domain$elements),
+        nrow = nrow(x$base$elements),
         ncol = 3L
       )
-      for (component in x$domain$components) {
+      for (component in x$base$geometry$components) {
         if (identical(component$kind, "surface")) {
           if (!inherits(component$geometry, "ngeo_surface")) {
             next
           }
-          full <- component$geometry$domain$coordinates[[
-            component$geometry$domain$active_coordinates
+          full <- component$geometry$base$geometry$coordinates[[
+            component$geometry$base$geometry$active_coordinates
           ]]
           if (ncol(full) == 2L) {
             full <- cbind(full, 0)
@@ -63,7 +63,7 @@
   )
   if (is.null(coordinates)) {
     .ngeo_abort(
-      sprintf("Domain `%s` has no coordinates for this metric.", type),
+      sprintf("Domain `%s` has no coordinates for this distance_method.", type),
       "ngeo_error_capability"
     )
   }
@@ -89,11 +89,11 @@
   }
   difference <- coordinates[entries$i, , drop = FALSE] -
     coordinates[entries$j, , drop = FALSE]
-  weights <- sqrt(rowSums(difference^2))
+  spatial_weights <- sqrt(rowSums(difference^2))
   .ngeo_sparse_edges(
     nrow(adjacency),
     cbind(entries$i, entries$j),
-    weights
+    spatial_weights
   )
 }
 
@@ -105,7 +105,7 @@
   n <- nrow(adjacency)
   entries <- Matrix::summary(edge_weights)
   neighbors <- split(entries$j, factor(entries$i, levels = seq_len(n)))
-  weights <- split(entries$x, factor(entries$i, levels = seq_len(n)))
+  spatial_weights <- split(entries$x, factor(entries$i, levels = seq_len(n)))
 
   distance <- rep.int(Inf, n)
   visited <- rep.int(FALSE, n)
@@ -184,7 +184,7 @@
     }
 
     vertex_neighbors <- neighbors[[vertex]]
-    vertex_weights <- weights[[vertex]]
+    vertex_weights <- spatial_weights[[vertex]]
     for (i in seq_along(vertex_neighbors)) {
       neighbor <- vertex_neighbors[[i]]
       candidate <- current_distance + vertex_weights[[i]]
@@ -201,7 +201,7 @@
 
 .ngeo_distance_selection <- function(x, selection, default_all = FALSE) {
   if (is.null(selection) && isTRUE(default_all)) {
-    return(seq_len(nrow(x$domain$elements)))
+    return(seq_len(nrow(x$base$elements)))
   }
   if (is.null(selection)) {
     .ngeo_abort(
@@ -217,7 +217,7 @@
 #' @param x An `ngeo` object.
 #' @param from Source positions or stable element IDs.
 #' @param to Target positions or IDs. `NULL` means all elements.
-#' @param metric A metric name; `NULL` selects the domain-specific default.
+#' @param distance_method A distance_method name; `NULL` selects the base-specific default.
 #' @param max_distance Distances beyond this limit remain infinite.
 #' @param connectivity Voxel connectivity for graph metrics.
 #'
@@ -226,19 +226,19 @@
 ngeo_distance <- function(x,
                           from,
                           to = NULL,
-                          metric = NULL,
+                          distance_method = NULL,
                           max_distance = Inf,
                           connectivity = 6L) {
   ngeo_validate(x, "basic")
-  metric <- metric %||% switch(
-    x$domain$type,
+  distance_method <- distance_method %||% switch(
+    x$base$type,
     surface = "edge_geodesic",
     volume = "world_euclidean",
-    points = "euclidean",
-    regions = "region_centroid",
-    grayordinates = "edge_geodesic"
+    point = "euclidean",
+    parcellation = "region_centroid",
+    grayordinate = "edge_geodesic"
   )
-  metric <- .ngeo_metric_name(metric)
+  distance_method <- .ngeo_metric_name(distance_method)
   from <- .ngeo_distance_selection(x, from)
   to <- .ngeo_distance_selection(x, to, default_all = TRUE)
   pair_count <- length(from) * length(to)
@@ -261,13 +261,13 @@ ngeo_distance <- function(x,
     )
   }
 
-  result <- if (metric %in% c(
+  result <- if (distance_method %in% c(
     "euclidean", "world_euclidean", "region_centroid"
   )) {
     coordinates <- .ngeo_element_coordinates(x)
     if (anyNA(coordinates[c(from, to), , drop = FALSE])) {
       .ngeo_abort(
-        "Requested elements lack metric coordinates.",
+        "Requested elements lack distance_method coordinates.",
         "ngeo_error_capability"
       )
     }
@@ -285,7 +285,7 @@ ngeo_distance <- function(x,
     output
   } else {
     adjacency <- ngeo_adjacency(x, connectivity = connectivity)
-    weights <- if (identical(metric, "hops")) {
+    spatial_weights <- if (identical(distance_method, "hops")) {
       adjacency
     } else {
       .ngeo_edge_weight_matrix(x, adjacency)
@@ -294,7 +294,7 @@ ngeo_distance <- function(x,
     for (i in seq_along(from)) {
       output[i, ] <- .ngeo_dijkstra_one(
         adjacency,
-        weights,
+        spatial_weights,
         from[[i]],
         to,
         max_distance
@@ -303,7 +303,7 @@ ngeo_distance <- function(x,
     output
   }
 
-  rownames(result) <- x$domain$elements$element_id[from]
-  colnames(result) <- x$domain$elements$element_id[to]
+  rownames(result) <- x$base$elements$element_id[from]
+  colnames(result) <- x$base$elements$element_id[to]
   result
 }

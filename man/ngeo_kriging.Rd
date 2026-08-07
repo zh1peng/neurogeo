@@ -12,7 +12,7 @@ ngeo_kriging(
   predictors = character(),
   target_predictors = NULL,
   neighbors = 50L,
-  metric = NULL
+  distance_method = NULL
 )
 }
 \arguments{
@@ -24,13 +24,13 @@ ngeo_kriging(
 
 \item{targets}{Target element selection or coordinate matrix.}
 
-\item{predictors}{Optional trend predictor maps for universal kriging.}
+\item{predictors}{Optional trend predictor layers for universal kriging.}
 
 \item{target_predictors}{Predictor matrix for external target coordinates.}
 
 \item{neighbors}{Maximum local observations.}
 
-\item{metric}{Declared metric; current prediction coordinates must be
+\item{distance_method}{Declared distance_method; current prediction coordinates must be
 Euclidean-eligible.}
 }
 \value{
@@ -42,12 +42,12 @@ Bounded local ordinary or universal kriging
 \examples{
 coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
 signal <- sin(coordinates[, 1] / 2) + cos(coordinates[, 2] / 2)
-points <- ngeo_points(coordinates, values = cbind(signal = signal))
+point <- ngeo_point(coordinates, values = cbind(signal = signal))
 fit <- ngeo_fit_variogram(
-  points, "signal", breaks = c(0, 1.1, 2.1, 3.1, 4.5, 6)
+  point, "signal", breaks = c(0, 1.1, 2.1, 3.1, 4.5, 6)
 )
 ngeo_kriging(
-  points, "signal", fit,
+  point, "signal", fit,
   targets = matrix(
     c(1.5, 1.5, 0, 2.5, 2.5, 0),
     ncol = 3, byrow = TRUE

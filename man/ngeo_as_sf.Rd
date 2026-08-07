@@ -2,7 +2,7 @@
 % Please edit documentation in R/chart-sf.R
 \name{ngeo_as_sf}
 \alias{ngeo_as_sf}
-\title{Export an NGCS domain to simple features}
+\title{Export an NGCS base to simple features}
 \usage{
 ngeo_as_sf(
   x,
@@ -13,7 +13,7 @@ ngeo_as_sf(
 )
 }
 \arguments{
-\item{x}{An `ngeo_surface`, `ngeo_points`, or `ngeo_regions`.}
+\item{x}{An `ngeo_surface`, `ngeo_point`, or `ngeo_parcellation`.}
 
 \item{feature}{Elements/vertices or surface faces.}
 

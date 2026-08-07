@@ -2,13 +2,13 @@
 % Please edit documentation in R/spatial-models.R
 \name{ngeo_spatial_regression}
 \alias{ngeo_spatial_regression}
-\title{Fit OLS, SLX, SAR, or SEM on one aligned domain}
+\title{Fit OLS, SLX, SAR, or SEM on one aligned base}
 \usage{
 ngeo_spatial_regression(
   x,
   response,
   predictors = character(),
-  weights = NULL,
+  spatial_weights = NULL,
   model = c("ols", "slx", "sar", "sem"),
   na_action = c("fail", "omit"),
   zero_policy = FALSE
@@ -19,9 +19,9 @@ ngeo_spatial_regression(
 
 \item{response}{One response map.}
 
-\item{predictors}{Predictor maps.}
+\item{predictors}{Predictor layers.}
 
-\item{weights}{Optional matching `ngeo_weights`.}
+\item{spatial_weights}{Optional matching `ngeo_spatial_weights`.}
 
 \item{model}{OLS, SLX, spatial lag (SAR), or spatial error (SEM).}
 
@@ -40,17 +40,17 @@ changing approximation.
 \examples{
 coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
 predictor <- coordinates[, 1] + coordinates[, 2]
-data <- ngeo_points(
+data <- ngeo_point(
   coordinates,
   values = cbind(
     response = 1 + 1.5 * predictor + rep(c(-0.2, 0, 0.2), 3),
     predictor = predictor
   )
 )
-weights <- ngeo_weights(
+spatial_weights <- ngeo_spatial_weights(
   data, method = "knn", k = 4, symmetry = "union"
 )
 ngeo_spatial_regression(
-  data, "response", "predictor", weights, model = "sar"
+  data, "response", "predictor", spatial_weights, model = "sar"
 )
 }

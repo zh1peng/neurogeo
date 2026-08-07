@@ -26,19 +26,19 @@ elapsed <- system.time({
       ncol = length(columns)
     ),
     dim = c(n, 1L),
-    map_names = "signal",
+    layer_names = "signal",
     source = "deterministic validation callback"
   )
-  source <- ngeo_points(
+  source <- ngeo_point(
     cbind(x = seq_len(n), y = 0),
     values = delayed,
-    measures = ngeo_measure(spatial_semantics = "intensive"),
-    space = ngeo_space("million-element-validation")
+    measures = ngeo_measure(support_behavior = "intensive"),
+    coordinate_space = ngeo_coordinate_space("million-element-validation")
   )
-  target <- ngeo_regions(
+  target <- ngeo_parcellation(
     data.frame(region_id = paste0("region_", seq_len(n_target))),
     support_size = rep(NA_real_, n_target),
-    space = source$domain$space
+    coordinate_space = source$base$coordinate_space
   )
   operator <- Matrix::sparseMatrix(
     i = ((seq_len(n) - 1L) %% n_target) + 1L,
@@ -52,7 +52,7 @@ elapsed <- system.time({
     operator,
     source_support = rep.int(1, n)
   )
-  changed <- ngeo_change_support(
+  changed <- aggregate_to(
     source,
     target,
     map,

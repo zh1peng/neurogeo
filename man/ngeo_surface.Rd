@@ -8,10 +8,10 @@ ngeo_surface(
   coordinates,
   faces,
   values = NULL,
-  maps = NULL,
+  layers = NULL,
   measures = NULL,
   labels = list(),
-  space = ngeo_space(kind = "surface"),
+  coordinate_space = ngeo_coordinate_space(kind = "surface"),
   active_coordinates = NULL,
   coordinate_roles = NULL,
   mask = NULL,
@@ -26,13 +26,13 @@ ngeo_surface(
 
 \item{values}{Optional vertex-aligned values.}
 
-\item{maps}{Optional map metadata.}
+\item{layers}{Optional map metadata.}
 
 \item{measures}{Optional measurement semantics.}
 
 \item{labels}{Optional label tables.}
 
-\item{space}{An `ngeo_space`.}
+\item{coordinate_space}{An `ngeo_coordinate_space`.}
 
 \item{active_coordinates}{Name of the active coordinate set.}
 
@@ -61,9 +61,9 @@ surface <- ngeo_surface(
   coordinates, faces,
   values = cbind(thickness = c(2.1, 2.3, 2.2, 2.4))
 )
-ngeo_domain_type(surface)
-ngeo_elements(surface)
-ngeo_values(surface)
+base_type(surface)
+base_elements(surface)
+values(surface)
 ngeo_vertex_area(surface)
 ngeo_validate(surface, "strict")
 }

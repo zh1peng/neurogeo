@@ -9,7 +9,7 @@ ngeo_support_variance(
   target,
   support_map,
   value_variance,
-  maps = NULL,
+  layers = NULL,
   allocation = c("error", "normalize"),
   unmapped = c("error", "drop"),
   unknown = c("error", "intensive", "extensive")
@@ -18,19 +18,19 @@ ngeo_support_variance(
 \arguments{
 \item{x}{Source `ngeo` dataset.}
 
-\item{target}{Target-domain `ngeo` template.}
+\item{target}{Target-base `ngeo` template.}
 
 \item{support_map}{Matching `ngeo_support_map`.}
 
 \item{value_variance}{Source element-by-map independent variances.}
 
-\item{maps}{Optional source map selection.}
+\item{layers}{Optional source map selection.}
 
 \item{allocation}{Normalize non-unit columns or reject them.}
 
 \item{unmapped}{Reject or explicitly drop unmapped source support.}
 
-\item{unknown}{Interpretation for maps with unknown spatial semantics.}
+\item{unknown}{Interpretation for layers with unknown spatial semantics.}
 }
 \value{
 A target element-by-map variance matrix.

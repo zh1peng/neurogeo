@@ -25,7 +25,7 @@ interval integral.}
 \item{budget}{Resource limits for complete input and one-map output.}
 }
 \value{
-One target-domain `ngeo` map.
+One target-base `ngeo` map.
 }
 \description{
 Compute a temporally support-aware contrast

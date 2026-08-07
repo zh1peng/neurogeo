@@ -5,7 +5,7 @@
       "ngeo_error_capability"
     )
   }
-  meta <- x$domain$coordinate_meta
+  meta <- x$base$geometry$coordinate_meta
   available <- meta$name[meta$role == "chart"]
   if (is.null(chart)) {
     if (length(available) != 1L) {
@@ -23,7 +23,7 @@
       "ngeo_error_chart"
     )
   }
-  coordinates <- x$domain$coordinates[[chart]]
+  coordinates <- x$base$geometry$coordinates[[chart]]
   if (ncol(coordinates) != 2L) {
     .ngeo_abort(
       "A computational chart must have exactly two coordinates.",
@@ -33,7 +33,7 @@
   list(
     name = chart,
     coordinates = coordinates,
-    metadata = x$domain$charts[[chart]]
+    metadata = x$base$charts[[chart]]
   )
 }
 
@@ -41,7 +41,7 @@
 #'
 #' A chart is an auxiliary coordinate set for planar display and
 #' interoperability. It never replaces anatomical coordinates, support,
-#' topology, or metric eligibility.
+#' topology, or distance_method eligibility.
 #'
 #' @param x An `ngeo_surface`.
 #' @param coordinates Finite vertex-aligned two-dimensional coordinates.
@@ -49,7 +49,7 @@
 #' @param distortion Optional aligned or global distortion metadata.
 #' @param source Optional source description.
 #'
-#' @return A new `ngeo_surface` with the chart and provenance appended.
+#' @return A new `ngeo_surface` with the chart and history appended.
 #' @export
 ngeo_set_chart <- function(x,
                            coordinates,
@@ -64,7 +64,7 @@ ngeo_set_chart <- function(x,
   }
   ngeo_validate(x, "basic")
   .ngeo_assert_scalar_character(name, "name")
-  if (name %in% names(x$domain$coordinates)) {
+  if (name %in% names(x$base$geometry$coordinates)) {
     .ngeo_abort(
       sprintf("Coordinate set `%s` already exists.", name),
       "ngeo_error_chart"
@@ -72,7 +72,7 @@ ngeo_set_chart <- function(x,
   }
   if (!is.matrix(coordinates) || !is.numeric(coordinates) ||
       ncol(coordinates) != 2L ||
-      nrow(coordinates) != nrow(x$domain$elements) ||
+      nrow(coordinates) != nrow(x$base$elements) ||
       anyNA(coordinates) || any(!is.finite(coordinates))) {
     .ngeo_abort(
       "`coordinates` must be a finite n_vertex by 2 numeric matrix.",
@@ -101,33 +101,33 @@ ngeo_set_chart <- function(x,
     .ngeo_assert_scalar_character(source, "source")
   }
 
-  original_hash <- ngeo_domain_hash(x)
+  original_hash <- base_hash(x)
   result <- x
-  result$domain$coordinates[[name]] <- coordinates
-  result$domain$coordinate_meta <- rbind(
-    result$domain$coordinate_meta,
+  result$base$geometry$coordinates[[name]] <- coordinates
+  result$base$geometry$coordinate_meta <- rbind(
+    result$base$geometry$coordinate_meta,
     data.frame(
       name = name,
       dimension = 2L,
       role = "chart",
-      units = result$domain$space$units,
+      unit = result$base$coordinate_space$unit,
       metric_eligible = FALSE,
       stringsAsFactors = FALSE
     )
   )
-  result$domain$charts <- result$domain$charts %||% list()
-  result$domain$charts[[name]] <- list(
-    source_domain_hash = original_hash,
+  result$base$charts <- result$base$charts %||% list()
+  result$base$charts[[name]] <- list(
+    source_base_hash = original_hash,
     source = source,
     distortion = distortion
   )
-  result$provenance$operations <- c(
-    result$provenance$operations,
+  result$history$operations <- c(
+    result$history$operations,
     list(.ngeo_operation(
       "ngeo_set_chart",
       list(
         name = name,
-        source_domain_hash = original_hash,
+        source_base_hash = original_hash,
         source = source,
         distortion_recorded = !is.null(distortion)
       )
@@ -149,20 +149,20 @@ ngeo_chart_distortion <- function(x, chart = NULL) {
 }
 
 .ngeo_sf_values <- function(x, include_values) {
-  data <- x$domain$elements
+  data <- x$base$elements
   if (isTRUE(include_values) && !is.null(x$values)) {
     data <- cbind(data, as.data.frame(as.matrix(x$values)))
   }
   data
 }
 
-#' Export an NGCS domain to simple features
+#' Export an NGCS base to simple features
 #'
 #' This is an explicit interoperability copy. The returned object is not the
 #' core geometry representation and must not be used to replace anatomical
 #' support or topology.
 #'
-#' @param x An `ngeo_surface`, `ngeo_points`, or `ngeo_regions`.
+#' @param x An `ngeo_surface`, `ngeo_point`, or `ngeo_parcellation`.
 #' @param feature Elements/vertices or surface faces.
 #' @param chart Surface chart name.
 #' @param include_values Include aligned values as ordinary columns.
@@ -194,13 +194,13 @@ ngeo_as_sf <- function(x,
   coordinates <- if (inherits(x, "ngeo_surface")) {
     chart_info <- .ngeo_chart_coordinates(x, chart)
     chart_info$coordinates
-  } else if (inherits(x, "ngeo_points")) {
-    x$domain$coordinates
-  } else if (inherits(x, "ngeo_regions")) {
-    x$domain$centroid
+  } else if (inherits(x, "ngeo_point")) {
+    x$base$geometry$coordinates
+  } else if (inherits(x, "ngeo_parcellation")) {
+    x$base$geometry$centroid
   } else {
     .ngeo_abort(
-      "`ngeo_as_sf()` supports surfaces with charts, points, and regions with centroids.",
+      "`ngeo_as_sf()` supports surfaces with charts, point, and parcellation with centroids.",
       "ngeo_error_capability"
     )
   }
@@ -219,7 +219,7 @@ ngeo_as_sf <- function(x,
         "ngeo_error_capability"
       )
     }
-    faces <- x$domain$faces
+    faces <- x$base$geometry$faces
     if (nrow(faces) > max_features) {
       .ngeo_abort(
         "Surface face export exceeds `max_features`.",
@@ -247,7 +247,7 @@ ngeo_as_sf <- function(x,
     data <- .ngeo_sf_values(x, include_values)
   }
   result <- sf::st_sf(data, geometry = geometry)
-  attr(result, "ngeo_domain_hash") <- ngeo_domain_hash(x)
+  attr(result, "base_hash") <- base_hash(x)
   attr(result, "ngeo_feature") <- feature
   attr(result, "ngeo_chart") <- chart_info$name %||% NULL
   attr(result, "ngeo_chart_metadata") <- chart_info$metadata %||% NULL

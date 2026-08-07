@@ -6,7 +6,7 @@
 \usage{
 ngeo_correlogram(
   x,
-  weights,
+  spatial_weights,
   map = 1L,
   lags = 1:10,
   permutations = 0L,
@@ -21,7 +21,7 @@ ngeo_correlogram(
 \arguments{
 \item{x}{An `ngeo` dataset.}
 
-\item{weights}{Matching `ngeo_weights`.}
+\item{spatial_weights}{Matching `ngeo_spatial_weights`.}
 
 \item{map}{One map name, ID, or index.}
 

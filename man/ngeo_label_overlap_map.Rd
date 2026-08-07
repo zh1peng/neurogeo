@@ -17,7 +17,7 @@ ngeo_label_overlap_map(
 
 \item{labels}{One hard label per source element.}
 
-\item{target}{Optional regions target. When omitted, a target template is
+\item{target}{Optional parcellation target. When omitted, a target template is
 constructed and stored in `map$target`.}
 
 \item{exclude}{Labels to leave unmapped.}

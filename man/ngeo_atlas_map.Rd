@@ -17,7 +17,7 @@ ngeo_atlas_map(
 
 \item{labels}{One hard label per source element.}
 
-\item{target}{Optional regions target. When omitted, a target template is
+\item{target}{Optional parcellation target. When omitted, a target template is
 constructed and stored in `map$target`.}
 
 \item{exclude}{Labels to leave unmapped.}
@@ -31,15 +31,15 @@ A sparse crisp `ngeo_support_map`.
 Build a crisp support map from aligned atlas labels
 }
 \examples{
-source <- ngeo_points(
+source <- ngeo_point(
   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
   values = cbind(signal = c(1, 2, 4, 5)),
-  measures = ngeo_measure(spatial_semantics = "intensive")
+  measures = ngeo_measure(support_behavior = "intensive")
 )
 atlas <- ngeo_atlas_map(
   source, c("A", "A", "B", "B"), source_support = rep(1, 4)
 )
 ngeo_support_diagnostics(atlas)
-regional <- ngeo_change_support(source, atlas$target, atlas)
-ngeo_values(regional)
+regional <- aggregate_to(source, atlas$target, atlas)
+values(regional)
 }

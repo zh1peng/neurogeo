@@ -7,7 +7,7 @@ output <- if (length(args)) args[[1L]] else
 if (!requireNamespace("jsonlite", quietly = TRUE)) {
   stop("Space graph validation requires jsonlite.")
 }
-if (!exists("ngeo_space_registry", mode = "function")) {
+if (!exists("ngeo_coordinate_space_registry", mode = "function")) {
   if (requireNamespace("pkgload", quietly = TRUE) &&
       file.exists("DESCRIPTION")) {
     pkgload::load_all(export_all = FALSE, helpers = FALSE)
@@ -16,43 +16,43 @@ if (!exists("ngeo_space_registry", mode = "function")) {
   }
 }
 
-space_a <- ngeo_space(
+space_a <- ngeo_coordinate_space(
   "shared-name",
   kind = "surface",
-  units = "mm",
+  unit = "mm",
   structure = "CORTEX_LEFT",
   template = "template-a",
   density = "32k",
   source_metadata = list(dimension = 3L)
 )
-space_b <- ngeo_space(
+space_b <- ngeo_coordinate_space(
   "intermediate",
   kind = "surface",
-  units = "mm",
+  unit = "mm",
   structure = "CORTEX_LEFT",
   template = "template-b",
   density = "32k",
   source_metadata = list(dimension = 3L)
 )
-space_c <- ngeo_space(
+space_c <- ngeo_coordinate_space(
   "standard",
   kind = "surface",
-  units = "mm",
+  unit = "mm",
   structure = "CORTEX_LEFT",
   template = "template-c",
   density = "32k",
   source_metadata = list(dimension = 3L)
 )
-space_d <- ngeo_space(
+space_d <- ngeo_coordinate_space(
   "alternate",
   kind = "surface",
-  units = "mm",
+  unit = "mm",
   structure = "CORTEX_LEFT",
   template = "template-d",
   density = "32k",
   source_metadata = list(dimension = 3L)
 )
-registry <- ngeo_space_registry(
+registry <- ngeo_coordinate_space_registry(
   list(space_a, space_b, space_c, space_d),
   aliases = c(native = "shared-name", reference = "standard")
 )
@@ -82,24 +82,24 @@ direct_matrix <- second_matrix %*% first_matrix
 composition_error <- max(
   abs(path$composed$parameters$matrix - direct_matrix)
 )
-provenance <- ngeo_transform_path_provenance(path)
+history <- ngeo_transform_path_history(path)
 if (composition_error > 1e-12 ||
-    !identical(provenance$edge_hashes, path$edge_hashes) ||
-    length(provenance$edge_hashes) != 2L) {
-  stop("Direct affine path or provenance validation failed.")
+    !identical(history$edge_hashes, path$edge_hashes) ||
+    length(history$edge_hashes) != 2L) {
+  stop("Direct affine path or history validation failed.")
 }
 
-points <- ngeo_points(
+points <- ngeo_point(
   cbind(x = c(0, 1), y = c(0, 1), z = c(0, 1)),
   values = cbind(signal = c(1, 2)),
-  space = space_a
+  coordinate_space = space_a
 )
 changed <- ngeo_apply_transform_path(points, path, authorize = TRUE)
-homogeneous <- cbind(points$domain$coordinates, 1) %*% t(direct_matrix)
+homogeneous <- cbind(points$base$geometry$coordinates, 1) %*% t(direct_matrix)
 coordinate_reference <- homogeneous[, 1:3, drop = FALSE] /
   homogeneous[, 4L]
 application_error <- max(
-  abs(changed$domain$coordinates - coordinate_reference)
+  abs(changed$base$geometry$coordinates - coordinate_reference)
 )
 if (application_error > 1e-12) {
   stop("Authorized path application differs from direct affine reference.")
@@ -147,16 +147,16 @@ if (length(cycle_diagnostics$cycle_space_hashes) != 3L) {
   stop("Directed cycle was not diagnosed.")
 }
 
-mismatch_space <- ngeo_space(
+mismatch_space <- ngeo_coordinate_space(
   "mismatch",
   kind = "surface",
-  units = "m",
+  unit = "m",
   structure = "CORTEX_RIGHT",
   template = "template-x",
   density = "164k",
   source_metadata = list(dimension = 2L)
 )
-mismatch_audit <- ngeo_space_audit(space_a, mismatch_space)
+mismatch_audit <- ngeo_coordinate_space_audit(space_a, mismatch_space)
 required_mismatch <- c("units", "dimension", "structure")
 if (attr(mismatch_audit, "compatible") ||
     !all(required_mismatch %in%
@@ -193,13 +193,13 @@ mutation_rejected <- inherits(tryCatch(
   error = identity
 ), "ngeo_error_transform_graph_mutation")
 
-same_name_conflict <- ngeo_space(
+same_name_conflict <- ngeo_coordinate_space(
   "shared-name",
   kind = "volume",
-  units = "mm",
+  unit = "mm",
   resolution = c(2, 2, 2)
 )
-ambiguous_registry <- ngeo_space_registry(list(space_a, same_name_conflict))
+ambiguous_registry <- ngeo_coordinate_space_registry(list(space_a, same_name_conflict))
 name_ambiguity_rejected <- inherits(tryCatch(
   {
     ngeo_resolve_space(ambiguous_registry, "shared-name")
@@ -221,9 +221,9 @@ result <- list(
   direct_reference = list(
     affine_composition_maximum_error = composition_error,
     affine_application_maximum_error = application_error,
-    traversed_edges = provenance$edge_ids,
-    edge_hashes = provenance$edge_hashes,
-    path_hash = provenance$path_hash
+    traversed_edges = history$edge_ids,
+    edge_hashes = history$edge_hashes,
+    path_hash = history$path_hash
   ),
   graph_diagnostics = list(
     cycle_spaces = length(cycle_diagnostics$cycle_space_hashes),

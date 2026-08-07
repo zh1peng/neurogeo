@@ -3,8 +3,8 @@
 #' This constructor records an existing transform. It does not estimate
 #' registration.
 #'
-#' @param source_space Source `ngeo_space`.
-#' @param target_space Target `ngeo_space`.
+#' @param source_space Source `ngeo_coordinate_space`.
+#' @param target_space Target `ngeo_coordinate_space`.
 #' @param type Transform type.
 #' @param direction Transform direction.
 #' @param method Method or software identifier.
@@ -24,11 +24,11 @@ ngeo_transform <- function(source_space,
                            jacobian_available = FALSE,
                            source = NULL,
                            parameters = list()) {
-  if (!inherits(source_space, "ngeo_space") ||
-      !inherits(target_space, "ngeo_space")) {
+  if (!inherits(source_space, "ngeo_coordinate_space") ||
+      !inherits(target_space, "ngeo_coordinate_space")) {
     .ngeo_abort(
-      "`source_space` and `target_space` must be `ngeo_space` objects.",
-      "ngeo_error_space"
+      "`source_space` and `target_space` must be `ngeo_coordinate_space` objects.",
+      "ngeo_error_coordinate_space"
     )
   }
   .ngeo_assert_scalar_character(type, "type")
@@ -86,17 +86,17 @@ ngeo_transform <- function(source_space,
   )
 }
 
-.ngeo_space_signature <- function(space) {
-  space[c(
-    "space_id", "kind", "units", "structure",
+.ngeo_coordinate_space_signature <- function(coordinate_space) {
+  coordinate_space[c(
+    "space_id", "kind", "unit", "structure",
     "template", "density", "resolution"
   )]
 }
 
-.ngeo_spaces_match <- function(left, right) {
+.ngeo_coordinate_spaces_match <- function(left, right) {
   identical(
-    .ngeo_space_signature(left),
-    .ngeo_space_signature(right)
+    .ngeo_coordinate_space_signature(left),
+    .ngeo_coordinate_space_signature(right)
   )
 }
 
@@ -161,76 +161,76 @@ ngeo_validate_transform <- function(transform) {
   if (dimension == 2L) result[, 1:2, drop = FALSE] else result
 }
 
-.ngeo_apply_affine_domain <- function(domain, matrix, target_space) {
+.ngeo_apply_affine_domain <- function(base, matrix, target_space) {
   switch(
-    domain$type,
-    points = {
-      domain$coordinates <- .ngeo_affine_coordinates(
-        domain$coordinates,
+    base$type,
+    point = {
+      base$geometry$coordinates <- .ngeo_affine_coordinates(
+        base$geometry$coordinates,
         matrix
       )
     },
     surface = {
-      selected <- domain$coordinate_meta$name[
-        domain$coordinate_meta$metric_eligible
+      selected <- base$geometry$coordinate_meta$name[
+        base$geometry$coordinate_meta$metric_eligible
       ]
       if (!length(selected)) {
         .ngeo_abort(
-          "Surface transform requires metric-eligible coordinates.",
+          "Surface transform requires distance_method-eligible coordinates.",
           "ngeo_error_capability"
         )
       }
       for (name in selected) {
-        domain$coordinates[[name]] <- .ngeo_affine_coordinates(
-          domain$coordinates[[name]],
+        base$geometry$coordinates[[name]] <- .ngeo_affine_coordinates(
+          base$geometry$coordinates[[name]],
           matrix
         )
       }
     },
     volume = {
-      domain$affine <- matrix %*% domain$affine
-      if (!is.null(domain$header_transforms)) {
-        domain$header_transforms <- NULL
+      base$geometry$affine <- matrix %*% base$geometry$affine
+      if (!is.null(base$geometry$header_transforms)) {
+        base$geometry$header_transforms <- NULL
       }
     },
-    regions = {
-      if (is.null(domain$centroid)) {
+    parcellation = {
+      if (is.null(base$geometry$centroid)) {
         .ngeo_abort(
           "Region transform requires explicit centroids.",
           "ngeo_error_capability"
         )
       }
-      domain$centroid <- .ngeo_affine_coordinates(
-        domain$centroid,
+      base$geometry$centroid <- .ngeo_affine_coordinates(
+        base$geometry$centroid,
         matrix
       )
     },
-    grayordinates = {
-      for (i in seq_along(domain$components)) {
-        component <- domain$components[[i]]
+    grayordinate = {
+      for (i in seq_along(base$geometry$components)) {
+        component <- base$geometry$components[[i]]
         if (identical(component$kind, "volume")) {
           component$affine <- matrix %*% component$affine
         } else if (!is.null(component$geometry)) {
           geometry <- component$geometry
-          geometry$domain <- .ngeo_apply_affine_domain(
-            geometry$domain,
+          geometry$base <- .ngeo_apply_affine_domain(
+            geometry$base,
             matrix,
-            geometry$domain$space
+            geometry$base$coordinate_space
           )
           component$geometry <- geometry
         }
-        domain$components[[i]] <- component
+        base$geometry$components[[i]] <- component
       }
     }
   )
-  domain$space <- target_space
-  domain
+  base$coordinate_space <- target_space
+  base
 }
 
 #' Apply a known affine transform without resampling
 #'
 #' The operation changes geometry only. Element order, topology, values,
-#' maps, and measurement semantics are preserved exactly.
+#' layers, and measurement semantics are preserved exactly.
 #'
 #' @param x An `ngeo` dataset.
 #' @param transform A source-to-target affine `ngeo_transform`.
@@ -246,24 +246,24 @@ ngeo_apply_transform <- function(x, transform) {
       "ngeo_error_transform_direction"
     )
   }
-  if (!.ngeo_spaces_match(
-    x$domain$space,
+  if (!.ngeo_coordinate_spaces_match(
+    x$base$coordinate_space,
     transform$source_space
   )) {
     .ngeo_abort(
-      "Transform source space does not match the dataset space.",
-      "ngeo_error_space_mismatch"
+      "Transform source coordinate_space does not match the dataset coordinate_space.",
+      "ngeo_error_coordinate_space_mismatch"
     )
   }
   result <- x
-  source_hash <- ngeo_domain_hash(x)
-  result$domain <- .ngeo_apply_affine_domain(
-    result$domain,
+  source_hash <- base_hash(x)
+  result$base <- .ngeo_apply_affine_domain(
+    result$base,
     transform$parameters$matrix,
     transform$target_space
   )
-  result$provenance$operations <- c(
-    result$provenance$operations %||% list(),
+  result$history$operations <- c(
+    result$history$operations %||% list(),
     list(.ngeo_operation(
       "ngeo_apply_transform",
       list(
@@ -271,7 +271,7 @@ ngeo_apply_transform <- function(x, transform) {
         method = transform$method,
         source_space = transform$source_space$space_id,
         target_space = transform$target_space$space_id,
-        source_domain_hash = source_hash
+        source_base_hash = source_hash
       )
     ))
   )
@@ -296,10 +296,10 @@ ngeo_compose_transform <- function(first, second) {
       "ngeo_error_transform_direction"
     )
   }
-  if (!.ngeo_spaces_match(first$target_space, second$source_space)) {
+  if (!.ngeo_coordinate_spaces_match(first$target_space, second$source_space)) {
     .ngeo_abort(
-      "The first target space must match the second source space.",
-      "ngeo_error_space_mismatch"
+      "The first target coordinate_space must match the second source coordinate_space.",
+      "ngeo_error_coordinate_space_mismatch"
     )
   }
   ngeo_transform(

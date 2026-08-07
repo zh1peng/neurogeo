@@ -21,10 +21,10 @@ support_feature_fixture <- function(values, ids, support_hash,
   )
   structure(list(
     values = values,
-    units = data.frame(unit_id = ids, stringsAsFactors = FALSE),
+    unit = data.frame(unit_id = ids, stringsAsFactors = FALSE),
     endpoints = endpoints,
     diagnostics = list(boundary_sensitivity = boundary),
-    provenance = list(support_hash = support_hash)
+    history = list(support_hash = support_hash)
   ), class = "ngeo_subject_features")
 }
 
@@ -146,10 +146,10 @@ test_that("full-family max-T is at least as conservative as separate support", {
   combined_first <- combined$tests$p_maxT[combined$tests$support_id == "one"]
   expect_true(combined_first >= separate$tests$p_maxT)
   expect_true(nzchar(combined$diagnostics$family_hash))
-  expect_true(nzchar(combined$provenance$support_family_hash))
+  expect_true(nzchar(combined$history$support_family_hash))
 })
 
-test_that("support lists require exact units, names, and hashes", {
+test_that("support lists require exact unit, names, and hashes", {
   ids <- paste0("s", 1:8)
   values <- cbind(coupling = seq(-0.8, 0.8, length.out = 8))
   first <- support_feature_fixture(values, ids, "h1")
@@ -168,7 +168,7 @@ test_that("support lists require exact units, names, and hashes", {
   )
   missing_hash <- first
   missing_hash$endpoints$support_hash <- NA_character_
-  missing_hash$provenance$support_hash <- NULL
+  missing_hash$history$support_hash <- NULL
   expect_error(
     ngeo_group_test(
       list(a = first, b = missing_hash), design,

@@ -7,7 +7,7 @@
 ngeo_variogram(
   x,
   map = 1L,
-  metric = NULL,
+  distance_method = NULL,
   breaks = 10L,
   max_distance = Inf,
   na_action = c("fail", "omit")
@@ -18,7 +18,7 @@ ngeo_variogram(
 
 \item{map}{One map name, ID, or index.}
 
-\item{metric}{Explicit distance metric.}
+\item{distance_method}{Explicit distance distance_method.}
 
 \item{breaks}{Number of bins or a numeric vector of bin boundaries.}
 
@@ -33,9 +33,9 @@ An `ngeo_variogram` data frame.
 Empirical semivariogram
 }
 \examples{
-points <- ngeo_points(
+point <- ngeo_point(
   matrix(c(0, 0, 1, 0, 2, 0, 3, 0, 4, 0), ncol = 2, byrow = TRUE),
   values = cbind(signal = c(1, 2, 2.5, 4, 5))
 )
-ngeo_variogram(points, "signal", breaks = c(0, 1.5, 3, 5))
+ngeo_variogram(point, "signal", breaks = c(0, 1.5, 3, 5))
 }

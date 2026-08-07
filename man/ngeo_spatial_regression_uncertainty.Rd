@@ -8,7 +8,7 @@ ngeo_spatial_regression_uncertainty(
   x,
   response,
   predictors = character(),
-  weights,
+  spatial_weights,
   model = c("sar", "sem"),
   value_covariance,
   nsim = 199L,
@@ -23,9 +23,9 @@ ngeo_spatial_regression_uncertainty(
 
 \item{response}{One response map.}
 
-\item{predictors}{Predictor maps.}
+\item{predictors}{Predictor layers.}
 
-\item{weights}{Optional matching `ngeo_weights`.}
+\item{spatial_weights}{Optional matching `ngeo_spatial_weights`.}
 
 \item{model}{OLS, SLX, spatial lag (SAR), or spatial error (SEM).}
 

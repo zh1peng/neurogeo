@@ -12,7 +12,7 @@ ngeo_build_resampling_map(plan, authorize = FALSE)
 \item{authorize}{Must be explicitly `TRUE`.}
 }
 \value{
-An `ngeo_support_map` carrying joint path/plan provenance.
+An `ngeo_support_map` carrying joint path/plan history.
 }
 \description{
 Build an authorized transform-aware sparse support map

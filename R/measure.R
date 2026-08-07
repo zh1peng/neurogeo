@@ -1,41 +1,41 @@
 #' Construct measurement semantics
 #'
 #' @param value_type Value representation.
-#' @param spatial_semantics One of intensive, extensive, count, categorical,
+#' @param support_behavior One of intensive, extensive, count, categorical,
 #'   or unknown.
-#' @param units Measurement units.
+#' @param unit Measurement unit.
 #' @param missing_policy Missing-value policy.
-#' @param default_aggregation Default aggregation rule.
+#' @param aggregation Default aggregation rule.
 #'
 #' @return A one-row measurement metadata data frame.
 #' @examples
 #' ngeo_measure(
 #'   value_type = "continuous",
-#'   spatial_semantics = "intensive",
-#'   units = "mm"
+#'   support_behavior = "intensive",
+#'   unit = "mm"
 #' )
 #' ngeo_measure(
 #'   value_type = "integer",
-#'   spatial_semantics = "count",
-#'   units = "events"
+#'   support_behavior = "count",
+#'   unit = "events"
 #' )
 #' @export
 ngeo_measure <- function(value_type = "continuous",
-                         spatial_semantics = c(
+                         support_behavior = c(
                            "unknown", "intensive", "extensive",
                            "count", "categorical"
                          ),
-                         units = "unknown",
+                         unit = "unknown",
                          missing_policy = c("preserve", "exclude"),
-                         default_aggregation = NULL) {
-  spatial_semantics <- match.arg(spatial_semantics)
+                         aggregation = NULL) {
+  support_behavior <- match.arg(support_behavior)
   missing_policy <- match.arg(missing_policy)
   .ngeo_assert_scalar_character(value_type, "value_type")
-  .ngeo_assert_scalar_character(units, "units")
+  .ngeo_assert_scalar_character(unit, "unit")
 
-  if (is.null(default_aggregation)) {
-    default_aggregation <- switch(
-      spatial_semantics,
+  if (is.null(aggregation)) {
+    aggregation <- switch(
+      support_behavior,
       intensive = "support_weighted_mean",
       extensive = "sum",
       count = "sum",
@@ -44,16 +44,16 @@ ngeo_measure <- function(value_type = "continuous",
     )
   }
   .ngeo_assert_scalar_character(
-    default_aggregation,
-    "default_aggregation"
+    aggregation,
+    "aggregation"
   )
 
   data.frame(
     value_type = value_type,
-    spatial_semantics = spatial_semantics,
-    units = units,
+    support_behavior = support_behavior,
+    unit = unit,
     missing_policy = missing_policy,
-    default_aggregation = default_aggregation,
+    aggregation = aggregation,
     stringsAsFactors = FALSE
   )
 }

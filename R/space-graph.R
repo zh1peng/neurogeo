@@ -1,42 +1,42 @@
-# Coordinate-space registry and explicit transform graph.
-#' Compute the stable identity of a coordinate space
+# Coordinate-coordinate_space registry and explicit transform graph.
+#' Compute the stable identity of a coordinate coordinate_space
 #'
-#' @param x An `ngeo_space`.
+#' @param x An `ngeo_coordinate_space`.
 #' @return A SHA-256 identity.
 #' @export
-ngeo_space_hash <- function(x) {
-  if (!inherits(x, "ngeo_space")) {
-    .ngeo_abort("`x` must be an `ngeo_space`.", "ngeo_error_space")
+ngeo_coordinate_space_hash <- function(x) {
+  if (!inherits(x, "ngeo_coordinate_space")) {
+    .ngeo_abort("`x` must be an `ngeo_coordinate_space`.", "ngeo_error_coordinate_space")
   }
-  digest::digest(.ngeo_space_signature(x), algo = "sha256")
+  digest::digest(.ngeo_coordinate_space_signature(x), algo = "sha256")
 }
 
 #' Audit two coordinate-space descriptions
 #'
-#' @param left,right `ngeo_space` objects.
-#' @return An `ngeo_space_audit` data frame.
+#' @param left,right `ngeo_coordinate_space` objects.
+#' @return An `ngeo_coordinate_space_audit` data frame.
 #' @export
-ngeo_space_audit <- function(left, right) {
-  if (!inherits(left, "ngeo_space") || !inherits(right, "ngeo_space")) {
-    .ngeo_abort("Space audit requires two `ngeo_space` objects.",
-                "ngeo_error_space")
+ngeo_coordinate_space_audit <- function(left, right) {
+  if (!inherits(left, "ngeo_coordinate_space") || !inherits(right, "ngeo_coordinate_space")) {
+    .ngeo_abort("Space audit requires two `ngeo_coordinate_space` objects.",
+                "ngeo_error_coordinate_space")
   }
   fields <- c(
-    "space_id", "kind", "units", "dimension", "structure",
+    "space_id", "kind", "unit", "dimension", "structure",
     "template", "density", "resolution"
   )
-  dimension <- function(space) {
-    declared <- space$source_metadata$dimension
+  dimension <- function(coordinate_space) {
+    declared <- coordinate_space$source_metadata$dimension
     if (!is.null(declared)) return(declared)
-    if (space$kind %in% c("surface", "volume", "hybrid")) 3L else NULL
+    if (coordinate_space$kind %in% c("surface", "volume", "hybrid")) 3L else NULL
   }
   left_value <- c(
-    left[c("space_id", "kind", "units")],
+    left[c("space_id", "kind", "unit")],
     list(dimension = dimension(left)),
     left[c("structure", "template", "density", "resolution")]
   )
   right_value <- c(
-    right[c("space_id", "kind", "units")],
+    right[c("space_id", "kind", "unit")],
     list(dimension = dimension(right)),
     right[c("structure", "template", "density", "resolution")]
   )
@@ -48,7 +48,7 @@ ngeo_space_audit <- function(left, right) {
     identical(left_value[[field]], right_value[[field]])
   }, logical(1))
   severity <- ifelse(
-    fields %in% c("kind", "units", "dimension", "structure") & !equivalent,
+    fields %in% c("kind", "unit", "dimension", "structure") & !equivalent,
     "incompatible",
     ifelse(!equivalent, "different", "match")
   )
@@ -62,16 +62,16 @@ ngeo_space_audit <- function(left, right) {
   )
   attr(result, "equivalent") <- all(equivalent)
   attr(result, "compatible") <- !any(severity == "incompatible")
-  attr(result, "left_hash") <- ngeo_space_hash(left)
-  attr(result, "right_hash") <- ngeo_space_hash(right)
-  class(result) <- c("ngeo_space_audit", "data.frame")
+  attr(result, "left_hash") <- ngeo_coordinate_space_hash(left)
+  attr(result, "right_hash") <- ngeo_coordinate_space_hash(right)
+  class(result) <- c("ngeo_coordinate_space_audit", "data.frame")
   result
 }
 
 .ngeo_registry_hash <- function(x) {
   digest::digest(
     list(
-      spaces = vapply(x$spaces, ngeo_space_hash, character(1)),
+      spaces = vapply(x$spaces, ngeo_coordinate_space_hash, character(1)),
       aliases = x$aliases
     ),
     algo = "sha256"
@@ -80,25 +80,25 @@ ngeo_space_audit <- function(left, right) {
 
 #' Construct a stable coordinate-space registry
 #'
-#' @param spaces A list of `ngeo_space` objects.
+#' @param spaces A list of `ngeo_coordinate_space` objects.
 #' @param aliases Optional named character aliases targeting a unique
-#'   `space_id` or exact space hash.
-#' @return An `ngeo_space_registry`.
+#'   `space_id` or exact coordinate_space hash.
+#' @return An `ngeo_coordinate_space_registry`.
 #' @export
-ngeo_space_registry <- function(spaces = list(), aliases = character()) {
-  if (inherits(spaces, "ngeo_space")) spaces <- list(spaces)
+ngeo_coordinate_space_registry <- function(spaces = list(), aliases = character()) {
+  if (inherits(spaces, "ngeo_coordinate_space")) spaces <- list(spaces)
   if (!is.list(spaces) ||
-      !all(vapply(spaces, inherits, logical(1), what = "ngeo_space"))) {
-    .ngeo_abort("`spaces` must contain only `ngeo_space` objects.",
-                "ngeo_error_space")
+      !all(vapply(spaces, inherits, logical(1), what = "ngeo_coordinate_space"))) {
+    .ngeo_abort("`spaces` must contain only `ngeo_coordinate_space` objects.",
+                "ngeo_error_coordinate_space")
   }
   result <- structure(
     list(spaces = list(), aliases = character(), registry_hash = NULL),
-    class = "ngeo_space_registry"
+    class = "ngeo_coordinate_space_registry"
   )
-  for (space in spaces) {
-    hash <- ngeo_space_hash(space)
-    if (is.null(result$spaces[[hash]])) result$spaces[[hash]] <- space
+  for (coordinate_space in spaces) {
+    hash <- ngeo_coordinate_space_hash(coordinate_space)
+    if (is.null(result$spaces[[hash]])) result$spaces[[hash]] <- coordinate_space
   }
   if (length(aliases)) {
     if (!is.character(aliases) || is.null(names(aliases)) ||
@@ -113,7 +113,7 @@ ngeo_space_registry <- function(spaces = list(), aliases = character()) {
       } else {
         matches <- names(result$spaces)[vapply(
           result$spaces,
-          function(space) identical(space$space_id, target),
+          function(coordinate_space) identical(coordinate_space$space_id, target),
           logical(1)
         )]
         if (length(matches) != 1L) {
@@ -132,16 +132,16 @@ ngeo_space_registry <- function(spaces = list(), aliases = character()) {
 
 #' Validate a coordinate-space registry
 #'
-#' @param x An `ngeo_space_registry`.
+#' @param x An `ngeo_coordinate_space_registry`.
 #' @return `x`, invisibly.
 #' @export
 ngeo_validate_space_registry <- function(x) {
-  valid_spaces <- inherits(x, "ngeo_space_registry") &&
+  valid_spaces <- inherits(x, "ngeo_coordinate_space_registry") &&
     is.list(x$spaces) &&
-    all(vapply(x$spaces, inherits, logical(1), what = "ngeo_space")) &&
+    all(vapply(x$spaces, inherits, logical(1), what = "ngeo_coordinate_space")) &&
     identical(
       names(x$spaces) %||% character(),
-      unname(vapply(x$spaces, ngeo_space_hash, character(1)))
+      unname(vapply(x$spaces, ngeo_coordinate_space_hash, character(1)))
     )
   valid_aliases <- is.character(x$aliases) &&
     (length(x$aliases) == 0L || (
@@ -153,32 +153,32 @@ ngeo_validate_space_registry <- function(x) {
   if (!valid_spaces || !valid_aliases ||
       !identical(x$registry_hash, .ngeo_registry_hash(x))) {
     .ngeo_abort("Space registry identity or contents are invalid.",
-                "ngeo_error_space_registry")
+                "ngeo_error_coordinate_space_registry")
   }
   invisible(x)
 }
 
-#' Add one space to a registry
+#' Add one coordinate_space to a registry
 #'
-#' @param registry An `ngeo_space_registry`.
-#' @param space An `ngeo_space`.
-#' @param aliases Optional aliases for this exact space.
-#' @return A new `ngeo_space_registry`.
+#' @param registry An `ngeo_coordinate_space_registry`.
+#' @param coordinate_space An `ngeo_coordinate_space`.
+#' @param aliases Optional aliases for this exact coordinate_space.
+#' @return A new `ngeo_coordinate_space_registry`.
 #' @export
-ngeo_register_space <- function(registry, space, aliases = character()) {
+ngeo_register_space <- function(registry, coordinate_space, aliases = character()) {
   ngeo_validate_space_registry(registry)
-  if (!inherits(space, "ngeo_space") || !is.character(aliases) ||
+  if (!inherits(coordinate_space, "ngeo_coordinate_space") || !is.character(aliases) ||
       anyNA(aliases) || any(!nzchar(aliases)) || anyDuplicated(aliases)) {
-    .ngeo_abort("Registered space or aliases are invalid.",
+    .ngeo_abort("Registered coordinate_space or aliases are invalid.",
                 "ngeo_error_alias")
   }
   result <- registry
-  hash <- ngeo_space_hash(space)
-  if (is.null(result$spaces[[hash]])) result$spaces[[hash]] <- space
+  hash <- ngeo_coordinate_space_hash(coordinate_space)
+  if (is.null(result$spaces[[hash]])) result$spaces[[hash]] <- coordinate_space
   conflict <- aliases[aliases %in% names(result$aliases) &
                         result$aliases[aliases] != hash]
   if (length(conflict)) {
-    .ngeo_abort("A registry alias already targets another space.",
+    .ngeo_abort("A registry alias already targets another coordinate_space.",
                 "ngeo_error_alias")
   }
   result$aliases[aliases] <- hash
@@ -187,30 +187,30 @@ ngeo_register_space <- function(registry, space, aliases = character()) {
   result
 }
 
-#' Resolve a space, exact hash, unique space ID, or alias
+#' Resolve a coordinate_space, exact hash, unique coordinate_space ID, or alias
 #'
-#' @param registry An `ngeo_space_registry`.
-#' @param space An `ngeo_space` or one character identifier.
-#' @return The registered `ngeo_space`.
+#' @param registry An `ngeo_coordinate_space_registry`.
+#' @param coordinate_space An `ngeo_coordinate_space` or one character identifier.
+#' @return The registered `ngeo_coordinate_space`.
 #' @export
-ngeo_resolve_space <- function(registry, space) {
+ngeo_resolve_space <- function(registry, coordinate_space) {
   ngeo_validate_space_registry(registry)
-  if (inherits(space, "ngeo_space")) {
-    hash <- ngeo_space_hash(space)
+  if (inherits(coordinate_space, "ngeo_coordinate_space")) {
+    hash <- ngeo_coordinate_space_hash(coordinate_space)
     if (!hash %in% names(registry$spaces)) {
-      .ngeo_abort("The exact space is not registered.",
-                  "ngeo_error_space_registry")
+      .ngeo_abort("The exact coordinate_space is not registered.",
+                  "ngeo_error_coordinate_space_registry")
     }
     return(registry$spaces[[hash]])
   }
-  .ngeo_assert_scalar_character(space, "space")
-  if (space %in% names(registry$aliases)) {
-    return(registry$spaces[[registry$aliases[[space]]]])
+  .ngeo_assert_scalar_character(coordinate_space, "coordinate_space")
+  if (coordinate_space %in% names(registry$aliases)) {
+    return(registry$spaces[[registry$aliases[[coordinate_space]]]])
   }
-  if (space %in% names(registry$spaces)) return(registry$spaces[[space]])
+  if (coordinate_space %in% names(registry$spaces)) return(registry$spaces[[coordinate_space]])
   matches <- registry$spaces[vapply(
     registry$spaces,
-    function(candidate) identical(candidate$space_id, space),
+    function(candidate) identical(candidate$space_id, coordinate_space),
     logical(1)
   )]
   if (length(matches) != 1L) {
@@ -220,7 +220,7 @@ ngeo_resolve_space <- function(registry, space) {
       } else {
         "Space identifier is not registered."
       },
-      "ngeo_error_space_ambiguity"
+      "ngeo_error_coordinate_space_ambiguity"
     )
   }
   matches[[1L]]
@@ -238,8 +238,8 @@ ngeo_transform_hash <- function(x) {
   }
   digest::digest(
     list(
-      source = ngeo_space_hash(x$source_space),
-      target = ngeo_space_hash(x$target_space),
+      source = ngeo_coordinate_space_hash(x$source_space),
+      target = ngeo_coordinate_space_hash(x$target_space),
       type = x$type,
       direction = x$direction,
       method = x$method,
@@ -269,20 +269,20 @@ ngeo_transform_hash <- function(x) {
   }
   if (transform$direction == "source_to_target") {
     c(
-      from = ngeo_space_hash(transform$source_space),
-      to = ngeo_space_hash(transform$target_space)
+      from = ngeo_coordinate_space_hash(transform$source_space),
+      to = ngeo_coordinate_space_hash(transform$target_space)
     )
   } else {
     c(
-      from = ngeo_space_hash(transform$target_space),
-      to = ngeo_space_hash(transform$source_space)
+      from = ngeo_coordinate_space_hash(transform$target_space),
+      to = ngeo_coordinate_space_hash(transform$source_space)
     )
   }
 }
 
 #' Construct an explicit directed transform graph
 #'
-#' @param registry An `ngeo_space_registry`.
+#' @param registry An `ngeo_coordinate_space_registry`.
 #' @param transforms Supplied known transforms.
 #' @param edge_ids Optional stable edge IDs.
 #' @param invertible Optional inversion eligibility flags.
@@ -385,7 +385,7 @@ ngeo_add_transform <- function(
   endpoints <- .ngeo_transform_endpoints(transform)
   if (!all(endpoints %in% names(graph$registry$spaces))) {
     .ngeo_abort("Transform endpoints are not exact registered spaces.",
-                "ngeo_error_space_registry")
+                "ngeo_error_coordinate_space_registry")
   }
   result <- graph
   result$edges <- rbind(
@@ -413,7 +413,7 @@ ngeo_add_transform <- function(
 #' @export
 ngeo_validate_transform_graph <- function(x) {
   valid <- inherits(x, "ngeo_transform_graph") &&
-    inherits(x$registry, "ngeo_space_registry") &&
+    inherits(x$registry, "ngeo_coordinate_space_registry") &&
     is.data.frame(x$edges) && is.list(x$transforms) &&
     identical(names(x$transforms) %||% character(), x$edges$edge_id) &&
     !anyDuplicated(x$edges$edge_id) &&
@@ -544,8 +544,8 @@ ngeo_transform_path <- function(
   ngeo_validate_transform_graph(graph)
   from_space <- ngeo_resolve_space(graph$registry, from)
   to_space <- ngeo_resolve_space(graph$registry, to)
-  from_hash <- ngeo_space_hash(from_space)
-  to_hash <- ngeo_space_hash(to_space)
+  from_hash <- ngeo_coordinate_space_hash(from_space)
+  to_hash <- ngeo_coordinate_space_hash(to_space)
   candidates <- .ngeo_graph_candidates(
     graph, from_hash, to_hash, allow_inverse
   )
@@ -596,7 +596,7 @@ ngeo_transform_path <- function(
   edge_id <- sub("[\\^]-1$", "", chosen)
   edge_rows <- match(edge_id, graph$edges$edge_id)
   audits <- lapply(transforms, function(transform) {
-    ngeo_space_audit(transform$source_space, transform$target_space)
+    ngeo_coordinate_space_audit(transform$source_space, transform$target_space)
   })
   result <- list(
     from = from_space,
@@ -622,7 +622,7 @@ ngeo_transform_path <- function(
   result
 }
 
-#' Diagnose cycles, ambiguity, and edge space mismatches
+#' Diagnose cycles, ambiguity, and edge coordinate_space mismatches
 #'
 #' @param graph An `ngeo_transform_graph`.
 #' @return An `ngeo_transform_graph_diagnostics`.
@@ -658,7 +658,7 @@ ngeo_transform_graph_diagnostics <- function(graph) {
     }
   }
   mismatch <- lapply(seq_len(nrow(graph$edges)), function(i) {
-    audit <- ngeo_space_audit(
+    audit <- ngeo_coordinate_space_audit(
       graph$registry$spaces[[graph$edges$from[[i]]]],
       graph$registry$spaces[[graph$edges$to[[i]]]]
     )
@@ -696,20 +696,20 @@ ngeo_transform_graph_diagnostics <- function(graph) {
   result
 }
 
-#' Export auditable transform-path provenance
+#' Export auditable transform-path history
 #'
 #' @param path An `ngeo_transform_path`.
-#' @return A serializable provenance list.
+#' @return A serializable history list.
 #' @export
-ngeo_transform_path_provenance <- function(path) {
+ngeo_transform_path_history <- function(path) {
   if (!inherits(path, "ngeo_transform_path")) {
     .ngeo_abort("`path` must be an `ngeo_transform_path`.",
                 "ngeo_error_transform_path")
   }
   list(
     schema = "NGCS-transform-path-1",
-    from_space_hash = ngeo_space_hash(path$from),
-    to_space_hash = ngeo_space_hash(path$to),
+    from_space_hash = ngeo_coordinate_space_hash(path$from),
+    to_space_hash = ngeo_coordinate_space_hash(path$to),
     graph_hash = path$graph_hash,
     path_hash = path$path_hash,
     tokens = path$tokens,
@@ -723,7 +723,7 @@ ngeo_transform_path_provenance <- function(path) {
 
 #' Apply one explicitly authorized affine transform path
 #'
-#' @param x An `ngeo` dataset in the path source space.
+#' @param x An `ngeo` dataset in the path source coordinate_space.
 #' @param path An `ngeo_transform_path`.
 #' @param authorize Must be explicitly `TRUE`.
 #' @return A geometry-transformed `ngeo` copy.
@@ -742,11 +742,11 @@ ngeo_apply_transform_path <- function(x, path, authorize = FALSE) {
     )
   }
   result <- ngeo_apply_transform(x, path$composed)
-  result$provenance$operations <- c(
-    result$provenance$operations,
+  result$history$operations <- c(
+    result$history$operations,
     list(.ngeo_operation(
       "ngeo_apply_transform_path",
-      ngeo_transform_path_provenance(path)
+      ngeo_transform_path_history(path)
     ))
   )
   ngeo_validate(result, "strict")
@@ -754,8 +754,8 @@ ngeo_apply_transform_path <- function(x, path, authorize = FALSE) {
 }
 
 #' @export
-print.ngeo_space_registry <- function(x, ...) {
-  cat("<ngeo_space_registry>\n  spaces: ", length(x$spaces),
+print.ngeo_coordinate_space_registry <- function(x, ...) {
+  cat("<ngeo_coordinate_space_registry>\n  spaces: ", length(x$spaces),
       "\n  aliases: ", length(x$aliases), "\n", sep = "")
   invisible(x)
 }

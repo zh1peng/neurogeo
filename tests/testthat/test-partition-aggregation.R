@@ -20,14 +20,14 @@ partition_surface <- function() {
   measures <- do.call(
     rbind,
     list(
-      ngeo_measure(spatial_semantics = "intensive"),
-      ngeo_measure(spatial_semantics = "extensive"),
-      ngeo_measure(spatial_semantics = "count"),
+      ngeo_measure(support_behavior = "intensive"),
+      ngeo_measure(support_behavior = "extensive"),
+      ngeo_measure(support_behavior = "count"),
       ngeo_measure(
         value_type = "integer",
-        spatial_semantics = "categorical"
+        support_behavior = "categorical"
       ),
-      ngeo_measure(spatial_semantics = "unknown")
+      ngeo_measure(support_behavior = "unknown")
     )
   )
   ngeo_surface(
@@ -48,8 +48,8 @@ test_that("crisp partitions retain explicit background semantics", {
 
   expect_s3_class(partition, "ngeo_partition")
   expect_equal(partition$membership, c(NA, "1", "1", "2"))
-  expect_equal(partition$regions$region_id, c("1", "2"))
-  expect_equal(partition$base_domain_hash, ngeo_domain_hash(x))
+  expect_equal(partition$parcellation$region_id, c("1", "2"))
+  expect_equal(partition$source_base_hash, base_hash(x))
   expect_error(
     ngeo_partition(
       x,
@@ -87,10 +87,10 @@ test_that("aggregation follows measurement semantics and conserves support", {
   result <- ngeo_aggregate(
     x,
     partition,
-    maps = c("intensity", "mass", "events", "class")
+    layers = c("intensity", "mass", "events", "class")
   )
 
-  expect_s3_class(result, "ngeo_regions")
+  expect_s3_class(result, "ngeo_parcellation")
   expect_equal(
     result$values[, "intensity"],
     c(4 / 3, 10 / 3),
@@ -100,9 +100,41 @@ test_that("aggregation follows measurement semantics and conserves support", {
   expect_equal(sum(result$values[, "mass"]), sum(x$values[, "mass"]))
   expect_equal(result$values[, "events"], c(2, 2))
   expect_equal(result$values[, "class"], c(1, 2))
-  expect_equal(result$domain$support_size, c(1 / 2, 1 / 2))
-  expect_equal(result$domain$base_domain_hash, ngeo_domain_hash(x))
-  expect_true(inherits(result$domain$adjacency, "Matrix"))
+  expect_equal(result$base$geometry$support_size, c(1 / 2, 1 / 2))
+  expect_equal(result$base$geometry$source_base_hash, base_hash(x))
+  expect_true(inherits(result$base$topology$adjacency, "Matrix"))
+})
+
+test_that("aggregation records every layer when measures are shared", {
+  source <- partition_surface()
+  measure_table <- rbind(
+    ngeo_measure(support_behavior = "intensive"),
+    ngeo_measure(support_behavior = "extensive")
+  )
+  measure_table$measure_id <- c("intensive", "extensive")
+  layer_table <- data.frame(
+    layer_id = paste0("layer_", 1:4),
+    name = c("intensity_1", "mass_1", "intensity_2", "mass_2"),
+    measure_id = rep(c("intensive", "extensive"), 2L),
+    stringsAsFactors = FALSE
+  )
+  x <- ngeo_surface(
+    source$base$geometry$coordinates,
+    source$base$geometry$faces,
+    values = source$values[, c("intensity", "mass", "intensity", "mass")],
+    layers = layer_table,
+    measures = measure_table,
+    coordinate_space = source$base$coordinate_space
+  )
+  partition <- ngeo_partition(x, c("A", "A", "B", "B"))
+
+  result <- ngeo_aggregate(x, partition)
+  operation <- tail(result$history$operations, 1L)[[1L]]
+
+  expect_equal(nrow(result$layers), 4L)
+  expect_equal(nrow(result$measures), 2L)
+  expect_named(operation$parameters$aggregation_rules, result$layers$layer_id)
+  expect_named(operation$parameters$missing_policy, result$layers$layer_id)
 })
 
 test_that("unknown semantics require an explicit aggregation function", {
@@ -110,29 +142,29 @@ test_that("unknown semantics require an explicit aggregation function", {
   partition <- ngeo_partition(x, c("A", "A", "B", "B"))
 
   expect_error(
-    ngeo_aggregate(x, partition, maps = "unspecified"),
+    ngeo_aggregate(x, partition, layers = "unspecified"),
     class = "ngeo_error_measure_unknown"
   )
   result <- ngeo_aggregate(
     x,
     partition,
-    maps = "unspecified",
+    layers = "unspecified",
     fun = stats::median
   )
   expect_equal(result$values[, 1L], c(3, 7))
-  expect_equal(result$measures$default_aggregation, "custom")
+  expect_equal(result$measures$aggregation, "custom")
 })
 
-test_that("partition domain hashes prevent accidental reuse", {
+test_that("partition base hashes prevent accidental reuse", {
   x <- partition_surface()
   partition <- ngeo_partition(x, c("A", "A", "B", "B"))
   shifted <- partition_surface()
-  shifted$domain$coordinates$active[, 1L] <-
-    shifted$domain$coordinates$active[, 1L] + c(0, 0, 0, 0.1)
+  shifted$base$geometry$coordinates$active[, 1L] <-
+    shifted$base$geometry$coordinates$active[, 1L] + c(0, 0, 0, 0.1)
 
   expect_error(
     ngeo_aggregate(shifted, partition),
-    class = "ngeo_error_domain_mismatch"
+    class = "ngeo_error_base_mismatch"
   )
 })
 
@@ -142,8 +174,8 @@ test_that("volume aggregation uses voxel support", {
     amount = c(24, 24, 24, 24)
   )
   measures <- rbind(
-    ngeo_measure(spatial_semantics = "intensive"),
-    ngeo_measure(spatial_semantics = "extensive")
+    ngeo_measure(support_behavior = "intensive"),
+    ngeo_measure(support_behavior = "extensive")
   )
   x <- ngeo_volume(
     values = values,
@@ -156,7 +188,7 @@ test_that("volume aggregation uses voxel support", {
 
   expect_equal(result$values[, "concentration"], c(1.5, 3.5))
   expect_equal(result$values[, "amount"], c(48, 48))
-  expect_equal(result$domain$support_size, c(48, 48))
+  expect_equal(result$base$geometry$support_size, c(48, 48))
 })
 
 test_that("supported label readers feed partitions without external binaries", {
@@ -170,7 +202,7 @@ test_that("supported label readers feed partitions without external binaries", {
     checksum = FALSE
   )
   gifti_partition <- ngeo_partition(gifti, "atlas", background = 0)
-  expect_equal(nrow(gifti_partition$regions), 1L)
+  expect_equal(nrow(gifti_partition$parcellation), 1L)
   expect_equal(sum(is.na(gifti_partition$membership)), 2L)
 
   freesurfer <- read_ngeo_freesurfer(
@@ -180,14 +212,14 @@ test_that("supported label readers feed partitions without external binaries", {
   )
   annot_partition <- ngeo_partition(freesurfer, "annot")
   expect_equal(length(annot_partition$membership), 4L)
-  expect_gte(nrow(annot_partition$regions), 1L)
+  expect_gte(nrow(annot_partition$parcellation), 1L)
 
   cifti <- read_ngeo_cifti(
     golden_path("tiny.dlabel.nii"),
     checksum = FALSE
   )
   cifti_partition <- ngeo_partition(cifti, "atlas", background = 0)
-  expect_equal(nrow(cifti_partition$regions), 1L)
+  expect_equal(nrow(cifti_partition$parcellation), 1L)
   expect_equal(sum(is.na(cifti_partition$membership)), 3L)
 })
 
@@ -198,8 +230,8 @@ test_that("partition conformance fixture has language-independent outputs", {
   faces <- rows_to_matrix(surface_fixture$faces, mode = "integer")
   expected <- partition_fixture$expected
   measures <- rbind(
-    ngeo_measure(spatial_semantics = "intensive"),
-    ngeo_measure(spatial_semantics = "extensive")
+    ngeo_measure(support_behavior = "intensive"),
+    ngeo_measure(support_behavior = "extensive")
   )
   x <- ngeo_surface(
     coordinates,
@@ -231,7 +263,7 @@ test_that("partition conformance fixture has language-independent outputs", {
     unlist(expected$extensive_aggregation)
   )
   expect_equal(
-    result$domain$support_size,
+    result$base$geometry$support_size,
     unlist(expected$region_support_size),
     tolerance = partition_fixture$tolerance$absolute
   )

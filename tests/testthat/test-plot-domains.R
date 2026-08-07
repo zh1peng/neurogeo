@@ -36,11 +36,11 @@ test_that("all five domains have bounded base-graphics diagnostics", {
     dim = c(2, 2, 2),
     affine = diag(4)
   )
-  points <- ngeo_points(
+  point <- ngeo_point(
     matrix(c(0, 0, 1, 0, 1, 1), ncol = 2L, byrow = TRUE),
     values = 1:3
   )
-  grayordinates <- ngeo_grayordinates(
+  grayordinate <- ngeo_grayordinate(
     list(
       list(
         component_id = "left",
@@ -61,7 +61,7 @@ test_that("all five domains have bounded base-graphics diagnostics", {
     ),
     values = 1:4
   )
-  regions <- ngeo_regions(
+  parcellation <- ngeo_parcellation(
     data.frame(region_id = c("A", "B")),
     values = c(2, 4),
     centroid = matrix(c(0, 0, 1, 1), ncol = 2L, byrow = TRUE)
@@ -70,15 +70,15 @@ test_that("all five domains have bounded base-graphics diagnostics", {
   with_pdf_device({
     expect_identical(plot(surface), surface)
     expect_identical(plot(volume), volume)
-    expect_identical(plot(points), points)
-    expect_identical(plot(grayordinates), grayordinates)
-    expect_identical(plot(regions), regions)
+    expect_identical(plot(point), point)
+    expect_identical(plot(grayordinate), grayordinate)
+    expect_identical(plot(parcellation), parcellation)
   })
 })
 
 test_that("projection diagnostics are explicit and invalid slices fail", {
   surface <- plot_surface_fixture()
-  points <- ngeo_points(
+  point <- ngeo_point(
     matrix(c(0, 0, 0, 1, 1, 1), ncol = 3L, byrow = TRUE),
     values = 1:2
   )
@@ -90,21 +90,21 @@ test_that("projection diagnostics are explicit and invalid slices fail", {
 
   with_pdf_device({
     expect_warning(plot(surface), class = "ngeo_warning_plot_projection")
-    expect_warning(plot(points), class = "ngeo_warning_plot_projection")
+    expect_warning(plot(point), class = "ngeo_warning_plot_projection")
     expect_error(plot(volume, slice = 99L), class = "ngeo_error_argument")
   })
 })
 
-test_that("weights and partition diagnostics return their inputs", {
-  points <- ngeo_points(
+test_that("spatial_weights and partition diagnostics return their inputs", {
+  point <- ngeo_point(
     matrix(c(0, 0, 1, 0, 2, 0), ncol = 2L, byrow = TRUE)
   )
-  weights <- ngeo_weights(points, method = "knn", k = 1L, style = "B")
+  spatial_weights <- ngeo_spatial_weights(point, method = "knn", k = 1L, style = "B")
   surface <- plot_surface_fixture()
   partition <- ngeo_partition(surface, c("A", "A", "B", "B"))
 
   with_pdf_device({
-    expect_identical(plot(weights), weights)
+    expect_identical(plot(spatial_weights), spatial_weights)
     expect_identical(plot(partition), partition)
   })
 })

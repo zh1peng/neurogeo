@@ -39,7 +39,7 @@ make_grid <- function(nrow, ncol, map_count = 0L, delayed = FALSE) {
   n <- nrow * ncol
   adjacency <- grid_adjacency(nrow, ncol)
   values <- NULL
-  maps <- NULL
+  layers <- NULL
   measures <- NULL
   if (map_count > 0L) {
     map_names <- paste0("map_", seq_len(map_count))
@@ -52,14 +52,14 @@ make_grid <- function(nrow, ncol, map_count = 0L, delayed = FALSE) {
       neurogeo:::.ngeo_delayed_values(
         reader,
         c(n, map_count),
-        map_names = map_names,
+        layer_names = map_names,
         source = "deterministic-grid-callback"
       )
     } else {
       reader(seq_len(n), seq_len(map_count))
     }
-    maps <- data.frame(
-      map_id = map_names,
+    layers <- data.frame(
+      layer_id = map_names,
       name = map_names,
       subject_id = map_names,
       feature = "signal",
@@ -67,36 +67,36 @@ make_grid <- function(nrow, ncol, map_count = 0L, delayed = FALSE) {
     )
     measures <- do.call(rbind, replicate(
       map_count,
-      ngeo_measure(spatial_semantics = "intensive", units = "a.u."),
+      ngeo_measure(support_behavior = "intensive", unit = "a.u."),
       simplify = FALSE
     ))
   }
-  x <- ngeo_regions(
+  x <- ngeo_parcellation(
     data.frame(region_id = seq_len(n)),
     values = values,
     support_size = rep(1, n),
     adjacency = adjacency,
-    maps = maps,
+    layers = layers,
     measures = measures
   )
-  weights <- ngeo_weights(x, method = "region_contiguity", style = "B")
-  list(x = x, weights = weights)
+  spatial_weights <- ngeo_spatial_weights(x, method = "region_contiguity", style = "B")
+  list(x = x, spatial_weights = spatial_weights)
 }
 
 checks <- list()
 
 # Analytic path spectrum and full small-case reconstruction.
 n <- 8L
-path <- ngeo_points(
+path <- ngeo_point(
   cbind(x = seq_len(n), y = 0),
   values = cbind(signal = sin(seq_len(n))),
-  maps = data.frame(
-    map_id = "signal", name = "signal",
+  layers = data.frame(
+    layer_id = "signal", name = "signal",
     subject_id = "subject", feature = "signal"
   ),
-  measures = ngeo_measure(spatial_semantics = "intensive")
+  measures = ngeo_measure(support_behavior = "intensive")
 )
-path_weights <- ngeo_weights(
+path_weights <- ngeo_spatial_weights(
   path, method = "distance_band", threshold = 1.01, style = "B"
 )
 path_basis <- ngeo_spatial_basis(
@@ -134,19 +134,19 @@ checks$full_reconstruction$pass <-
 dense <- make_grid(6L, 7L, map_count = 4L, delayed = FALSE)
 delayed <- make_grid(6L, 7L, map_count = 4L, delayed = TRUE)
 dense_basis <- ngeo_spatial_basis(
-  dense$x, dense$weights, n_modes = 12L
+  dense$x, dense$spatial_weights, n_modes = 12L
 )
 dense_projection <- ngeo_basis_project(
   dense$x, dense_basis,
   summaries = c("absolute_energy", "roughness"),
   chunk_rows = 11L,
-  chunk_maps = 3L
+  chunk_layers = 3L
 )
 delayed_projection <- ngeo_basis_project(
   delayed$x, dense_basis,
   summaries = c("absolute_energy", "roughness"),
   chunk_rows = 7L,
-  chunk_maps = 1L
+  chunk_layers = 1L
 )
 checks$delayed_projection <- list(
   maximum_absolute_error = max(abs(
@@ -163,7 +163,7 @@ run_scale <- function(label, nrow, ncol, modes) {
   timing <- system.time({
     basis <- ngeo_spatial_basis(
       fixture$x,
-      fixture$weights,
+      fixture$spatial_weights,
       n_modes = modes,
       budget = ngeo_resource_budget(
         memory_bytes = 3e9,
@@ -178,13 +178,13 @@ run_scale <- function(label, nrow, ncol, modes) {
         "retained_variance", "residual_energy"
       ),
       chunk_rows = 4096L,
-      chunk_maps = 2L
+      chunk_layers = 2L
     )
   })
   list(
     elements = nrow * ncol,
     modes = modes,
-    maps = 5L,
+    layers = 5L,
     elapsed_seconds = unname(timing[["elapsed"]]),
     basis_bytes = as.numeric(object.size(basis)),
     feature_bytes = as.numeric(object.size(features)),

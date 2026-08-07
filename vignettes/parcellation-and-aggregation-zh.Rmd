@@ -37,8 +37,8 @@ surface <- ngeo_surface(
     surface_area = c(1/3, 1/6, 1/3, 1/6)
   ),
   measures = rbind(
-    ngeo_measure(spatial_semantics = "intensive", units = "mm"),
-    ngeo_measure(spatial_semantics = "extensive", units = "mm2")
+    ngeo_measure(support_behavior = "intensive", unit = "mm"),
+    ngeo_measure(support_behavior = "extensive", unit = "mm2")
   )
 )
 partition <- ngeo_partition(surface, c("A", "A", "B", "B"))
@@ -65,4 +65,4 @@ sum(regional$values[, "surface_area"])
 ```
 
 label 中的 background 和 medial wall 不能猜测，应显式声明。partition 还绑定
-base-domain hash，因此 geometry 或 indexing 改变后不能静默复用。
+source base hash，因此 geometry 或 indexing 改变后不能静默复用。

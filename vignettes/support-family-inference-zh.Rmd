@@ -34,22 +34,22 @@ for (i in seq_len(n_subject)) {
   strength <- if (group[[i]] == "case") 0.85 else 0.45
   fine_values[, 2L * i] <- strength * base + rnorm(n_fine, sd = 0.15)
 }
-maps <- data.frame(
-  map_id = paste0("map-", seq_len(ncol(fine_values))),
+layers <- data.frame(
+  layer_id = paste0("map-", seq_len(ncol(fine_values))),
   name = paste(subject, layer, sep = "_"),
   subject_id = subject,
   feature = layer
 )
 measures <- do.call(rbind, replicate(
   ncol(fine_values),
-  ngeo_measure(spatial_semantics = "intensive", units = "a.u."),
+  ngeo_measure(support_behavior = "intensive", unit = "a.u."),
   simplify = FALSE
 ))
-fine <- ngeo_points(
+fine <- ngeo_point(
   cbind(x = 1:n_fine, y = 0), values = fine_values,
-  maps = maps, measures = measures
+  layers = layers, measures = measures
 )
-fine_weights <- ngeo_weights(
+fine_weights <- ngeo_spatial_weights(
   fine, method = "distance_band", threshold = 1.01, style = "B"
 )
 fine_basis <- ngeo_spatial_basis(
@@ -74,15 +74,15 @@ adjacency <- Matrix::sparseMatrix(
   j = c(2:n_coarse, 1:(n_coarse - 1L)),
   x = 1, dims = c(n_coarse, n_coarse)
 )
-coarse <- ngeo_regions(
+coarse <- ngeo_parcellation(
   data.frame(region_id = seq_len(n_coarse)),
   values = coarse_values,
   support_size = rep(2, n_coarse),
   adjacency = adjacency,
-  maps = maps,
+  layers = layers,
   measures = measures
 )
-coarse_weights <- ngeo_weights(
+coarse_weights <- ngeo_spatial_weights(
   coarse, method = "region_contiguity", style = "B"
 )
 coarse_basis <- ngeo_spatial_basis(

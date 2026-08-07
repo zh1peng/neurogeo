@@ -5,14 +5,14 @@
 \title{Estimate a bounded sparse spatial log determinant}
 \usage{
 ngeo_logdet_approx(
-  weights,
+  spatial_weights,
   parameter,
   control = ngeo_solver_control(),
   exact = NULL
 )
 }
 \arguments{
-\item{weights}{Domain-bound `ngeo_weights` or a sparse square matrix.}
+\item{spatial_weights}{Domain-bound `ngeo_spatial_weights` or a sparse square matrix.}
 
 \item{parameter}{Spatial dependence parameter.}
 

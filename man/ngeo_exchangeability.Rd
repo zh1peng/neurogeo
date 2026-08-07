@@ -33,6 +33,6 @@ ngeo_exchangeability(
 An `ngeo_exchangeability` object.
 }
 \description{
-Transformations are stored in rows and independent units in columns. The
+Transformations are stored in rows and independent unit in columns. The
 observed identity transformation is kept outside the schedule.
 }

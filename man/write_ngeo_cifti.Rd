@@ -14,7 +14,7 @@ write_ngeo_cifti(
 )
 }
 \arguments{
-\item{x}{An `ngeo_grayordinates` with loaded values.}
+\item{x}{An `ngeo_grayordinate` with loaded values.}
 
 \item{path}{Output path.}
 
@@ -24,7 +24,7 @@ write_ngeo_cifti(
 
 \item{datatype}{Optional `float32`, `float64`, or `int32` datatype.}
 
-\item{named_map_metadata}{Optional metadata aligned with scalar/label maps.}
+\item{named_map_metadata}{Optional metadata aligned with scalar/label layers.}
 }
 \value{
 `path`, invisibly.

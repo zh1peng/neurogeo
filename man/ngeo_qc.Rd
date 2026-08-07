@@ -37,10 +37,10 @@ require a scientific decision. The function never repairs or mutates its
 inputs and does not materialize a values block beyond `max_value_cells`.
 }
 \examples{
-x <- ngeo_points(
+x <- ngeo_point(
   matrix(c(0, 0, 1, 0, 2, 0), ncol = 2, byrow = TRUE),
   values = cbind(signal = c(1, 2, 3)),
-  measures = ngeo_measure(spatial_semantics = "intensive")
+  measures = ngeo_measure(support_behavior = "intensive")
 )
 qc <- ngeo_qc(x)
 qc$checks

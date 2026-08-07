@@ -6,7 +6,7 @@
 \usage{
 ngeo_moran_null(
   x,
-  weights,
+  spatial_weights,
   map = 1L,
   nsim = 999L,
   seed = NULL,
@@ -18,11 +18,11 @@ ngeo_moran_null(
 \arguments{
 \item{x}{An `ngeo` dataset.}
 
-\item{weights}{Matching `ngeo_weights`.}
+\item{spatial_weights}{Matching `ngeo_spatial_weights`.}
 
 \item{map}{One map name, ID, or index.}
 
-\item{nsim}{Number of null maps.}
+\item{nsim}{Number of null layers.}
 
 \item{seed}{Optional reproducible random seed.}
 

@@ -27,12 +27,12 @@ a second generic workflow engine.
 
 ```{r}
 backing <- cbind(signal = seq_len(12), predictor = 0:11)
-x <- ngeo_points(
+x <- ngeo_point(
   cbind(x = 0:11, y = 0),
   values = backing,
   measures = rbind(
-    ngeo_measure(spatial_semantics = "intensive"),
-    ngeo_measure(spatial_semantics = "intensive")
+    ngeo_measure(support_behavior = "intensive"),
+    ngeo_measure(support_behavior = "intensive")
   )
 )
 ngeo_stream_summary(x, chunk_size = 4)
@@ -50,7 +50,7 @@ map <- ngeo_atlas_map(
   rep(c("A", "B", "C"), each = 4),
   source_support = rep(1, 12)
 )
-target <- ngeo_change_support(
+target <- aggregate_to(
   x,
   map$target,
   map,

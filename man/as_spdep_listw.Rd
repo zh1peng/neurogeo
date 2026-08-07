@@ -2,16 +2,16 @@
 % Please edit documentation in R/weights.R
 \name{as_spdep_listw}
 \alias{as_spdep_listw}
-\title{Convert weights to an spdep listw object}
+\title{Convert spatial_weights to an spdep listw object}
 \usage{
 as_spdep_listw(x)
 }
 \arguments{
-\item{x}{An `ngeo_weights`.}
+\item{x}{An `ngeo_spatial_weights`.}
 }
 \value{
 An `spdep` `listw` object.
 }
 \description{
-Convert weights to an spdep listw object
+Convert spatial_weights to an spdep listw object
 }

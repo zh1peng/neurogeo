@@ -2,7 +2,7 @@
 #' Compute delayed-native streaming summaries
 #'
 #' @param x An `ngeo` dataset or values block.
-#' @param maps Optional map selection.
+#' @param layers Optional map selection.
 #' @param chunk_size Row chunk size.
 #' @param na_rm Whether to omit non-finite values.
 #'
@@ -10,14 +10,14 @@
 #' @export
 ngeo_stream_summary <- function(
     x,
-    maps = NULL,
+    layers = NULL,
     chunk_size = 65536L,
     na_rm = FALSE) {
   values <- if (inherits(x, "ngeo")) x$values else x
-  columns <- if (is.null(maps)) seq_len(ncol(values)) else if (
+  columns <- if (is.null(layers)) seq_len(ncol(values)) else if (
     inherits(x, "ngeo")
-  ) .ngeo_map_selection(x, maps) else
-    .ngeo_delayed_index(maps, ncol(values), colnames(values))
+  ) .ngeo_layer_selection(x, layers) else
+    .ngeo_delayed_index(layers, ncol(values), colnames(values))
   count <- rep(0, length(columns))
   mean <- m2 <- rep(0, length(columns))
   minimum <- rep(Inf, length(columns))
@@ -72,13 +72,13 @@ ngeo_stream_summary <- function(
 #' @export
 ngeo_stream_covariance <- function(
     x,
-    maps = NULL,
+    layers = NULL,
     chunk_size = 65536L) {
   values <- if (inherits(x, "ngeo")) x$values else x
-  columns <- if (is.null(maps)) seq_len(ncol(values)) else if (
+  columns <- if (is.null(layers)) seq_len(ncol(values)) else if (
     inherits(x, "ngeo")
-  ) .ngeo_map_selection(x, maps) else
-    .ngeo_delayed_index(maps, ncol(values), colnames(values))
+  ) .ngeo_layer_selection(x, layers) else
+    .ngeo_delayed_index(layers, ncol(values), colnames(values))
   count <- 0L
   mean <- numeric(length(columns))
   cross <- matrix(0, length(columns), length(columns))
@@ -113,7 +113,7 @@ ngeo_stream_covariance <- function(
 #'
 #' @param x An `ngeo` dataset.
 #' @param response One response map.
-#' @param predictors Predictor maps.
+#' @param predictors Predictor layers.
 #' @param chunk_size Row chunk size.
 #'
 #' @return An `ngeo_stream_lm`.
@@ -123,9 +123,9 @@ ngeo_stream_lm <- function(
     response,
     predictors = character(),
     chunk_size = 65536L) {
-  maps <- .ngeo_model_maps(x, response, predictors)
-  columns <- c(maps$response, maps$predictors)
-  p <- length(maps$predictors) + 1L
+  layers <- .ngeo_model_maps(x, response, predictors)
+  columns <- c(layers$response, layers$predictors)
+  p <- length(layers$predictors) + 1L
   xtx <- matrix(0, p, p)
   xty <- numeric(p)
   yty <- 0
@@ -154,16 +154,16 @@ ngeo_stream_lm <- function(
   residual_ss <- yty - 2 * sum(coefficient * xty) +
     as.numeric(crossprod(coefficient, xtx %*% coefficient))
   sigma2 <- residual_ss / (n - p)
-  names(coefficient) <- c("(Intercept)", maps$predictor_names)
+  names(coefficient) <- c("(Intercept)", layers$predictor_names)
   result <- list(
     coefficients = coefficient,
     covariance = sigma2 * solve(xtx),
     sigma = sqrt(sigma2),
     n = n,
     df_residual = n - p,
-    response = maps$response_name,
-    predictors = maps$predictor_names,
-    domain_hash = ngeo_domain_hash(x),
+    response = layers$response_name,
+    predictors = layers$predictor_names,
+    base_hash = base_hash(x),
     method = "chunked sufficient statistics"
   )
   class(result) <- "ngeo_stream_lm"
@@ -173,27 +173,27 @@ ngeo_stream_lm <- function(
 #' Compute Moran's I without materializing a delayed values block
 #'
 #' @param x An `ngeo` dataset.
-#' @param weights Matching `ngeo_weights`.
+#' @param spatial_weights Matching `ngeo_spatial_weights`.
 #' @param map One numeric map.
 #' @param chunk_size Row chunk size.
 #'
 #' @return An `ngeo_stream_moran`.
 #' @export
-ngeo_stream_moran <- function(x, weights, map = 1L, chunk_size = 65536L) {
+ngeo_stream_moran <- function(x, spatial_weights, map = 1L, chunk_size = 65536L) {
   ngeo_validate(x, "strict")
-  if (!inherits(weights, "ngeo_weights") ||
-      !identical(weights$domain_hash, ngeo_domain_hash(x))) {
-    .ngeo_abort("Streaming Moran weights do not match the domain.",
-                "ngeo_error_domain_mismatch")
+  if (!inherits(spatial_weights, "ngeo_spatial_weights") ||
+      !identical(spatial_weights$base_hash, base_hash(x))) {
+    .ngeo_abort("Streaming Moran spatial_weights do not match the base.",
+                "ngeo_error_base_mismatch")
   }
-  map <- .ngeo_map_selection(x, map)
+  map <- .ngeo_layer_selection(x, map)
   if (length(map) != 1L) {
     .ngeo_abort("Select one map.", "ngeo_error_argument")
   }
   summary <- ngeo_stream_summary(x, map, chunk_size)
   center <- summary$mean[[1L]]
   denominator <- (summary$n[[1L]] - 1L) * summary$variance[[1L]]
-  matrix <- weights$matrix
+  matrix <- spatial_weights$matrix
   numerator <- 0
   row_start <- seq.int(1L, nrow(matrix), by = chunk_size)
   for (start in row_start) {
@@ -212,10 +212,10 @@ ngeo_stream_moran <- function(x, weights, map = 1L, chunk_size = 65536L) {
   estimate <- nrow(matrix) / sum(matrix) * numerator / denominator
   result <- list(
     estimate = estimate,
-    map = x$maps$name[[map]],
+    map = x$layers$name[[map]],
     n = nrow(matrix),
-    weights_method = weights$method,
-    domain_hash = ngeo_domain_hash(x),
+    weights_method = spatial_weights$method,
+    base_hash = base_hash(x),
     chunk_size = chunk_size,
     materialized_values = FALSE
   )

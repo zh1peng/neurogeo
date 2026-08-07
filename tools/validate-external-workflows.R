@@ -40,10 +40,10 @@ nifti_path <- system.file(
 nifti <- read_ngeo_nifti(
   nifti_path,
   mask = "nonzero",
-  measures = ngeo_measure(spatial_semantics = "intensive"),
+  measures = ngeo_measure(support_behavior = "intensive"),
   checksum = TRUE
 )
-nifti_weights <- ngeo_weights(
+nifti_weights <- ngeo_spatial_weights(
   nifti,
   method = "voxel_contiguity",
   connectivity = 6L,
@@ -73,10 +73,10 @@ cifti_surfaces <- c(
 cifti <- read_ngeo_cifti(
   cifti_path,
   surfaces = cifti_surfaces,
-  measures = ngeo_measure(spatial_semantics = "intensive"),
+  measures = ngeo_measure(support_behavior = "intensive"),
   checksum = TRUE
 )
-cifti_weights <- ngeo_weights(
+cifti_weights <- ngeo_spatial_weights(
   cifti,
   method = "component_contiguity",
   style = "W"
@@ -110,11 +110,11 @@ result <- list(
       ),
       source_file = basename(nifti_path),
       source_md5 = unname(tools::md5sum(nifti_path)),
-      domain = ngeo_domain_type(nifti),
-      elements = nrow(ngeo_elements(nifti)),
-      maps = nrow(ngeo_maps(nifti)),
+      base = base_type(nifti),
+      elements = nrow(base_elements(nifti)),
+      layers = nrow(layers(nifti)),
       weights_nonzero = length(nifti_weights$matrix@x),
-      domain_hash = ngeo_domain_hash(nifti),
+      base_hash = base_hash(nifti),
       moran_i = nifti_moran$estimate,
       validation = "passed"
     ),
@@ -126,15 +126,15 @@ result <- list(
       source_file = basename(cifti_path),
       source_md5 = unname(tools::md5sum(cifti_path)),
       surface_files = basename(cifti_surfaces),
-      domain = ngeo_domain_type(cifti),
-      elements = nrow(ngeo_elements(cifti)),
+      base = base_type(cifti),
+      elements = nrow(base_elements(cifti)),
       components = vapply(
-        cifti$domain$components,
+        cifti$base$geometry$components,
         function(component) component$component_id,
         character(1)
       ),
       weights_nonzero = length(cifti_weights$matrix@x),
-      domain_hash = ngeo_domain_hash(cifti),
+      base_hash = base_hash(cifti),
       moran_i = cifti_moran$estimate,
       validation = "passed"
     )

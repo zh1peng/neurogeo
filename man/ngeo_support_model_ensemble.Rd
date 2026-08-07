@@ -4,12 +4,12 @@
 \alias{ngeo_support_model_ensemble}
 \title{Combine model effects across declared supports}
 \usage{
-ngeo_support_model_ensemble(fits, weights = NULL, level = 0.95)
+ngeo_support_model_ensemble(fits, spatial_weights = NULL, level = 0.95)
 }
 \arguments{
 \item{fits}{Model fits with coefficient standard errors.}
 
-\item{weights}{Optional non-negative support-family weights.}
+\item{spatial_weights}{Optional non-negative support-family spatial_weights.}
 
 \item{level}{Interval level.}
 }

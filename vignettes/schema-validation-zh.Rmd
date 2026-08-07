@@ -14,18 +14,18 @@ library(neurogeo)
 
 ## 基础背景
 
-Schema validation 检查对象是否满足其声明的结构契约，包括 domain 类型、
-element/value alignment、measurement metadata、space identity，以及 topology
+Schema validation 检查对象是否满足其声明的结构契约，包括 base 类型、
+element/value alignment、measurement metadata、coordinate_space identity，以及 topology
 和 map 的内部一致性。它不能证明研究设计正确，但能阻止结构错误进入统计计算。
 
 ## 验证对象
 
 ```{r}
-x <- ngeo_points(
+x <- ngeo_point(
   cbind(x = c(0, 1, 0), y = c(0, 0, 1)),
   values = cbind(signal = c(1, 2, 3)),
-  measures = ngeo_measure(spatial_semantics = "intensive"),
-  space = ngeo_space("reference-points", kind = "unknown")
+  measures = ngeo_measure(support_behavior = "intensive"),
+  coordinate_space = ngeo_coordinate_space("reference-points", kind = "unknown")
 )
 ngeo_validate(x)
 ```
@@ -52,5 +52,5 @@ restored <- read_ngeo_manifest(output$path)
 ngeo_validate_manifest(restored, x)
 ```
 
-如果 domain、元素顺序、metadata 或文件身份发生改变，原 manifest 不应继续
+如果 base、元素顺序、metadata 或文件身份发生改变，原 manifest 不应继续
 被视为同一对象的证明。

@@ -7,7 +7,7 @@
 ngeo_file_values(
   path,
   dim,
-  map_names,
+  layer_names,
   format,
   selection,
   binary,
@@ -21,7 +21,7 @@ ngeo_file_values(
 
 \item{dim}{Selected element-by-map dimensions.}
 
-\item{map_names}{Selected map names.}
+\item{layer_names}{Selected map names.}
 
 \item{format}{NIfTI, CIFTI, MGH, or MGZ.}
 

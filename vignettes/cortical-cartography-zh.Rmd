@@ -30,7 +30,7 @@ flatmap_figure <- function(name, alt) {
 式的固定 atlas 模板，也不是用几个三角形代替大脑的演示图。
 
 下面两幅图由 `tools/run-flatmap-431-validation.R` 使用 HCP S1200 Conte69
-32k 左右半球 flat surface 生成。第一幅叠加连续 vertex metric；第二幅叠加
+32k 左右半球 flat surface 生成。第一幅叠加连续 vertex distance_method；第二幅叠加
 Schaefer 2018 分区聚合得到的 7 个网络。灰度层来自源表面的几何曲率诊断，
 用于显示沟回结构。
 
@@ -71,7 +71,7 @@ face；这种经过验证的 `face_subset` 是允许的。无法映射的 triang
 
 ## 读取并绑定真实 surface
 
-下面以单个半球为例。路径替换成自己的 GIFTI 文件。`metric.shape.gii` 可以
+下面以单个半球为例。路径替换成自己的 GIFTI 文件。`distance_method.shape.gii` 可以
 是 thickness、myelin、统计量或其他连续 vertex 数据，`sulc.shape.gii` 用作
 灰度解剖底图。
 
@@ -79,7 +79,7 @@ face；这种经过验证的 `face_subset` 是允许的。无法映射的 triang
 source_surface <- read_ngeo_gifti(
   geometry = "S1200.L.midthickness_MSMAll.32k_fs_LR.surf.gii",
   data = c(
-    metric = "metric.shape.gii",
+    distance_method = "distance_method.shape.gii",
     sulc = "sulc.shape.gii",
     atlasroi = "L.atlasroi.32k_fs_LR.shape.gii"
   ),
@@ -101,7 +101,7 @@ left <- ngeo_flatten_surface(
   name = "flat"
 )
 
-left$domain$charts$flat$invariants[
+left$base$charts$flat$invariants[
   c("topology_verified", "topology_relation")
 ]
 ```
@@ -118,7 +118,7 @@ left$domain$charts$flat$invariants[
 ```{r continuous-map, eval=FALSE}
 continuous_map <- ngeo_cortical_map(
   left,
-  map = "metric",
+  map = "distance_method",
   chart = "flat",
   atlas = "schaefer100",
   mask = left$values[, "atlasroi"] > 0,
@@ -200,7 +200,7 @@ network_map <- ngeo_cortical_map(
 
 ## 左右半球与交换数据
 
-左右半球分别构造 map，再排列到同一画布。排版不会合并两个 domain：
+左右半球分别构造 map，再排列到同一画布。排版不会合并两个 base：
 
 ```{r bilateral, eval=FALSE}
 bilateral <- ngeo_cortical_layout(
@@ -220,11 +220,11 @@ plot_data <- ngeo_cortical_map_data(atlas_map)
 names(plot_data)
 # vertices, faces, boundaries, outline, label_positions, legend, metadata
 
-head(plot_data$faces[
+head(plot_data$geometry$faces[
   c("source_face", "underlay_value", "value", "included")
 ])
 plot_data$metadata$chart_metadata$invariants$source_face_in_chart
-plot_data$metadata$provenance
+plot_data$metadata$history
 ```
 
 ## 科学边界
@@ -232,7 +232,7 @@ plot_data$metadata$provenance
 本模块不执行 surface reconstruction、自动 cutting、registration、
 resampling、统计推断或 QC。PCA/正交投影只适合查看，不是皮层展开。
 正式结果应记录源表面、flat chart 来源、vertex/face 对齐验证、mask、底图、
-atlas、颜色范围和 provenance。
+atlas、颜色范围和 history。
 
 本教程的验证数据受
 [HCP Open Access Data Use Terms](https://www.humanconnectome.org/study/hcp-young-adult/document/wu-minn-hcp-consortium-open-access-data-use-terms)

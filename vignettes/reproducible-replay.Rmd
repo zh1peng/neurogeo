@@ -24,7 +24,7 @@ functions or arbitrary code.
 ```{r}
 library(neurogeo)
 
-x <- ngeo_points(
+x <- ngeo_point(
   cbind(x = 1:4, y = 0, z = 0),
   values = cbind(t0 = 1:4, t1 = 2 * (1:4), t2 = 3 * (1:4))
 )
@@ -52,8 +52,8 @@ verified$verified
 
 ## Logical identity
 
-The logical hash covers the ordered domain, aligned values, measurement
-semantics, maps, labels, and file identity. Execution timestamps do not
+The logical hash covers the ordered base, aligned values, measurement
+semantics, layers, labels, and file identity. Execution timestamps do not
 change it. Replay checks the environment and every input, intermediate, and
 final hash before returning verified outputs.
 
@@ -66,10 +66,10 @@ batch <- ngeo_write_artifact_batch(
   "derivatives/neurogeo/sub-01",
   c("sub-01_metric.tsv", "sub-01_metric.json"),
   list(
-    function(path) write.table(metric, path, sep = "\t"),
+    function(path) write.table(distance_method, path, sep = "\t"),
     function(path) jsonlite::write_json(sidecar, path)
   ),
-  roles = c("metric", "sidecar"),
+  roles = c("distance_method", "sidecar"),
   entities = list(subject = "01", datatype = "anat")
 )
 ngeo_read_artifact_batch("derivatives/neurogeo/sub-01")

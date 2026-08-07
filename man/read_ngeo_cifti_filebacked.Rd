@@ -10,9 +10,9 @@ read_ngeo_cifti_filebacked(
   frames = NULL,
   structures = NULL,
   elements = NULL,
-  maps = NULL,
+  layers = NULL,
   measures = NULL,
-  space = NULL,
+  coordinate_space = NULL,
   strict = TRUE,
   checksum = TRUE,
   verify = c("checksum", "metadata", "none"),
@@ -31,11 +31,11 @@ read_ngeo_cifti_filebacked(
 \item{elements}{Optional one-based grayordinate selection after structure
 filtering.}
 
-\item{maps}{Optional map metadata overriding the file metadata.}
+\item{layers}{Optional map metadata overriding the file metadata.}
 
 \item{measures}{Optional measurement semantics.}
 
-\item{space}{Optional hybrid `ngeo_space`.}
+\item{coordinate_space}{Optional hybrid `ngeo_coordinate_space`.}
 
 \item{strict}{Whether to run strict validation.}
 
@@ -46,7 +46,7 @@ filtering.}
 \item{budget}{Resource limits for materialized value blocks.}
 }
 \value{
-An `ngeo_grayordinates` with `ngeo_file_values`.
+An `ngeo_grayordinate` with `ngeo_file_values`.
 }
 \description{
 Read CIFTI using a verified file-backed values block

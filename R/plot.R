@@ -2,7 +2,7 @@
   if (is.null(x$values)) {
     return(list(values = NULL, name = "geometry"))
   }
-  index <- .ngeo_map_selection(x, map)
+  index <- .ngeo_layer_selection(x, map)
   if (length(index) != 1L) {
     .ngeo_abort(
       "`map` must select exactly one map for plotting.",
@@ -11,7 +11,7 @@
   }
   list(
     values = as.numeric(x$values[, index]),
-    name = x$maps$name[[index]]
+    name = x$layers$name[[index]]
   )
 }
 
@@ -38,14 +38,14 @@
 }
 
 .ngeo_plot_surface_coordinates <- function(x, chart) {
-  chart_names <- x$domain$coordinate_meta$name[
-    x$domain$coordinate_meta$role == "chart"
+  chart_names <- x$base$geometry$coordinate_meta$name[
+    x$base$geometry$coordinate_meta$role == "chart"
   ]
   if (!is.null(chart) || length(chart_names)) {
     selected <- chart %||% chart_names[[1L]]
     return(.ngeo_chart_coordinates(x, selected)$coordinates)
   }
-  coordinates <- x$domain$coordinates[[x$domain$active_coordinates]]
+  coordinates <- x$base$geometry$coordinates[[x$base$geometry$active_coordinates]]
   if (ncol(coordinates) == 3L) {
     .ngeo_warn(
       "No chart is available; the surface diagnostic uses an XY projection.",
@@ -73,8 +73,8 @@
     main = map_data$name,
     ...
   )
-  if (isTRUE(show_edges) && nrow(x$domain$faces)) {
-    edges <- .ngeo_surface_edges(x$domain$faces)
+  if (isTRUE(show_edges) && nrow(x$base$geometry$faces)) {
+    edges <- .ngeo_surface_edges(x$base$geometry$faces)
     maximum <- getOption("neurogeo.max_plot_edges", 500000L)
     if (nrow(edges) > maximum) {
       .ngeo_abort(
@@ -102,11 +102,11 @@
 .ngeo_plot_volume <- function(x, map, slice, palette, ...) {
   map_data <- .ngeo_plot_map(x, map)
   if (is.null(map_data$values)) {
-    values <- rep.int(1, nrow(x$domain$elements))
+    values <- rep.int(1, nrow(x$base$elements))
   } else {
     values <- map_data$values
   }
-  index <- x$domain$voxel_index
+  index <- x$base$geometry$voxel_index
   available <- sort(unique(index[, 3L]))
   slice <- slice %||% available[[ceiling(length(available) / 2)]]
   if (!is.numeric(slice) || length(slice) != 1L ||
@@ -119,8 +119,8 @@
   }
   image <- matrix(
     NA_real_,
-    nrow = x$domain$dim[[1L]],
-    ncol = x$domain$dim[[2L]]
+    nrow = x$base$geometry$dim[[1L]],
+    ncol = x$base$geometry$dim[[2L]]
   )
   selected <- which(index[, 3L] == slice)
   image[cbind(index[selected, 1L], index[selected, 2L])] <- values[selected]
@@ -138,10 +138,10 @@
 }
 
 .ngeo_plot_points <- function(x, map, palette, ...) {
-  coordinates <- x$domain$coordinates
+  coordinates <- x$base$geometry$coordinates
   if (ncol(coordinates) == 3L) {
     .ngeo_warn(
-      "The points diagnostic uses an XY projection.",
+      "The point diagnostic uses an XY projection.",
       "ngeo_warning_plot_projection"
     )
   }
@@ -160,7 +160,7 @@
 
 .ngeo_plot_grayordinates <- function(x, map, palette, ...) {
   map_data <- .ngeo_plot_map(x, map)
-  values <- map_data$values %||% rep.int(1, nrow(x$domain$elements))
+  values <- map_data$values %||% rep.int(1, nrow(x$base$elements))
   colors <- .ngeo_plot_colors(values, palette)
   graphics::plot(
     seq_along(values),
@@ -174,7 +174,7 @@
     ...
   )
   boundaries <- cumsum(vapply(
-    x$domain$components,
+    x$base$geometry$components,
     function(component) as.integer(component$n_element),
     integer(1)
   ))
@@ -185,8 +185,8 @@
 
 .ngeo_plot_regions <- function(x, map, palette, ...) {
   map_data <- .ngeo_plot_map(x, map)
-  if (!is.null(x$domain$centroid)) {
-    coordinates <- x$domain$centroid
+  if (!is.null(x$base$geometry$centroid)) {
+    coordinates <- x$base$geometry$centroid
     if (ncol(coordinates) == 3L) {
       .ngeo_warn(
         "The region diagnostic uses an XY centroid projection.",
@@ -204,13 +204,13 @@
       ...
     )
   } else {
-    values <- map_data$values %||% x$domain$support_size
+    values <- map_data$values %||% x$base$geometry$support_size
     if (is.null(values) || !any(is.finite(values))) {
-      values <- rep.int(1, nrow(x$domain$elements))
+      values <- rep.int(1, nrow(x$base$elements))
     }
     graphics::barplot(
       values,
-      names.arg = x$domain$elements$region_id,
+      names.arg = x$base$elements$region_id,
       ylab = map_data$name,
       main = map_data$name,
       ...
@@ -239,26 +239,26 @@ plot.ngeo <- function(x,
                       ...) {
   ngeo_validate(x, "basic")
   switch(
-    x$domain$type,
+    x$base$type,
     surface = .ngeo_plot_surface(
       x, map, chart, palette, show_edges, ...
     ),
     volume = .ngeo_plot_volume(x, map, slice, palette, ...),
-    points = .ngeo_plot_points(x, map, palette, ...),
-    grayordinates = .ngeo_plot_grayordinates(x, map, palette, ...),
-    regions = .ngeo_plot_regions(x, map, palette, ...)
+    point = .ngeo_plot_points(x, map, palette, ...),
+    grayordinate = .ngeo_plot_grayordinates(x, map, palette, ...),
+    parcellation = .ngeo_plot_regions(x, map, palette, ...)
   )
   invisible(x)
 }
 
-#' Plot a spatial weights diagnostic
+#' Plot a spatial spatial_weights diagnostic
 #'
-#' @param x An `ngeo_weights`.
+#' @param x An `ngeo_spatial_weights`.
 #' @param ... Additional histogram arguments.
 #'
 #' @return `x`, invisibly.
 #' @export
-plot.ngeo_weights <- function(x, ...) {
+plot.ngeo_spatial_weights <- function(x, ...) {
   degree <- Matrix::rowSums(x$raw_matrix != 0)
   graphics::hist(
     degree,
@@ -279,7 +279,7 @@ plot.ngeo_weights <- function(x, ...) {
 #' @export
 plot.ngeo_partition <- function(x, ...) {
   counts <- table(
-    factor(x$membership, levels = x$regions$region_id),
+    factor(x$membership, levels = x$parcellation$region_id),
     useNA = "no"
   )
   graphics::barplot(

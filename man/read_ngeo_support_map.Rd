@@ -10,7 +10,7 @@ read_ngeo_support_map(path)
 \item{path}{Exchange prefix or JSON sidecar path.}
 }
 \value{
-An `ngeo_support_map` bound to the stored ordered domain IDs.
+An `ngeo_support_map` bound to the stored ordered base IDs.
 }
 \description{
 Read a Matrix Market plus JSON support map

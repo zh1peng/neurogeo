@@ -37,7 +37,7 @@ make_features <- function(values, ids, support_id, scale_type = "rank_matched",
     units = data.frame(unit_id = ids, stringsAsFactors = FALSE),
     endpoints = endpoints,
     diagnostics = list(boundary_sensitivity = boundary),
-    provenance = list(support_hash = support_hash)
+    history = list(support_hash = support_hash)
   ), class = "ngeo_subject_features")
 }
 

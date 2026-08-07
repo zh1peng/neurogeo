@@ -2,33 +2,33 @@
 % Please edit documentation in R/class-ngeo.R
 \name{ngeo_accessors}
 \alias{ngeo_accessors}
-\alias{ngeo_domain}
-\alias{ngeo_elements}
-\alias{ngeo_values}
-\alias{ngeo_maps}
-\alias{ngeo_measures}
+\alias{spatial_base}
+\alias{base_elements}
+\alias{values}
+\alias{layers}
+\alias{measures}
 \alias{ngeo_labels}
-\alias{ngeo_provenance}
+\alias{history}
 \title{Access core NGCS fields}
 \usage{
-ngeo_domain(x)
+spatial_base(x)
 
-ngeo_elements(x)
+base_elements(x)
 
-ngeo_values(x, maps = NULL)
+values(x, layers = NULL)
 
-ngeo_maps(x)
+layers(x)
 
-ngeo_measures(x)
+measures(x)
 
 ngeo_labels(x)
 
-ngeo_provenance(x)
+history(x)
 }
 \arguments{
 \item{x}{An `ngeo` object.}
 
-\item{maps}{Optional map selection for `ngeo_values()`.}
+\item{layers}{Optional map selection for `values()`.}
 }
 \value{
 The requested field.

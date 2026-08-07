@@ -2,7 +2,7 @@
 % Please edit documentation in R/cortical-cartography.R
 \name{ngeo_cortical_layout}
 \alias{ngeo_cortical_layout}
-\title{Combine cortical maps into an auditable panel layout}
+\title{Combine cortical layers into an auditable panel layout}
 \usage{
 ngeo_cortical_layout(..., ncol = NULL, labels = NULL, shared_scale = FALSE)
 }
@@ -14,12 +14,12 @@ ngeo_cortical_layout(..., ncol = NULL, labels = NULL, shared_scale = FALSE)
 \item{labels}{Optional panel labels.}
 
 \item{shared_scale}{Whether every panel must use one continuous scale or
-one categorical color contract and one legend. Categorical maps with
+one categorical color contract and one legend. Categorical layers with
 conflicting colors for the same label are rejected.}
 }
 \value{
 An `ngeo_cortical_layout`.
 }
 \description{
-Combine cortical maps into an auditable panel layout
+Combine cortical layers into an auditable panel layout
 }

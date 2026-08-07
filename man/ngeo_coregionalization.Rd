@@ -6,10 +6,10 @@
 \usage{
 ngeo_coregionalization(
   x,
-  maps,
+  layers,
   pair_sample,
   breaks = 10L,
-  metric = NULL,
+  distance_method = NULL,
   model = c("Exp", "Sph", "Gau"),
   range,
   nugget = 0,
@@ -17,15 +17,15 @@ ngeo_coregionalization(
 )
 }
 \arguments{
-\item{x}{An `ngeo` points or regions dataset.}
+\item{x}{An `ngeo` point or parcellation dataset.}
 
-\item{maps}{Two or more continuous map selectors.}
+\item{layers}{Two or more continuous map selectors.}
 
 \item{pair_sample}{Number of unordered element pairs sampled explicitly.}
 
 \item{breaks}{Number of distance bins or explicit boundaries.}
 
-\item{metric}{Explicit NGCS metric.}
+\item{distance_method}{Explicit NGCS distance_method.}
 
 \item{model}{A `gstat` variogram model name.}
 

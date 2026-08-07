@@ -1,10 +1,10 @@
 .ngeo_element_selection <- function(x, elements) {
-  n <- nrow(x$domain$elements)
+  n <- nrow(x$base$elements)
   if (is.null(elements)) {
     return(seq_len(n))
   }
   if (is.character(elements)) {
-    index <- match(elements, x$domain$elements$element_id)
+    index <- match(elements, x$base$elements$element_id)
     if (anyNA(index)) {
       missing <- unique(elements[is.na(index)])
       .ngeo_abort(
@@ -34,7 +34,7 @@
   }
   if (!length(index)) {
     .ngeo_abort(
-      "An `ngeo` domain cannot be subset to zero elements.",
+      "An `ngeo` base cannot be subset to zero elements.",
       "ngeo_error_index"
     )
   }
@@ -47,40 +47,40 @@
   as.integer(index)
 }
 
-.ngeo_map_selection <- function(x, maps) {
-  n <- nrow(x$maps)
-  if (is.null(maps)) {
+.ngeo_layer_selection <- function(x, layers) {
+  n <- nrow(x$layers)
+  if (is.null(layers)) {
     return(seq_len(n))
   }
   if (n == 0L) {
     .ngeo_abort(
-      "Cannot select maps from a geometry-only object.",
+      "Cannot select layers from a geometry-only object.",
       "ngeo_error_index"
     )
   }
-  if (is.character(maps)) {
-    id_match <- match(maps, x$maps$map_id)
-    name_match <- match(maps, x$maps$name)
+  if (is.character(layers)) {
+    id_match <- match(layers, x$layers$layer_id)
+    name_match <- match(layers, x$layers$name)
     index <- ifelse(!is.na(id_match), id_match, name_match)
     if (anyNA(index)) {
       .ngeo_abort(
         sprintf(
-          "Unknown maps: %s.",
-          paste(unique(maps[is.na(index)]), collapse = ", ")
+          "Unknown layers: %s.",
+          paste(unique(layers[is.na(index)]), collapse = ", ")
         ),
         "ngeo_error_index"
       )
     }
-  } else if (is.logical(maps)) {
-    if (length(maps) != n || anyNA(maps)) {
+  } else if (is.logical(layers)) {
+    if (length(layers) != n || anyNA(layers)) {
       .ngeo_abort(
         sprintf("Logical map selection must have length %d.", n),
         "ngeo_error_index"
       )
     }
-    index <- which(maps)
+    index <- which(layers)
   } else {
-    index <- .ngeo_as_integer(maps, "maps")
+    index <- .ngeo_as_integer(layers, "layers")
     if (any(index < 1L | index > n)) {
       .ngeo_abort(
         sprintf("Map positions must be between 1 and %d.", n),
@@ -97,11 +97,11 @@
   as.integer(index)
 }
 
-.ngeo_subset_surface_domain <- function(domain, index) {
-  old_n <- nrow(domain$elements)
+.ngeo_subset_surface_base <- function(base, index) {
+  old_n <- nrow(base$elements)
   old_to_new <- integer(old_n)
   old_to_new[index] <- seq_along(index)
-  faces <- domain$faces
+  faces <- base$geometry$faces
   keep <- if (nrow(faces)) {
     rowSums(matrix(old_to_new[faces] > 0L, ncol = 3L)) == 3L
   } else {
@@ -113,46 +113,46 @@
     matrix(integer(), nrow = 0L, ncol = 3L)
   }
 
-  domain$elements <- domain$elements[index, , drop = FALSE]
-  rownames(domain$elements) <- NULL
-  domain$coordinates <- lapply(
-    domain$coordinates,
+  base$elements <- base$elements[index, , drop = FALSE]
+  rownames(base$elements) <- NULL
+  base$geometry$coordinates <- lapply(
+    base$geometry$coordinates,
     function(value) value[index, , drop = FALSE]
   )
-  domain$faces <- new_faces
-  domain$mask <- domain$mask[index]
-  domain
+  base$geometry$faces <- new_faces
+  base$geometry$mask <- base$geometry$mask[index]
+  base
 }
 
-.ngeo_subset_volume_domain <- function(domain, index) {
-  domain$elements <- domain$elements[index, , drop = FALSE]
-  rownames(domain$elements) <- NULL
-  domain$voxel_index <- domain$voxel_index[index, , drop = FALSE]
-  domain$source_voxel_index <-
-    domain$source_voxel_index[index, , drop = FALSE]
+.ngeo_subset_volume_base <- function(base, index) {
+  base$elements <- base$elements[index, , drop = FALSE]
+  rownames(base$elements) <- NULL
+  base$geometry$voxel_index <- base$geometry$voxel_index[index, , drop = FALSE]
+  base$geometry$source_voxel_index <-
+    base$geometry$source_voxel_index[index, , drop = FALSE]
 
   linear <- 1L +
-    (domain$voxel_index[, 1L] - 1L) +
-    domain$dim[1L] * (domain$voxel_index[, 2L] - 1L) +
-    domain$dim[1L] * domain$dim[2L] *
-      (domain$voxel_index[, 3L] - 1L)
-  domain$mask <- rep.int(FALSE, prod(domain$dim))
-  domain$mask[linear] <- TRUE
-  domain
+    (base$geometry$voxel_index[, 1L] - 1L) +
+    base$geometry$dim[1L] * (base$geometry$voxel_index[, 2L] - 1L) +
+    base$geometry$dim[1L] * base$geometry$dim[2L] *
+      (base$geometry$voxel_index[, 3L] - 1L)
+  base$geometry$mask <- rep.int(FALSE, prod(base$geometry$dim))
+  base$geometry$mask[linear] <- TRUE
+  base
 }
 
-.ngeo_subset_points_domain <- function(domain, index) {
-  domain$elements <- domain$elements[index, , drop = FALSE]
-  rownames(domain$elements) <- NULL
-  domain$coordinates <- domain$coordinates[index, , drop = FALSE]
-  if (!is.null(domain$uncertainty)) {
-    domain$uncertainty <- domain$uncertainty[index]
+.ngeo_subset_point_base <- function(base, index) {
+  base$elements <- base$elements[index, , drop = FALSE]
+  rownames(base$elements) <- NULL
+  base$geometry$coordinates <- base$geometry$coordinates[index, , drop = FALSE]
+  if (!is.null(base$geometry$uncertainty)) {
+    base$geometry$uncertainty <- base$geometry$uncertainty[index]
   }
-  domain
+  base
 }
 
-.ngeo_subset_grayordinates_domain <- function(domain, index) {
-  components <- lapply(domain$components, function(component) {
+.ngeo_subset_grayordinate_base <- function(base, index) {
+  components <- lapply(base$geometry$components, function(component) {
     new_rows <- which(index %in% component$global_rows)
     if (!length(new_rows)) {
       return(NULL)
@@ -178,56 +178,56 @@
     "component_id"
   )
 
-  domain$elements <- domain$elements[index, , drop = FALSE]
-  rownames(domain$elements) <- NULL
-  domain$elements$component_index <- ave(
-    seq_len(nrow(domain$elements)),
-    domain$elements$component_id,
+  base$elements <- base$elements[index, , drop = FALSE]
+  rownames(base$elements) <- NULL
+  base$elements$component_index <- ave(
+    seq_len(nrow(base$elements)),
+    base$elements$component_id,
     FUN = seq_along
   )
-  domain$components <- components
-  domain
+  base$geometry$components <- components
+  base
 }
 
-.ngeo_subset_regions_domain <- function(domain, index) {
-  old_elements <- domain$elements
-  domain$elements <- old_elements[index, , drop = FALSE]
-  rownames(domain$elements) <- NULL
-  if (!is.null(domain$centroid)) {
-    domain$centroid <- domain$centroid[index, , drop = FALSE]
+.ngeo_subset_parcellation_base <- function(base, index) {
+  old_elements <- base$elements
+  base$elements <- old_elements[index, , drop = FALSE]
+  rownames(base$elements) <- NULL
+  if (!is.null(base$geometry$centroid)) {
+    base$geometry$centroid <- base$geometry$centroid[index, , drop = FALSE]
   }
-  domain$support_size <- domain$support_size[index]
-  if (!is.null(domain$adjacency)) {
-    domain$adjacency <- domain$adjacency[index, index, drop = FALSE]
+  base$geometry$support_size <- base$geometry$support_size[index]
+  if (!is.null(base$topology$adjacency)) {
+    base$topology$adjacency <- base$topology$adjacency[index, index, drop = FALSE]
   }
-  if (!is.null(domain$membership)) {
-    if (is.matrix(domain$membership) ||
-        inherits(domain$membership, "Matrix")) {
-      if (ncol(domain$membership) == nrow(old_elements)) {
-        domain$membership <-
-          domain$membership[, index, drop = FALSE]
+  if (!is.null(base$geometry$membership)) {
+    if (is.matrix(base$geometry$membership) ||
+        inherits(base$geometry$membership, "Matrix")) {
+      if (ncol(base$geometry$membership) == nrow(old_elements)) {
+        base$geometry$membership <-
+          base$geometry$membership[, index, drop = FALSE]
       }
     } else {
       selected_ids <- as.character(old_elements$region_id[index])
-      member <- as.character(domain$membership)
+      member <- as.character(base$geometry$membership)
       member[!is.na(member) & !member %in% selected_ids] <- NA_character_
-      domain$membership <- member
+      base$geometry$membership <- member
     }
   }
-  domain
+  base
 }
 
-.ngeo_subset_domain <- function(domain, index) {
+.ngeo_subset_base <- function(base, index) {
   switch(
-    domain$type,
-    surface = .ngeo_subset_surface_domain(domain, index),
-    volume = .ngeo_subset_volume_domain(domain, index),
-    points = .ngeo_subset_points_domain(domain, index),
-    grayordinates = .ngeo_subset_grayordinates_domain(domain, index),
-    regions = .ngeo_subset_regions_domain(domain, index),
+    base$type,
+    surface = .ngeo_subset_surface_base(base, index),
+    volume = .ngeo_subset_volume_base(base, index),
+    point = .ngeo_subset_point_base(base, index),
+    grayordinate = .ngeo_subset_grayordinate_base(base, index),
+    parcellation = .ngeo_subset_parcellation_base(base, index),
     .ngeo_abort(
-      sprintf("Unsupported domain type `%s`.", domain$type),
-      "ngeo_error_domain"
+      sprintf("Unsupported base type `%s`.", base$type),
+      "ngeo_error_base"
     )
   )
 }
@@ -240,57 +240,61 @@
 #'
 #' @param x An `ngeo` object.
 #' @param elements Element positions, stable element IDs, or a logical mask.
-#' @param maps Map positions, map IDs/names, or a logical mask.
+#' @param layers Map positions, map IDs/names, or a logical mask.
 #'
 #' @return An object of the same `ngeo` subclass.
 #' @examples
-#' points <- ngeo_points(
+#' point <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
 #'   values = cbind(first = 1:4, second = 5:8)
 #' )
-#' subset <- ngeo_subset(points, elements = c(1, 3), maps = "second")
-#' ngeo_elements(subset)
-#' ngeo_values(subset)
+#' subset <- ngeo_subset(point, elements = c(1, 3), layers = "second")
+#' base_elements(subset)
+#' values(subset)
 #' @export
-ngeo_subset <- function(x, elements = NULL, maps = NULL) {
+ngeo_subset <- function(x, elements = NULL, layers = NULL) {
   ngeo_validate(x, "basic")
   element_index <- .ngeo_element_selection(x, elements)
-  map_index <- .ngeo_map_selection(x, maps)
-  old_hash <- ngeo_domain_hash(x)
+  layer_index <- .ngeo_layer_selection(x, layers)
+  old_hash <- base_hash(x)
 
-  domain <- .ngeo_subset_domain(x$domain, element_index)
+  base <- .ngeo_subset_base(x$base, element_index)
   values <- if (is.null(x$values)) {
     NULL
   } else {
-    x$values[element_index, map_index, drop = FALSE]
+    x$values[element_index, layer_index, drop = FALSE]
   }
-  map_metadata <- x$maps[map_index, , drop = FALSE]
-  measure_metadata <- x$measures[map_index, , drop = FALSE]
-  rownames(map_metadata) <- NULL
+  layer_metadata <- x$layers[layer_index, , drop = FALSE]
+  measure_ids <- unique(layer_metadata$measure_id)
+  measure_metadata <- x$measures[
+    match(measure_ids, x$measures$measure_id),
+    ,
+    drop = FALSE
+  ]
+  rownames(layer_metadata) <- NULL
   rownames(measure_metadata) <- NULL
 
   result <- base::structure(
     list(
-      domain = domain,
+      base = base,
       values = values,
-      maps = map_metadata,
+      layers = layer_metadata,
       measures = measure_metadata,
-      labels = x$labels,
-      provenance = x$provenance
+      history = x$history
     ),
     class = class(x)
   )
-  result$provenance$operations <- c(
-    result$provenance$operations %||% list(),
+  result$history$operations <- c(
+    result$history$operations %||% list(),
     list(.ngeo_operation(
       "ngeo_subset",
       list(
-        source_domain_hash = old_hash,
-        result_domain_hash = ngeo_domain_hash(result),
-        source_elements = nrow(x$domain$elements),
+        source_base_hash = old_hash,
+        result_base_hash = base_hash(result),
+        source_elements = nrow(x$base$elements),
         result_elements = length(element_index),
-        source_maps = nrow(x$maps),
-        result_maps = length(map_index)
+        source_layers = nrow(x$layers),
+        result_layers = length(layer_index)
       )
     ))
   )

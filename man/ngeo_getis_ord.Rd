@@ -6,7 +6,7 @@
 \usage{
 ngeo_getis_ord(
   x,
-  weights,
+  spatial_weights,
   map = 1L,
   star = TRUE,
   permutations = 0L,
@@ -21,7 +21,7 @@ ngeo_getis_ord(
 \arguments{
 \item{x}{An `ngeo` dataset.}
 
-\item{weights}{Matching `ngeo_weights`.}
+\item{spatial_weights}{Matching `ngeo_spatial_weights`.}
 
 \item{map}{One map name, ID, or index.}
 

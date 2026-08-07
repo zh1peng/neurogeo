@@ -6,7 +6,7 @@
 \usage{
 ngeo_spatial_basis(
   x,
-  weights = NULL,
+  spatial_weights = NULL,
   operator = c("graph_laplacian", "cotangent"),
   coordinates = "active",
   support = c("auto", "identity"),
@@ -20,7 +20,7 @@ ngeo_spatial_basis(
 \arguments{
 \item{x}{An `ngeo` object.}
 
-\item{weights}{Matching symmetric `ngeo_weights`.}
+\item{spatial_weights}{Matching symmetric `ngeo_spatial_weights`.}
 
 \item{operator}{Spatial operator. The cotangent option is reserved for its
 validation gate and is not yet stable.}
@@ -33,7 +33,7 @@ validation gate and is not yet stable.}
 
 \item{components}{Whether disconnected components are separated or rejected.}
 
-\item{symmetrize}{Whether directed raw weights fail or are explicitly
+\item{symmetrize}{Whether directed raw spatial_weights fail or are explicitly
 averaged with their transpose.}
 
 \item{tolerance}{Numerical tolerance.}
@@ -44,7 +44,7 @@ averaged with their transpose.}
 An `ngeo_spatial_basis` with component-local dense mode blocks.
 }
 \description{
-The stable graph-Laplacian path uses symmetric non-negative raw weights and
+The stable graph-Laplacian path uses symmetric non-negative raw spatial_weights and
 solves a component-local generalized eigensystem. Map values, outcomes, and
 group labels are never used.
 }

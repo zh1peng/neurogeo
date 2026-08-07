@@ -3,7 +3,7 @@ validation_grid_42 <- function(size = 5L) {
 }
 
 validation_weights_42 <- function(x, style = "W") {
-  ngeo_weights(
+  ngeo_spatial_weights(
     x,
     method = "distance_band",
     threshold = 1.01,
@@ -17,22 +17,22 @@ test_that("Moran, Geary, and local Moran agree with spdep", {
   signal <- sin(coordinates[, 1L]) +
     0.3 * coordinates[, 2L] +
     cos(coordinates[, 1L] * coordinates[, 2L] / 4)
-  x <- ngeo_points(coordinates, values = cbind(signal = signal))
+  x <- ngeo_point(coordinates, values = cbind(signal = signal))
 
   for (style in c("W", "B")) {
-    weights <- validation_weights_42(x, style)
-    listw <- as_spdep_listw(weights)
+    spatial_weights <- validation_weights_42(x, style)
+    listw <- as_spdep_listw(spatial_weights)
     n <- length(signal)
     s0 <- spdep::Szero(listw)
     expect_equal(
-      ngeo_moran(x, weights)$estimate,
+      ngeo_moran(x, spatial_weights)$estimate,
       spdep::moran(
         signal, listw, n = n, S0 = s0, zero.policy = TRUE
       )$I,
       tolerance = 1e-10
     )
     expect_equal(
-      ngeo_geary(x, weights)$estimate,
+      ngeo_geary(x, spatial_weights)$estimate,
       spdep::geary(
         signal,
         listw,
@@ -45,12 +45,12 @@ test_that("Moran, Geary, and local Moran agree with spdep", {
     )
   }
 
-  weights <- validation_weights_42(x, "W")
+  spatial_weights <- validation_weights_42(x, "W")
   expect_equal(
-    ngeo_local_moran(x, weights)$local_i,
+    ngeo_local_moran(x, spatial_weights)$local_i,
     unname(spdep::localmoran(
       signal,
-      as_spdep_listw(weights),
+      as_spdep_listw(spatial_weights),
       zero.policy = TRUE,
       conditional = TRUE,
       mlvar = TRUE
@@ -62,20 +62,20 @@ test_that("Moran, Geary, and local Moran agree with spdep", {
 test_that("missing values rebuild W normalization on the retained graph", {
   coordinates <- validation_grid_42()
   signal <- sin(seq_len(nrow(coordinates)))
-  complete_data <- ngeo_points(
+  complete_data <- ngeo_point(
     coordinates,
     values = cbind(signal = signal)
   )
-  weights <- validation_weights_42(complete_data, "W")
+  spatial_weights <- validation_weights_42(complete_data, "W")
   signal[[1L]] <- NA_real_
-  missing_data <- ngeo_points(
+  missing_data <- ngeo_point(
     coordinates,
     values = cbind(signal = signal)
   )
 
   input <- neurogeo:::.ngeo_spatial_inputs(
     missing_data,
-    weights,
+    spatial_weights,
     map = 1L,
     na_action = "omit",
     zero_policy = TRUE
@@ -95,7 +95,7 @@ test_that("missing values rebuild W normalization on the retained graph", {
     )) / sum(centered^2)
   observed <- ngeo_moran(
     missing_data,
-    weights,
+    spatial_weights,
     na_action = "omit",
     zero_policy = TRUE
   )
@@ -112,7 +112,7 @@ test_that("isolates, disconnected graphs, and seeds stay explicit", {
     ),
     c(10, 10)
   )
-  isolate_data <- ngeo_points(
+  isolate_data <- ngeo_point(
     isolate_coordinates,
     values = cbind(signal = c(1, 2, 4, 8, 16))
   )
@@ -139,7 +139,7 @@ test_that("isolates, disconnected graphs, and seeds stay explicit", {
       byrow = TRUE
     )
   )
-  disconnected_data <- ngeo_points(
+  disconnected_data <- ngeo_point(
     disconnected_coordinates,
     values = cbind(signal = seq_len(8L))
   )
@@ -175,20 +175,20 @@ test_that("SLX, SAR, and SEM agree with independent references", {
   predictor <- as.numeric(scale(
     sin(coordinates[, 1L]) + 0.2 * coordinates[, 2L]
   ))
-  base <- ngeo_points(
+  base <- ngeo_point(
     coordinates,
     values = cbind(predictor = predictor)
   )
-  weights <- validation_weights_42(base)
-  matrix <- as.matrix(weights$matrix)
+  spatial_weights <- validation_weights_42(base)
+  matrix <- as.matrix(spatial_weights$matrix)
   design <- cbind(1, predictor)
   set.seed(4201)
   error <- stats::rnorm(nrow(coordinates), sd = 0.35)
 
-  lagged <- as.numeric(weights$matrix %*% predictor)
+  lagged <- as.numeric(spatial_weights$matrix %*% predictor)
   slx_response <- 2 + 3 * predictor + 1.5 * lagged +
     0.01 * sin(seq_along(predictor))
-  slx_data <- ngeo_points(
+  slx_data <- ngeo_point(
     coordinates,
     values = cbind(
       response = slx_response,
@@ -199,7 +199,7 @@ test_that("SLX, SAR, and SEM agree with independent references", {
     slx_data,
     "response",
     "predictor",
-    weights,
+    spatial_weights,
     model = "slx"
   )
   slx_reference <- stats::lm.fit(
@@ -223,14 +223,14 @@ test_that("SLX, SAR, and SEM agree with independent references", {
         error
       )
   )
-  sar_data <- ngeo_points(
+  sar_data <- ngeo_point(
     coordinates,
     values = cbind(
       response = sar_response,
       predictor = predictor
     )
   )
-  sem_data <- ngeo_points(
+  sem_data <- ngeo_point(
     coordinates,
     values = cbind(
       response = sem_response,
@@ -241,17 +241,17 @@ test_that("SLX, SAR, and SEM agree with independent references", {
     sar_data,
     "response",
     "predictor",
-    weights,
+    spatial_weights,
     model = "sar"
   )
   sem <- ngeo_spatial_regression(
     sem_data,
     "response",
     "predictor",
-    weights,
+    spatial_weights,
     model = "sem"
   )
-  listw <- as_spdep_listw(weights)
+  listw <- as_spdep_listw(spatial_weights)
   sar_reference <- spatialreg::lagsarlm(
     response ~ predictor,
     data = data.frame(
@@ -322,14 +322,14 @@ test_that("spherical variogram and ordinary kriging agree with gstat", {
     byrow = TRUE
   )
   signal <- sin(coordinates[, 1L]) + cos(coordinates[, 2L])
-  x <- ngeo_points(coordinates, values = cbind(signal = signal))
+  x <- ngeo_point(coordinates, values = cbind(signal = signal))
   parameters <- c(nugget = 0.1, partial_sill = 1.2, range = 3)
   fit <- structure(
     list(
       model = "spherical",
       parameters = parameters,
-      metric = "euclidean",
-      domain_hash = ngeo_domain_hash(x)
+      distance_method = "euclidean",
+      base_hash = base_hash(x)
     ),
     class = "ngeo_variogram_fit"
   )
@@ -366,7 +366,7 @@ test_that("spherical variogram and ordinary kriging agree with gstat", {
     fit,
     targets = cbind(target_2d, 0),
     neighbors = nrow(coordinates),
-    metric = "euclidean"
+    distance_method = "euclidean"
   )
   training_sf <- sf::st_as_sf(
     data.frame(
@@ -409,7 +409,7 @@ test_that("Gaussian GWR coefficients agree with GWmodel", {
     0.2 * coordinates[, 2L]
   response <- 1 + 2 * predictor +
     0.1 * coordinates[, 1L] * predictor
-  x <- ngeo_points(
+  x <- ngeo_point(
     coordinates,
     values = cbind(response = response, predictor = predictor)
   )
@@ -418,7 +418,7 @@ test_that("Gaussian GWR coefficients agree with GWmodel", {
     "response",
     "predictor",
     bandwidth = 3,
-    metric = "euclidean",
+    distance_method = "euclidean",
     kernel = "gaussian"
   )
   reference_sf <- sf::st_as_sf(

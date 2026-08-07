@@ -16,7 +16,7 @@ library(neurogeo)
 
 4.9 评估三个高级方向：多图层共同空间轴、共享变异尺度，以及预测变量具有不同局部带宽的回归。它们用于探索方法可行性，不替代 5.0 的固定空间基、尺度耦合和受试者置换推断主线。
 
-数据仍遵守一个 domain 加一个严格对齐 values block。reference-map 的推断单位是空间地图，不是 vertex/region，也不是受试者；因此其结果不包含总体推断。
+数据仍遵守一个 base 加一个严格对齐 values block。reference-map 的推断单位是空间地图，不是 vertex/region，也不是受试者；因此其结果不包含总体推断。
 
 ## 空间排序
 
@@ -24,8 +24,8 @@ library(neurogeo)
 coordinates <- cbind(1:24, sin((1:24) / 3))
 a <- scale(coordinates[, 1])[, 1]
 b <- 0.7 * a + 0.3 * scale(coordinates[, 2])[, 1]
-x <- ngeo_points(coordinates, values = cbind(a = a, b = b))
-w <- ngeo_weights(x, method = "knn", k = 2, style = "W",
+x <- ngeo_point(coordinates, values = cbind(a = a, b = b))
+w <- ngeo_spatial_weights(x, method = "knn", k = 2, style = "W",
                   symmetry = "union")
 
 if (all(vapply(c("adespatial", "ade4", "spdep"),
@@ -40,7 +40,7 @@ if (all(vapply(c("adespatial", "ade4", "spdep"),
 
 ## 交叉变异函数与 LMC
 
-`ngeo_coregionalization()` 先从所有无序元素对中进行显式、可复现的均匀抽样，再由 `gstat` 拟合共享尺度。输出保留 pair sampling、metric、bin edges、seed、cross-semivariance convention 和 PSD diagnostics。
+`ngeo_coregionalization()` 先从所有无序元素对中进行显式、可复现的均匀抽样，再由 `gstat` 拟合共享尺度。输出保留 pair sampling、distance_method、bin edges、seed、cross-semivariance convention 和 PSD diagnostics。
 
 ```{r lmc}
 if (all(vapply(c("gstat", "sf"), requireNamespace,

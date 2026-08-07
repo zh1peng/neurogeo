@@ -35,7 +35,7 @@ surface <- ngeo_surface(
   ),
   matrix(c(1, 2, 3, 1, 3, 4), ncol = 3, byrow = TRUE),
   values = cbind(signal = c(1, 2, 4, 3)),
-  measures = ngeo_measure(spatial_semantics = "intensive")
+  measures = ngeo_measure(support_behavior = "intensive")
 )
 partition <- ngeo_partition(surface, c("A", "A", "B", "B"))
 ngeo_boundary(surface, partition)

@@ -2,12 +2,12 @@
 % Please edit documentation in R/partition.R
 \name{ngeo_aggregate}
 \alias{ngeo_aggregate}
-\title{Aggregate values from a base domain to regions}
+\title{Aggregate values from a base base to parcellation}
 \usage{
 ngeo_aggregate(
   x,
   partition,
-  maps = NULL,
+  layers = NULL,
   fun = NULL,
   na.rm = TRUE,
   tie = c("first", "error"),
@@ -19,7 +19,7 @@ ngeo_aggregate(
 
 \item{partition}{Matching crisp partition.}
 
-\item{maps}{Optional map selection.}
+\item{layers}{Optional map selection.}
 
 \item{fun}{Optional explicit aggregation function.}
 
@@ -30,8 +30,8 @@ ngeo_aggregate(
 \item{connectivity}{Voxel connectivity for region adjacency.}
 }
 \value{
-An `ngeo_regions` dataset.
+An `ngeo_parcellation` dataset.
 }
 \description{
-Aggregate values from a base domain to regions
+Aggregate values from a base base to parcellation
 }

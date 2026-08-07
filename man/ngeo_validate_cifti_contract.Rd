@@ -12,7 +12,7 @@ ngeo_validate_cifti_contract(
 )
 }
 \arguments{
-\item{x}{An `ngeo_grayordinates`.}
+\item{x}{An `ngeo_grayordinate`.}
 
 \item{type}{Dense scalar, label, or time series.}
 
@@ -20,7 +20,7 @@ ngeo_validate_cifti_contract(
 default.}
 
 \item{named_map_metadata}{Optional metadata list aligned with scalar or
-label maps.}
+label layers.}
 }
 \value{
 A normalized CIFTI output contract.

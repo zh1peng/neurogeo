@@ -2,7 +2,7 @@
 % Please edit documentation in R/support-uncertainty.R
 \name{ngeo_validate_support_covariance}
 \alias{ngeo_validate_support_covariance}
-\title{Validate domain-bound covariance}
+\title{Validate base-bound covariance}
 \usage{
 ngeo_validate_support_covariance(x)
 }
@@ -13,5 +13,5 @@ ngeo_validate_support_covariance(x)
 `x`, invisibly.
 }
 \description{
-Validate domain-bound covariance
+Validate base-bound covariance
 }

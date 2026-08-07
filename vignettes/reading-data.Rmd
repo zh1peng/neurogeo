@@ -16,12 +16,12 @@ library(neurogeo)
 
 A neuroimaging file contains more than a numeric array. Interpretation also
 depends on element order, coordinate transforms, brain structures, map names,
-label tables, units, and the source file identity. Losing any of these can
-produce a numerically valid object in the wrong space or with misaligned
+label tables, unit, and the source file identity. Losing any of these can
+produce a numerically valid object in the wrong coordinate_space or with misaligned
 values.
 
 Readers therefore preserve source indexing, coordinate transforms, map
-metadata, labels, and provenance. They do not invoke FreeSurfer, FSL, or
+metadata, labels, and history. They do not invoke FreeSurfer, FSL, or
 Connectome Workbench, and they do not perform registration or resampling.
 
 ## Format-specific readers
@@ -53,11 +53,11 @@ freesurfer <- read_ngeo_freesurfer(
 ## Dispatch and validation
 
 `read_ngeo()` dispatches by standard filename suffix. For ambiguous MGH/MGZ
-inputs, use the format-specific reader and state the intended domain.
+inputs, use the format-specific reader and state the intended base.
 
 ```{r dispatch, eval=FALSE}
 x <- read_ngeo("sub-01_space-MNI152_desc-stat.nii.gz")
-x <- read_ngeo_freesurfer("lh.metric.mgh", domain = "surface",
+x <- read_ngeo_freesurfer("lh.distance_method.mgh", base = "surface",
                           surface = "lh.white")
 ```
 
@@ -66,15 +66,15 @@ that the source did not encode.
 
 ```{r workflow, eval=FALSE}
 ngeo_validate(surface, "strict")
-surface$measures$spatial_semantics <- "intensive"
-surface$measures$units <- "mm"
-w <- ngeo_weights(surface, method = "mesh_contiguity", style = "W")
+surface$measures$support_behavior <- "intensive"
+surface$measures$unit <- "mm"
+w <- ngeo_spatial_weights(surface, method = "mesh_contiguity", style = "W")
 ngeo_moran(surface, w, "thickness", permutations = 999, seed = 2026)
 ```
 
 ## Scope
 
-BIDS sidecars and relevant space entities are parsed when present, but
+BIDS sidecars and relevant coordinate_space entities are parsed when present, but
 dataset orchestration remains outside the package. Import establishes an
 auditable object contract; it does not establish anatomical correspondence
 between datasets.

@@ -10,9 +10,9 @@ read_ngeo_mgh_filebacked(
   mask = NULL,
   frames = NULL,
   elements = NULL,
-  maps = NULL,
+  layers = NULL,
   measures = NULL,
-  space = NULL,
+  coordinate_space = NULL,
   strict = TRUE,
   checksum = TRUE,
   verify = c("checksum", "metadata", "none"),
@@ -28,9 +28,9 @@ read_ngeo_mgh_filebacked(
 
 \item{frames, elements}{Optional one-based selections.}
 
-\item{maps, measures, space}{Optional NGCS metadata.}
+\item{layers, measures, coordinate_space}{Optional NGCS metadata.}
 
-\item{strict, checksum}{Validation and provenance controls.}
+\item{strict, checksum}{Validation and history controls.}
 
 \item{verify}{Source mutation verification policy.}
 

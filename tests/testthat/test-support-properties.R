@@ -1,11 +1,11 @@
-test_that("random complete probabilistic maps satisfy sparse properties", {
+test_that("random complete probabilistic layers satisfy sparse properties", {
   set.seed(20210726)
   for (iteration in seq_len(25L)) {
     n_source <- sample(5:30, 1L)
     n_target <- sample(2:6, 1L)
-    source <- ngeo_points(
+    source <- ngeo_point(
       cbind(seq_len(n_source), 0),
-      space = ngeo_space("property", kind = "unknown")
+      coordinate_space = ngeo_coordinate_space("property", kind = "unknown")
     )
     probability <- matrix(
       stats::rexp(n_source * n_target),

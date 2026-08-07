@@ -5,7 +5,7 @@
     candidates <- unique(as.character(feature$endpoints$support_hash))
     candidates <- candidates[!is.na(candidates) & nzchar(candidates)]
   }
-  provenance_hash <- feature$provenance$support_hash
+  provenance_hash <- feature$history$support_hash
   if (!is.null(provenance_hash)) {
     candidates <- unique(c(candidates, as.character(provenance_hash)))
   }
@@ -33,13 +33,13 @@
     .ngeo_abort("Every support member must be `ngeo_subject_features`.",
                 "ngeo_error_support_family")
   }
-  reference_units <- as.character(features[[1L]]$units$unit_id)
+  reference_units <- as.character(features[[1L]]$unit$unit_id)
   for (position in seq_along(features)) {
     current <- features[[position]]
     if (!is.matrix(current$values) || !is.numeric(current$values) ||
-        !is.data.frame(current$units) ||
-        !"unit_id" %in% names(current$units) ||
-        !identical(as.character(current$units$unit_id), reference_units) ||
+        !is.data.frame(current$unit) ||
+        !"unit_id" %in% names(current$unit) ||
+        !identical(as.character(current$unit$unit_id), reference_units) ||
         nrow(current$values) != length(reference_units) ||
         !is.data.frame(current$endpoints) ||
         nrow(current$endpoints) != ncol(current$values)) {
@@ -75,17 +75,17 @@
   rownames(combined_endpoints) <- NULL
   combined <- list(
     values = do.call(cbind, values),
-    units = features[[1L]]$units,
+    unit = features[[1L]]$unit,
     endpoints = combined_endpoints,
     diagnostics = list(
       support_family = support_id,
       source_diagnostics = lapply(features, `[[`, "diagnostics")
     ),
-    provenance = list(
+    history = list(
       method = "declared_support_family_endpoint_binding",
       support_id = support_id,
       support_hash = hashes,
-      source_provenance = lapply(features, `[[`, "provenance")
+      source_provenance = lapply(features, `[[`, "history")
     )
   )
   class(combined) <- "ngeo_subject_features"
@@ -250,9 +250,9 @@
   )
   result$diagnostics$common_schedule_all_supports <- TRUE
   result$diagnostics$complete_family_across_supports <- TRUE
-  result$provenance$support_family_hash <- result$support$family_hash
-  result$provenance$analysis_order <- bound$support_id
-  result$provenance$operation_order <- c(
+  result$history$support_family_hash <- result$support$family_hash
+  result$history$analysis_order <- bound$support_id
+  result$history$operation_order <- c(
     "change_support", "build_operator", "build_basis",
     "derive_endpoints", "common_subject_schedule"
   )

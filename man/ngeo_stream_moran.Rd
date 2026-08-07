@@ -4,12 +4,12 @@
 \alias{ngeo_stream_moran}
 \title{Compute Moran's I without materializing a delayed values block}
 \usage{
-ngeo_stream_moran(x, weights, map = 1L, chunk_size = 65536L)
+ngeo_stream_moran(x, spatial_weights, map = 1L, chunk_size = 65536L)
 }
 \arguments{
 \item{x}{An `ngeo` dataset.}
 
-\item{weights}{Matching `ngeo_weights`.}
+\item{spatial_weights}{Matching `ngeo_spatial_weights`.}
 
 \item{map}{One numeric map.}
 

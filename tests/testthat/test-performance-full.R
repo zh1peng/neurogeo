@@ -28,7 +28,7 @@ full_grid_surface <- function(side, values = FALSE) {
     faces,
     values = map,
     measures = if (isTRUE(values)) {
-      ngeo_measure(spatial_semantics = "intensive")
+      ngeo_measure(support_behavior = "intensive")
     } else {
       NULL
     }
@@ -41,19 +41,19 @@ test_that("164k surface topology and statistics remain sparse", {
 
   surface <- full_grid_surface(405L, values = TRUE)
   timing <- system.time(
-    weights <- ngeo_weights(
+    spatial_weights <- ngeo_spatial_weights(
       surface,
       method = "mesh_contiguity",
       style = "W"
     )
   )
   statistic_timing <- system.time(
-    result <- ngeo_moran(surface, weights)
+    result <- ngeo_moran(surface, spatial_weights)
   )
 
-  expect_equal(nrow(weights$matrix), 164025L)
-  expect_lt(length(weights$matrix@x), 7L * nrow(weights$matrix))
-  expect_lt(as.numeric(object.size(weights$matrix)), 100 * 1024^2)
+  expect_equal(nrow(spatial_weights$matrix), 164025L)
+  expect_lt(length(spatial_weights$matrix@x), 7L * nrow(spatial_weights$matrix))
+  expect_lt(as.numeric(object.size(spatial_weights$matrix)), 100 * 1024^2)
   expect_lt(unname(timing[["elapsed"]]), 90)
   expect_lt(unname(statistic_timing[["elapsed"]]), 10)
   expect_true(is.finite(result$estimate))
@@ -65,8 +65,8 @@ test_that("91k grayordinate topology stays block diagonal", {
 
   left <- full_grid_surface(214L)
   right <- full_grid_surface(214L)
-  n_vertex <- nrow(left$domain$elements)
-  grayordinates <- ngeo_grayordinates(list(
+  n_vertex <- nrow(left$base$elements)
+  grayordinate <- ngeo_grayordinate(list(
     list(
       component_id = "left",
       kind = "surface",
@@ -84,7 +84,7 @@ test_that("91k grayordinate topology stays block diagonal", {
       geometry = right
     )
   ))
-  timing <- system.time(adjacency <- ngeo_adjacency(grayordinates))
+  timing <- system.time(adjacency <- ngeo_adjacency(grayordinate))
   split <- n_vertex
 
   expect_equal(nrow(adjacency), 91592L)
@@ -104,7 +104,7 @@ test_that("32k surface diagnostics stay bounded", {
   surface <- full_grid_surface(180L, values = TRUE)
   surface <- ngeo_set_chart(
     surface,
-    surface$domain$coordinates$active[, 1:2, drop = FALSE],
+    surface$base$geometry$coordinates$active[, 1:2, drop = FALSE],
     name = "grid"
   )
   path <- tempfile(fileext = ".pdf")
@@ -114,7 +114,7 @@ test_that("32k surface diagnostics stay bounded", {
   grDevices::dev.off()
 
   expect_identical(result, surface)
-  expect_equal(nrow(surface$domain$elements), 32400L)
+  expect_equal(nrow(surface$base$elements), 32400L)
   expect_lt(file.info(path)$size, 10 * 1024^2)
   expect_lt(unname(timing[["elapsed"]]), 30)
 })
@@ -124,13 +124,13 @@ test_that("100k coordinate KNN remains sparse", {
   skip_if(Sys.getenv("NEUROGEO_FULL_PERF") != "true")
   skip_if_not_installed("dbscan")
 
-  points <- ngeo_points(cbind(
+  point <- ngeo_point(cbind(
     x = seq_len(100000L),
     y = sin(seq_len(100000L) / 100)
   ))
   timing <- system.time(
-    weights <- ngeo_weights(
-      points,
+    spatial_weights <- ngeo_spatial_weights(
+      point,
       method = "knn",
       k = 4L,
       symmetry = "directed",
@@ -138,8 +138,8 @@ test_that("100k coordinate KNN remains sparse", {
     )
   )
 
-  expect_equal(length(weights$matrix@x), 400000L)
-  expect_lt(as.numeric(object.size(weights$matrix)), 15 * 1024^2)
+  expect_equal(length(spatial_weights$matrix@x), 400000L)
+  expect_lt(as.numeric(object.size(spatial_weights$matrix)), 15 * 1024^2)
   expect_lt(unname(timing[["elapsed"]]), 30)
 })
 
@@ -149,18 +149,18 @@ test_that("100k-by-1k support change stays sparse and conservative", {
 
   n_source <- 100000L
   n_target <- 1000L
-  source <- ngeo_points(
+  source <- ngeo_point(
     cbind(x = seq_len(n_source), y = 0),
     values = cbind(
       intensity = seq_len(n_source) / n_source,
       mass = rep.int(1, n_source)
     ),
     measures = rbind(
-      ngeo_measure(spatial_semantics = "intensive"),
-      ngeo_measure(spatial_semantics = "extensive")
+      ngeo_measure(support_behavior = "intensive"),
+      ngeo_measure(support_behavior = "extensive")
     )
   )
-  target <- ngeo_regions(
+  target <- ngeo_parcellation(
     data.frame(region_id = as.character(seq_len(n_target))),
     support_size = rep.int(n_source / n_target, n_target)
   )
@@ -174,7 +174,7 @@ test_that("100k-by-1k support change stays sparse and conservative", {
       membership,
       source_support = rep.int(1, n_source)
     )
-    changed <- ngeo_change_support(source, target, support_map)
+    changed <- aggregate_to(source, target, support_map)
   })
 
   expect_equal(length(support_map$operator@x), n_source)
@@ -193,14 +193,14 @@ test_that("100k affine-grid support construction and diagnostics stay sparse", {
   source <- ngeo_volume(
     dim = c(100, 100, 10),
     affine = diag(4),
-    space = ngeo_space("performance-grid", kind = "volume"),
+    coordinate_space = ngeo_coordinate_space("performance-grid", kind = "volume"),
     index_base = "zero"
   )
   target_affine <- diag(c(2, 2, 1, 1))
   target <- ngeo_volume(
     dim = c(51, 51, 10),
     affine = target_affine,
-    space = ngeo_space("performance-grid", kind = "volume"),
+    coordinate_space = ngeo_coordinate_space("performance-grid", kind = "volume"),
     index_base = "zero"
   )
   timing <- system.time({
@@ -226,12 +226,12 @@ test_that("100k uncertain support propagation remains sparse and bounded", {
 
   n_source <- 100000L
   n_target <- 1000L
-  source <- ngeo_points(
+  source <- ngeo_point(
     cbind(x = seq_len(n_source), y = 0),
     values = seq_len(n_source) / n_source,
-    measures = ngeo_measure(spatial_semantics = "intensive")
+    measures = ngeo_measure(support_behavior = "intensive")
   )
-  target <- ngeo_regions(
+  target <- ngeo_parcellation(
     data.frame(region_id = as.character(seq_len(n_target))),
     support_size = rep.int(n_source / n_target, n_target)
   )
@@ -266,7 +266,7 @@ test_that("100k uncertain support propagation remains sparse and bounded", {
   expect_true(all(is.finite(uncertainty$variance)))
   expect_equal(
     diagnostics$summary$value[
-      diagnostics$summary$metric == "uncertain_nonzero"
+      diagnostics$summary$distance_method == "uncertain_nonzero"
     ],
     n_source
   )

@@ -6,7 +6,7 @@
 \usage{
 ngeo_resample(
   plan,
-  maps = NULL,
+  layers = NULL,
   value_variance = NULL,
   authorize = FALSE,
   output_path = NULL,
@@ -17,7 +17,7 @@ ngeo_resample(
 \arguments{
 \item{plan}{A validated `ngeo_resampling_plan`.}
 
-\item{maps}{Optional source map selection.}
+\item{layers}{Optional source map selection.}
 
 \item{value_variance}{Optional source-by-selected-map independent variance.}
 
@@ -32,7 +32,7 @@ temporary output path. It must create exactly that one file.}
 }
 \value{
 An `ngeo_resampling_result` with data, map, optional variance,
-diagnostics, provenance, and optional atomic output metadata.
+diagnostics, history, and optional atomic output metadata.
 }
 \description{
 Execute one explicitly authorized resampling plan

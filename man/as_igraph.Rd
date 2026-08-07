@@ -2,16 +2,16 @@
 % Please edit documentation in R/weights.R
 \name{as_igraph}
 \alias{as_igraph}
-\title{Convert weights to an igraph graph}
+\title{Convert spatial_weights to an igraph graph}
 \usage{
 as_igraph(x)
 }
 \arguments{
-\item{x}{An `ngeo_weights`.}
+\item{x}{An `ngeo_spatial_weights`.}
 }
 \value{
 An igraph object.
 }
 \description{
-Convert weights to an igraph graph
+Convert spatial_weights to an igraph graph
 }

@@ -36,11 +36,11 @@ test_that("4.2.1 installed API navigation records are present", {
 
 test_that("declared core help topics contain executable examples", {
   core_topics <- c(
-    "ngeo_surface", "ngeo_volume", "ngeo_points", "ngeo_grayordinates",
-    "ngeo_regions", "ngeo_space", "ngeo_measure", "ngeo_subset",
-    "ngeo_partition", "ngeo_weights", "ngeo_atlas_map",
+    "ngeo_surface", "ngeo_volume", "ngeo_point", "ngeo_grayordinate",
+    "ngeo_parcellation", "ngeo_coordinate_space", "ngeo_measure", "ngeo_subset",
+    "ngeo_partition", "ngeo_spatial_weights", "ngeo_atlas_map",
     "ngeo_probabilistic_atlas_map", "ngeo_support_diagnostics",
-    "ngeo_change_support", "ngeo_permutation_control", "ngeo_moran",
+    "aggregate_to", "ngeo_permutation_control", "ngeo_moran",
     "ngeo_geary", "ngeo_local_moran", "ngeo_variogram",
     "ngeo_fit_variogram", "ngeo_kriging", "ngeo_gwr",
     "ngeo_spatial_lm", "ngeo_spatial_regression", "read_ngeo",

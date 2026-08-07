@@ -13,7 +13,7 @@ ngeo_multiscale_inference(
   predictor,
   statistic = c("correlation", "slope"),
   null = c("permutation", "moran", "spin"),
-  weights = NULL,
+  spatial_weights = NULL,
   coordinates = NULL,
   strata = NULL,
   nsim = 999L,
@@ -25,11 +25,11 @@ ngeo_multiscale_inference(
 \arguments{
 \item{x}{Source `ngeo` dataset.}
 
-\item{support_maps}{Source-to-atlas support maps.}
+\item{support_maps}{Source-to-atlas support layers.}
 
 \item{targets}{Matching target templates.}
 
-\item{scales}{Unique ordered scale labels aligned with support maps.}
+\item{scales}{Unique ordered scale labels aligned with support layers.}
 
 \item{outcome}{Outcome map.}
 
@@ -39,7 +39,7 @@ ngeo_multiscale_inference(
 
 \item{null}{Permutation, Moran spectral, or surface-spin null.}
 
-\item{weights}{Matching weights for a Moran spectral null.}
+\item{spatial_weights}{Matching spatial_weights for a Moran spectral null.}
 
 \item{coordinates}{Registration coordinate set for a spin null.}
 

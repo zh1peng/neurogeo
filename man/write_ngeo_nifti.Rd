@@ -27,6 +27,6 @@ write_ngeo_nifti(
 A file manifest with data, mask, and sidecar paths.
 }
 \description{
-The returned mask path is part of the round-trip contract: active domain
+The returned mask path is part of the round-trip contract: active base
 membership is not inferred from zero or missing values.
 }

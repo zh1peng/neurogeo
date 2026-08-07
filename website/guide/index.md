@@ -1,80 +1,65 @@
 ---
 title: 安装与基本用法
-description: neurogeo 的安装、对象构造、验证和基本空间统计
+description: 使用 spatial base、layers 与 measures 构造 neurogeo 对象
 ---
 
 # 安装与基本用法
 
-## 系统要求
-
-- R 4.2.0 或更高版本；
-- 核心依赖：`Matrix`、`digest`；
-- 格式后端按需安装：`RNifti`、`gifti`、`cifti`、
-  `freesurferformats`。
-
-FreeSurfer、FSL 和 Connectome Workbench 不是运行时依赖。
-
-## 安装
+`neurogeo` 把神经影像数据表示为定义在同一空间基座上的一个或多个数据图层。
 
 ```r
 install.packages("remotes")
 remotes::install_github("zh1peng/neurogeo")
 ```
 
-## 构造空间对象
+## 第一个对象
 
 ```r
 library(neurogeo)
 
 coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
-signal <- c(1, 2, 3, 2, 4, 7, 3, 7, 9)
-
-x <- ngeo_points(
-  coordinates = coordinates,
-  values = cbind(signal = signal),
+x <- ngeo_point(
+  coordinates,
+  values = cbind(signal = c(1, 2, 3, 2, 4, 7, 3, 7, 9)),
   measures = ngeo_measure(
-    value_type = "continuous",
-    spatial_semantics = "intensive",
-    units = "a.u."
+    support_behavior = "intensive",
+    unit = "a.u."
   ),
-  space = ngeo_space(
-    space_id = "example-grid",
-    kind = "unknown",
-    units = "mm"
+  coordinate_space = ngeo_coordinate_space(
+    "example-grid",
+    unit = "mm"
   )
 )
 ```
 
-## 验证
+这个对象只有一个空间基座、一个 values 矩阵、一个 layer 和一个 measure。
 
 ```r
-ngeo_validate(x, level = "strict")
-ngeo_domain_type(x)
-ngeo_values(x)
-ngeo_measures(x)
+spatial_base(x)
+values(x)
+layers(x)
+measures(x)
+history(x)
 ```
 
-## 空间权重与 Moran's I
+始终满足两个对齐规则：`values[i, ]` 对应第 `i` 个 base element；
+`values[, j]` 对应 `layers(x)[j, ]`。
+
+## 空间分析
+
+空间权重是针对一次分析构造的对象，不是 base 的固有字段：
 
 ```r
-w <- ngeo_weights(
+w <- ngeo_spatial_weights(
   x,
   method = "distance_band",
   threshold = 1.01,
-  metric = "euclidean",
+  distance_method = "euclidean",
   style = "W"
 )
 
-result <- ngeo_moran(
-  x,
-  weights = w,
-  map = "signal",
-  permutations = 999,
-  seed = 2026
-)
-
-plot(x, map = "signal")
-plot(result)
+ngeo_moran(x, w, map = "signal", permutations = 999, seed = 2026)
 ```
 
-完整计算过程见[点数据与 Moran's I](/tutorials/getting-started)。
+构造器只验证数据对齐；具体操作会在需要时检查 geometry、topology、support、
+coordinate space 或 transform 等能力。

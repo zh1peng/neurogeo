@@ -13,7 +13,7 @@ ngeo_transform_graph(
 )
 }
 \arguments{
-\item{registry}{An `ngeo_space_registry`.}
+\item{registry}{An `ngeo_coordinate_space_registry`.}
 
 \item{transforms}{Supplied known transforms.}
 

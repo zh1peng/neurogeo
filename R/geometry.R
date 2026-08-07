@@ -14,33 +14,33 @@ ngeo_vertex_area <- function(x, coordinates = "active") {
   ngeo_validate(x, "basic")
 
   if (identical(coordinates, "active")) {
-    coordinates <- x$domain$active_coordinates
+    coordinates <- x$base$geometry$active_coordinates
   }
-  if (!coordinates %in% names(x$domain$coordinates)) {
+  if (!coordinates %in% names(x$base$geometry$coordinates)) {
     .ngeo_abort(
       sprintf("Unknown coordinate set `%s`.", coordinates),
       "ngeo_error_geometry"
     )
   }
-  meta <- x$domain$coordinate_meta
+  meta <- x$base$geometry$coordinate_meta
   meta <- meta[match(coordinates, meta$name), , drop = FALSE]
   if (!isTRUE(meta$metric_eligible)) {
     .ngeo_abort(
       sprintf(
-        "Coordinate set `%s` is not metric-eligible.",
+        "Coordinate set `%s` is not distance_method-eligible.",
         coordinates
       ),
       "ngeo_error_metric"
     )
   }
 
-  xyz <- x$domain$coordinates[[coordinates]]
+  xyz <- x$base$geometry$coordinates[[coordinates]]
   if (ncol(xyz) == 2L) {
     xyz <- cbind(xyz, 0)
   }
-  faces <- x$domain$faces
+  faces <- x$base$geometry$faces
   if (!nrow(faces)) {
-    return(numeric(nrow(x$domain$elements)))
+    return(numeric(nrow(x$base$elements)))
   }
 
   a <- xyz[faces[, 2L], , drop = FALSE] -
@@ -54,7 +54,7 @@ ngeo_vertex_area <- function(x, coordinates = "active") {
   )
   triangle_area <- sqrt(rowSums(cross^2)) / 2
 
-  area <- numeric(nrow(x$domain$elements))
+  area <- numeric(nrow(x$base$elements))
   share <- triangle_area / 3
   for (corner in seq_len(3L)) {
     grouped <- rowsum(share, faces[, corner], reorder = FALSE)
@@ -74,5 +74,5 @@ ngeo_voxel_volume <- function(x) {
     .ngeo_abort("`x` must be an `ngeo_volume`.", "ngeo_error_argument")
   }
   ngeo_validate(x, "basic")
-  abs(det(x$domain$affine[1:3, 1:3, drop = FALSE]))
+  abs(det(x$base$geometry$affine[1:3, 1:3, drop = FALSE]))
 }

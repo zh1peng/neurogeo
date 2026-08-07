@@ -5,15 +5,15 @@
 \title{Explicitly materialize a small spatiotemporal reference matrix}
 \usage{
 ngeo_materialize_spatiotemporal_weights(
-  weights,
+  spatial_weights,
   max_observations = 10000L,
   budget = ngeo_resource_budget()
 )
 }
 \arguments{
-\item{weights}{Separable spatiotemporal weights.}
+\item{spatial_weights}{Separable spatiotemporal spatial_weights.}
 
-\item{max_observations}{Maximum permitted space-time observations.}
+\item{max_observations}{Maximum permitted coordinate_space-time observations.}
 
 \item{budget}{Resource budget for sparse nonzeros and bytes.}
 }

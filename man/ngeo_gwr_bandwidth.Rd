@@ -9,7 +9,7 @@ ngeo_gwr_bandwidth(
   response,
   predictors,
   candidates,
-  metric = NULL,
+  distance_method = NULL,
   kernel = c("gaussian", "bisquare"),
   cv = c("loo", "kfold"),
   folds = 5L
@@ -20,11 +20,11 @@ ngeo_gwr_bandwidth(
 
 \item{response}{One response map.}
 
-\item{predictors}{Predictor maps.}
+\item{predictors}{Predictor layers.}
 
 \item{candidates}{Positive bandwidth candidates.}
 
-\item{metric}{Explicit NGCS metric.}
+\item{distance_method}{Explicit NGCS distance_method.}
 
 \item{kernel}{Gaussian or compact bisquare kernel.}
 

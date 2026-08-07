@@ -6,7 +6,7 @@
 \usage{
 ngeo_spatiotemporal_moran(
   x,
-  weights,
+  spatial_weights,
   permutations = 0L,
   null = c("spatial_profiles", "observations"),
   seed = NULL,
@@ -17,7 +17,7 @@ ngeo_spatiotemporal_moran(
 \arguments{
 \item{x}{Time-aware `ngeo` data.}
 
-\item{weights}{Matching separable spatiotemporal weights.}
+\item{spatial_weights}{Matching separable spatiotemporal spatial_weights.}
 
 \item{permutations}{Number of deterministic Monte Carlo permutations.}
 

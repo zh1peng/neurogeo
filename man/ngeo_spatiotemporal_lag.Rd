@@ -6,7 +6,7 @@
 \usage{
 ngeo_spatiotemporal_lag(
   x,
-  weights,
+  spatial_weights,
   center = FALSE,
   budget = ngeo_resource_budget()
 )
@@ -14,9 +14,9 @@ ngeo_spatiotemporal_lag(
 \arguments{
 \item{x}{Time-aware `ngeo` data.}
 
-\item{weights}{Matching separable spatiotemporal weights.}
+\item{spatial_weights}{Matching separable spatiotemporal spatial_weights.}
 
-\item{center}{Whether to subtract the global space-time mean.}
+\item{center}{Whether to subtract the global coordinate_space-time mean.}
 
 \item{budget}{Resource limits for materializing the aligned values block.}
 }

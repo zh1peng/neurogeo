@@ -8,10 +8,10 @@
 #'
 #' @param x An `ngeo` dataset.
 #' @param response One response map.
-#' @param predictors Predictor maps.
+#' @param predictors Predictor layers.
 #' @param bandwidths Positive fixed bandwidths for the intercept followed by
 #'   each predictor.
-#' @param metric Explicit NGCS distance metric.
+#' @param distance_method Explicit NGCS distance distance_method.
 #' @param kernel Bisquare or Gaussian kernel.
 #' @param max_iterations Maximum backend coefficient back-fitting iterations.
 #' @param threshold Positive convergence threshold.
@@ -23,21 +23,21 @@ ngeo_mgwr <- function(
     response,
     predictors,
     bandwidths,
-    metric = NULL,
+    distance_method = NULL,
     kernel = c("bisquare", "gaussian"),
     max_iterations = 200L,
     threshold = 1e-5) {
   .ngeo_require("GWmodel", "experimental MGWR")
   .ngeo_require("sf", "experimental MGWR")
   kernel <- match.arg(kernel)
-  maps <- .ngeo_model_maps(x, response, predictors)
-  if (!length(maps$predictors)) {
+  layers <- .ngeo_model_maps(x, response, predictors)
+  if (!length(layers$predictors)) {
     .ngeo_abort(
       "MGWR requires at least one predictor.",
       "ngeo_error_argument"
     )
   }
-  expected <- length(maps$predictors) + 1L
+  expected <- length(layers$predictors) + 1L
   if (!is.numeric(bandwidths) || length(bandwidths) != expected ||
       anyNA(bandwidths) || any(!is.finite(bandwidths)) ||
       any(bandwidths <= 0)) {
@@ -58,10 +58,10 @@ ngeo_mgwr <- function(
       "ngeo_error_argument"
     )
   }
-  values <- as.matrix(x$values[, c(maps$response, maps$predictors), drop = FALSE])
+  values <- as.matrix(x$values[, c(layers$response, layers$predictors), drop = FALSE])
   if (any(!is.finite(values))) {
     .ngeo_abort(
-      "MGWR requires complete finite response and predictor maps.",
+      "MGWR requires complete finite response and predictor layers.",
       "ngeo_error_missing"
     )
   }
@@ -85,29 +85,29 @@ ngeo_mgwr <- function(
       "ngeo_error_model"
     )
   }
-  metric_name <- .ngeo_metric_name(metric %||% switch(
-    x$domain$type,
+  metric_name <- .ngeo_metric_name(distance_method %||% switch(
+    x$base$type,
     surface = "edge_geodesic",
     volume = "world_euclidean",
-    points = "euclidean",
-    regions = "region_centroid",
-    grayordinates = "edge_geodesic"
+    point = "euclidean",
+    parcellation = "region_centroid",
+    grayordinate = "edge_geodesic"
   ))
   index <- seq_len(n)
   distance <- unname(ngeo_distance(
-    x, from = index, to = index, metric = metric_name
+    x, from = index, to = index, distance_method = metric_name
   ))
   if (!identical(dim(distance), c(n, n)) || any(!is.finite(distance))) {
     .ngeo_abort(
       paste(
         "MGWR requires finite all-to-all distances inside its bounded",
-        "experimental domain."
+        "experimental base."
       ),
       "ngeo_error_capability"
     )
   }
 
-  backend_names <- c("response", paste0("predictor", seq_along(maps$predictors)))
+  backend_names <- c("response", paste0("predictor", seq_along(layers$predictors)))
   data <- as.data.frame(values)
   names(data) <- backend_names
   coordinates <- .ngeo_element_coordinates(x)
@@ -147,14 +147,14 @@ ngeo_mgwr <- function(
     as.data.frame(fit$SDF)
   }
   coefficient <- as.data.frame(backend_local[, seq_len(expected), drop = FALSE])
-  names(coefficient) <- c("(Intercept)", maps$predictor_names)
+  names(coefficient) <- c("(Intercept)", layers$predictor_names)
   diagnostics <- ngeo_kernel_regression(
     x, response, predictors,
-    bandwidth = min(bandwidths), metric = metric_name,
+    bandwidth = min(bandwidths), distance_method = metric_name,
     kernel = kernel, singular = "na"
   )
   local <- data.frame(
-    element_id = x$domain$elements$element_id,
+    element_id = x$base$elements$element_id,
     fitted = as.numeric(backend_local$yhat),
     residual = as.numeric(backend_local$residual),
     effective_n = diagnostics$effective_n,
@@ -163,7 +163,7 @@ ngeo_mgwr <- function(
     check.names = FALSE,
     stringsAsFactors = FALSE
   )
-  names(bandwidths) <- c("(Intercept)", maps$predictor_names)
+  names(bandwidths) <- c("(Intercept)", layers$predictor_names)
   bandwidth_history <- if (is.null(fit$bws.vars)) {
     matrix(as.numeric(bandwidths), nrow = 1L,
            dimnames = list(NULL, names(bandwidths)))
@@ -171,9 +171,9 @@ ngeo_mgwr <- function(
     as.matrix(fit$bws.vars)
   }
   model_hash <- .ngeo_layer_digest(list(
-    domain_hash = ngeo_domain_hash(x),
-    maps = x$maps$map_id[c(maps$response, maps$predictors)],
-    metric = metric_name,
+    base_hash = base_hash(x),
+    layers = x$layers$layer_id[c(layers$response, layers$predictors)],
+    distance_method = metric_name,
     bandwidths = bandwidths,
     kernel = kernel,
     local = local
@@ -181,8 +181,8 @@ ngeo_mgwr <- function(
   result <- list(
     status = "experimental_not_promoted",
     backend = "GWmodel::gwr.multiscale",
-    response = maps$response_name,
-    predictors = maps$predictor_names,
+    response = layers$response_name,
+    predictors = layers$predictor_names,
     bandwidths = bandwidths,
     bandwidth_selection = "fixed_user_supplied",
     bandwidth_history = bandwidth_history,
@@ -206,9 +206,9 @@ ngeo_mgwr <- function(
       "support-family replication must be performed externally",
       "bounded dense distances prevent full-cortex use"
     ),
-    metric = metric_name,
+    distance_method = metric_name,
     kernel = kernel,
-    domain_hash = ngeo_domain_hash(x),
+    base_hash = base_hash(x),
     support_hash = .ngeo_support_weights(x, "auto")$hash,
     model_hash = model_hash
   )

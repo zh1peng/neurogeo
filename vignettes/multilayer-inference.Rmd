@@ -36,14 +36,14 @@ for (i in seq_len(n_subject)) {
   strength <- if (group[[i]] == "case") 0.8 else 0.4
   values[, 2L * i] <- strength * base + rnorm(n_element, sd = 0.12)
 }
-maps <- data.frame(
-  map_id = sprintf("map-%03d", seq_len(ncol(values))),
+layers <- data.frame(
+  layer_id = sprintf("map-%03d", seq_len(ncol(values))),
   name = paste(subject, feature, sep = "_"),
   subject_id = subject, feature = feature
 )
-measure <- ngeo_measure(spatial_semantics = "intensive", units = "a.u.")
-x <- ngeo_points(
-  cbind(x = seq_len(n_element), y = 0), values = values, maps = maps,
+measure <- ngeo_measure(support_behavior = "intensive", unit = "a.u.")
+x <- ngeo_point(
+  cbind(x = seq_len(n_element), y = 0), values = values, layers = layers,
   measures = measure[rep.int(1L, ncol(values)), , drop = FALSE]
 )
 index <- ngeo_validate_layers(
@@ -58,11 +58,11 @@ not on the values that will later be tested. The two named bands are
 rank-matched retained modes; they are not automatically physical wavelengths.
 
 ```{r features}
-weights <- ngeo_weights(
+spatial_weights <- ngeo_spatial_weights(
   x, method = "distance_band", threshold = 1.01, style = "B"
 )
 basis <- ngeo_spatial_basis(
-  x, weights, support = "identity", n_modes = n_element - 1L
+  x, spatial_weights, support = "identity", n_modes = n_element - 1L
 )
 features <- ngeo_layer_coupling(
   x, index, basis = basis,

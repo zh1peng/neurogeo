@@ -4,12 +4,12 @@
 \alias{ngeo_stream_summary}
 \title{Compute delayed-native streaming summaries}
 \usage{
-ngeo_stream_summary(x, maps = NULL, chunk_size = 65536L, na_rm = FALSE)
+ngeo_stream_summary(x, layers = NULL, chunk_size = 65536L, na_rm = FALSE)
 }
 \arguments{
 \item{x}{An `ngeo` dataset or values block.}
 
-\item{maps}{Optional map selection.}
+\item{layers}{Optional map selection.}
 
 \item{chunk_size}{Row chunk size.}
 

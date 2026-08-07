@@ -6,23 +6,23 @@
 \usage{
 ngeo_measure(
   value_type = "continuous",
-  spatial_semantics = c("unknown", "intensive", "extensive", "count", "categorical"),
-  units = "unknown",
+  support_behavior = c("unknown", "intensive", "extensive", "count", "categorical"),
+  unit = "unknown",
   missing_policy = c("preserve", "exclude"),
-  default_aggregation = NULL
+  aggregation = NULL
 )
 }
 \arguments{
 \item{value_type}{Value representation.}
 
-\item{spatial_semantics}{One of intensive, extensive, count, categorical,
+\item{support_behavior}{One of intensive, extensive, count, categorical,
 or unknown.}
 
-\item{units}{Measurement units.}
+\item{unit}{Measurement unit.}
 
 \item{missing_policy}{Missing-value policy.}
 
-\item{default_aggregation}{Default aggregation rule.}
+\item{aggregation}{Default aggregation rule.}
 }
 \value{
 A one-row measurement metadata data frame.
@@ -33,12 +33,12 @@ Construct measurement semantics
 \examples{
 ngeo_measure(
   value_type = "continuous",
-  spatial_semantics = "intensive",
-  units = "mm"
+  support_behavior = "intensive",
+  unit = "mm"
 )
 ngeo_measure(
   value_type = "integer",
-  spatial_semantics = "count",
-  units = "events"
+  support_behavior = "count",
+  unit = "events"
 )
 }

@@ -7,7 +7,7 @@
 ngeo_car_uncertainty(
   x,
   response,
-  weights,
+  spatial_weights,
   value_covariance,
   type = c("proper", "intrinsic"),
   rho = 0.95,
@@ -21,7 +21,7 @@ ngeo_car_uncertainty(
 
 \item{response}{One numeric map.}
 
-\item{weights}{Matching symmetric spatial weights.}
+\item{spatial_weights}{Matching symmetric spatial spatial_weights.}
 
 \item{value_covariance}{Positive-definite observation covariance.}
 
@@ -41,6 +41,6 @@ An `ngeo_car_uncertainty`.
 }
 \description{
 This exact calculation materializes dense observation and posterior
-covariance matrices. Its domain size is bounded by
+covariance matrices. Its base size is bounded by
 `getOption("neurogeo.max_exact_logdet", 2000L)` before allocation.
 }

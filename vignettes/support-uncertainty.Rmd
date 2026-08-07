@@ -20,7 +20,7 @@ covariance structure and on the support operator, not only on element-wise
 standard errors. Uncertainty in the operator itself is a separate source of
 variation.
 
-Uncertainty must be aligned to the same ordered domain as the values it
+Uncertainty must be aligned to the same ordered base as the values it
 describes. Independent variance, sparse or full covariance, and low-rank
 shared variation are represented without creating a second assay in the
 dataset.
@@ -28,11 +28,11 @@ dataset.
 ## Propagate value uncertainty
 
 ```{r}
-source <- ngeo_points(
+source <- ngeo_point(
   cbind(x = 1:6, y = 0),
   values = cbind(signal = c(2, 4, 3, 8, 6, 10)),
-  measures = ngeo_measure(spatial_semantics = "intensive"),
-  space = ngeo_space("uncertainty-example")
+  measures = ngeo_measure(support_behavior = "intensive"),
+  coordinate_space = ngeo_coordinate_space("uncertainty-example")
 )
 atlas <- ngeo_atlas_map(
   source,

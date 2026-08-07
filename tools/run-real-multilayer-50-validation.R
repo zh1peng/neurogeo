@@ -51,15 +51,15 @@ assert(identical(covariates$SubjID, thickness$SubjID) &&
 
 left <- read_ngeo_gifti(fixture("enigma-conte69-left"), checksum = TRUE)
 right <- read_ngeo_gifti(fixture("enigma-conte69-right"), checksum = TRUE)
-left_coordinates <- left$domain$coordinates[[left$domain$active_coordinates]]
-right_coordinates <- right$domain$coordinates[[right$domain$active_coordinates]]
+left_coordinates <- left$base$geometry$coordinates[[left$base$geometry$active_coordinates]]
+right_coordinates <- right$base$geometry$coordinates[[right$base$geometry$active_coordinates]]
 left_n <- nrow(left_coordinates)
 coordinates <- rbind(left_coordinates, right_coordinates)
-faces <- rbind(left$domain$faces, right$domain$faces + left_n)
-space <- ngeo_space(
+faces <- rbind(left$base$geometry$faces, right$base$geometry$faces + left_n)
+space <- ngeo_coordinate_space(
   space_id = "ENIGMA-Conte69-32k",
   kind = "surface",
-  units = "mm",
+  unit = "mm",
   template = "Conte69",
   density = "32k",
   source_metadata = list(
@@ -68,12 +68,12 @@ space <- ngeo_space(
   )
 )
 geometry <- ngeo_surface(
-  coordinates, faces, space = space,
+  coordinates, faces, coordinate_space = space,
   index_base = "one", source_index_base = 0L
 )
-assert(nrow(geometry$domain$elements) == 64984L &&
-       nrow(geometry$domain$faces) == 129960L,
-       "The bilateral Conte69 domain has unexpected dimensions.")
+assert(nrow(geometry$base$elements) == 64984L &&
+       nrow(geometry$base$geometry$faces) == 129960L,
+       "The bilateral Conte69 base has unexpected dimensions.")
 
 dk_numeric <- read_labels("enigma-aparc-conte69")
 schaefer100 <- read_labels("enigma-schaefer100-conte69")
@@ -120,16 +120,16 @@ for (subject in seq_len(nrow(covariates))) {
   subject_objects[[subject]] <- ngeo_surface(
     coordinates, faces,
     values = vertex_values,
-    maps = data.frame(name = map_names, stringsAsFactors = FALSE),
+    layers = data.frame(name = map_names, stringsAsFactors = FALSE),
     measures = rbind(
       ngeo_measure(
-        value_type = "continuous", spatial_semantics = "intensive", units = "mm"
+        value_type = "continuous", support_behavior = "intensive", unit = "mm"
       ),
       ngeo_measure(
-        value_type = "continuous", spatial_semantics = "intensive", units = "1"
+        value_type = "continuous", support_behavior = "intensive", unit = "1"
       )
     ),
-    space = space, index_base = "one", source_index_base = 0L
+    coordinate_space = space, index_base = "one", source_index_base = 0L
   )
   metadata[[subject]] <- data.frame(
     subject_id = rep(covariates$SubjID[[subject]], 2L),
@@ -145,7 +145,7 @@ bind_arguments <- c(
   subject_objects,
   list(metadata = metadata, conflicts = "prefix", storage = "delayed")
 )
-stack <- do.call(ngeo_bind_maps, bind_arguments)
+stack <- do.call(ngeo_bind_layers, bind_arguments)
 assert(inherits(stack$values, "ngeo_delayed_values") && ncol(stack$values) == 40L,
        "The real subject stack did not retain delayed aligned values.")
 
@@ -171,11 +171,11 @@ for (support_name in names(support_labels)) {
     required_layers = c("thickness", "relative_area_density"),
     complete = "error"
   )
-  weights <- ngeo_weights(
+  spatial_weights <- ngeo_spatial_weights(
     regional, method = "region_contiguity", style = "B"
   )
   basis <- ngeo_spatial_basis(
-    regional, weights = weights, n_modes = 8L,
+    regional, spatial_weights = spatial_weights, n_modes = 8L,
     components = "separate"
   )
   current <- ngeo_layer_coupling(
@@ -188,14 +188,14 @@ for (support_name in names(support_labels)) {
     basis = basis,
     bands = list(modes_001_008 = 1:8),
     estimands = c("same_location", "spectral_coupling"),
-    chunk_maps = 4L
+    chunk_layers = 4L
   )
   features[[support_name]] <- current
   support_inventory[[support_name]] <- list(
-    regions = nrow(regional$domain$elements),
+    regions = nrow(regional$base$elements),
     components = length(basis$components),
     basis_hash = basis$basis_hash,
-    support_hash = current$provenance$support_hash,
+    support_hash = current$history$support_hash,
     endpoints = ncol(current$values),
     maximum_eigen_residual = basis$diagnostics$max_residual,
     missing_endpoints = current$diagnostics$missing_endpoints,
@@ -293,9 +293,9 @@ report <- list(
     exclusions = list(count = 0L, subject_id = character(), reason = character()),
     independent_unit = "subject"
   ),
-  maps = list(
-    thickness = list(units = "mm", semantics = "intensive"),
-    relative_area_density = list(units = "1", semantics = "intensive")
+  layers = list(
+    thickness = list(unit = "mm", semantics = "intensive"),
+    relative_area_density = list(unit = "1", semantics = "intensive")
   ),
   supports = support_inventory,
   workflows = list(

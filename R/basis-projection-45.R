@@ -1,55 +1,55 @@
-.ngeo_projection_index <- function(x, index, maps) {
-  selected <- if (is.null(maps)) seq_len(nrow(x$maps)) else
-    .ngeo_map_selection(x, maps)
+.ngeo_projection_index <- function(x, index, layers) {
+  selected <- if (is.null(layers)) seq_len(nrow(x$layers)) else
+    .ngeo_layer_selection(x, layers)
   if (is.null(index)) {
-    map_index <- data.frame(
-      map_index = selected,
-      map_id = x$maps$map_id[selected],
-      map_name = x$maps$name[selected],
-      unit_id = x$maps$map_id[selected],
+    layer_index <- data.frame(
+      layer_index = selected,
+      layer_id = x$layers$layer_id[selected],
+      layer_name = x$layers$name[selected],
+      unit_id = x$layers$layer_id[selected],
       layer_id = "map",
       stringsAsFactors = FALSE
     )
-    units <- data.frame(
-      unit_id = map_index$unit_id,
-      map_id = map_index$map_id,
+    unit <- data.frame(
+      unit_id = layer_index$unit_id,
+      layer_id = layer_index$layer_id,
       stringsAsFactors = FALSE
     )
     return(structure(list(
-      map_index = map_index,
-      units = units,
+      layer_index = layer_index,
+      unit = unit,
       layers = "map",
-      domain_hash = ngeo_domain_hash(x),
-      index_hash = .ngeo_layer_digest(map_index)
+      base_hash = base_hash(x),
+      index_hash = .ngeo_layer_digest(layer_index)
     ), class = "ngeo_layer_index"))
   }
   if (!inherits(index, "ngeo_layer_index") ||
-      !identical(index$domain_hash, ngeo_domain_hash(x))) {
-    .ngeo_abort("The layer index does not match the projection domain.",
-                "ngeo_error_domain_mismatch")
+      !identical(index$base_hash, base_hash(x))) {
+    .ngeo_abort("The layer index does not match the projection base.",
+                "ngeo_error_base_mismatch")
   }
-  missing <- setdiff(selected, index$map_index$map_index)
+  missing <- setdiff(selected, index$layer_index$layer_index)
   if (length(missing)) {
-    .ngeo_abort("Selected maps are absent from the supplied layer index.",
+    .ngeo_abort("Selected layers are absent from the supplied layer index.",
                 "ngeo_error_alignment")
   }
   result <- index
-  result$map_index <- result$map_index[
-    result$map_index$map_index %in% selected, , drop = FALSE
+  result$layer_index <- result$layer_index[
+    result$layer_index$layer_index %in% selected, , drop = FALSE
   ]
-  result$layers <- unique(result$map_index$layer_id)
+  result$layers <- unique(result$layer_index$layer_id)
   result
 }
 
-.ngeo_projection_measures <- function(x, maps) {
-  measures <- x$measures[maps, , drop = FALSE]
+.ngeo_projection_measures <- function(x, layers) {
+  measures <- .ngeo_measures_for_layers(x, layers)
   valid <- measures$value_type == "continuous" &
-    measures$spatial_semantics == "intensive"
+    measures$support_behavior == "intensive"
   if (anyNA(valid) || any(!valid)) {
-    invalid <- x$maps$name[maps[which(!valid | is.na(valid))]]
+    invalid <- x$layers$name[layers[which(!valid | is.na(valid))]]
     .ngeo_abort(
       sprintf(
-        "Spatial projection requires continuous intensive maps: %s.",
+        "Spatial projection requires continuous intensive layers: %s.",
         paste(utils::head(invalid, 10L), collapse = ", ")
       ),
       "ngeo_error_measure"
@@ -101,33 +101,33 @@
   bands
 }
 
-.ngeo_project_component <- function(x, component, maps, center, scale,
-                                    chunk_rows, chunk_maps) {
+.ngeo_project_component <- function(x, component, layers, center, scale,
+                                    chunk_rows, chunk_layers) {
   rows <- component$rows
   support <- component$support
   vectors <- component$vectors
   result <- list()
   map_groups <- split(
-    seq_along(maps),
-    ceiling(seq_along(maps) / chunk_maps)
+    seq_along(layers),
+    ceiling(seq_along(layers) / chunk_layers)
   )
   row_groups <- split(
     seq_along(rows),
     ceiling(seq_along(rows) / chunk_rows)
   )
-  coefficients <- matrix(0, ncol(vectors), length(maps))
-  total_energy <- numeric(length(maps))
-  means <- numeric(length(maps))
-  scales <- rep.int(1, length(maps))
+  coefficients <- matrix(0, ncol(vectors), length(layers))
+  total_energy <- numeric(length(layers))
+  means <- numeric(length(layers))
+  scales <- rep.int(1, length(layers))
   for (map_group in map_groups) {
-    selected_maps <- maps[map_group]
+    selected_layers <- layers[map_group]
     weighted_sum <- numeric(length(map_group))
     weighted_square <- numeric(length(map_group))
     for (row_group in row_groups) {
-      block <- x$values[rows[row_group], selected_maps, drop = FALSE]
+      block <- x$values[rows[row_group], selected_layers, drop = FALSE]
       if (any(!is.finite(block))) {
         .ngeo_abort(
-          "Basis projection requires one complete finite analysis domain.",
+          "Basis projection requires one complete finite analysis base.",
           "ngeo_error_missing"
         )
       }
@@ -155,7 +155,7 @@
     current_coefficients <- matrix(0, ncol(vectors), length(map_group))
     current_total <- numeric(length(map_group))
     for (row_group in row_groups) {
-      block <- x$values[rows[row_group], selected_maps, drop = FALSE]
+      block <- x$values[rows[row_group], selected_layers, drop = FALSE]
       block <- sweep(block, 2L, current_means, "-")
       block <- sweep(block, 2L, current_scales, "/")
       weighted <- support[row_group] * block
@@ -215,7 +215,7 @@
   )
 }
 
-#' Project aligned maps into a fixed spatial basis
+#' Project aligned layers into a fixed spatial basis
 #'
 #' Projection is component-, row-, and map-chunked and returns a small
 #' independent-unit by endpoint matrix. Reconstruction is not performed
@@ -224,13 +224,13 @@
 #' @param x An aligned `ngeo` object.
 #' @param basis A matching `ngeo_spatial_basis`.
 #' @param index Optional `ngeo_layer_index`.
-#' @param maps Optional map selection.
+#' @param layers Optional map selection.
 #' @param bands Optional named, non-overlapping retained-mode groups.
 #' @param center Whether to support-weight center each map.
 #' @param scale Whether to support-weight scale each centered map.
 #' @param summaries Projection summaries to return.
 #' @param chunk_rows Maximum component rows read together.
-#' @param chunk_maps Maximum maps read together.
+#' @param chunk_layers Maximum layers read together.
 #'
 #' @return An `ngeo_subject_features` object.
 #' @export
@@ -238,7 +238,7 @@ ngeo_basis_project <- function(
     x,
     basis,
     index = NULL,
-    maps = NULL,
+    layers = NULL,
     bands = NULL,
     center = TRUE,
     scale = FALSE,
@@ -246,12 +246,12 @@ ngeo_basis_project <- function(
       "coefficients", "absolute_energy", "relative_energy", "roughness"
     ),
     chunk_rows = 8192L,
-    chunk_maps = 32L) {
+    chunk_layers = 32L) {
   ngeo_validate(x, "basic")
   if (!inherits(basis, "ngeo_spatial_basis") ||
-      !identical(basis$domain_hash, ngeo_domain_hash(x))) {
-    .ngeo_abort("The spatial basis does not match the projection domain.",
-                "ngeo_error_domain_mismatch")
+      !identical(basis$base_hash, base_hash(x))) {
+    .ngeo_abort("The spatial basis does not match the projection base.",
+                "ngeo_error_base_mismatch")
   }
   allowed <- c(
     "coefficients", "absolute_energy", "relative_energy", "roughness",
@@ -263,27 +263,27 @@ ngeo_basis_project <- function(
                 "ngeo_error_argument")
   }
   chunk_rows <- .ngeo_as_integer(chunk_rows, "chunk_rows")
-  chunk_maps <- .ngeo_as_integer(chunk_maps, "chunk_maps")
+  chunk_layers <- .ngeo_as_integer(chunk_layers, "chunk_layers")
   if (length(chunk_rows) != 1L || chunk_rows < 1L ||
-      length(chunk_maps) != 1L || chunk_maps < 1L) {
+      length(chunk_layers) != 1L || chunk_layers < 1L) {
     .ngeo_abort("Projection chunk sizes must be positive integers.",
                 "ngeo_error_argument")
   }
-  index <- .ngeo_projection_index(x, index, maps)
-  selected_maps <- index$map_index$map_index
-  .ngeo_projection_measures(x, selected_maps)
-  unit_ids <- index$units$unit_id
+  index <- .ngeo_projection_index(x, index, layers)
+  selected_layers <- index$layer_index$layer_index
+  .ngeo_projection_measures(x, selected_layers)
+  unit_ids <- index$unit$unit_id
   endpoint_tables <- list()
   endpoint_values <- list()
 
   for (component in basis$components) {
     current_bands <- .ngeo_validate_projection_bands(component, bands)
     projected <- .ngeo_project_component(
-      x, component, selected_maps, center, scale, chunk_rows, chunk_maps
+      x, component, selected_layers, center, scale, chunk_rows, chunk_layers
     )
     for (layer in index$layers) {
-      layer_rows <- which(index$map_index$layer_id == layer)
-      layer_units <- match(index$map_index$unit_id[layer_rows], unit_ids)
+      layer_rows <- which(index$layer_index$layer_id == layer)
+      layer_units <- match(index$layer_index$unit_id[layer_rows], unit_ids)
       layer_maps <- layer_rows
       add_endpoint <- function(metadata, values) {
         matrix_values <- matrix(NA_real_, length(unit_ids), nrow(metadata))
@@ -366,26 +366,26 @@ ngeo_basis_project <- function(
   rownames(values) <- unit_ids
   result <- list(
     values = values,
-    units = index$units,
+    unit = index$unit,
     endpoints = endpoints,
     diagnostics = list(
-      source_maps = length(selected_maps),
-      units = length(unit_ids),
+      source_layers = length(selected_layers),
+      unit = length(unit_ids),
       endpoints = nrow(endpoints),
       center = isTRUE(center),
       scale = isTRUE(scale),
       chunk_rows = chunk_rows,
-      chunk_maps = chunk_maps,
+      chunk_layers = chunk_layers,
       missing_endpoints = sum(!is.finite(values))
     ),
-    provenance = list(
+    history = list(
       method = "support_weighted_fixed_basis_projection",
-      domain_hash = ngeo_domain_hash(x),
+      base_hash = base_hash(x),
       index_hash = index$index_hash,
       basis_hash = basis$basis_hash,
       operator_hash = basis$operator_hash,
       support_hash = basis$support$hash,
-      source_map_id = x$maps$map_id[selected_maps],
+      source_layer_id = x$layers$layer_id[selected_layers],
       values_materialized = FALSE
     )
   )
@@ -397,7 +397,7 @@ ngeo_basis_project <- function(
 print.ngeo_subject_features <- function(x, ...) {
   cat(
     "<ngeo_subject_features>\n",
-    "  units: ", nrow(x$units), "\n",
+    "  unit: ", nrow(x$unit), "\n",
     "  endpoints: ", nrow(x$endpoints), "\n",
     "  finite cells: ", sum(is.finite(x$values)), "/", length(x$values), "\n",
     sep = ""

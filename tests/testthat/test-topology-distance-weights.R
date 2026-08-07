@@ -48,7 +48,7 @@ test_that("grayordinate topology remains block diagonal", {
     ),
     matrix(c(1, 2, 3), nrow = 1)
   )
-  x <- ngeo_grayordinates(
+  x <- ngeo_grayordinate(
     list(
       list(
         component_id = "left",
@@ -76,10 +76,10 @@ test_that("grayordinate topology remains block diagonal", {
 })
 
 test_that("explicit Euclidean and graph distances are correct", {
-  points <- ngeo_points(
+  point <- ngeo_point(
     matrix(c(0, 0, 3, 4, 0, 4), ncol = 2, byrow = TRUE)
   )
-  distance <- ngeo_distance(points, from = 1, to = c(2, 3), metric = "euclidean")
+  distance <- ngeo_distance(point, from = 1, to = c(2, 3), distance_method = "euclidean")
   expect_equal(as.vector(distance), c(5, 4))
 
   surface <- ngeo_surface(
@@ -95,28 +95,28 @@ test_that("explicit Euclidean and graph distances are correct", {
       surface,
       from = 2,
       to = 3,
-      metric = "edge_geodesic"
+      distance_method = "edge_geodesic"
     )),
     sqrt(2)
   )
   expect_equal(
-    as.vector(ngeo_distance(surface, from = 2, to = 3, metric = "hops")),
+    as.vector(ngeo_distance(surface, from = 2, to = 3, distance_method = "hops")),
     1
   )
 })
 
 test_that("distance requests have an explicit size guard", {
-  points <- ngeo_points(matrix(seq_len(20), ncol = 2))
+  point <- ngeo_point(matrix(seq_len(20), ncol = 2))
   old <- options(neurogeo.max_distance_pairs = 20)
   on.exit(options(old), add = TRUE)
 
   expect_error(
-    ngeo_distance(points, from = 1:3),
+    ngeo_distance(point, from = 1:3),
     class = "ngeo_error_dense_distance"
   )
 })
 
-test_that("contiguity weights retain raw sparse weights and normalization", {
+test_that("contiguity spatial_weights retain raw sparse spatial_weights and normalization", {
   surface <- ngeo_surface(
     matrix(
       c(0, 0, 0, 1, 0, 0, 0, 1, 0),
@@ -125,34 +125,34 @@ test_that("contiguity weights retain raw sparse weights and normalization", {
     ),
     matrix(c(1, 2, 3), nrow = 1)
   )
-  weights <- ngeo_weights(
+  spatial_weights <- ngeo_spatial_weights(
     surface,
     method = "mesh_contiguity",
     style = "W"
   )
 
-  expect_s3_class(weights, "ngeo_weights")
-  expect_s4_class(weights$matrix, "dgCMatrix")
-  expect_equal(as.numeric(Matrix::rowSums(weights$matrix)), rep(1, 3))
-  expect_equal(length(weights$raw_matrix@x), 6L)
-  expect_identical(weights$domain_hash, ngeo_domain_hash(surface))
-  expect_identical(weights$metric, "hops")
-  expect_equal(weights$diagnostics$n_component, 1L)
+  expect_s3_class(spatial_weights, "ngeo_spatial_weights")
+  expect_s4_class(spatial_weights$matrix, "dgCMatrix")
+  expect_equal(as.numeric(Matrix::rowSums(spatial_weights$matrix)), rep(1, 3))
+  expect_equal(length(spatial_weights$raw_matrix@x), 6L)
+  expect_identical(spatial_weights$base_hash, base_hash(surface))
+  expect_identical(spatial_weights$distance_method, "hops")
+  expect_equal(spatial_weights$diagnostics$n_component, 1L)
 })
 
 test_that("coordinate KNN, distance-band, and kernels stay sparse", {
-  points <- ngeo_points(
+  point <- ngeo_point(
     matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE)
   )
-  knn <- ngeo_weights(points, method = "knn", k = 1, style = "B")
-  band <- ngeo_weights(
-    points,
+  knn <- ngeo_spatial_weights(point, method = "knn", k = 1, style = "B")
+  band <- ngeo_spatial_weights(
+    point,
     method = "distance_band",
     threshold = 1.1,
     style = "B"
   )
-  gaussian <- ngeo_weights(
-    points,
+  gaussian <- ngeo_spatial_weights(
+    point,
     method = "gaussian",
     threshold = 1.1,
     bandwidth = 1,
@@ -167,19 +167,19 @@ test_that("coordinate KNN, distance-band, and kernels stay sparse", {
 
 test_that("KD-tree queries scale past the exact-neighbor guard", {
   skip_if_not_installed("dbscan")
-  points <- ngeo_points(cbind(x = seq_len(6000), y = 0))
+  point <- ngeo_point(cbind(x = seq_len(6000), y = 0))
   old <- options(neurogeo.max_exact_neighbors = 100L)
   on.exit(options(old), add = TRUE)
 
-  knn <- ngeo_weights(
-    points,
+  knn <- ngeo_spatial_weights(
+    point,
     method = "knn",
     k = 2L,
     style = "B",
     symmetry = "directed"
   )
-  radius <- ngeo_weights(
-    points,
+  radius <- ngeo_spatial_weights(
+    point,
     method = "radius",
     threshold = 1.01,
     style = "B"
@@ -190,7 +190,7 @@ test_that("KD-tree queries scale past the exact-neighbor guard", {
   expect_identical(radius$method, "radius")
 })
 
-test_that("weights convert to igraph and spdep without dense intermediates", {
+test_that("spatial_weights convert to igraph and spdep without dense intermediates", {
   surface <- ngeo_surface(
     matrix(
       c(0, 0, 0, 1, 0, 0, 0, 1, 0),
@@ -199,23 +199,23 @@ test_that("weights convert to igraph and spdep without dense intermediates", {
     ),
     matrix(c(1, 2, 3), nrow = 1)
   )
-  weights <- ngeo_weights(surface, style = "W")
+  spatial_weights <- ngeo_spatial_weights(surface, style = "W")
 
   if (requireNamespace("igraph", quietly = TRUE)) {
-    graph <- as_igraph(weights)
+    graph <- as_igraph(spatial_weights)
     expect_equal(igraph::vcount(graph), 3L)
     expect_equal(igraph::ecount(graph), 3L)
   }
   if (requireNamespace("spdep", quietly = TRUE)) {
-    nb <- as_spdep_nb(weights)
-    listw <- as_spdep_listw(weights)
+    nb <- as_spdep_nb(spatial_weights)
+    listw <- as_spdep_listw(spatial_weights)
     expect_s3_class(nb, "nb")
     expect_s3_class(listw, "listw")
     expect_equal(length(nb), 3L)
   }
 })
 
-test_that("distance-based weights execute the declared surface metric", {
+test_that("distance-based spatial_weights execute the declared surface distance_method", {
   coordinates <- rbind(
     c(0, 0, 0),
     c(10, 0, 0),
@@ -227,48 +227,48 @@ test_that("distance-based weights execute the declared surface metric", {
     rbind(c(1, 2, 3), c(2, 3, 4)),
     values = cbind(signal = 1:4)
   )
-  euclidean <- ngeo_weights(
+  euclidean <- ngeo_spatial_weights(
     surface,
     method = "distance_band",
     threshold = 1,
     style = "B",
-    metric = "euclidean"
+    distance_method = "euclidean"
   )
-  geodesic <- ngeo_weights(
+  geodesic <- ngeo_spatial_weights(
     surface,
     method = "distance_band",
     threshold = 1,
     style = "B",
-    metric = "edge_geodesic"
+    distance_method = "edge_geodesic"
   )
 
   expect_equal(as.numeric(ngeo_distance(
-    surface, 1, 4, metric = "euclidean"
+    surface, 1, 4, distance_method = "euclidean"
   )), sqrt(0.02))
   expect_gt(as.numeric(ngeo_distance(
-    surface, 1, 4, metric = "edge_geodesic"
+    surface, 1, 4, distance_method = "edge_geodesic"
   )), 19)
   expect_equal(as.matrix(euclidean$matrix)[1, 4], 1)
   expect_equal(as.matrix(geodesic$matrix)[1, 4], 0)
   expect_error(
-    ngeo_weights(
-      ngeo_points(matrix(1:6, ncol = 2)),
+    ngeo_spatial_weights(
+      ngeo_point(matrix(1:6, ncol = 2)),
       method = "distance_band",
       threshold = 2,
-      metric = "edge_geodesic"
+      distance_method = "edge_geodesic"
     ),
     class = "ngeo_error_capability"
   )
 })
 
 test_that("metrics are controlled names without parameter objects", {
-  points <- ngeo_points(cbind(x = 0:1, y = 0))
+  point <- ngeo_point(cbind(x = 0:1, y = 0))
   expect_equal(
-    as.numeric(ngeo_distance(points, 1, 2, "euclidean")),
+    as.numeric(ngeo_distance(point, 1, 2, "euclidean")),
     1
   )
   expect_error(
-    ngeo_distance(points, 1, 2, list(name = "euclidean")),
+    ngeo_distance(point, 1, 2, list(name = "euclidean")),
     class = "ngeo_error_metric"
   )
 })

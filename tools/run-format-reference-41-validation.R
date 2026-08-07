@@ -38,14 +38,14 @@ nifti_output <- write_ngeo_nifti(
 )
 nifti_restored <- read_ngeo_nifti(
   nifti_output$data,
-  maps = nifti$maps,
+  layers = nifti$layers,
   measures = nifti$measures,
   checksum = FALSE
 )
-nifti_valid <- identical(nifti$domain$dim, c(96L, 96L, 60L)) &&
+nifti_valid <- identical(nifti$base$geometry$dim, c(96L, 96L, 60L)) &&
   isTRUE(all.equal(
-    nifti_restored$domain$affine,
-    nifti$domain$affine,
+    nifti_restored$base$geometry$affine,
+    nifti$base$geometry$affine,
     tolerance = 1e-6
   )) &&
   isTRUE(all.equal(nifti_restored$values, nifti$values))
@@ -55,21 +55,21 @@ gifti_geometry <- read_ngeo_gifti(
   fixture("freesurferformats-cube"),
   checksum = TRUE
 )
-coordinates <- gifti_geometry$domain$coordinates
+coordinates <- gifti_geometry$base$geometry$coordinates
 surface <- ngeo_surface(
   coordinates = coordinates,
-  faces = gifti_geometry$domain$faces,
+  faces = gifti_geometry$base$geometry$faces,
   values = cbind(curvature = rowSums(
-    coordinates[[gifti_geometry$domain$active_coordinates]]
+    coordinates[[gifti_geometry$base$geometry$active_coordinates]]
   )),
-  maps = data.frame(name = "curvature"),
+  layers = data.frame(name = "curvature"),
   measures = ngeo_measure(
     value_type = "continuous",
-    spatial_semantics = "intensive",
-    units = "a.u."
+    support_behavior = "intensive",
+    unit = "a.u."
   ),
-  space = gifti_geometry$domain$space,
-  coordinate_roles = gifti_geometry$domain$coordinate_meta$role,
+  space = gifti_geometry$base$coordinate_space,
+  coordinate_roles = gifti_geometry$base$geometry$coordinate_meta$role,
   index_base = "one",
   source_index_base = 0L
 )
@@ -83,7 +83,7 @@ gifti_restored <- read_ngeo_gifti(
   checksum = FALSE
 )
 gifti_valid <- identical(
-  gifti_restored$domain$faces, surface$domain$faces
+  gifti_restored$base$geometry$faces, surface$base$geometry$faces
 ) && isTRUE(all.equal(
   gifti_restored$values, surface$values, tolerance = 1e-6
 ))
@@ -98,8 +98,8 @@ write_ngeo_cifti(cifti, cifti_path, type = "dscalar")
 cifti_restored <- read_ngeo_cifti(cifti_path, checksum = FALSE)
 cifti_valid <- identical(dim(cifti$values), c(59412L, 1L)) &&
   identical(
-    cifti_restored$domain$elements$structure,
-    cifti$domain$elements$structure
+    cifti_restored$base$elements$structure,
+    cifti$base$elements$structure
   ) &&
   isTRUE(all.equal(
     cifti_restored$values, cifti$values, tolerance = 1e-6
@@ -110,7 +110,7 @@ missing_affine_rejected <- inherits(
   tryCatch(
     read_ngeo_freesurfer(
       fixture("freesurfer-tiny-mgh"),
-      domain = "volume",
+      base = "volume",
       checksum = FALSE
     ),
     error = identity
@@ -129,7 +129,7 @@ malformed_surface_rejected <- inherits(
 )
 freesurfer <- read_ngeo_freesurfer(
   fixture("freesurfer-tiny-mgh"),
-  domain = "volume",
+  base = "volume",
   affine = diag(4),
   checksum = TRUE
 )
@@ -138,14 +138,14 @@ freesurfer_output <- write_ngeo_freesurfer(
 )
 freesurfer_restored <- read_ngeo_freesurfer(
   freesurfer_output$data,
-  domain = "volume",
+  base = "volume",
   checksum = FALSE
 )
 freesurfer_valid <- missing_affine_rejected &&
   malformed_surface_rejected &&
   isTRUE(all.equal(
-    freesurfer_restored$domain$affine,
-    freesurfer$domain$affine,
+    freesurfer_restored$base$geometry$affine,
+    freesurfer$base$geometry$affine,
     tolerance = 1e-5
   )) &&
   isTRUE(all.equal(

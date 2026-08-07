@@ -30,10 +30,10 @@ ngeo_project_surface(
 \item{tolerance}{Degenerate-face tolerance.}
 }
 \value{
-`x` with a non-metric viewing chart.
+`x` with a non-distance_method viewing chart.
 }
 \description{
-Viewing projections are explicitly non-metric. Spherical projection
+Viewing projections are explicitly non-distance_method. Spherical projection
 requires a caller-supplied seam longitude and does not estimate a spherical
 registration.
 }
@@ -44,5 +44,5 @@ surface <- ngeo_surface(
   matrix(c(1, 2, 3, 1, 3, 4), ncol = 3, byrow = TRUE)
 )
 viewed <- ngeo_project_surface(surface, "orthographic", view = "xy")
-viewed$domain$charts$view$kind
+viewed$base$charts$view$kind
 }

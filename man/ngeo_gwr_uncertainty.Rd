@@ -11,10 +11,10 @@ ngeo_gwr_uncertainty(
   bandwidth,
   value_covariance,
   bandwidths = NULL,
-  metric = NULL,
+  distance_method = NULL,
   kernel = c("gaussian", "bisquare"),
   targets = NULL,
-  support = c("none", "domain"),
+  support = c("none", "base"),
   singular = c("na", "error"),
   level = 0.95
 )
@@ -24,7 +24,7 @@ ngeo_gwr_uncertainty(
 
 \item{response}{One response map.}
 
-\item{predictors}{Predictor maps.}
+\item{predictors}{Predictor layers.}
 
 \item{bandwidth}{Positive bandwidth or `ngeo_gwr_bandwidth`.}
 
@@ -32,13 +32,13 @@ ngeo_gwr_uncertainty(
 
 \item{bandwidths}{Optional positive bandwidth sensitivity set.}
 
-\item{metric}{Explicit NGCS metric.}
+\item{distance_method}{Explicit NGCS distance_method.}
 
 \item{kernel}{Gaussian or compact bisquare kernel.}
 
 \item{targets}{Optional target elements.}
 
-\item{support}{Multiply kernel weights by explicit element support.}
+\item{support}{Multiply kernel spatial_weights by explicit element support.}
 
 \item{singular}{Whether singular local designs return `NA` or fail.}
 

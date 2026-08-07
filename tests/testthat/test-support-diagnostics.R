@@ -9,11 +9,11 @@ test_that("support diagnostics remain sparse and report exact invariants", {
   expect_equal(hard$source$entropy, rep(0, 4))
   expect_equal(soft$source$entropy, c(0, 1, 1, 0))
   expect_equal(
-    hard$summary$value[hard$summary$metric == "nonzero"],
+    hard$summary$value[hard$summary$distance_method == "nonzero"],
     4
   )
   expect_equal(
-    soft$summary$value[soft$summary$metric == "nonzero"],
+    soft$summary$value[soft$summary$distance_method == "nonzero"],
     6
   )
 })

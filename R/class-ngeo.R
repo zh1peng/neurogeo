@@ -11,7 +11,7 @@
   )
 }
 
-.ngeo_values <- function(values, n_element) {
+.values <- function(values, n_element) {
   if (is.null(values)) {
     return(NULL)
   }
@@ -42,7 +42,7 @@
   if (nrow(values) != n_element) {
     .ngeo_abort(
       sprintf(
-        "`values` has %d rows but the domain has %d elements. No implicit resampling was performed.",
+        "`values` has %d rows but the base has %d elements. No implicit resampling was performed.",
         nrow(values), n_element
       ),
       "ngeo_error_alignment"
@@ -51,143 +51,200 @@
   values
 }
 
-.ngeo_maps <- function(maps, n_map, value_names = NULL) {
-  if (n_map == 0L) {
-    if (!is.null(maps) && NROW(maps) != 0L) {
+.layers <- function(layers, n_layer, value_names = NULL, measures = NULL) {
+  if (n_layer == 0L) {
+    if (!is.null(layers) && NROW(layers) != 0L) {
       .ngeo_abort(
-        "`maps` must be empty when `values` is NULL.",
+        "`layers` must be empty when `values` is NULL.",
         "ngeo_error_alignment"
       )
     }
     return(data.frame(
-      map_id = character(),
+      layer_id = character(),
       name = character(),
+      measure_id = character(),
       stringsAsFactors = FALSE
     ))
   }
 
-  if (is.null(maps)) {
+  if (is.null(layers)) {
     names <- value_names
-    if (is.null(names) || length(names) != n_map ||
+    if (is.null(names) || length(names) != n_layer ||
         anyNA(names) || any(!nzchar(names))) {
-      names <- paste0("map_", seq_len(n_map))
+      names <- paste0("layer_", seq_len(n_layer))
     }
-    return(data.frame(
-      map_id = sprintf("map_%04d", seq_len(n_map)),
+    layers <- data.frame(
+      layer_id = sprintf("layer_%04d", seq_len(n_layer)),
       name = names,
       stringsAsFactors = FALSE
-    ))
+    )
   }
-
-  if (is.character(maps)) {
-    maps <- data.frame(name = maps, stringsAsFactors = FALSE)
+  if (is.character(layers)) {
+    layers <- data.frame(name = layers, stringsAsFactors = FALSE)
   }
-  if (!is.data.frame(maps) || nrow(maps) != n_map) {
+  if (!is.data.frame(layers) || nrow(layers) != n_layer) {
     .ngeo_abort(
-      sprintf("`maps` must have exactly %d rows.", n_map),
+      sprintf("`layers` must have exactly %d rows.", n_layer),
       "ngeo_error_alignment"
     )
   }
-  if (!"name" %in% names(maps)) {
-    maps$name <- paste0("map_", seq_len(n_map))
+  if (!"name" %in% names(layers)) {
+    layers$name <- paste0("layer_", seq_len(n_layer))
   }
-  if (!"map_id" %in% names(maps)) {
-    maps$map_id <- sprintf("map_%04d", seq_len(n_map))
+  if (!"layer_id" %in% names(layers)) {
+    layers$layer_id <- sprintf("layer_%04d", seq_len(n_layer))
   }
-  maps
+  if (anyNA(layers$layer_id) || any(!nzchar(layers$layer_id)) ||
+      anyDuplicated(layers$layer_id)) {
+    .ngeo_abort(
+      "`layers$layer_id` must contain non-missing unique identifiers.",
+      "ngeo_error_layer"
+    )
+  }
+  if (!"measure_id" %in% names(layers)) {
+    supplied_measure_ids <- if (is.data.frame(measures) &&
+        "measure_id" %in% names(measures)) {
+      unique(as.character(measures$measure_id))
+    } else {
+      character()
+    }
+    layers$measure_id <- if (length(supplied_measure_ids) == n_layer) {
+      supplied_measure_ids
+    } else if (length(supplied_measure_ids) == 1L) {
+      rep.int(supplied_measure_ids, n_layer)
+    } else {
+      rep.int("measure_unknown", n_layer)
+    }
+  }
+  if (anyNA(layers$measure_id) || any(!nzchar(layers$measure_id))) {
+    .ngeo_abort(
+      "`layers$measure_id` must contain non-missing identifiers.",
+      "ngeo_error_measure"
+    )
+  }
+  layers
 }
 
-.ngeo_measures <- function(measures, maps) {
-  n_map <- nrow(maps)
-  if (n_map == 0L) {
+.measures <- function(measures, layers) {
+  measure_ids <- unique(as.character(layers$measure_id))
+  if (!length(measure_ids)) {
     return(data.frame(
-      map_id = character(),
+      measure_id = character(),
+      name = character(),
+      unit = character(),
       value_type = character(),
-      spatial_semantics = character(),
-      units = character(),
-      missing_policy = character(),
-      default_aggregation = character(),
+      support_behavior = character(),
+      aggregation = character(),
       stringsAsFactors = FALSE
     ))
   }
 
   if (is.null(measures)) {
     return(data.frame(
-      map_id = maps$map_id,
-      value_type = rep.int("continuous", n_map),
-      spatial_semantics = rep.int("unknown", n_map),
-      units = rep.int("unknown", n_map),
-      missing_policy = rep.int("preserve", n_map),
-      default_aggregation = rep.int("none", n_map),
+      measure_id = measure_ids,
+      name = measure_ids,
+      unit = rep.int("unknown", length(measure_ids)),
+      value_type = rep.int("unknown", length(measure_ids)),
+      support_behavior = rep.int("unknown", length(measure_ids)),
+      aggregation = rep.int("unknown", length(measure_ids)),
       stringsAsFactors = FALSE
     ))
   }
-  if (!is.data.frame(measures) || nrow(measures) != n_map) {
+  if (!is.data.frame(measures) || !"measure_id" %in% names(measures)) {
     .ngeo_abort(
-      sprintf("`measures` must have exactly %d rows.", n_map),
-      "ngeo_error_alignment"
+      "`measures` must be a data frame containing `measure_id`.",
+      "ngeo_error_measure"
     )
   }
-
-  required <- c(
-    "value_type", "spatial_semantics", "units",
-    "missing_policy", "default_aggregation"
-  )
-  missing <- setdiff(required, names(measures))
-  if (length(missing)) {
+  if (anyNA(measures$measure_id) || any(!nzchar(measures$measure_id)) ||
+      anyDuplicated(measures$measure_id)) {
+    .ngeo_abort(
+      "`measures$measure_id` must contain non-missing unique identifiers.",
+      "ngeo_error_measure"
+    )
+  }
+  missing_measures <- setdiff(measure_ids, measures$measure_id)
+  if (length(missing_measures)) {
     .ngeo_abort(
       sprintf(
-        "`measures` is missing required columns: %s.",
-        paste(missing, collapse = ", ")
+        "`layers$measure_id` references undefined measures: %s.",
+        paste(missing_measures, collapse = ", ")
       ),
       "ngeo_error_measure"
     )
   }
-  if (!"map_id" %in% names(measures)) {
-    measures$map_id <- maps$map_id
+  defaults <- list(
+    name = as.character(measures$measure_id),
+    unit = rep.int("unknown", nrow(measures)),
+    value_type = rep.int("unknown", nrow(measures)),
+    support_behavior = rep.int("unknown", nrow(measures)),
+    aggregation = rep.int("unknown", nrow(measures))
+  )
+  for (field in names(defaults)) {
+    if (!field %in% names(measures)) {
+      measures[[field]] <- defaults[[field]]
+    }
   }
   measures
 }
 
-.new_ngeo <- function(domain,
+.ngeo_measures_for_layers <- function(x, layer_index, unique = FALSE) {
+  ids <- as.character(x$layers$measure_id[layer_index])
+  if (isTRUE(unique)) {
+    ids <- unique(ids)
+  }
+  rows <- match(ids, x$measures$measure_id)
+  if (anyNA(rows)) {
+    .ngeo_abort(
+      "A layer references an undefined measure.",
+      "ngeo_error_measure"
+    )
+  }
+  x$measures[rows, , drop = FALSE]
+}
+
+.new_ngeo <- function(base,
                       values = NULL,
-                      maps = NULL,
+                      layers = NULL,
                       measures = NULL,
                       labels = list(),
-                      provenance = list(),
+                      history = list(),
                       class) {
-  n_element <- nrow(domain$elements)
-  values <- .ngeo_values(values, n_element)
-  n_map <- if (is.null(values)) {
-    if (is.null(maps)) 0L else NROW(maps)
+  n_element <- nrow(base$elements)
+  values <- .values(values, n_element)
+  n_layer <- if (is.null(values)) {
+    if (is.null(layers)) 0L else NROW(layers)
   } else {
     ncol(values)
   }
-  maps <- .ngeo_maps(maps, n_map, colnames(values))
-  measures <- .ngeo_measures(measures, maps)
+  if (is.data.frame(measures) && !"measure_id" %in% names(measures)) {
+    measures$measure_id <- sprintf("measure_%04d", seq_len(nrow(measures)))
+  }
+  layers <- .layers(layers, n_layer, colnames(values), measures)
+  measures <- .measures(measures, layers)
   if (!is.null(values)) {
-    colnames(values) <- maps$name
+    colnames(values) <- layers$name
   }
 
   if (!is.list(labels)) {
     .ngeo_abort("`labels` must be a list.", "ngeo_error_labels")
   }
-  if (!is.list(provenance)) {
-    .ngeo_abort("`provenance` must be a list.", "ngeo_error_provenance")
+  if (!is.list(history)) {
+    .ngeo_abort("`history` must be a list.", "ngeo_error_history")
   }
 
-  provenance$spec_version <- provenance$spec_version %||% "2.0"
-  provenance$package_version <- provenance$package_version %||%
+  history$spec_version <- history$spec_version %||% "5.1"
+  history$package_version <- history$package_version %||%
     .ngeo_package_version()
 
+  base$labels <- labels
   x <- structure(
     list(
-      domain = domain,
+      base = base,
       values = values,
-      maps = maps,
+      layers = layers,
       measures = measures,
-      labels = labels,
-      provenance = provenance
+      history = history
     ),
     class = c(class, "ngeo")
   )
@@ -195,61 +252,61 @@
   x
 }
 
-#' Return the domain type
+#' Return the base type
 #'
 #' @param x An `ngeo` object.
-#' @return A scalar domain type.
+#' @return A scalar base type.
 #' @export
-ngeo_domain_type <- function(x) {
+base_type <- function(x) {
   if (!inherits(x, "ngeo")) {
     .ngeo_abort("`x` must inherit from `ngeo`.", "ngeo_error_argument")
   }
-  x$domain$type
+  x$base$type
 }
 
 #' Access core NGCS fields
 #'
 #' @param x An `ngeo` object.
-#' @param maps Optional map selection for `ngeo_values()`.
+#' @param layers Optional map selection for `values()`.
 #' @return The requested field.
 #' @name ngeo_accessors
 NULL
 
 #' @rdname ngeo_accessors
 #' @export
-ngeo_domain <- function(x) {
+spatial_base <- function(x) {
   ngeo_validate(x, "basic")
-  x$domain
+  x$base
 }
 
 #' @rdname ngeo_accessors
 #' @export
-ngeo_elements <- function(x) {
+base_elements <- function(x) {
   ngeo_validate(x, "basic")
-  x$domain$elements
+  x$base$elements
 }
 
 #' @rdname ngeo_accessors
 #' @export
-ngeo_values <- function(x, maps = NULL) {
+values <- function(x, layers = NULL) {
   ngeo_validate(x, "basic")
-  if (is.null(x$values) || is.null(maps)) {
+  if (is.null(x$values) || is.null(layers)) {
     return(x$values)
   }
-  index <- .ngeo_map_selection(x, maps)
+  index <- .ngeo_layer_selection(x, layers)
   x$values[, index, drop = FALSE]
 }
 
 #' @rdname ngeo_accessors
 #' @export
-ngeo_maps <- function(x) {
+layers <- function(x) {
   ngeo_validate(x, "basic")
-  x$maps
+  x$layers
 }
 
 #' @rdname ngeo_accessors
 #' @export
-ngeo_measures <- function(x) {
+measures <- function(x) {
   ngeo_validate(x, "basic")
   x$measures
 }
@@ -258,41 +315,41 @@ ngeo_measures <- function(x) {
 #' @export
 ngeo_labels <- function(x) {
   ngeo_validate(x, "basic")
-  x$labels
+  x$base$labels %||% list()
 }
 
 #' @rdname ngeo_accessors
 #' @export
-ngeo_provenance <- function(x) {
+history <- function(x) {
   ngeo_validate(x, "basic")
-  x$provenance
+  x$history
 }
 
-#' Compute an implementation domain hash
+#' Compute an implementation base hash
 #'
-#' The hash identifies an R domain representation. It is not a replacement
+#' The hash identifies an R base representation. It is not a replacement
 #' for language-independent conformance fixtures.
 #'
-#' @param x An `ngeo` object or `ngeo_domain`.
+#' @param x An `ngeo` object or `ngeo_base`.
 #' @return A hexadecimal xxHash64 digest.
 #' @export
-ngeo_domain_hash <- function(x) {
-  domain <- if (inherits(x, "ngeo")) x$domain else x
-  if (!inherits(domain, "ngeo_domain")) {
+base_hash <- function(x) {
+  base <- if (inherits(x, "ngeo")) x$base else x
+  if (!inherits(base, "ngeo_base")) {
     .ngeo_abort(
-      "`x` must be an `ngeo` object or `ngeo_domain`.",
+      "`x` must be an `ngeo` object or `ngeo_base`.",
       "ngeo_error_argument"
     )
   }
-  if (identical(domain$type, "grayordinates")) {
-    domain$components <- lapply(domain$components, function(component) {
+  if (identical(base$type, "grayordinate")) {
+    base$geometry$components <- lapply(base$geometry$components, function(component) {
       if (inherits(component$geometry, "ngeo")) {
-        component$geometry <- component$geometry$domain
+        component$geometry <- component$geometry$base
       }
       component
     })
   }
-  digest::digest(domain, algo = "xxhash64", serialize = TRUE)
+  digest::digest(base, algo = "xxhash64", serialize = TRUE)
 }
 
 #' Report available object capabilities
@@ -302,22 +359,22 @@ ngeo_domain_hash <- function(x) {
 #' @export
 ngeo_capabilities <- function(x) {
   ngeo_validate(x, "basic")
-  type <- x$domain$type
-  coordinates <- x$domain$coordinates %||% list()
-  if (identical(type, "regions") && !is.null(x$domain$centroid)) {
-    coordinates <- x$domain$centroid
+  type <- x$base$type
+  coordinates <- x$base$geometry$coordinates %||% list()
+  if (identical(type, "parcellation") && !is.null(x$base$geometry$centroid)) {
+    coordinates <- x$base$geometry$centroid
   }
   if (is.matrix(coordinates)) {
     coordinates <- list(active = coordinates)
   }
-  if (identical(type, "grayordinates")) {
+  if (identical(type, "grayordinate")) {
     surface_components <- Filter(
       function(component) identical(component$kind, "surface"),
-      x$domain$components
+      x$base$geometry$components
     )
     volume_components <- Filter(
       function(component) identical(component$kind, "volume"),
-      x$domain$components
+      x$base$geometry$components
     )
     surface_geometry <- length(surface_components) > 0L &&
       all(vapply(
@@ -341,7 +398,7 @@ ngeo_capabilities <- function(x) {
           return(integer())
         }
         vapply(
-          component$geometry$domain$coordinates,
+          component$geometry$base$geometry$coordinates,
           ncol,
           integer(1)
         )
@@ -349,9 +406,9 @@ ngeo_capabilities <- function(x) {
     ))
   } else {
     surface_geometry <- identical(type, "surface") &&
-      !is.null(x$domain$faces)
+      !is.null(x$base$geometry$faces)
     volume_affine <- identical(type, "volume") &&
-      !is.null(x$domain$affine)
+      !is.null(x$base$geometry$affine)
     geometry_coordinates <- integer()
   }
   dimensions <- if (length(coordinates)) {
@@ -368,30 +425,30 @@ ngeo_capabilities <- function(x) {
     voxel_affine = volume_affine,
     adjacency = identical(type, "surface") ||
       identical(type, "volume") ||
-      (identical(type, "grayordinates") &&
+      (identical(type, "grayordinate") &&
         surface_geometry &&
         (length(volume_components) == 0L || volume_affine)) ||
-      (identical(type, "regions") && !is.null(x$domain$adjacency)),
+      (identical(type, "parcellation") && !is.null(x$base$topology$adjacency)),
     surface_area = surface_geometry &&
       any(dimensions %in% c(2L, 3L)),
     voxel_volume = volume_affine,
     geodesic = surface_geometry,
-    partition = !is.null(x$domain$membership),
-    labels = length(x$labels) > 0L,
+    partition = !is.null(x$base$geometry$membership),
+    labels = length(x$base$labels %||% list()) > 0L,
     chart = any(dimensions == 2L)
   )
 }
 
 #' @export
 print.ngeo <- function(x, ...) {
-  n_element <- nrow(x$domain$elements)
-  n_map <- nrow(x$maps)
+  n_element <- nrow(x$base$elements)
+  n_layer <- nrow(x$layers)
   cat(
     "<", class(x)[1L], ">\n",
-    "  domain: ", x$domain$type, "\n",
+    "  base: ", x$base$type, "\n",
     "  elements: ", n_element, "\n",
-    "  maps: ", n_map, "\n",
-    "  space: ", x$domain$space$space_id, "\n",
+    "  layers: ", n_layer, "\n",
+    "  coordinate_space: ", x$base$coordinate_space$space_id, "\n",
     sep = ""
   )
   invisible(x)
@@ -402,10 +459,10 @@ summary.ngeo <- function(object, ...) {
   capabilities <- ngeo_capabilities(object)
   list(
     class = class(object)[1L],
-    domain = object$domain$type,
-    elements = nrow(object$domain$elements),
-    maps = nrow(object$maps),
-    space = object$domain$space$space_id,
+    base = object$base$type,
+    elements = nrow(object$base$elements),
+    layers = nrow(object$layers),
+    coordinate_space = object$base$coordinate_space$space_id,
     capabilities = capabilities
   )
 }

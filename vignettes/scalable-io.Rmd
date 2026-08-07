@@ -15,8 +15,8 @@ library(neurogeo)
 ## Background
 
 Dense neuroimaging matrices can exceed available memory even when an analysis
-needs only a few maps or a block of elements. Chunking changes how values are
-accessed, not what the dataset means: element order, map metadata, domain
+needs only a few layers or a block of elements. Chunking changes how values are
+accessed, not what the dataset means: element order, map metadata, base
 identity, and measurement semantics must remain identical to an in-memory
 object.
 
@@ -28,14 +28,14 @@ Standard neuroimaging files use the format-specific file-backed readers.
 ```{r}
 backing <- matrix(seq_len(30), nrow = 10, ncol = 3)
 colnames(backing) <- c("a", "b", "c")
-x <- ngeo_points(
+x <- ngeo_point(
   cbind(x = 1:10, y = 0),
   values = backing,
   measures = do.call(
     rbind,
     replicate(
       3,
-      ngeo_measure(spatial_semantics = "intensive"),
+      ngeo_measure(support_behavior = "intensive"),
       simplify = FALSE
     )
   )
@@ -58,7 +58,7 @@ atlas <- ngeo_atlas_map(
   rep(c("A", "B"), each = 5),
   source_support = rep(1, 10)
 )
-ngeo_change_support(
+aggregate_to(
   x,
   atlas$target,
   atlas,
@@ -74,4 +74,4 @@ ngeo_change_support(
 `write_ngeo_cifti()` writes dscalar, dlabel, and dtseries directly as
 CIFTI-2/NIfTI-2 without Workbench. `write_ngeo_bids_derivative()` adds a
 scoped JSON sidecar with spatial entities, measurement semantics, and
-provenance; it does not index or run a BIDS dataset.
+history; it does not index or run a BIDS dataset.

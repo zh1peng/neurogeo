@@ -16,11 +16,11 @@ A JSON-compatible `ngeo_object_manifest`.
 Create a portable NGCS 3.x object metadata manifest
 }
 \examples{
-points <- ngeo_points(
+point <- ngeo_point(
   matrix(c(0, 0, 1, 0, 1, 1), ncol = 2, byrow = TRUE),
   values = cbind(signal = c(1, 2, 3))
 )
-manifest <- ngeo_object_manifest(points)
+manifest <- ngeo_object_manifest(point)
 manifest$object_schema
-ngeo_validate_manifest(manifest, points)
+ngeo_validate_manifest(manifest, point)
 }

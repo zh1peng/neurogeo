@@ -22,13 +22,13 @@ ngeo_validate_layers(
 
 \item{required_layers}{Optional layers required for every unit.}
 
-\item{complete}{Whether incomplete units are reported or rejected.}
+\item{complete}{Whether incomplete unit are reported or rejected.}
 
 \item{require_consistent_measures}{Whether each layer must use one
-measurement contract across units.}
+measurement contract across unit.}
 }
 \value{
-An `ngeo_layer_index` that references, but does not copy, maps.
+An `ngeo_layer_index` that references, but does not copy, layers.
 }
 \description{
 This function inspects map and measurement metadata only. It does not copy

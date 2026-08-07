@@ -18,7 +18,7 @@
   label_color = "grey10",
   label_cex = 0.65,
   label_font = 2,
-  main = x$map_name,
+  main = x$layer_name,
   axes = FALSE,
   show_legend = TRUE,
   legend_position = NULL,

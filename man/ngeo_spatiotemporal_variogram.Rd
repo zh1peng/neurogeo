@@ -2,12 +2,12 @@
 % Please edit documentation in R/spatiotemporal.R
 \name{ngeo_spatiotemporal_variogram}
 \alias{ngeo_spatiotemporal_variogram}
-\title{Bounded empirical space-time semivariogram}
+\title{Bounded empirical coordinate_space-time semivariogram}
 \usage{
 ngeo_spatiotemporal_variogram(
   x,
   spatial_distance = NULL,
-  metric = NULL,
+  distance_method = NULL,
   spatial_breaks = 5L,
   temporal_breaks = 5L,
   max_pairs = getOption("neurogeo.max_spatiotemporal_pairs", 1e+06)
@@ -18,15 +18,15 @@ ngeo_spatiotemporal_variogram(
 
 \item{spatial_distance}{Optional explicit square spatial distance matrix.}
 
-\item{metric}{Metric used only when a small distance matrix is constructed.}
+\item{distance_method}{Metric used only when a small distance matrix is constructed.}
 
 \item{spatial_breaks, temporal_breaks}{Bin counts or boundaries.}
 
-\item{max_pairs}{Hard space-time observation-pair budget.}
+\item{max_pairs}{Hard coordinate_space-time observation-pair budget.}
 }
 \value{
 An `ngeo_spatiotemporal_variogram`.
 }
 \description{
-Bounded empirical space-time semivariogram
+Bounded empirical coordinate_space-time semivariogram
 }

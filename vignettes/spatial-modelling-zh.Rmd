@@ -21,7 +21,7 @@ library(neurogeo)
 - variogram 描述 semivariance 随距离的变化；
 - kriging 根据 covariance structure 进行空间预测；
 - GWR 估计随位置变化的局部 coefficient；
-- SAR/SEM/CAR 通过 weights matrix 表达依赖。
+- SAR/SEM/CAR 通过 spatial_weights matrix 表达依赖。
 
 这些方法不能被当成彼此等价的“空间校正”。
 
@@ -30,14 +30,14 @@ library(neurogeo)
 ```{r}
 coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
 predictor <- coordinates[, 1] + coordinates[, 2]
-x <- ngeo_points(
+x <- ngeo_point(
   coordinates,
   values = cbind(
     response = 1 + 2 * predictor + sin(predictor),
     predictor = predictor
   )
 )
-weights <- ngeo_weights(
+spatial_weights <- ngeo_spatial_weights(
   x, method = "distance_band", threshold = 1.01, style = "W"
 )
 plot(x, map = "response", palette = "Inferno", cex = 2.2)
@@ -72,9 +72,9 @@ size 和 bandwidth 敏感性一起检查。
 
 ```{r}
 ngeo_spatial_regression(
-  x, "response", "predictor", weights, model = "sar"
+  x, "response", "predictor", spatial_weights, model = "sar"
 )
-ngeo_car(x, "response", weights, type = "proper", precision = 1)
+ngeo_car(x, "response", spatial_weights, type = "proper", precision = 1)
 ```
 
-metric、weights、numerical method 和 resource limit 都属于结果的可复现信息。
+distance_method、spatial_weights、numerical method 和 resource limit 都属于结果的可复现信息。

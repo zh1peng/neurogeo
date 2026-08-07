@@ -25,30 +25,30 @@ Spatial models account for dependence that ordinary independent-error
 regression ignores. Variograms describe how dissimilarity changes with
 distance, kriging predicts from that covariance structure, GWR estimates
 location-specific coefficients, and SAR/SEM/CAR models encode dependence
-through a weights matrix. These methods answer different questions and should
+through a spatial_weights matrix. These methods answer different questions and should
 not be treated as interchangeable corrections.
 
 Covariance and likelihood calculations are bounded, and each model records
-the metric, weights, numerical method, and diagnostics used.
+the distance_method, spatial_weights, numerical method, and diagnostics used.
 
 ## Data and spatial structure
 
 ```{r}
 coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
 predictor <- coordinates[, 1] + coordinates[, 2]
-x <- ngeo_points(
+x <- ngeo_point(
   coordinates,
   values = cbind(
     response = 1 + 2 * predictor + sin(predictor),
     predictor = predictor
   )
 )
-weights <- ngeo_weights(
+spatial_weights <- ngeo_spatial_weights(
   x, method = "distance_band", threshold = 1.01, style = "W"
 )
 ```
 
-```{r model-input-map, fig.alt="A five by five point grid colored by response", fig.cap="Always inspect the response on its domain before fitting a spatial model."}
+```{r model-input-map, fig.alt="A five by five point grid colored by response", fig.cap="Always inspect the response on its base before fitting a spatial model."}
 plot(
   x,
   map = "response",
@@ -104,10 +104,10 @@ limit:
 
 ```{r}
 sar <- ngeo_spatial_regression(
-  x, "response", "predictor", weights, model = "sar"
+  x, "response", "predictor", spatial_weights, model = "sar"
 )
 sar
-ngeo_car(x, "response", weights, type = "proper", precision = 1)
+ngeo_car(x, "response", spatial_weights, type = "proper", precision = 1)
 ```
 
 For large domains, callers must choose a validated bounded approximation in a

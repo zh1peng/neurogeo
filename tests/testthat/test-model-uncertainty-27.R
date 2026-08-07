@@ -2,11 +2,11 @@ model_uncertainty_fixture <- function() {
   fixture <- model_grid()
   covariance <- ngeo_support_covariance(
     fixture$x,
-    variance = rep(0.0025, nrow(fixture$x$domain$elements))
+    variance = rep(0.0025, nrow(fixture$x$base$elements))
   )
   list(
     x = fixture$x,
-    weights = fixture$weights,
+    spatial_weights = fixture$spatial_weights,
     covariance = covariance
   )
 }
@@ -109,7 +109,7 @@ test_that("SAR measurement simulations are worker-count invariant", {
     fixture$x,
     "response",
     "predictor",
-    fixture$weights,
+    fixture$spatial_weights,
     model = "sar",
     value_covariance = fixture$covariance,
     nsim = 20L,
@@ -120,7 +120,7 @@ test_that("SAR measurement simulations are worker-count invariant", {
     fixture$x,
     "response",
     "predictor",
-    fixture$weights,
+    fixture$spatial_weights,
     model = "sar",
     value_covariance = fixture$covariance,
     nsim = 20L,
@@ -139,13 +139,13 @@ test_that("proper CAR posterior matches the direct Gaussian reference", {
   result <- ngeo_car_uncertainty(
     fixture$x,
     "response",
-    fixture$weights,
+    fixture$spatial_weights,
     fixture$covariance,
     type = "proper",
     rho = 0.8,
     precision = 2
   )
-  weight <- fixture$weights$matrix
+  weight <- fixture$spatial_weights$matrix
   weight <- (weight + Matrix::t(weight)) / 2
   q <- as.matrix(
     Matrix::Diagonal(x = Matrix::rowSums(abs(weight))) - 0.8 * weight
@@ -176,7 +176,7 @@ test_that("CAR uncertainty fails before oversized covariance materialization", {
     ngeo_car_uncertainty(
       fixture$x,
       "response",
-      fixture$weights,
+      fixture$spatial_weights,
       fixture$covariance,
       precision = 1
     ),
@@ -217,9 +217,9 @@ test_that("support ensembles use total variance and calibration is explicit", {
   expect_equal(calibration$mean_residual_moran, 0)
 })
 
-test_that("model uncertainty rejects covariance from another domain", {
+test_that("model uncertainty rejects covariance from another base", {
   fixture <- model_uncertainty_fixture()
-  other <- ngeo_points(
+  other <- ngeo_point(
     cbind(x = 1:4, y = 0),
     values = cbind(response = 1:4)
   )
@@ -228,10 +228,10 @@ test_that("model uncertainty rejects covariance from another domain", {
     ngeo_car_uncertainty(
       fixture$x,
       "response",
-      fixture$weights,
+      fixture$spatial_weights,
       wrong,
       precision = 1
     ),
-    class = "ngeo_error_domain_mismatch"
+    class = "ngeo_error_base_mismatch"
   )
 })

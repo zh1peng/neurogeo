@@ -8,7 +8,7 @@ ngeo_support_sensitivity(
   x,
   target,
   support_maps,
-  maps = NULL,
+  layers = NULL,
   reference = 1L,
   value_variance = NULL,
   ...
@@ -20,16 +20,16 @@ ngeo_support_sensitivity(
 \item{target}{Shared target template or a list of identical target
 templates.}
 
-\item{support_maps}{Two or more maps with common source and target domains.}
+\item{support_maps}{Two or more layers with common source and target domains.}
 
-\item{maps}{Optional value-map selection.}
+\item{layers}{Optional value-map selection.}
 
 \item{reference}{Reference support-map index.}
 
 \item{value_variance}{Optional source value variance propagated under each
 support map.}
 
-\item{...}{Passed to `ngeo_change_support()`.}
+\item{...}{Passed to `aggregate_to()`.}
 }
 \value{
 An `ngeo_support_sensitivity` object.

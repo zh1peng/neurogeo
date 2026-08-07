@@ -32,10 +32,10 @@ library(neurogeo)
 读取神经影像文件时需要同时区分五层信息：
 
 1. **容器格式**：NIfTI、GIFTI、CIFTI 或 FreeSurfer；
-2. **domain**：体素、表面顶点、grayordinate 或其他元素；
+2. **base**：体素、表面顶点、grayordinate 或其他元素；
 3. **element indexing**：文件索引和 R 内部行号如何对应；
-4. **space/geometry**：坐标、affine、faces 和 brain model；
-5. **values/maps/measures**：数值列、列名、单位和 measurement semantics。
+4. **coordinate_space/geometry**：坐标、affine、faces 和 brain model；
+5. **values/layers/measures**：数值列、列名、单位和 measurement semantics。
 
 文件“能够打开”只证明字节能被解析，不证明这些层次都正确。后面的每一节
 都按同一张检查表操作。
@@ -96,11 +96,11 @@ volume <- suppressWarnings(
   read_ngeo_nifti(nifti_path, checksum = TRUE)
 )
 
-volume$domain$dim
-volume$domain$affine
-head(volume$domain$source_voxel_index)
-range(ngeo_values(volume))
-volume$provenance$sources[[1L]][c(
+volume$base$geometry$dim
+volume$base$geometry$affine
+head(volume$base$geometry$source_voxel_index)
+range(values(volume))
+volume$history$sources[[1L]][c(
   "size", "checksum_md5", "importer"
 )]
 ```
@@ -111,10 +111,10 @@ volume$provenance$sources[[1L]][c(
 
 ```{r nifti-affine-calculation}
 first_index <- as.numeric(
-  volume$domain$source_voxel_index[1L, ]
+  volume$base$geometry$source_voxel_index[1L, ]
 )
 first_world <- as.numeric(
-  volume$domain$affine %*% c(first_index, 1)
+  volume$base$geometry$affine %*% c(first_index, 1)
 )[1:3]
 
 data.frame(
@@ -127,15 +127,15 @@ data.frame(
 )
 ```
 
-`volume$domain$dim` 是原数组维度；`nrow(volume$values)` 等于所有体素数，
+`volume$base$geometry$dim` 是原数组维度；`nrow(volume$values)` 等于所有体素数，
 每一列对应一个 map 或 frame。先核对基本数量关系：
 
 ```{r nifti-alignment}
 c(
-  voxels_from_dim = prod(volume$domain$dim),
-  domain_elements = nrow(volume$domain$elements),
+  voxels_from_dim = prod(volume$base$geometry$dim),
+  domain_elements = nrow(volume$base$elements),
   value_rows = nrow(volume$values),
-  maps = ncol(volume$values)
+  layers = ncol(volume$values)
 )
 ```
 
@@ -152,24 +152,24 @@ nifti_output <- tempfile(fileext = ".nii.gz")
 nifti_manifest <- write_ngeo_nifti(volume, nifti_output)
 nifti_restored <- read_ngeo_nifti(
   nifti_manifest$data,
-  maps = volume$maps,
+  layers = volume$layers,
   measures = volume$measures,
   checksum = FALSE
 )
 
 all.equal(
-  nifti_restored$domain$affine,
-  volume$domain$affine,
+  nifti_restored$base$geometry$affine,
+  volume$base$geometry$affine,
   tolerance = 1e-6
 )
 identical(nifti_restored$values, volume$values)
 ```
 
 这里 affine 使用数值容差，因为不同 writer 可能改变浮点存储精度；values
-在这个样例中要求完全一致。真实分析还应比较维度、map 顺序、units 和
-provenance，不能只看图像“长得差不多”。
+在这个样例中要求完全一致。真实分析还应比较维度、map 顺序、unit 和
+history，不能只看图像“长得差不多”。
 
-## 4. GIFTI：geometry 与 metric alignment
+## 4. GIFTI：geometry 与 distance_method alignment
 
 ```{r gifti-read}
 gifti_path <- ngeo_example_data(
@@ -177,9 +177,9 @@ gifti_path <- ngeo_example_data(
 )$path[[1L]]
 geometry <- read_ngeo_gifti(gifti_path, checksum = TRUE)
 
-nrow(geometry$domain$elements)
-nrow(geometry$domain$faces)
-geometry$domain$face_source_index_base
+nrow(geometry$base$elements)
+nrow(geometry$base$geometry$faces)
+geometry$base$geometry$face_source_index_base
 ```
 
 表面由顶点坐标 $V\in\mathbb{R}^{n\times3}$ 和三角面索引
@@ -187,52 +187,52 @@ $F\in\mathbb{N}^{m\times3}$ 组成。每一行 face 指向三个顶点，而不�
 坐标值。查看前几个三角面：
 
 ```{r gifti-faces}
-head(geometry$domain$faces)
+head(geometry$base$geometry$faces)
 ```
 
 文件中的 face 通常使用零基索引，neurogeo 内部 faces 使用 R 的一基索引，
 并在 `face_source_index_base` 中记录来源约定。错误地偏移一次会连接错误
 顶点，偏移两次则可能越界。
 
-GIFTI geometry 可以没有 values。下面为每个顶点定义教学 metric：
+GIFTI geometry 可以没有 values。下面为每个顶点定义教学 distance_method：
 
 $$
 m_v = x_v + y_v + z_v.
 $$
 
-它只用于演示“每个顶点一行 metric”，不应被解释成真正的皮层曲率。随后
-重新构造“一个 domain + 一个对齐 values block”的表面对象：
+它只用于演示“每个顶点一行 distance_method”，不应被解释成真正的皮层曲率。随后
+重新构造“一个 base + 一个对齐 values block”的表面对象：
 
-```{r gifti-values, fig.alt="带有教学 metric 和三角网格边线的 GIFTI 表面"}
-coordinates <- geometry$domain$coordinates
-active <- geometry$domain$active_coordinates
-metric <- rowSums(coordinates[[active]])
+```{r gifti-values, fig.alt="带有教学 distance_method 和三角网格边线的 GIFTI 表面"}
+coordinates <- geometry$base$geometry$coordinates
+active <- geometry$base$geometry$active_coordinates
+distance_method <- rowSums(coordinates[[active]])
 
 surface <- ngeo_surface(
   coordinates = coordinates,
-  faces = geometry$domain$faces,
-  values = cbind(curvature = metric),
-  maps = data.frame(name = "curvature"),
+  faces = geometry$base$geometry$faces,
+  values = cbind(curvature = distance_method),
+  layers = data.frame(name = "curvature"),
   measures = ngeo_measure(
     value_type = "continuous",
-    spatial_semantics = "intensive",
-    units = "a.u."
+    support_behavior = "intensive",
+    unit = "a.u."
   ),
-  space = geometry$domain$space,
-  coordinate_roles = geometry$domain$coordinate_meta$role,
+  coordinate_space = geometry$base$coordinate_space,
+  coordinate_roles = geometry$base$geometry$coordinate_meta$role,
   index_base = "one",
   source_index_base = 0L
 )
 
 suppressWarnings(plot(surface, show_edges = TRUE))
 c(
-  vertices = nrow(surface$domain$elements),
+  vertices = nrow(surface$base$elements),
   metric_rows = nrow(surface$values),
-  triangles = nrow(surface$domain$faces)
+  triangles = nrow(surface$base$geometry$faces)
 )
 ```
 
-写入会生成 geometry、metric 和 JSON sidecar；如果对象含 labels，还会生成
+写入会生成 geometry、distance_method 和 JSON sidecar；如果对象含 labels，还会生成
 label GIFTI：
 
 ```{r gifti-roundtrip}
@@ -246,10 +246,10 @@ gifti_restored <- read_ngeo_gifti(
 )
 
 all.equal(gifti_restored$values, surface$values, tolerance = 1e-6)
-identical(gifti_restored$domain$faces, surface$domain$faces)
+identical(gifti_restored$base$geometry$faces, surface$base$geometry$faces)
 ```
 
-若 faces 完全相同而 metric 超过容差，说明数值存储没有保真；若 metric 相同
+若 faces 完全相同而 distance_method 超过容差，说明数值存储没有保真；若 distance_method 相同
 而 faces 改变，图形可能仍然看似合理，但 topology 已经不同。两者必须分别
 验证。
 
@@ -262,9 +262,9 @@ cifti_path <- ngeo_example_data(
 dense <- read_ngeo_cifti(cifti_path, checksum = TRUE)
 
 dim(dense$values)
-unique(dense$domain$elements$structure)
-head(dense$domain$components$cortex_left$vertex_index)
-dense$maps$name
+unique(dense$base$elements$structure)
+head(dense$base$geometry$components$cortex_left$vertex_index)
+dense$layers$name
 ```
 
 grayordinate 不是三维规则网格中的连续体素编号，而是按 CIFTI brain models
@@ -283,7 +283,7 @@ $$
 对应的脑结构。统计每个结构的元素数：
 
 ```{r cifti-structure-count}
-structure_count <- table(dense$domain$elements$structure)
+structure_count <- table(dense$base$elements$structure)
 structure_count
 sum(structure_count)
 nrow(dense$values)
@@ -304,14 +304,14 @@ ngeo_capabilities(dense)[c("surface_topology", "geodesic")]
 
 ```{r cifti-plot, fig.alt="按 grayordinate 顺序抽样绘制的 CIFTI 曲率值，虚线标记左右皮层边界"}
 selected <- unique(round(seq(1, nrow(dense$values), length.out = 2000)))
-boundary <- dense$domain$components$cortex_left$n_element
+boundary <- dense$base$geometry$components$cortex_left$n_element
 plot(
   selected,
   dense$values[selected, 1L],
   pch = 16,
   cex = 0.35,
   xlab = "有序 grayordinate",
-  ylab = dense$maps$name[[1L]]
+  ylab = dense$layers$name[[1L]]
 )
 abline(v = boundary, lty = 2, col = "grey40")
 ```
@@ -324,8 +324,8 @@ write_ngeo_cifti(dense, cifti_output, type = "dscalar")
 dense_restored <- read_ngeo_cifti(cifti_output, checksum = FALSE)
 
 identical(
-  dense_restored$domain$elements$structure,
-  dense$domain$elements$structure
+  dense_restored$base$elements$structure,
+  dense$base$elements$structure
 )
 all.equal(dense_restored$values, dense$values, tolerance = 1e-6)
 ```
@@ -343,7 +343,7 @@ grayordinate 错位。
 mgh_path <- ngeo_example_data("freesurfer-tiny-mgh")$path[[1L]]
 
 tryCatch(
-  read_ngeo_freesurfer(mgh_path, domain = "volume"),
+  read_ngeo_freesurfer(mgh_path, base = "volume"),
   ngeo_error_transform = function(error) conditionMessage(error)
 )
 ```
@@ -353,13 +353,13 @@ tryCatch(
 ```{r freesurfer-explicit}
 mgh <- read_ngeo_freesurfer(
   mgh_path,
-  domain = "volume",
+  base = "volume",
   affine = diag(4),
   checksum = TRUE
 )
 
-mgh$domain$dim
-mgh$domain$affine
+mgh$base$geometry$dim
+mgh$base$geometry$affine
 range(mgh$values)
 ```
 
@@ -372,7 +372,7 @@ $$
 即索引单位直接等于世界坐标单位。对真实 MGH/MGZ，除非 sidecar、采集信息
 或上游流程明确支持这个假设，否则不能用 identity 只是为了让 reader 成功。
 
-表面与 curv 的正向回环可以从前面的有效 GIFTI domain 开始：
+表面与 curv 的正向回环可以从前面的有效 GIFTI base 开始：
 
 ```{r freesurfer-roundtrip}
 fs_output <- tempfile(fileext = ".surface")
@@ -384,11 +384,11 @@ fs_restored <- read_ngeo_freesurfer(
   checksum = FALSE
 )
 
-identical(fs_restored$domain$faces, surface$domain$faces)
+identical(fs_restored$base$geometry$faces, surface$base$geometry$faces)
 all.equal(fs_restored$values, surface$values, tolerance = 1e-5)
 ```
 
-FreeSurfer surface 保存几何和 topology，curv 保存逐顶点 metric；两者通过
+FreeSurfer surface 保存几何和 topology，curv 保存逐顶点 distance_method；两者通过
 顶点顺序对齐，而不是通过顶点名称匹配。因此回环必须同时检查 faces、
 coordinates 和 values。
 
@@ -398,19 +398,19 @@ coordinates 和 values。
 
 1. 用 `ngeo_example_data()` 或自己的数据登记表确认来源与 checksum；
 2. 调用对应 reader，但不要立即开始统计分析；
-3. 查看 domain 类型、元素数、map 数和 capabilities；
+3. 查看 base 类型、元素数、map 数和 capabilities；
 4. 检查 source index base、affine、faces 或 brain-model 顺序；
-5. 明确补充文件无法可靠表达的 units 和 measurement semantics；
+5. 明确补充文件无法可靠表达的 unit 和 measurement semantics；
 6. 用 `ngeo_validate(x, level = "strict")` 检查对象不变量；
 7. 做小规模可视化，寻找方向、边界或错位异常；
 8. 写出并再读入，分别比较整数索引、浮点 values 和 metadata；
-9. 保存 provenance、checksum、writer manifest 和数值容差。
+9. 保存 history、checksum、writer manifest 和数值容差。
 
 ## 8. 验证用例
 
 1. 在 NIfTI 示例中选择第二个体素索引，手算 affine 后的世界坐标，再与矩阵
    乘法结果核对。
-2. 将 GIFTI 教学 metric 改成 $x_v^2+y_v^2+z_v^2$，预测图上的最大值位置。
+2. 将 GIFTI 教学 distance_method 改成 $x_v^2+y_v^2+z_v^2$，预测图上的最大值位置。
 3. 交换 CIFTI values 的两行但不交换 elements，说明为什么矩阵维度检查不会
    发现错误，以及 round-trip 也不能替代输入对齐验证。
 4. 把 GIFTI round-trip 的容差从 `1e-6` 逐步减小，观察浮点序列化精度。
@@ -422,12 +422,12 @@ coordinates 和 values。
 对任何格式，至少检查：
 
 1. 文件来源、许可证、大小和 checksum 是否可审计；
-2. domain 元素数是否与 values 行数严格一致；
+2. base 元素数是否与 values 行数严格一致；
 3. source index base 和 R 内部索引是否被明确区分；
 4. affine、surface structure、brain-model 顺序和 map 顺序是否保真；
 5. measurement semantics 是否由分析者明确给出；
 6. truncated、错位或缺少 transform 的文件是否以 classed error 失败；
-7. provenance 是否记录 reader、源文件和 checksum；
+7. history 是否记录 reader、源文件和 checksum；
 8. round-trip 比较是否使用了明确的数值容差。
 
 这些验证证明的是格式互操作和语义保真，不证明文件已经完成预处理、配准或

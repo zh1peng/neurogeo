@@ -4,13 +4,13 @@ test_that("OLS and SLX recover simulated coefficients", {
     fixture$x,
     response = "response",
     predictors = "predictor",
-    weights = fixture$weights
+    spatial_weights = fixture$spatial_weights
   )
   slx <- ngeo_spatial_lm(
     fixture$x,
     response = "response",
     predictors = "predictor",
-    weights = fixture$weights,
+    spatial_weights = fixture$spatial_weights,
     model = "slx"
   )
 
@@ -32,28 +32,28 @@ test_that("model weight subsetting uses warning-free sparse coercion", {
       fixture$x,
       response = "response",
       predictors = "predictor",
-      weights = fixture$weights,
+      spatial_weights = fixture$spatial_weights,
       model = "slx"
     )
   )
   expect_s3_class(fit, "ngeo_spatial_lm")
 })
 
-test_that("spatial models reject mismatched weights and categorical maps", {
+test_that("spatial models reject mismatched spatial_weights and categorical layers", {
   fixture <- model_grid()
-  mismatch <- fixture$weights
-  mismatch$domain_hash <- "other"
+  mismatch <- fixture$spatial_weights
+  mismatch$base_hash <- "other"
   expect_error(
     ngeo_spatial_lm(
       fixture$x,
       "response",
       "predictor",
-      weights = mismatch
+      spatial_weights = mismatch
     ),
-    class = "ngeo_error_domain_mismatch"
+    class = "ngeo_error_base_mismatch"
   )
   categorical <- fixture$x
-  categorical$measures$spatial_semantics[[2L]] <- "categorical"
+  categorical$measures$support_behavior[[2L]] <- "categorical"
   expect_error(
     ngeo_spatial_lm(categorical, "response", "predictor"),
     class = "ngeo_error_measure"
@@ -63,7 +63,7 @@ test_that("spatial models reject mismatched weights and categorical maps", {
 test_that("explicit-bandwidth kernel regression recovers a linear field", {
   coordinates <- cbind(x = 0:9, y = 0)
   predictor <- coordinates[, 1L]
-  x <- ngeo_points(
+  x <- ngeo_point(
     coordinates,
     values = cbind(
       response = 1 + 2 * predictor,
@@ -76,7 +76,7 @@ test_that("explicit-bandwidth kernel regression recovers a linear field", {
     predictors = "predictor",
     bandwidth = 3.1,
     kernel = "bisquare",
-    metric = "euclidean",
+    distance_method = "euclidean",
     singular = "error"
   )
 
@@ -84,14 +84,14 @@ test_that("explicit-bandwidth kernel regression recovers a linear field", {
   expect_equal(result$fitted, 1 + 2 * predictor, tolerance = 1e-10)
   expect_equal(result[["(Intercept)"]], rep(1, 10), tolerance = 1e-10)
   expect_equal(result$predictor, rep(2, 10), tolerance = 1e-10)
-  expect_identical(attr(result, "metric"), "euclidean")
+  expect_identical(attr(result, "distance_method"), "euclidean")
 })
 
 test_that("Moran spectral nulls preserve variance and autocorrelation", {
   fixture <- model_grid()
   first <- ngeo_moran_null(
     fixture$x,
-    fixture$weights,
+    fixture$spatial_weights,
     map = "response",
     nsim = 8,
     seed = 99,
@@ -99,7 +99,7 @@ test_that("Moran spectral nulls preserve variance and autocorrelation", {
   )
   second <- ngeo_moran_null(
     fixture$x,
-    fixture$weights,
+    fixture$spatial_weights,
     map = "response",
     nsim = 8,
     seed = 99,
@@ -110,7 +110,7 @@ test_that("Moran spectral nulls preserve variance and autocorrelation", {
     first$simulations,
     2L,
     neurogeo:::.ngeo_moran_value,
-    matrix = fixture$weights$matrix
+    matrix = fixture$spatial_weights$matrix
   )
 
   expect_s3_class(first, "ngeo_null")
@@ -132,7 +132,7 @@ test_that("simulation streams are reproducible across worker counts", {
   fixture <- model_grid()
   serial <- ngeo_moran_null(
     fixture$x,
-    fixture$weights,
+    fixture$spatial_weights,
     map = "response",
     nsim = 3,
     seed = 123,
@@ -141,7 +141,7 @@ test_that("simulation streams are reproducible across worker counts", {
   )
   parallel <- ngeo_moran_null(
     fixture$x,
-    fixture$weights,
+    fixture$spatial_weights,
     map = "response",
     nsim = 3,
     seed = 123,
@@ -186,5 +186,5 @@ test_that("surface spins require and respect spherical registration geometry", {
   expect_s3_class(first, "ngeo_null")
   expect_identical(first$simulations, second$simulations)
   expect_true(all(first$mappings >= 1L & first$mappings <= 4L))
-  expect_identical(first$domain_hash, ngeo_domain_hash(x))
+  expect_identical(first$base_hash, base_hash(x))
 })

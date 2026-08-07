@@ -85,7 +85,7 @@ test_that("analysis result print methods expose their object type", {
       structure(
         data.frame(prediction = c(1, 2)),
         response = "signal",
-        metric = "euclidean",
+        distance_method = "euclidean",
         bandwidth = 2,
         class = c("ngeo_kernel_regression", "data.frame")
       ),
@@ -244,9 +244,9 @@ test_that("support result print methods expose bounded summaries", {
       structure(
         list(
           kind = "segmentation",
-          maps = list(sparse, sparse),
-          source_domain_hash = "source",
-          target_domain_hash = "target"
+          layers = list(sparse, sparse),
+          source_base_hash = "source",
+          target_base_hash = "target"
         ),
         class = "ngeo_support_ensemble"
       ),
@@ -321,9 +321,9 @@ test_that("uncertainty and governance print methods are stable", {
     list(
       structure(
         list(nodes = list(1, 2), edges = list(1), dag_sha256 = "hash"),
-        class = "ngeo_provenance_dag"
+        class = "ngeo_history_dag"
       ),
-      "<ngeo_provenance_dag>"
+      "<ngeo_history_dag>"
     ),
     list(
       structure(
@@ -360,9 +360,9 @@ test_that("uncertainty and governance print methods are stable", {
     list(
       structure(
         list(spaces = list(a = 1), aliases = list()),
-        class = "ngeo_space_registry"
+        class = "ngeo_coordinate_space_registry"
       ),
-      "<ngeo_space_registry>"
+      "<ngeo_coordinate_space_registry>"
     ),
     list(
       structure(
@@ -458,11 +458,11 @@ test_that("temporal and resampling print methods expose execution summaries", {
       structure(
         list(
           data = list(
-            domain = list(type = "points"),
-            maps = data.frame(map_id = "value")
+            base = list(type = "point"),
+            layers = data.frame(layer_id = "value")
           ),
           variance = NULL,
-          provenance = list(joint_hash = "joint")
+          history = list(joint_hash = "joint")
         ),
         class = "ngeo_resampling_result"
       ),
@@ -479,13 +479,13 @@ test_that("data-frame statistic print methods preserve attributes", {
   getis <- structure(
     data.frame(z_score = c(0.1, 0.2)),
     statistic = "Gi*",
-    map_name = "signal",
+    layer_name = "signal",
     permutations = 19L,
     class = c("ngeo_getis", "data.frame")
   )
   correlogram <- structure(
     data.frame(lag = 1:2, estimate = c(0.1, 0.2)),
-    map_name = "signal",
+    layer_name = "signal",
     permutations = 19L,
     class = c("ngeo_correlogram", "data.frame")
   )

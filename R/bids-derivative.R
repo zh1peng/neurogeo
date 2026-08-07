@@ -20,16 +20,17 @@ ngeo_bids_sidecar <- function(
   }
   list(
     Specification = "BIDS derivative sidecar subset",
-    SpatialReference = x$domain$space$space_id %||% "unknown",
-    DomainType = x$domain$type,
-    DomainHash = ngeo_domain_hash(x),
+    SpatialReference = x$base$coordinate_space$space_id %||% "unknown",
+    DomainType = x$base$type,
+    DomainHash = base_hash(x),
     Entities = entities,
-    MeasurementSemantics = lapply(seq_len(nrow(x$maps)), function(i) {
+    MeasurementSemantics = lapply(seq_len(nrow(x$layers)), function(i) {
+      measure <- .ngeo_measures_for_layers(x, i)
       list(
-        Name = x$maps$name[[i]],
-        ValueType = x$measures$value_type[[i]],
-        SpatialSemantics = x$measures$spatial_semantics[[i]],
-        Units = x$measures$units[[i]]
+        Name = x$layers$name[[i]],
+        ValueType = measure$value_type[[1L]],
+        SpatialSemantics = measure$support_behavior[[1L]],
+        Units = measure$unit[[1L]]
       )
     }),
     Sources = as.character(sources),
@@ -37,7 +38,7 @@ ngeo_bids_sidecar <- function(
       Name = "neurogeo",
       Version = .ngeo_package_version()
     ),
-    Provenance = x$provenance
+    Provenance = x$history
   ) |>
     (\(sidecar) {
       ngeo_validate_bids_sidecar(sidecar, x)

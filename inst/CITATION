@@ -5,6 +5,6 @@ bibentry(
   title = "neurogeo: Neuroimaging Geoinformatics Core Objects",
   author = person("zh1peng"),
   year = "2026",
-  note = "R package version 5.0.0",
+  note = "R package version 5.1.0",
   url = "https://github.com/zh1peng/neurogeo"
 )

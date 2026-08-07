@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatiotemporal.R
 \name{ngeo_validate_spatiotemporal_weights}
 \alias{ngeo_validate_spatiotemporal_weights}
-\title{Validate separable spatiotemporal weights}
+\title{Validate separable spatiotemporal spatial_weights}
 \usage{
 ngeo_validate_spatiotemporal_weights(x)
 }
@@ -13,5 +13,5 @@ ngeo_validate_spatiotemporal_weights(x)
 `x`, invisibly.
 }
 \description{
-Validate separable spatiotemporal weights
+Validate separable spatiotemporal spatial_weights
 }

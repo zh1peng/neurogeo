@@ -2,7 +2,7 @@
 % Please edit documentation in R/null-models.R
 \name{ngeo_spin_null}
 \alias{ngeo_spin_null}
-\title{Generate spherical surface-spin null maps}
+\title{Generate spherical surface-spin null layers}
 \usage{
 ngeo_spin_null(
   x,
@@ -22,7 +22,7 @@ ngeo_spin_null(
 
 \item{coordinates}{Registration coordinate-set name.}
 
-\item{nsim}{Number of null maps.}
+\item{nsim}{Number of null layers.}
 
 \item{seed}{Reproducible seed.}
 

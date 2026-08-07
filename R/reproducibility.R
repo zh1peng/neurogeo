@@ -35,25 +35,25 @@
   )
 }
 
-#' Construct an auditable provenance directed acyclic graph
+#' Construct an auditable history directed acyclic graph
 #'
 #' @param nodes A list of nodes with `id`, `type`, and `logical_hash`.
 #' @param edges A list of directed edges with `from`, `to`, and `role`.
-#' @return An immutable `ngeo_provenance_dag`.
+#' @return An immutable `ngeo_history_dag`.
 #' @export
-ngeo_provenance_dag <- function(nodes, edges = list()) {
+ngeo_history_dag <- function(nodes, edges = list()) {
   if (!is.list(nodes) || !length(nodes) || !is.list(edges)) {
     .ngeo_abort(
       "Provenance DAG nodes and edges must be non-empty/list values.",
-      "ngeo_error_provenance_dag"
+      "ngeo_error_history_dag"
     )
   }
   nodes <- lapply(nodes, function(node) {
     if (!is.list(node) ||
         any(!c("id", "type", "logical_hash") %in% names(node))) {
       .ngeo_abort(
-        "Every provenance node requires id, type, and logical_hash.",
-        "ngeo_error_provenance_dag"
+        "Every history node requires id, type, and logical_hash.",
+        "ngeo_error_history_dag"
       )
     }
     list(
@@ -66,8 +66,8 @@ ngeo_provenance_dag <- function(nodes, edges = list()) {
     if (!is.list(edge) ||
         any(!c("from", "to", "role") %in% names(edge))) {
       .ngeo_abort(
-        "Every provenance edge requires from, to, and role.",
-        "ngeo_error_provenance_dag"
+        "Every history edge requires from, to, and role.",
+        "ngeo_error_history_dag"
       )
     }
     list(
@@ -86,35 +86,35 @@ ngeo_provenance_dag <- function(nodes, edges = list()) {
     edges <- edges[order(key)]
   }
   dag <- list(
-    schema = "NGCS-provenance-dag-1",
+    schema = "NGCS-history-dag-1",
     specification = "NGCS 3.5",
     nodes = nodes,
     edges = edges,
     dag_sha256 = NULL
   )
   dag$dag_sha256 <- .ngeo_dag_sha256(dag)
-  class(dag) <- c("ngeo_provenance_dag", "list")
-  ngeo_validate_provenance_dag(dag)
+  class(dag) <- c("ngeo_history_dag", "list")
+  ngeo_validate_history_dag(dag)
   dag
 }
 
-#' Validate a provenance DAG and its immutable identity
+#' Validate a history DAG and its immutable identity
 #'
-#' @param x A provenance DAG.
+#' @param x A history DAG.
 #' @return `x`, invisibly.
 #' @export
-ngeo_validate_provenance_dag <- function(x) {
+ngeo_validate_history_dag <- function(x) {
   invalid <- !is.list(x) ||
     any(!c(
       "schema", "specification", "nodes", "edges", "dag_sha256"
     ) %in% names(x)) ||
-    !identical(x$schema, "NGCS-provenance-dag-1") ||
+    !identical(x$schema, "NGCS-history-dag-1") ||
     !identical(x$specification, "NGCS 3.5") ||
     !is.list(x$nodes) || !length(x$nodes) || !is.list(x$edges)
   if (invalid) {
     .ngeo_abort(
       "Provenance DAG structure or schema is invalid.",
-      "ngeo_error_provenance_dag"
+      "ngeo_error_history_dag"
     )
   }
   ids <- vapply(x$nodes, function(node) {
@@ -127,7 +127,7 @@ ngeo_validate_provenance_dag <- function(x) {
         !.ngeo_hash_string(node$logical_hash)) {
       .ngeo_abort(
         "Provenance node fields are invalid.",
-        "ngeo_error_provenance_dag"
+        "ngeo_error_history_dag"
       )
     }
     node$id
@@ -135,7 +135,7 @@ ngeo_validate_provenance_dag <- function(x) {
   if (anyDuplicated(ids)) {
     .ngeo_abort(
       "Provenance node identifiers must be unique.",
-      "ngeo_error_provenance_dag"
+      "ngeo_error_history_dag"
     )
   }
   indegree <- stats::setNames(integer(length(ids)), ids)
@@ -151,7 +151,7 @@ ngeo_validate_provenance_dag <- function(x) {
         !edge$from %in% ids || !edge$to %in% ids) {
       .ngeo_abort(
         "Provenance edge has a missing parent or invalid field.",
-        "ngeo_error_provenance_parent"
+        "ngeo_error_history_parent"
       )
     }
     edge_key <- c(edge_key, paste(edge$from, edge$to, edge$role))
@@ -161,7 +161,7 @@ ngeo_validate_provenance_dag <- function(x) {
   if (anyDuplicated(edge_key)) {
     .ngeo_abort(
       "Provenance edges must be unique.",
-      "ngeo_error_provenance_dag"
+      "ngeo_error_history_dag"
     )
   }
   queue <- names(indegree)[indegree == 0L]
@@ -178,14 +178,14 @@ ngeo_validate_provenance_dag <- function(x) {
   if (visited != length(ids)) {
     .ngeo_abort(
       "Provenance graph contains a directed cycle.",
-      "ngeo_error_provenance_cycle"
+      "ngeo_error_history_cycle"
     )
   }
   if (!.ngeo_hash_string(x$dag_sha256) ||
       !identical(x$dag_sha256, .ngeo_dag_sha256(x))) {
     .ngeo_abort(
       "Provenance DAG immutable identity differs.",
-      "ngeo_error_provenance_hash"
+      "ngeo_error_history_hash"
     )
   }
   invisible(x)
@@ -252,7 +252,7 @@ ngeo_environment_snapshot <- function() {
       schema = "NGCS-logical-object-1",
       manifest = unclass(manifest),
       values = values,
-      labels = x$labels
+      labels = x$base$labels
     ))
   }
   if (is.atomic(x) || is.matrix(x) || is.data.frame(x) || is.list(x)) {
@@ -271,17 +271,17 @@ ngeo_environment_snapshot <- function() {
   )
 }
 
-#' Compute a scientific logical hash independent of provenance timestamps
+#' Compute a scientific logical hash independent of history timestamps
 #'
 #' @param x An NGCS object or JSON-compatible value.
 #' @param budget Resource limits for reading in-memory values.
 #' @return A lowercase SHA-256 string.
 #' @examples
-#' points <- ngeo_points(
+#' point <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 1, 1), ncol = 2, byrow = TRUE),
 #'   values = cbind(signal = c(1, 2, 3))
 #' )
-#' ngeo_logical_hash(points)
+#' ngeo_logical_hash(point)
 #' @export
 ngeo_logical_hash <- function(
     x,
@@ -377,7 +377,7 @@ ngeo_replay_step <- function(
       )
     }
   }
-  ngeo_provenance_dag(nodes, edges)
+  ngeo_history_dag(nodes, edges)
 }
 
 #' Record a deterministic replay manifest by executing declared steps
@@ -540,11 +540,11 @@ ngeo_validate_replay_manifest <- function(
     }
     dag <- structure(
       manifest$dag,
-      class = c("ngeo_provenance_dag", "list")
+      class = c("ngeo_history_dag", "list")
     )
     dag_failure <- tryCatch(
       {
-        ngeo_validate_provenance_dag(dag)
+        ngeo_validate_history_dag(dag)
         NULL
       },
       error = identity
@@ -1173,8 +1173,8 @@ ngeo_read_artifact_batch <- function(
 }
 
 #' @export
-print.ngeo_provenance_dag <- function(x, ...) {
-  cat("<ngeo_provenance_dag>\n  nodes: ", length(x$nodes),
+print.ngeo_history_dag <- function(x, ...) {
+  cat("<ngeo_history_dag>\n  nodes: ", length(x$nodes),
       "\n  edges: ", length(x$edges),
       "\n  SHA-256: ", x$dag_sha256, "\n", sep = "")
   invisible(x)

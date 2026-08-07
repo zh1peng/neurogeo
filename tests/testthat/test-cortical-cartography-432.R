@@ -19,13 +19,13 @@ test_that("continuous cortical layouts share one pooled scale", {
   ), na.rm = TRUE)
 
   expect_true(layout$shared_scale)
-  expect_equal(layout$maps[[1L]]$limits, expected_limits)
-  expect_equal(layout$maps[[2L]]$limits, expected_limits)
+  expect_equal(layout$layers[[1L]]$limits, expected_limits)
+  expect_equal(layout$layers[[2L]]$limits, expected_limits)
   expect_identical(
-    layout$maps[[1L]]$legend,
-    layout$maps[[2L]]$legend
+    layout$layers[[1L]]$legend,
+    layout$layers[[2L]]$legend
   )
-  expect_identical(layout$legend, layout$maps[[1L]]$legend)
+  expect_identical(layout$legend, layout$layers[[1L]]$legend)
 
   path <- tempfile(fileext = ".pdf")
   grDevices::pdf(path, width = 8, height = 4.5)
@@ -59,8 +59,8 @@ test_that("categorical cortical layouts preserve one color contract", {
     unname(colors[c("A", "B", "C")])
   )
   expect_identical(
-    layout$maps[[1L]]$legend,
-    layout$maps[[2L]]$legend
+    layout$layers[[1L]]$legend,
+    layout$layers[[2L]]$legend
   )
 
   conflict <- right

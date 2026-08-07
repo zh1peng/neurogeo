@@ -1,4 +1,4 @@
-test_that("surface nearest and barycentric identity maps are sparse", {
+test_that("surface nearest and barycentric identity layers are sparse", {
   source <- builder_surface(values = 1:4)
   target <- builder_surface()
 
@@ -18,11 +18,11 @@ test_that("surface nearest and barycentric identity maps are sparse", {
 test_that("surface builders require declared registration and respect masks", {
   source <- builder_surface()
   target <- builder_surface()
-  target$domain$space$space_id <- "another-space"
+  target$base$coordinate_space$space_id <- "another-coordinate_space"
 
   expect_error(
     ngeo_surface_nearest_map(source, target),
-    class = "ngeo_error_space"
+    class = "ngeo_error_coordinate_space"
   )
   registered <- ngeo_surface_nearest_map(
     source,
@@ -31,7 +31,7 @@ test_that("surface builders require declared registration and respect masks", {
   )
   expect_identical(registered$coverage, "complete")
 
-  target$domain$mask[[1L]] <- FALSE
+  target$base$geometry$mask[[1L]] <- FALSE
   partial <- ngeo_surface_nearest_map(
     source,
     target,
@@ -59,7 +59,7 @@ test_that("surface builders exercise bounded search engines", {
   expect_equal(as.matrix(nearest$operator), diag(4))
   expect_equal(as.matrix(barycentric$operator), diag(4))
   expect_identical(
-    nearest$provenance$operations[[1L]]$parameters$search_engine,
+    nearest$history$operations[[1L]]$parameters$search_engine,
     "dbscan"
   )
 })
@@ -68,7 +68,7 @@ builder_volume <- function(affine = diag(4), index_base = "zero") {
   ngeo_volume(
     dim = c(2, 2, 2),
     affine = affine,
-    space = ngeo_space("voxel-grid", kind = "volume"),
+    coordinate_space = ngeo_coordinate_space("voxel-grid", kind = "volume"),
     index_base = index_base
   )
 }
@@ -111,7 +111,7 @@ test_that("affine builders make outside coverage explicit", {
 
   rotated <- builder_volume()
   angle <- pi / 4
-  rotated$domain$affine[1:2, 1:2] <- matrix(
+  rotated$base$geometry$affine[1:2, 1:2] <- matrix(
     c(cos(angle), sin(angle), -sin(angle), cos(angle)),
     2L
   )
@@ -137,15 +137,15 @@ test_that("hard and probabilistic atlases construct bound region targets", {
   )
   soft <- ngeo_probabilistic_atlas_map(source, probability)
 
-  expect_s3_class(hard$target, "ngeo_regions")
-  expect_s3_class(soft$target, "ngeo_regions")
+  expect_s3_class(hard$target, "ngeo_parcellation")
+  expect_s3_class(soft$target, "ngeo_parcellation")
   expect_identical(hard$type, "crisp")
   expect_identical(soft$type, "probabilistic")
   expect_identical(hard$coverage, "complete")
   expect_equal(Matrix::colSums(soft$operator), rep(1, 4))
   expect_identical(
-    hard$target_domain_hash,
-    ngeo_domain_hash(hard$target)
+    hard$target_base_hash,
+    base_hash(hard$target)
   )
   expect_silent(ngeo_validate_support_map(hard))
   expect_silent(ngeo_validate_support_map(soft))

@@ -1,31 +1,31 @@
-#' Construct a points dataset
+#' Construct a point dataset
 #'
 #' @param coordinates A finite numeric matrix with two or three columns.
 #' @param values Optional point-aligned values.
-#' @param maps Optional map metadata.
+#' @param layers Optional map metadata.
 #' @param measures Optional measurement semantics.
 #' @param labels Optional label tables.
-#' @param space An `ngeo_space`.
+#' @param coordinate_space An `ngeo_coordinate_space`.
 #' @param structure Optional structure label per point.
 #' @param uncertainty Optional non-negative uncertainty per point.
 #' @param index_base Source index base.
 #'
-#' @return An `ngeo_points` object.
+#' @return An `ngeo_point` object.
 #' @examples
-#' points <- ngeo_points(
+#' point <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 1, 1, 0, 1), ncol = 2, byrow = TRUE),
 #'   values = cbind(signal = c(1, 2, 4, 3))
 #' )
-#' ngeo_domain_hash(points)
-#' ngeo_distance(points, from = 1, to = 3, metric = "euclidean")
-#' ngeo_weights(points, method = "knn", k = 2)
+#' base_hash(point)
+#' ngeo_distance(point, from = 1, to = 3, distance_method = "euclidean")
+#' ngeo_spatial_weights(point, method = "knn", k = 2)
 #' @export
-ngeo_points <- function(coordinates,
+ngeo_point <- function(coordinates,
                         values = NULL,
-                        maps = NULL,
+                        layers = NULL,
                         measures = NULL,
                         labels = list(),
-                        space = ngeo_space(),
+                        coordinate_space = ngeo_coordinate_space(),
                         structure = NULL,
                         uncertainty = NULL,
                         index_base = c("one", "zero")) {
@@ -38,8 +38,8 @@ ngeo_points <- function(coordinates,
       "ngeo_error_geometry"
     )
   }
-  if (!inherits(space, "ngeo_space")) {
-    .ngeo_abort("`space` must be an `ngeo_space` object.", "ngeo_error_space")
+  if (!inherits(coordinate_space, "ngeo_coordinate_space")) {
+    .ngeo_abort("`coordinate_space` must be an `ngeo_coordinate_space` object.", "ngeo_error_coordinate_space")
   }
 
   n <- nrow(coordinates)
@@ -66,30 +66,33 @@ ngeo_points <- function(coordinates,
     elements$structure <- structure
   }
 
-  domain <- base::structure(
+  base <- base::structure(
     list(
-      type = "points",
+      type = "point",
       elements = elements,
-      coordinates = coordinates,
-      space = space,
-      uncertainty = uncertainty
+      geometry = list(
+        coordinates = coordinates,
+        uncertainty = uncertainty
+      ),
+      coordinate_space = coordinate_space,
+      topology = NULL
     ),
-    class = c("ngeo_points_domain", "ngeo_domain")
+    class = c("ngeo_point_base", "ngeo_base")
   )
 
   .new_ngeo(
-    domain = domain,
+    base = base,
     values = values,
-    maps = maps,
+    layers = layers,
     measures = measures,
     labels = labels,
-    provenance = list(
+    history = list(
       operations = list(.ngeo_operation(
-        "ngeo_points",
+        "ngeo_point",
         list(source_index_base = source_base)
       ))
     ),
-    class = "ngeo_points"
+    class = "ngeo_point"
   )
 }
 
@@ -107,7 +110,7 @@ ngeo_points <- function(coordinates,
   if (!length(vertex_index)) {
     .ngeo_abort(
       sprintf("Surface component `%s` is empty.", component_id),
-      "ngeo_error_domain"
+      "ngeo_error_base"
     )
   }
   source_base <- as.integer(component$source_index_base %||% 0L)
@@ -124,7 +127,7 @@ ngeo_points <- function(coordinates,
   if (length(vertex_count) != 1L || vertex_count <= 0L) {
     .ngeo_abort(
       "`surface_vertex_count` must be one positive integer.",
-      "ngeo_error_domain"
+      "ngeo_error_base"
     )
   }
   internal_vertex <- vertex_index - source_base + 1L
@@ -149,12 +152,12 @@ ngeo_points <- function(coordinates,
         "ngeo_error_geometry"
       )
     }
-    if (nrow(geometry$domain$elements) != vertex_count) {
+    if (nrow(geometry$base$elements) != vertex_count) {
       .ngeo_abort(
         sprintf(
           "Geometry for `%s` has %d vertices; expected %d.",
           component_id,
-          nrow(geometry$domain$elements),
+          nrow(geometry$base$elements),
           vertex_count
         ),
         "ngeo_error_alignment"
@@ -226,7 +229,7 @@ ngeo_points <- function(coordinates,
 
 .ngeo_gray_component <- function(component, global_start) {
   if (!is.list(component)) {
-    .ngeo_abort("Every grayordinate component must be a list.", "ngeo_error_domain")
+    .ngeo_abort("Every grayordinate component must be a list.", "ngeo_error_base")
   }
   component_id <- .ngeo_component_scalar(component, "component_id")
   kind <- match.arg(component$kind, c("surface", "volume"))
@@ -246,18 +249,18 @@ ngeo_points <- function(coordinates,
   normalized
 }
 
-#' Construct a grayordinates dataset
+#' Construct a grayordinate dataset
 #'
 #' @param components Ordered surface and volume component definitions.
 #' @param values Optional grayordinate-aligned values.
-#' @param maps Optional map metadata.
+#' @param layers Optional map metadata.
 #' @param measures Optional measurement semantics.
 #' @param labels Optional label tables.
-#' @param space A hybrid `ngeo_space`.
+#' @param coordinate_space A hybrid `ngeo_coordinate_space`.
 #'
-#' @return An `ngeo_grayordinates` object.
+#' @return An `ngeo_grayordinate` object.
 #' @examples
-#' gray <- ngeo_grayordinates(
+#' gray <- ngeo_grayordinate(
 #'   components = list(
 #'     list(
 #'       component_id = "left",
@@ -270,22 +273,22 @@ ngeo_points <- function(coordinates,
 #'   ),
 #'   values = cbind(statistic = c(1.2, 0.7))
 #' )
-#' ngeo_elements(gray)
+#' base_elements(gray)
 #' @export
-ngeo_grayordinates <- function(components,
+ngeo_grayordinate <- function(components,
                                values = NULL,
-                               maps = NULL,
+                               layers = NULL,
                                measures = NULL,
                                labels = list(),
-                               space = ngeo_space(kind = "hybrid")) {
+                               coordinate_space = ngeo_coordinate_space(kind = "hybrid")) {
   if (!is.list(components) || !length(components)) {
-    .ngeo_abort("`components` must be a non-empty list.", "ngeo_error_domain")
+    .ngeo_abort("`components` must be a non-empty list.", "ngeo_error_base")
   }
-  if (!inherits(space, "ngeo_space") ||
-      !space$kind %in% c("hybrid", "unknown")) {
+  if (!inherits(coordinate_space, "ngeo_coordinate_space") ||
+      !coordinate_space$kind %in% c("hybrid", "unknown")) {
     .ngeo_abort(
-      "Grayordinates require a hybrid or unknown space.",
-      "ngeo_error_space"
+      "Grayordinates require a hybrid or unknown coordinate_space.",
+      "ngeo_error_coordinate_space"
     )
   }
 
@@ -297,7 +300,7 @@ ngeo_grayordinates <- function(components,
   }
   ids <- vapply(normalized, `[[`, character(1), "component_id")
   if (anyDuplicated(ids)) {
-    .ngeo_abort("Grayordinate component IDs must be unique.", "ngeo_error_domain")
+    .ngeo_abort("Grayordinate component IDs must be unique.", "ngeo_error_base")
   }
   names(normalized) <- ids
 
@@ -325,80 +328,81 @@ ngeo_grayordinates <- function(components,
   elements <- do.call(rbind, element_parts)
   rownames(elements) <- NULL
 
-  domain <- base::structure(
+  base <- base::structure(
     list(
-      type = "grayordinates",
+      type = "grayordinate",
       elements = elements,
-      components = normalized,
-      space = space
+      geometry = list(components = normalized),
+      coordinate_space = coordinate_space,
+      topology = NULL
     ),
-    class = c("ngeo_grayordinates_domain", "ngeo_domain")
+    class = c("ngeo_grayordinate_base", "ngeo_base")
   )
 
   .new_ngeo(
-    domain = domain,
+    base = base,
     values = values,
-    maps = maps,
+    layers = layers,
     measures = measures,
     labels = labels,
-    provenance = list(
+    history = list(
       operations = list(.ngeo_operation(
-        "ngeo_grayordinates",
+        "ngeo_grayordinate",
         list(components = ids)
       ))
     ),
-    class = "ngeo_grayordinates"
+    class = "ngeo_grayordinate"
   )
 }
 
-#' Construct a regions dataset
+#' Construct a parcellation dataset
 #'
-#' @param regions Region metadata containing a unique `region_id`.
+#' @param parcellation Region metadata containing a unique `region_id`.
 #' @param values Optional region-aligned values.
 #' @param membership Optional base-element membership vector or sparse matrix.
-#' @param base_domain Optional base `ngeo` object or its domain hash.
+#' @param source_base Optional base `ngeo` object or its base hash.
 #' @param centroid Optional region centroid matrix.
 #' @param support_size Optional region support sizes.
 #' @param adjacency Optional region adjacency matrix.
-#' @param maps Optional map metadata.
+#' @param layers Optional map metadata.
 #' @param measures Optional measurement semantics.
 #' @param labels Optional label tables.
-#' @param space An `ngeo_space`.
+#' @param coordinate_space An `ngeo_coordinate_space`.
 #'
-#' @return An `ngeo_regions` object.
+#' @return An `ngeo_parcellation` object.
 #' @examples
-#' regions <- ngeo_regions(
+#' parcellation <- ngeo_parcellation(
 #'   data.frame(region_id = c("A", "B"), name = c("anterior", "posterior")),
 #'   values = cbind(mean_signal = c(1.4, 2.1)),
 #'   centroid = matrix(c(0, 0, 1, 0), ncol = 2, byrow = TRUE),
 #'   support_size = c(10, 15)
 #' )
-#' ngeo_elements(regions)
-#' ngeo_support_size(regions)
+#' base_elements(parcellation)
+#' ngeo_support_size(parcellation)
 #' @export
-ngeo_regions <- function(regions,
+ngeo_parcellation <- function(parcellation,
                          values = NULL,
                          membership = NULL,
-                         base_domain = NULL,
+                         source_base = NULL,
                          centroid = NULL,
                          support_size = NULL,
                          adjacency = NULL,
-                         maps = NULL,
+                         layers = NULL,
                          measures = NULL,
                          labels = list(),
-                         space = ngeo_space()) {
-  if (!is.data.frame(regions) || !"region_id" %in% names(regions) ||
-      !nrow(regions) || anyNA(regions$region_id) ||
-      anyDuplicated(regions$region_id)) {
+                         coordinate_space = ngeo_coordinate_space()) {
+  if (!is.data.frame(parcellation) || !"region_id" %in% names(parcellation) ||
+      !nrow(parcellation) || anyNA(parcellation$region_id) ||
+      anyDuplicated(parcellation$region_id)) {
     .ngeo_abort(
-      "`regions` must contain non-missing unique `region_id` values.",
-      "ngeo_error_domain"
+      "`parcellation` must contain non-missing unique `region_id` values.",
+      "ngeo_error_base"
     )
   }
-  if (!inherits(space, "ngeo_space")) {
-    .ngeo_abort("`space` must be an `ngeo_space` object.", "ngeo_error_space")
+  if (!inherits(coordinate_space, "ngeo_coordinate_space")) {
+    .ngeo_abort("`coordinate_space` must be an `ngeo_coordinate_space` object.", "ngeo_error_coordinate_space")
   }
-  n <- nrow(regions)
+  n <- nrow(parcellation)
 
   if (!is.null(centroid) &&
       (!is.matrix(centroid) || !is.numeric(centroid) ||
@@ -415,7 +419,7 @@ ngeo_regions <- function(regions,
   if (!is.numeric(support_size) || length(support_size) != n ||
       any(support_size < 0, na.rm = TRUE)) {
     .ngeo_abort(
-      "`support_size` must be a non-negative vector aligned with regions.",
+      "`support_size` must be a non-negative vector aligned with parcellation.",
       "ngeo_error_alignment"
     )
   }
@@ -433,53 +437,55 @@ ngeo_regions <- function(regions,
         inherits(membership, "Matrix"))) {
     .ngeo_abort(
       "`membership` must be a vector or matrix.",
-      "ngeo_error_domain"
+      "ngeo_error_base"
     )
   }
 
-  base_domain_hash <- if (inherits(base_domain, "ngeo") ||
-      inherits(base_domain, "ngeo_domain")) {
-    ngeo_domain_hash(base_domain)
+  source_base_hash <- if (inherits(source_base, "ngeo") ||
+      inherits(source_base, "ngeo_base")) {
+    base_hash(source_base)
   } else {
-    base_domain
+    source_base
   }
-  if (!is.null(base_domain_hash)) {
-    .ngeo_assert_scalar_character(base_domain_hash, "base_domain")
+  if (!is.null(source_base_hash)) {
+    .ngeo_assert_scalar_character(source_base_hash, "source_base")
   }
 
   elements <- .ngeo_element_table(n, 1L)
-  elements$element_id <- paste0("region:", as.character(regions$region_id))
-  elements$region_id <- regions$region_id
-  for (name in setdiff(names(regions), "region_id")) {
-    elements[[name]] <- regions[[name]]
+  elements$element_id <- paste0("region:", as.character(parcellation$region_id))
+  elements$region_id <- parcellation$region_id
+  for (name in setdiff(names(parcellation), "region_id")) {
+    elements[[name]] <- parcellation[[name]]
   }
 
-  domain <- base::structure(
+  base <- base::structure(
     list(
-      type = "regions",
+      type = "parcellation",
       elements = elements,
-      base_domain_hash = base_domain_hash,
-      membership = membership,
-      centroid = centroid,
-      support_size = as.numeric(support_size),
-      adjacency = adjacency,
-      space = space
+      geometry = list(
+        source_base_hash = source_base_hash,
+        membership = membership,
+        centroid = centroid,
+        support_size = as.numeric(support_size)
+      ),
+      coordinate_space = coordinate_space,
+      topology = if (is.null(adjacency)) NULL else list(adjacency = adjacency)
     ),
-    class = c("ngeo_regions_domain", "ngeo_domain")
+    class = c("ngeo_parcellation_base", "ngeo_base")
   )
 
   .new_ngeo(
-    domain = domain,
+    base = base,
     values = values,
-    maps = maps,
+    layers = layers,
     measures = measures,
     labels = labels,
-    provenance = list(
+    history = list(
       operations = list(.ngeo_operation(
-        "ngeo_regions",
-        list(base_domain_hash = base_domain_hash)
+        "ngeo_parcellation",
+        list(source_base_hash = source_base_hash)
       ))
     ),
-    class = "ngeo_regions"
+    class = "ngeo_parcellation"
   )
 }

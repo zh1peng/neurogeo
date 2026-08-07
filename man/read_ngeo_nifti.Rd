@@ -8,9 +8,9 @@ read_ngeo_nifti(
   path,
   mask = NULL,
   frames = NULL,
-  maps = NULL,
+  layers = NULL,
   measures = NULL,
-  space = NULL,
+  coordinate_space = NULL,
   affine = c("auto", "sform", "qform"),
   load_data = TRUE,
   strict = TRUE,
@@ -24,11 +24,11 @@ read_ngeo_nifti(
 
 \item{frames}{Optional frames passed to `RNifti::readNifti()`.}
 
-\item{maps}{Optional map metadata.}
+\item{layers}{Optional map metadata.}
 
 \item{measures}{Optional measurement semantics.}
 
-\item{space}{Optional `ngeo_space`.}
+\item{coordinate_space}{Optional `ngeo_coordinate_space`.}
 
 \item{affine}{Active affine choice.}
 

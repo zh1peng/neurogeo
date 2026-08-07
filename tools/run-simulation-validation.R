@@ -15,12 +15,12 @@ pkgload::load_all(export_all = FALSE, helpers = FALSE)
 dir.create(dirname(output), recursive = TRUE, showWarnings = FALSE)
 
 coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
-template <- ngeo_points(
+template <- ngeo_point(
   coordinates,
   values = cbind(signal = rep.int(0, nrow(coordinates))),
-  measures = ngeo_measure(spatial_semantics = "intensive")
+  measures = ngeo_measure(support_behavior = "intensive")
 )
-weights <- ngeo_weights(
+spatial_weights <- ngeo_spatial_weights(
   template,
   method = "distance_band",
   threshold = 1.01,
@@ -33,7 +33,7 @@ type_i_p <- vapply(seq_len(100L), function(i) {
   current$values[, 1L] <- stats::rnorm(nrow(coordinates))
   ngeo_moran(
     current,
-    weights,
+    spatial_weights,
     permutations = 99L,
     seed = 1000L + i,
     zero_policy = TRUE
@@ -47,7 +47,7 @@ if (type_i_rate < 0.01 || type_i_rate > 0.10) {
 predictor <- coordinates[, 1L] + coordinates[, 2L] / 4
 coefficient <- replicate(200L, {
   response <- 2 + 3 * predictor + stats::rnorm(length(predictor), sd = 0.5)
-  current <- ngeo_points(
+  current <- ngeo_point(
     coordinates,
     values = cbind(response = response, predictor = predictor)
   )
@@ -59,7 +59,7 @@ if (max(abs(coefficient_bias)) > 0.1) {
   stop("OLS coefficient bias exceeds 0.1.")
 }
 
-linear <- ngeo_points(
+linear <- ngeo_point(
   cbind(x = 0:9, y = 0),
   values = cbind(response = 1 + 2 * (0:9), predictor = 0:9)
 )
@@ -80,7 +80,7 @@ spatial <- template
 spatial$values[, 1L] <- predictor
 null <- ngeo_moran_null(
   spatial,
-  weights,
+  spatial_weights,
   nsim = 20L,
   seed = 99L,
   zero_policy = TRUE
@@ -88,7 +88,7 @@ null <- ngeo_moran_null(
 null_moran <- apply(
   null$simulations,
   2L,
-  function(values) neurogeo:::.ngeo_moran_value(values, weights$matrix)
+  function(values) neurogeo:::.ngeo_moran_value(values, spatial_weights$matrix)
 )
 moran_preservation_error <- max(abs(null_moran - null$observed_moran))
 variance_preservation_error <- max(abs(

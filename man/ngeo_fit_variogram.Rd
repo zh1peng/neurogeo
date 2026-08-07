@@ -7,7 +7,7 @@
 ngeo_fit_variogram(
   x,
   map = 1L,
-  metric = NULL,
+  distance_method = NULL,
   breaks = 10L,
   max_distance = Inf,
   model = c("spherical", "exponential", "gaussian"),
@@ -17,7 +17,7 @@ ngeo_fit_variogram(
 \arguments{
 \item{x}{An empirical `ngeo_variogram` or an `ngeo` dataset.}
 
-\item{map, metric, breaks, max_distance}{Passed to `ngeo_variogram()`.}
+\item{map, distance_method, breaks, max_distance}{Passed to `ngeo_variogram()`.}
 
 \item{model}{Spherical, exponential, or Gaussian model.}
 
@@ -32,9 +32,9 @@ Fit a bounded weighted least-squares variogram model
 \examples{
 coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
 signal <- sin(coordinates[, 1] / 2) + cos(coordinates[, 2] / 2)
-points <- ngeo_points(coordinates, values = cbind(signal = signal))
+point <- ngeo_point(coordinates, values = cbind(signal = signal))
 fit <- ngeo_fit_variogram(
-  points, "signal", breaks = c(0, 1.1, 2.1, 3.1, 4.5, 6),
+  point, "signal", breaks = c(0, 1.1, 2.1, 3.1, 4.5, 6),
   model = "spherical"
 )
 fit

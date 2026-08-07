@@ -14,7 +14,7 @@ library(neurogeo)
 
 ## 为什么 validation 之后还需要 QC
 
-`ngeo_validate()` 回答“对象结构是否符合 NGCS 不变量”。例如 domain 与
+`ngeo_validate()` 回答“对象结构是否符合 NGCS 不变量”。例如 base 与
 values 是否严格对齐、surface face 索引是否有效、affine 是否可逆。
 
 `ngeo_qc()` 回答另一类问题：“对象虽然有效，但直接分析是否存在科学风险”。
@@ -24,7 +24,7 @@ flatmap 含有折叠 face。QC 不修改数据，也不会猜测缺失的语义�
 ## 最小工作流
 
 ```{r basic-qc}
-x <- ngeo_points(
+x <- ngeo_point(
   matrix(c(0, 0, 1, 0, 2, 0), ncol = 2, byrow = TRUE),
   values = cbind(
     signal = c(1, 2, 3),
@@ -53,22 +53,22 @@ plot(qc)
 - `info`：描述性结果，可能完全合理；
 - `warning`：继续分析前需要作出明确决定；
 - `not_evaluated`：检查超过资源预算，没有偷偷加载大数据；
-- `not_applicable`：当前 domain 没有该能力。
+- `not_applicable`：当前 base 没有该能力。
 
 ## 明确测量语义
 
 ```{r known-semantics}
-y <- ngeo_points(
+y <- ngeo_point(
   matrix(c(0, 0, 1, 0, 2, 0), ncol = 2, byrow = TRUE),
   values = cbind(signal = c(1, 2, 3)),
   measures = ngeo_measure(
-    spatial_semantics = "intensive",
-    units = "a.u."
+    support_behavior = "intensive",
+    unit = "a.u."
   ),
-  space = ngeo_space(
+  coordinate_space = ngeo_coordinate_space(
     space_id = "study_native",
     kind = "unknown",
-    units = "mm"
+    unit = "mm"
   )
 )
 
@@ -78,7 +78,7 @@ ngeo_qc(y)$checks
 ## 大 values block 不会被隐式物化
 
 `max_value_cells` 是 QC 可以读取的最大 element-by-map 单元数。超过预算时，
-domain 和其他元数据仍会检查，但 map missingness 会标记为
+base 和其他元数据仍会检查，但 map missingness 会标记为
 `not_evaluated`。
 
 ```{r budget}

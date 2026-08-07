@@ -1,16 +1,19 @@
-.ngeo_ordination_maps <- function(x, maps) {
+.ngeo_ordination_layers <- function(x, layers) {
   ngeo_validate(x, "strict")
   if (is.null(x$values)) {
     .ngeo_abort("Spatial ordination requires loaded values.", "ngeo_error_values")
   }
-  selected <- .ngeo_map_selection(x, maps)
+  selected <- .ngeo_layer_selection(x, layers)
   if (length(selected) < 2L || anyDuplicated(selected)) {
     .ngeo_abort(
       "Spatial ordination requires at least two distinct layers.",
       "ngeo_error_argument"
     )
   }
-  if (any(x$measures$spatial_semantics[selected] == "categorical")) {
+  if (any(.ngeo_measures_for_layers(
+    x,
+    selected
+  )$support_behavior == "categorical")) {
     .ngeo_abort(
       "Categorical layers cannot enter numeric spatial ordination.",
       "ngeo_error_measure"
@@ -31,18 +34,18 @@
       "ngeo_error_measure"
     )
   }
-  colnames(values) <- x$maps$name[selected]
+  colnames(values) <- x$layers$name[selected]
   list(index = selected, values = values, names = colnames(values))
 }
 
-.ngeo_ordination_projection <- function(x, maps, model) {
-  if (!identical(ngeo_domain_hash(x), model$domain_hash)) {
+.ngeo_ordination_projection <- function(x, layers, model) {
+  if (!identical(base_hash(x), model$base_hash)) {
     .ngeo_abort(
-      "Projection data do not match the frozen training domain.",
-      "ngeo_error_domain_mismatch"
+      "Projection data do not match the frozen training base.",
+      "ngeo_error_base_mismatch"
     )
   }
-  selected <- .ngeo_ordination_maps(x, maps)
+  selected <- .ngeo_ordination_layers(x, layers)
   if (ncol(selected$values) != length(model$layer_names)) {
     .ngeo_abort(
       "Projection data must select the frozen layer count and order.",
@@ -52,7 +55,7 @@
   standardized <- sweep(selected$values, 2L, model$center, "-")
   standardized <- sweep(standardized, 2L, model$scale, "/")
   scores <- standardized %*% model$loadings
-  rownames(scores) <- x$domain$elements$element_id
+  rownames(scores) <- x$base$elements$element_id
   scores
 }
 
@@ -65,12 +68,12 @@
 #' data; the returned scores still contain no p-values.
 #'
 #' @param x An `ngeo` training or reference-map dataset.
-#' @param maps At least two map names, IDs, or indices.
-#' @param weights Matching `ngeo_weights`.
+#' @param layers At least two map names, IDs, or indices.
+#' @param spatial_weights Matching `ngeo_spatial_weights`.
 #' @param axes Maximum number of positive spatial axes retained.
 #' @param regime Descriptive reference-map ordination or frozen training basis.
 #' @param newdata Named list of test `ngeo` objects for frozen projection.
-#' @param new_maps Map selector used in every test object.
+#' @param new_layers Map selector used in every test object.
 #' @param independent_training Whether training independence is explicitly
 #'   declared. Required for frozen projection.
 #'
@@ -78,12 +81,12 @@
 #' @export
 ngeo_spatial_ordination <- function(
     x,
-    maps,
-    weights,
+    layers,
+    spatial_weights,
     axes = 2L,
     regime = c("reference_map", "frozen_training"),
     newdata = NULL,
-    new_maps = maps,
+    new_layers = layers,
     independent_training = FALSE) {
   .ngeo_require("adespatial", "experimental spatial ordination")
   .ngeo_require("ade4", "experimental spatial ordination")
@@ -93,18 +96,18 @@ ngeo_spatial_ordination <- function(
   if (axes < 1L) {
     .ngeo_abort("`axes` must be positive.", "ngeo_error_argument")
   }
-  selected <- .ngeo_ordination_maps(x, maps)
-  if (!inherits(weights, "ngeo_weights")) {
-    .ngeo_abort("`weights` must be `ngeo_weights`.", "ngeo_error_argument")
+  selected <- .ngeo_ordination_layers(x, layers)
+  if (!inherits(spatial_weights, "ngeo_spatial_weights")) {
+    .ngeo_abort("`spatial_weights` must be `ngeo_spatial_weights`.", "ngeo_error_argument")
   }
-  domain_hash <- ngeo_domain_hash(x)
-  if (!identical(weights$domain_hash, domain_hash)) {
+  base_hash <- base_hash(x)
+  if (!identical(spatial_weights$base_hash, base_hash)) {
     .ngeo_abort(
-      "Spatial ordination weights do not match the data domain.",
-      "ngeo_error_domain_mismatch"
+      "Spatial ordination spatial_weights do not match the data base.",
+      "ngeo_error_base_mismatch"
     )
   }
-  raw <- .ngeo_as_dgCMatrix(weights$raw_matrix)
+  raw <- .ngeo_as_dgCMatrix(spatial_weights$raw_matrix)
   if (any(Matrix::rowSums(abs(raw)) == 0)) {
     .ngeo_abort(
       "Spatial ordination does not retain isolated elements.",
@@ -145,7 +148,7 @@ ngeo_spatial_ordination <- function(
     scannf = FALSE,
     nf = min(axes, ncol(selected$values))
   )
-  normalized <- weights
+  normalized <- spatial_weights
   normalized$matrix <- .ngeo_row_standardize(raw)
   listw <- as_spdep_listw(normalized)
   listw$style <- "W"
@@ -166,25 +169,25 @@ ngeo_spatial_ordination <- function(
   )
   loadings <- as.matrix(fit$c1)
   training_scores <- as.matrix(fit$li)
-  rownames(training_scores) <- x$domain$elements$element_id
+  rownames(training_scores) <- x$base$elements$element_id
   model <- list(
-    domain_hash = domain_hash,
+    base_hash = base_hash,
     layer_names = selected$names,
     center = unname(pca$cent),
     scale = unname(pca$norm),
     loadings = loadings
   )
   projected <- if (identical(regime, "frozen_training")) {
-    lapply(newdata, .ngeo_ordination_projection, maps = new_maps, model = model)
+    lapply(newdata, .ngeo_ordination_projection, layers = new_layers, model = model)
   } else {
     list()
   }
   ordination_hash <- .ngeo_layer_digest(list(
-    domain_hash = domain_hash,
-    maps = x$maps$map_id[selected$index],
+    base_hash = base_hash,
+    layers = x$layers$layer_id[selected$index],
     support_hash = support$hash,
-    weights = list(
-      method = weights$method,
+    spatial_weights = list(
+      method = spatial_weights$method,
       normalization = "W",
       matrix = normalized$matrix
     ),
@@ -208,7 +211,7 @@ ngeo_spatial_ordination <- function(
       "Group inference requires independent training/test, calibrated",
       "cross-fitting, or refitting inside every permutation."
     ),
-    domain_hash = domain_hash,
+    base_hash = base_hash,
     support_hash = support$hash,
     ordination_hash = ordination_hash,
     status = "experimental"

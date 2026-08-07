@@ -10,7 +10,7 @@ if (!requireNamespace("jsonlite", quietly = TRUE)) {
 suppressPackageStartupMessages(library(neurogeo))
 
 stable <- c(
-  ngeo_bind_maps = "ngeo",
+  ngeo_bind_layers = "ngeo",
   ngeo_validate_layers = "ngeo_layer_index",
   ngeo_spatial_basis = "ngeo_spatial_basis",
   ngeo_basis_project = "ngeo_subject_features",
@@ -22,11 +22,11 @@ experimental <- c(
   "ngeo_spatial_ordination", "ngeo_coregionalization", "ngeo_mgwr"
 )
 expected_formals <- list(
-  ngeo_bind_maps = c("...", "metadata", "source_id", "conflicts", "storage", "budget"),
+  ngeo_bind_layers = c("...", "metadata", "source_id", "conflicts", "storage", "budget"),
   ngeo_validate_layers = c("x", "unit", "layer", "required_layers", "complete", "require_consistent_measures"),
-  ngeo_spatial_basis = c("x", "weights", "operator", "coordinates", "support", "n_modes", "components", "symmetrize", "tolerance", "budget"),
-  ngeo_basis_project = c("x", "basis", "index", "maps", "bands", "center", "scale", "summaries", "chunk_rows", "chunk_maps"),
-  ngeo_layer_coupling = c("x", "index", "pairs", "basis", "bands", "weights", "estimands", "lag_direction", "energy_floor", "null", "chunk_maps"),
+  ngeo_spatial_basis = c("x", "spatial_weights", "operator", "coordinates", "support", "n_modes", "components", "symmetrize", "tolerance", "budget"),
+  ngeo_basis_project = c("x", "basis", "index", "layers", "bands", "center", "scale", "summaries", "chunk_rows", "chunk_layers"),
+  ngeo_layer_coupling = c("x", "index", "pairs", "basis", "bands", "spatial_weights", "estimands", "lag_direction", "energy_floor", "null", "chunk_layers"),
   ngeo_exchangeability = c("unit_id", "scheme", "blocks", "schedule", "permutations", "seed", "budget"),
   ngeo_group_test = c("features", "data", "model", "test", "exchangeability", "family", "transform", "adjustment", "omnibus", "missing", "retain_null", "workers", "budget")
 )

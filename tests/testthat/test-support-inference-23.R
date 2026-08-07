@@ -55,7 +55,7 @@ test_that("common-source support tests are reproducible and family-aware", {
   fixture <- inference_fixture()
   first <- ngeo_common_support_test(
     fixture$source,
-    fixture$maps,
+    fixture$layers,
     fixture$targets,
     outcome = "outcome",
     predictor = "predictor",
@@ -64,7 +64,7 @@ test_that("common-source support tests are reproducible and family-aware", {
   )
   second <- ngeo_common_support_test(
     fixture$source,
-    fixture$maps,
+    fixture$layers,
     fixture$targets,
     outcome = "outcome",
     predictor = "predictor",
@@ -84,19 +84,19 @@ test_that("common-source support tests are reproducible and family-aware", {
 
 test_that("Moran common-source null is explicitly spatial", {
   fixture <- inference_fixture()
-  weights <- ngeo_weights(
+  spatial_weights <- ngeo_spatial_weights(
     fixture$source,
     method = "mesh_contiguity",
     style = "W"
   )
   result <- ngeo_common_support_test(
     fixture$source,
-    fixture$maps,
+    fixture$layers,
     fixture$targets,
     outcome = "outcome",
     predictor = "predictor",
     null = "moran",
-    weights = weights,
+    spatial_weights = spatial_weights,
     nsim = 7,
     seed = 17
   )
@@ -110,7 +110,7 @@ test_that("multiscale inference preserves caller-declared hierarchy", {
   fixture <- inference_fixture()
   result <- ngeo_multiscale_inference(
     fixture$source,
-    fixture$maps,
+    fixture$layers,
     fixture$targets,
     scales = c("coarse", "fine"),
     outcome = "outcome",
@@ -132,7 +132,7 @@ test_that("multiscale inference preserves caller-declared hierarchy", {
   expect_error(
     ngeo_multiscale_inference(
       fixture$source,
-      fixture$maps,
+      fixture$layers,
       fixture$targets,
       scales = c("same", "same"),
       outcome = "outcome",
@@ -145,7 +145,7 @@ test_that("multiscale inference preserves caller-declared hierarchy", {
 
 test_that("boundary tests use a declared segmentation ensemble", {
   fixture <- inference_fixture()
-  ensemble <- ngeo_segmentation_ensemble(fixture$maps)
+  ensemble <- ngeo_segmentation_ensemble(fixture$layers)
   first <- ngeo_boundary_test(
     fixture$source,
     ensemble,
@@ -176,7 +176,7 @@ test_that("atlas effects expose intervals, consensus, and bootstrap audit", {
   fixture <- inference_fixture()
   first <- ngeo_atlas_robust_effect(
     fixture$source,
-    fixture$maps,
+    fixture$layers,
     fixture$targets,
     outcome = "outcome",
     predictor = "predictor",
@@ -185,7 +185,7 @@ test_that("atlas effects expose intervals, consensus, and bootstrap audit", {
   )
   second <- ngeo_atlas_robust_effect(
     fixture$source,
-    fixture$maps,
+    fixture$layers,
     fixture$targets,
     outcome = "outcome",
     predictor = "predictor",

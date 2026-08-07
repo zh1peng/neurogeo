@@ -24,10 +24,10 @@ ngeo_set_chart(
 \item{source}{Optional source description.}
 }
 \value{
-A new `ngeo_surface` with the chart and provenance appended.
+A new `ngeo_surface` with the chart and history appended.
 }
 \description{
 A chart is an auxiliary coordinate set for planar display and
 interoperability. It never replaces anatomical coordinates, support,
-topology, or metric eligibility.
+topology, or distance_method eligibility.
 }

@@ -13,7 +13,7 @@ faces <- rbind(
   c(2L, 3L, 4L),
   c(3L, 1L, 4L)
 )
-metric <- c(1.5, 2.5, 3.5, 4.5)
+distance_method <- c(1.5, 2.5, 3.5, 4.5)
 
 freesurferformats::write.fs.surface(
   file.path(output_dir, "tetra.surface"),
@@ -22,7 +22,7 @@ freesurferformats::write.fs.surface(
 )
 freesurferformats::write.fs.curv(
   file.path(output_dir, "tetra.curv"),
-  metric
+  distance_method
 )
 freesurferformats::write.fs.surface.gii(
   file.path(output_dir, "tetra.surf.gii"),
@@ -31,7 +31,7 @@ freesurferformats::write.fs.surface.gii(
 )
 freesurferformats::write.fs.morph.gii(
   file.path(output_dir, "tetra.shape.gii"),
-  metric
+  distance_method
 )
 
 colortable <- data.frame(

@@ -20,7 +20,7 @@ test_that("support-map validation audits every stored invariant", {
   expect_support_map_error(changed)
 
   changed <- map
-  changed$source_domain_hash <- ""
+  changed$source_base_hash <- ""
   expect_support_map_error(changed)
 
   changed <- map
@@ -147,7 +147,7 @@ test_that("matrix and operator uncertainty paths remain reproducible", {
     fixture$target,
     fixture$soft,
     matrix_covariance,
-    maps = "outcome",
+    layers = "outcome",
     method = "monte_carlo",
     output = "covariance",
     nsim = 20,
@@ -165,7 +165,7 @@ test_that("matrix and operator uncertainty paths remain reproducible", {
     fixture$target,
     fixture$soft,
     zero_covariance,
-    maps = "outcome",
+    layers = "outcome",
     method = "monte_carlo",
     nsim = 4,
     seed = 7
@@ -176,29 +176,29 @@ test_that("matrix and operator uncertainty paths remain reproducible", {
     ignore_attr = TRUE
   )
 
-  uncertain_map <- fixture$soft
-  uncertain_map$weight_variance <- methods::as(
-    uncertain_map$operator * 0.01,
+  uncertain_layer <- fixture$soft
+  uncertain_layer$weight_variance <- methods::as(
+    uncertain_layer$operator * 0.01,
     "dgCMatrix"
   )
-  ngeo_validate_support_map(uncertain_map)
+  ngeo_validate_support_map(uncertain_layer)
   analytic <- ngeo_support_uncertainty(
     fixture$source,
     fixture$target,
-    uncertain_map,
+    uncertain_layer,
     matrix_covariance,
-    maps = "outcome"
+    layers = "outcome"
   )
   expect_true(all(analytic$variance > 0))
 
   extensive <- fixture$source
-  extensive$measures$spatial_semantics[[1L]] <- "extensive"
+  extensive$measures$support_behavior[[1L]] <- "extensive"
   extensive_result <- ngeo_support_uncertainty(
     extensive,
     fixture$target,
-    uncertain_map,
+    uncertain_layer,
     matrix_covariance,
-    maps = "outcome"
+    layers = "outcome"
   )
   expect_true(all(extensive_result$variance > 0))
 })
@@ -218,7 +218,7 @@ test_that("uncertainty obeys configured dense covariance limits", {
       fixture$target,
       fixture$soft,
       covariance,
-      maps = "outcome",
+      layers = "outcome",
       method = "monte_carlo",
       nsim = 3
     ),
@@ -235,7 +235,7 @@ test_that("uncertainty obeys configured dense covariance limits", {
       fixture$target,
       fixture$soft,
       covariance,
-      maps = "outcome",
+      layers = "outcome",
       output = "covariance"
     ),
     class = "ngeo_error_resource"
@@ -244,12 +244,12 @@ test_that("uncertainty obeys configured dense covariance limits", {
 
 test_that("support sensitivity validates ensembles and propagates value variance", {
   fixture <- diagnostic_fixture()
-  maps <- list(hard = fixture$hard, soft = fixture$soft)
+  layers <- list(hard = fixture$hard, soft = fixture$soft)
   result <- ngeo_support_sensitivity(
     fixture$source,
     fixture$target,
-    maps,
-    maps = "outcome",
+    layers,
+    layers = "outcome",
     reference = 2L,
     value_variance = rep(0.1, 4)
   )
@@ -270,7 +270,7 @@ test_that("support sensitivity validates ensembles and propagates value variance
     ngeo_support_sensitivity(
       fixture$source,
       list(fixture$target),
-      maps
+      layers
     ),
     class = "ngeo_error_alignment"
   )
@@ -278,20 +278,20 @@ test_that("support sensitivity validates ensembles and propagates value variance
     ngeo_support_sensitivity(
       fixture$source,
       fixture$target,
-      maps,
+      layers,
       reference = 3L
     ),
     class = "ngeo_error_argument"
   )
 
   mismatched <- fixture$soft
-  mismatched$target_domain_hash <- "different"
+  mismatched$target_base_hash <- "different"
   expect_error(
     ngeo_support_sensitivity(
       fixture$source,
       fixture$target,
       list(fixture$hard, mismatched)
     ),
-    class = "ngeo_error_domain_mismatch"
+    class = "ngeo_error_base_mismatch"
   )
 })

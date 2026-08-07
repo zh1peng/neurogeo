@@ -50,7 +50,7 @@ builder_surface <- function(values = NULL, measures = NULL) {
     ),
     values = values,
     measures = measures,
-    space = ngeo_space(
+    coordinate_space = ngeo_coordinate_space(
       "registered-square",
       kind = "surface",
       structure = "CORTEX_LEFT"
@@ -65,8 +65,8 @@ diagnostic_fixture <- function() {
       predictor = c(1, 2, 4, 7)
     ),
     measures = rbind(
-      ngeo_measure(spatial_semantics = "intensive"),
-      ngeo_measure(spatial_semantics = "intensive")
+      ngeo_measure(support_behavior = "intensive"),
+      ngeo_measure(support_behavior = "intensive")
     )
   )
   hard <- ngeo_atlas_map(source, c("A", "A", "B", "B"))
@@ -112,10 +112,10 @@ inference_fixture <- function() {
     faces,
     values = cbind(outcome = outcome, predictor = predictor),
     measures = rbind(
-      ngeo_measure(spatial_semantics = "intensive"),
-      ngeo_measure(spatial_semantics = "intensive")
+      ngeo_measure(support_behavior = "intensive"),
+      ngeo_measure(support_behavior = "intensive")
     ),
-    space = ngeo_space("inference-grid", kind = "surface")
+    coordinate_space = ngeo_coordinate_space("inference-grid", kind = "surface")
   )
   atlas_a <- ngeo_atlas_map(
     source,
@@ -128,7 +128,7 @@ inference_fixture <- function() {
   )
   list(
     source = source,
-    maps = list(A = atlas_a, B = atlas_b),
+    layers = list(A = atlas_a, B = atlas_b),
     targets = list(atlas_a$target, atlas_a$target)
   )
 }
@@ -136,33 +136,33 @@ inference_fixture <- function() {
 model_grid <- function() {
   coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
   predictor <- coordinates[, 1L] + 0.25 * coordinates[, 2L]
-  base <- ngeo_points(
+  base <- ngeo_point(
     coordinates,
     values = cbind(predictor = predictor)
   )
-  weights <- ngeo_weights(
+  spatial_weights <- ngeo_spatial_weights(
     base,
     method = "distance_band",
     threshold = 1.01,
     style = "W"
   )
-  lagged <- as.numeric(weights$matrix %*% predictor)
+  lagged <- as.numeric(spatial_weights$matrix %*% predictor)
   set.seed(2026)
   response <- 2 + 3 * predictor + 1.5 * lagged +
     stats::rnorm(length(predictor), sd = 0.02)
-  x <- ngeo_points(
+  x <- ngeo_point(
     coordinates,
     values = cbind(
       response = response,
       predictor = predictor
     ),
     measures = rbind(
-      ngeo_measure(spatial_semantics = "intensive"),
-      ngeo_measure(spatial_semantics = "intensive")
+      ngeo_measure(support_behavior = "intensive"),
+      ngeo_measure(support_behavior = "intensive")
     )
   )
-  weights$domain_hash <- ngeo_domain_hash(x)
-  list(x = x, weights = weights)
+  spatial_weights$base_hash <- base_hash(x)
+  list(x = x, spatial_weights = spatial_weights)
 }
 qc_cartography_disk <- function() {
   ngeo_surface(

@@ -2,7 +2,7 @@
 % Please edit documentation in R/reproducibility.R
 \name{ngeo_logical_hash}
 \alias{ngeo_logical_hash}
-\title{Compute a scientific logical hash independent of provenance timestamps}
+\title{Compute a scientific logical hash independent of history timestamps}
 \usage{
 ngeo_logical_hash(x, budget = ngeo_resource_budget())
 }
@@ -15,12 +15,12 @@ ngeo_logical_hash(x, budget = ngeo_resource_budget())
 A lowercase SHA-256 string.
 }
 \description{
-Compute a scientific logical hash independent of provenance timestamps
+Compute a scientific logical hash independent of history timestamps
 }
 \examples{
-points <- ngeo_points(
+point <- ngeo_point(
   matrix(c(0, 0, 1, 0, 1, 1), ncol = 2, byrow = TRUE),
   values = cbind(signal = c(1, 2, 3))
 )
-ngeo_logical_hash(points)
+ngeo_logical_hash(point)
 }

@@ -25,10 +25,10 @@ test_that("bounded WLS variogram fitting recovers a direct curve", {
 
 test_that("local ordinary kriging is bounded and reports variance", {
   coordinates <- cbind(x = 0:7, y = 0)
-  x <- ngeo_points(
+  x <- ngeo_point(
     coordinates,
     values = cbind(signal = sin(coordinates[, 1L] / 2)),
-    measures = ngeo_measure(spatial_semantics = "intensive")
+    measures = ngeo_measure(support_behavior = "intensive")
   )
   fit <- structure(
     list(
@@ -56,7 +56,7 @@ test_that("local ordinary kriging is bounded and reports variance", {
 test_that("GWR bandwidth selection and local fits recover a linear field", {
   coordinates <- cbind(x = 0:11, y = 0)
   predictor <- coordinates[, 1L]
-  x <- ngeo_points(
+  x <- ngeo_point(
     coordinates,
     values = cbind(
       response = 1 + 2 * predictor,
@@ -82,7 +82,7 @@ test_that("GWR bandwidth selection and local fits recover a linear field", {
 
 test_that("SAR and SEM likelihoods recover small direct simulations", {
   fixture <- model_grid()
-  weight <- as.matrix(fixture$weights$matrix)
+  weight <- as.matrix(fixture$spatial_weights$matrix)
   predictor <- fixture$x$values[, "predictor"]
   design_mean <- 1 + 2 * predictor
   set.seed(2401)
@@ -93,7 +93,7 @@ test_that("SAR and SEM likelihoods recover small direct simulations", {
   fixture$x$values[, "response"] <- sar_response
   sar <- ngeo_spatial_regression(
     fixture$x, "response", "predictor",
-    fixture$weights, model = "sar"
+    fixture$spatial_weights, model = "sar"
   )
 
   set.seed(2402)
@@ -104,7 +104,7 @@ test_that("SAR and SEM likelihoods recover small direct simulations", {
   fixture$x$values[, "response"] <- sem_response
   sem <- ngeo_spatial_regression(
     fixture$x, "response", "predictor",
-    fixture$weights, model = "sem"
+    fixture$spatial_weights, model = "sem"
   )
 
   expect_equal(sar$spatial_parameter, 0.35, tolerance = 0.12)
@@ -118,11 +118,11 @@ test_that("CAR smoothing records constraints and reduces graph roughness", {
   result <- ngeo_car(
     fixture$x,
     "response",
-    fixture$weights,
+    fixture$spatial_weights,
     type = "intrinsic",
     precision = 1
   )
-  weight <- fixture$weights$matrix
+  weight <- fixture$spatial_weights$matrix
   observed_roughness <- sum(
     (fixture$x$values[, "response"] -
        as.numeric(weight %*% fixture$x$values[, "response"]))^2
@@ -149,7 +149,7 @@ test_that("exact CAR fails before an oversized dense solve", {
     ngeo_car(
       fixture$x,
       "response",
-      fixture$weights,
+      fixture$spatial_weights,
       precision = 1
     ),
     class = "ngeo_error_resource"
@@ -160,7 +160,7 @@ test_that("support models retain every map identity and scoped claim", {
   fixture <- inference_fixture()
   result <- ngeo_support_model(
     fixture$source,
-    fixture$maps,
+    fixture$layers,
     fixture$targets,
     response = "outcome",
     predictors = "predictor",
@@ -190,7 +190,7 @@ test_that("2.4 models reject unbounded or singular requests", {
   )
 })
 
-test_that("kriging executes metric distances and covariance variance algebra", {
+test_that("kriging executes distance_method distances and covariance variance algebra", {
   coordinates <- rbind(
     c(0, 0, 0),
     c(10, 0, 0),
@@ -201,7 +201,7 @@ test_that("kriging executes metric distances and covariance variance algebra", {
     coordinates,
     rbind(c(1, 2, 3), c(2, 3, 4)),
     values = cbind(signal = 1:4),
-    measures = ngeo_measure(spatial_semantics = "intensive")
+    measures = ngeo_measure(support_behavior = "intensive")
   )
   fit <- structure(
     list(
@@ -212,27 +212,27 @@ test_that("kriging executes metric distances and covariance variance algebra", {
   )
   euclidean <- ngeo_kriging(
     surface, "signal", fit, targets = 1:4,
-    neighbors = 4, metric = "euclidean"
+    neighbors = 4, distance_method = "euclidean"
   )
   geodesic <- ngeo_kriging(
     surface, "signal", fit, targets = 1:4,
-    neighbors = 4, metric = "edge_geodesic"
+    neighbors = 4, distance_method = "edge_geodesic"
   )
   expect_false(isTRUE(all.equal(
     euclidean$prediction, geodesic$prediction
   )))
 
-  points <- ngeo_points(
+  point <- ngeo_point(
     cbind(c(0, 1, 3), 0),
     values = cbind(signal = c(1, 2, 4)),
-    measures = ngeo_measure(spatial_semantics = "intensive")
+    measures = ngeo_measure(support_behavior = "intensive")
   )
   target <- matrix(c(1.5, 0, 0), nrow = 1)
   result <- ngeo_kriging(
-    points, "signal", fit, targets = target,
-    neighbors = 3, metric = "euclidean"
+    point, "signal", fit, targets = target,
+    neighbors = 3, distance_method = "euclidean"
   )
-  observed <- neurogeo:::.ngeo_element_coordinates(points)
+  observed <- neurogeo:::.ngeo_element_coordinates(point)
   covariance <- neurogeo:::.ngeo_variogram_covariance(
     neurogeo:::.ngeo_euclidean_matrix(observed, observed),
     fit,
@@ -251,14 +251,14 @@ test_that("kriging executes metric distances and covariance variance algebra", {
   expect_equal(result$variance, reference, tolerance = 1e-12)
   expect_error(
     ngeo_kriging(
-      points, "signal", fit, targets = target,
-      metric = "edge_geodesic"
+      point, "signal", fit, targets = target,
+      distance_method = "edge_geodesic"
     ),
     class = "ngeo_error_metric"
   )
 })
 
-test_that("GWR bandwidth selection executes the declared metric", {
+test_that("GWR bandwidth selection executes the declared distance_method", {
   coordinates <- rbind(
     c(0, 0, 0),
     c(10, 0, 0),
@@ -280,11 +280,11 @@ test_that("GWR bandwidth selection executes the declared metric", {
   )
   euclidean <- ngeo_gwr_bandwidth(
     surface, "response", "predictor",
-    candidates = c(2, 6, 12), metric = "euclidean"
+    candidates = c(2, 6, 12), distance_method = "euclidean"
   )
   geodesic <- ngeo_gwr_bandwidth(
     surface, "response", "predictor",
-    candidates = c(2, 6, 12), metric = "edge_geodesic"
+    candidates = c(2, 6, 12), distance_method = "edge_geodesic"
   )
   expect_false(isTRUE(all.equal(
     euclidean$candidates$rmse,
@@ -301,18 +301,18 @@ test_that("SAR likelihood respects the spectral parameter interval", {
     0.5872355, 0.6278771, 0.6477944,
     -1.1849773, -1.2526826, -0.9547022
   )
-  x <- ngeo_points(
+  x <- ngeo_point(
     coordinates,
     values = cbind(response = response)
   )
-  weights <- ngeo_weights(
+  spatial_weights <- ngeo_spatial_weights(
     x,
     method = "distance_band",
     threshold = 1.1,
     style = "B"
   )
   fit <- ngeo_spatial_regression(
-    x, "response", weights = weights, model = "sar"
+    x, "response", spatial_weights = spatial_weights, model = "sar"
   )
 
   expect_equal(fit$parameter_interval[[2]], 0.5, tolerance = 1e-7)

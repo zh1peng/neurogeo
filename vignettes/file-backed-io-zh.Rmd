@@ -15,13 +15,13 @@ knitr::opts_chunk$set(eval = FALSE)
 
 file-backed values 在请求特定 element-by-map block 时才读取文件，适合长时间
 序列和 dense grayordinate 数据。它不是新的科学数据模型：对象仍然只有一个
-domain 和一个严格对齐的 values block。
+base 和一个严格对齐的 values block。
 
 源文件 identity 和 selection 必须进入对象身份，避免文件改变后仍命中旧缓存。
 
 ## 读取
 
-```{r}
+```{r, eval=FALSE}
 library(neurogeo)
 
 x <- read_ngeo_nifti_filebacked(
@@ -38,18 +38,18 @@ x$values[1:1000, 1:2, drop = FALSE]
 
 CIFTI 和 FreeSurfer volume 使用相同契约：
 
-```{r}
+```{r, eval=FALSE}
 dense <- read_ngeo_cifti_filebacked(
   "sub-01_task-rest_bold.dtseries.nii",
   structures = c("CORTEX_LEFT", "CORTEX_RIGHT"),
   frames = 1:100
 )
-mgh <- read_ngeo_mgh_filebacked("lh.metric.mgz", frames = 1)
+mgh <- read_ngeo_mgh_filebacked("lh.distance_method.mgz", frames = 1)
 ```
 
 ## 分块与预算
 
-```{r}
+```{r, eval=FALSE}
 ngeo_value_chunks(
   dense,
   chunk_size = 4096,

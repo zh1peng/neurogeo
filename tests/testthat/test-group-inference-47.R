@@ -17,10 +17,10 @@ group_feature_fixture <- function(values, ids = NULL, bounds = NULL) {
   )
   structure(list(
     values = values,
-    units = data.frame(unit_id = ids, stringsAsFactors = FALSE),
+    unit = data.frame(unit_id = ids, stringsAsFactors = FALSE),
     endpoints = endpoints,
     diagnostics = list(),
-    provenance = list(source = "unit-test")
+    history = list(source = "unit-test")
   ), class = "ngeo_subject_features")
 }
 

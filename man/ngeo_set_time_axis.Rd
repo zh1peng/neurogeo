@@ -14,7 +14,7 @@ ngeo_set_time_axis(x, axis, temporal_semantics = "instantaneous")
 \item{temporal_semantics}{Scalar or map-aligned temporal semantics.}
 }
 \value{
-`x` with time metadata aligned to maps and measures.
+`x` with time metadata aligned to layers and measures.
 }
 \description{
 Bind an explicit time axis and temporal semantics to map-aligned values

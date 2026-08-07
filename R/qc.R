@@ -16,7 +16,7 @@
         "not_applicable",
         message = "The object has no values block."
       ),
-      maps = NULL
+      layers = NULL
     ))
   }
   if (ncol(x$values) == 0L) {
@@ -24,9 +24,9 @@
       check = .ngeo_qc_check(
         "values_scan",
         "not_applicable",
-        message = "The values block contains no maps."
+        message = "The values block contains no layers."
       ),
-      maps = NULL
+      layers = NULL
     ))
   }
   cells <- as.double(nrow(x$values)) * as.double(ncol(x$values))
@@ -41,18 +41,18 @@
           format(cells, scientific = FALSE, big.mark = ",")
         )
       ),
-      maps = NULL
+      layers = NULL
     ))
   }
   values <- as.matrix(x$values)
-  maps <- lapply(seq_len(ncol(values)), function(i) {
+  layers <- lapply(seq_len(ncol(values)), function(i) {
     current <- values[, i]
     missing <- is.na(current)
     nonfinite <- !missing & !is.finite(current)
     finite <- is.finite(current)
     data.frame(
-      map_id = x$maps$map_id[[i]],
-      name = x$maps$name[[i]],
+      layer_id = x$layers$layer_id[[i]],
+      name = x$layers$name[[i]],
       missing_fraction = mean(missing),
       nonfinite_fraction = mean(nonfinite),
       finite_count = sum(finite),
@@ -61,7 +61,7 @@
       stringsAsFactors = FALSE
     )
   })
-  maps <- do.call(rbind, maps)
+  layers <- do.call(rbind, layers)
   checks <- rbind(
     .ngeo_qc_check(
       "values_scan",
@@ -71,24 +71,24 @@
     ),
     .ngeo_qc_check(
       "missing_value_fraction",
-      if (any(maps$missing_fraction > 0)) "warning" else "pass",
-      if (nrow(maps)) max(maps$missing_fraction) else 0,
+      if (any(layers$missing_fraction > 0)) "warning" else "pass",
+      if (nrow(layers)) max(layers$missing_fraction) else 0,
       "Maximum map-wise NA fraction."
     ),
     .ngeo_qc_check(
       "nonfinite_value_fraction",
-      if (any(maps$nonfinite_fraction > 0)) "warning" else "pass",
-      if (nrow(maps)) max(maps$nonfinite_fraction) else 0,
+      if (any(layers$nonfinite_fraction > 0)) "warning" else "pass",
+      if (nrow(layers)) max(layers$nonfinite_fraction) else 0,
       "Maximum map-wise non-finite, non-NA fraction."
     ),
     .ngeo_qc_check(
       "constant_maps",
-      if (any(maps$constant)) "warning" else "pass",
-      sum(maps$constant),
-      "Number of maps with one unique finite value."
+      if (any(layers$constant)) "warning" else "pass",
+      sum(layers$constant),
+      "Number of layers with one unique finite value."
     )
   )
-  list(check = checks, maps = maps)
+  list(check = checks, layers = layers)
 }
 
 .ngeo_qc_topology <- function(x, tolerance) {
@@ -98,19 +98,19 @@
       check = .ngeo_qc_check(
         "topology",
         "not_applicable",
-        message = "The domain has no declared adjacency capability."
+        message = "The base has no declared adjacency capability."
       ),
       summary = NULL
     ))
   }
   maximum <- getOption("neurogeo.max_qc_elements", 1000000L)
-  if (nrow(x$domain$elements) > maximum) {
+  if (nrow(x$base$elements) > maximum) {
     return(list(
       check = .ngeo_qc_check(
         "topology",
         "not_evaluated",
-        nrow(x$domain$elements),
-        "The domain exceeds `getOption(\"neurogeo.max_qc_elements\")`."
+        nrow(x$base$elements),
+        "The base exceeds `getOption(\"neurogeo.max_qc_elements\")`."
       ),
       summary = NULL
     ))
@@ -120,7 +120,7 @@
   components <- ngeo_components(adjacency)
   n_component <- max(components, 0L)
   isolates <- sum(degree <= tolerance)
-  disconnected_surface <- identical(x$domain$type, "surface") &&
+  disconnected_surface <- identical(x$base$type, "surface") &&
     n_component > 1L
   status <- if (isolates > 0L || disconnected_surface) {
     "warning"
@@ -150,7 +150,7 @@
 }
 
 .ngeo_qc_charts <- function(x, chart) {
-  available <- names(x$domain$charts %||% list())
+  available <- names(x$base$charts %||% list())
   if (!is.null(chart)) {
     .ngeo_assert_scalar_character(chart, "chart")
     if (!chart %in% available) {
@@ -171,9 +171,9 @@
       summary = NULL
     ))
   }
-  n_face <- nrow(x$domain$faces)
+  n_face <- nrow(x$base$geometry$faces)
   summary <- do.call(rbind, lapply(available, function(name) {
-    metadata <- x$domain$charts[[name]]
+    metadata <- x$base$charts[[name]]
     source_face <- metadata$invariants$source_face_in_chart %||%
       seq_len(n_face)
     distortion <- metadata$distortion_summary %||% list()
@@ -235,10 +235,10 @@
 #' @return An `ngeo_qc` object containing a machine-readable `checks` table
 #'   and bounded optional detail tables.
 #' @examples
-#' x <- ngeo_points(
+#' x <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 2, 0), ncol = 2, byrow = TRUE),
 #'   values = cbind(signal = c(1, 2, 3)),
-#'   measures = ngeo_measure(spatial_semantics = "intensive")
+#'   measures = ngeo_measure(support_behavior = "intensive")
 #' )
 #' qc <- ngeo_qc(x)
 #' qc$checks
@@ -272,38 +272,38 @@ ngeo_qc <- function(
     .ngeo_qc_check(
       "object_alignment",
       "pass",
-      nrow(x$domain$elements),
+      nrow(x$base$elements),
       sprintf(
         "%d element(s) and %d aligned map(s) passed strict validation.",
-        nrow(x$domain$elements),
-        nrow(x$maps)
+        nrow(x$base$elements),
+        nrow(x$layers)
       )
     )
   )
-  space_known <- !identical(x$domain$space$space_id, "unknown")
+  space_known <- !identical(x$base$coordinate_space$space_id, "unknown")
   checks[[length(checks) + 1L]] <- .ngeo_qc_check(
     "space_known",
     if (space_known) "pass" else "warning",
     as.numeric(space_known),
     if (space_known) {
-      sprintf("Coordinate space is `%s`.", x$domain$space$space_id)
+      sprintf("Coordinate coordinate_space is `%s`.", x$base$coordinate_space$space_id)
     } else {
-      "Coordinate space is unknown; no spatial equivalence may be assumed."
+      "Coordinate coordinate_space is unknown; no spatial equivalence may be assumed."
     }
   )
-  unknown_semantics <- sum(x$measures$spatial_semantics == "unknown")
+  unknown_semantics <- sum(x$measures$support_behavior == "unknown")
   checks[[length(checks) + 1L]] <- .ngeo_qc_check(
     "measurement_semantics",
     if (unknown_semantics) "warning" else "pass",
     unknown_semantics,
     sprintf("%d map(s) have unknown spatial measurement semantics.", unknown_semantics)
   )
-  unknown_units <- sum(x$measures$units == "unknown")
+  unknown_units <- sum(x$measures$unit == "unknown")
   checks[[length(checks) + 1L]] <- .ngeo_qc_check(
     "measurement_units",
     if (unknown_units) "warning" else "pass",
     unknown_units,
-    sprintf("%d map(s) have unknown units.", unknown_units)
+    sprintf("%d map(s) have unknown unit.", unknown_units)
   )
 
   values <- .ngeo_qc_values(x, max_value_cells)
@@ -322,7 +322,7 @@ ngeo_qc <- function(
     )
   } else {
     ngeo_validate_support_map(support_map, tolerance)
-    if (!identical(support_map$source_domain_hash, ngeo_domain_hash(x))) {
+    if (!identical(support_map$source_base_hash, base_hash(x))) {
       .ngeo_abort(
         "`support_map` is not aligned with `x`.",
         "ngeo_error_alignment"
@@ -348,12 +348,12 @@ ngeo_qc <- function(
       )
     )
   }
-  operations <- length(x$provenance$operations %||% list())
+  operations <- length(x$history$operations %||% list())
   checks[[length(checks) + 1L]] <- .ngeo_qc_check(
-    "provenance",
+    "history",
     if (operations) "pass" else "warning",
     operations,
-    sprintf("%d provenance operation(s) are recorded.", operations)
+    sprintf("%d history operation(s) are recorded.", operations)
   )
   checks <- do.call(rbind, checks)
   rownames(checks) <- NULL
@@ -363,10 +363,10 @@ ngeo_qc <- function(
     } else {
       "pass"
     },
-    domain_type = x$domain$type,
-    domain_hash = ngeo_domain_hash(x),
+    domain_type = x$base$type,
+    base_hash = base_hash(x),
     checks = checks,
-    map_summary = values$maps,
+    map_summary = values$layers,
     topology_summary = topology$summary,
     chart_summary = charts$summary,
     support = support,
@@ -387,7 +387,7 @@ print.ngeo_qc <- function(x, ...) {
   ))
   cat(
     "<ngeo_qc>\n",
-    "  domain: ", x$domain_type, "\n",
+    "  base: ", x$domain_type, "\n",
     "  overall: ", x$overall_status, "\n",
     "  checks: ", nrow(x$checks), "\n",
     "  warnings: ", unname(count[["warning"]]), "\n",

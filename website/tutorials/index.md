@@ -1,30 +1,31 @@
 ---
-title: 分析工作流
-description: neurogeo 的可执行空间分析工作流
+title: 教程路线
+description: 从 base 与 layers 逐步进入空间关系、support 和 coordinate spaces
 ---
 
-# 分析工作流
+# 教程路线
 
-## 点数据与空间自相关
+建议按以下顺序学习：
 
-**入口：** [点数据与 Moran's I](/tutorials/getting-started)
+1. **Base and layers**：只学习 `spatial_base()`、`values()`、`layers()` 与
+   `measures()`，并理解行列对齐不变量。
+2. **Spatial relationships**：学习 topology、distance methods 和
+   `ngeo_spatial_weights()`。
+3. **Spatial support and aggregation**：学习 support map、measure aggregation
+   semantics 与 `aggregate_to()`。
+4. **Coordinate spaces**：学习 `ngeo_coordinate_space()`、transform graph 和
+   明确授权的跨空间映射。
+5. **Reproducibility**：最后查看 `history()`、checksums 和内部 provenance 记录。
 
-输入为坐标矩阵和严格对齐的 values block。工作流包括：
+## DK68 心智模型
 
-- `ngeo_points()` 对象构造与严格验证；
-- distance-band 空间权重；
-- global Moran's I 与 permutation test；
-- local Moran 与多重检验校正；
-- 元素到区域的 change of support。
+对于 100 名受试者的 DK68 cortical thickness：
 
-## 标准格式 I/O
+- base 是 68 个有稳定顺序的 cortical parcels；
+- values 是 68×100；
+- layers 有 100 行，保存 subject、session 和 `measure_id`；
+- measures 只有一行，定义 cortical thickness、mm、intensive 和
+  area-weighted mean；
+- parcel support、邻接、测地距离和空间权重只在相关分析需要时出现。
 
-**入口：** [格式 I/O 与验证](/tutorials/format-workflows)
-
-使用包内固定校验和的格式样例验证：
-
-- NIfTI array、voxel index 和 affine；
-- GIFTI coordinates、faces 和 metric alignment；
-- CIFTI brain models 与 grayordinate 顺序；
-- FreeSurfer geometry、metric 和 transform metadata；
-- write/read round-trip。
+所有教程和 API 都使用 5.1 的 `base + layers` 模型，不提供 5.0 术语兼容层。

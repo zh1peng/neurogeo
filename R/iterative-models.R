@@ -396,7 +396,7 @@ ngeo_iterative_solve <- function(
       nrow(weight) != ncol(weight) ||
       any(!is.finite(weight@x))) {
     .ngeo_abort(
-      "Log-determinant weights must be a finite sparse square matrix.",
+      "Log-determinant spatial_weights must be a finite sparse square matrix.",
       "ngeo_error_logdet"
     )
   }
@@ -409,7 +409,7 @@ ngeo_iterative_solve <- function(
   bound <- max(Matrix::rowSums(abs(weight)))
   if (!is.finite(bound) || bound <= 0) {
     .ngeo_abort(
-      "Log-determinant weights must contain a nonzero relation.",
+      "Log-determinant spatial_weights must contain a nonzero relation.",
       "ngeo_error_logdet"
     )
   }
@@ -523,7 +523,7 @@ ngeo_iterative_solve <- function(
 
 #' Estimate a bounded sparse spatial log determinant
 #'
-#' @param weights Domain-bound `ngeo_weights` or a sparse square matrix.
+#' @param spatial_weights Domain-bound `ngeo_spatial_weights` or a sparse square matrix.
 #' @param parameter Spatial dependence parameter.
 #' @param control Solver and approximation controls.
 #' @param exact Use guarded exact-small evaluation; by default dimensions no
@@ -532,14 +532,14 @@ ngeo_iterative_solve <- function(
 #' diagnostics.
 #' @export
 ngeo_logdet_approx <- function(
-    weights,
+    spatial_weights,
     parameter,
     control = ngeo_solver_control(),
     exact = NULL) {
-  matrix <- if (inherits(weights, "ngeo_weights")) {
-    weights$matrix
+  matrix <- if (inherits(spatial_weights, "ngeo_spatial_weights")) {
+    spatial_weights$matrix
   } else {
-    weights
+    spatial_weights
   }
   prepared <- .ngeo_logdet_prepare(matrix, control, exact)
   result <- c(
@@ -567,17 +567,17 @@ ngeo_logdet_approx <- function(
 }
 
 .ngeo_iterative_model_input <- function(
-    x, response, predictors, weights, na_action, zero_policy) {
-  maps <- .ngeo_model_maps(x, response, predictors)
-  y <- as.numeric(x$values[, maps$response])
-  predictor <- x$values[, maps$predictors, drop = FALSE]
+    x, response, predictors, spatial_weights, na_action, zero_policy) {
+  layers <- .ngeo_model_maps(x, response, predictors)
+  y <- as.numeric(x$values[, layers$response])
+  predictor <- x$values[, layers$predictors, drop = FALSE]
   finite <- is.finite(y)
   if (ncol(predictor)) {
     finite <- finite & apply(is.finite(predictor), 1L, all)
   }
   if (na_action == "fail" && !all(finite)) {
     .ngeo_abort(
-      "Model maps contain non-finite values.",
+      "Model layers contain non-finite values.",
       "ngeo_error_missing"
     )
   }
@@ -586,7 +586,7 @@ ngeo_logdet_approx <- function(
     `(Intercept)` = 1,
     predictor[index, , drop = FALSE]
   )
-  colnames(design) <- c("(Intercept)", maps$predictor_names)
+  colnames(design) <- c("(Intercept)", layers$predictor_names)
   if (nrow(design) <= ncol(design)) {
     .ngeo_abort(
       "The spatial design is underpowered.",
@@ -594,14 +594,14 @@ ngeo_logdet_approx <- function(
     )
   }
   weight <- .ngeo_model_weights(
-    x, weights, index, zero_policy
+    x, spatial_weights, index, zero_policy
   )
   list(
     y = y[index],
     design = design,
     weight = weight,
     index = index,
-    maps = maps
+    layers = layers
   )
 }
 
@@ -609,8 +609,8 @@ ngeo_logdet_approx <- function(
 #'
 #' @param x An `ngeo` dataset.
 #' @param response One numeric response map.
-#' @param predictors Optional numeric predictor maps.
-#' @param weights Matching sparse spatial weights.
+#' @param predictors Optional numeric predictor layers.
+#' @param spatial_weights Matching sparse spatial spatial_weights.
 #' @param model Spatial lag (SAR) or spatial error (SEM).
 #' @param control Solver and log-determinant controls.
 #' @param logdet Exact-small or deterministic approximate evaluation.
@@ -624,7 +624,7 @@ ngeo_spatial_regression_iterative <- function(
     x,
     response,
     predictors = character(),
-    weights,
+    spatial_weights,
     model = c("sar", "sem"),
     control = ngeo_solver_control(),
     logdet = c("auto", "exact", "approximate"),
@@ -636,7 +636,7 @@ ngeo_spatial_regression_iterative <- function(
   na_action <- match.arg(na_action)
   ngeo_validate_solver_control(control)
   input <- .ngeo_iterative_model_input(
-    x, response, predictors, weights, na_action, zero_policy
+    x, response, predictors, spatial_weights, na_action, zero_policy
   )
   n <- length(input$y)
   .ngeo_budget_assert(
@@ -753,10 +753,10 @@ ngeo_spatial_regression_iterative <- function(
     parameter_name = if (model == "sar") "rho" else "lambda",
     fitted = fitted,
     residuals = residuals,
-    element_id = x$domain$elements$element_id[input$index],
+    element_id = x$base$elements$element_id[input$index],
     complete_index = input$index,
-    response = input$maps$response_name,
-    predictors = input$maps$predictor_names,
+    response = input$layers$response_name,
+    predictors = input$layers$predictor_names,
     sigma = sqrt(details$sigma2),
     logLik = details$logLik,
     residual_moran = if (stats::var(residuals) > 0) {
@@ -773,8 +773,8 @@ ngeo_spatial_regression_iterative <- function(
     ),
     solve = solve_report,
     control_hash = control$control_hash,
-    domain_hash = ngeo_domain_hash(x),
-    weights_method = weights$method,
+    base_hash = base_hash(x),
+    weights_method = spatial_weights$method,
     matrix_materialized =
       details$determinant$method == "exact_small"
   )
@@ -786,7 +786,7 @@ ngeo_spatial_regression_iterative <- function(
 #'
 #' @param x An `ngeo` dataset.
 #' @param response One finite numeric map.
-#' @param weights Matching symmetric sparse weights.
+#' @param spatial_weights Matching symmetric sparse spatial_weights.
 #' @param type Proper or intrinsic CAR.
 #' @param rho Proper-CAR dependence in `[0, 1)`.
 #' @param precision Positive declared smoothing precision.
@@ -797,7 +797,7 @@ ngeo_spatial_regression_iterative <- function(
 ngeo_car_iterative <- function(
     x,
     response,
-    weights,
+    spatial_weights,
     type = c("proper", "intrinsic"),
     rho = 0.95,
     precision = 1,
@@ -805,8 +805,8 @@ ngeo_car_iterative <- function(
     zero_policy = FALSE) {
   type <- match.arg(type)
   ngeo_validate_solver_control(control)
-  maps <- .ngeo_model_maps(x, response, character())
-  y <- as.numeric(x$values[, maps$response])
+  layers <- .ngeo_model_maps(x, response, character())
+  y <- as.numeric(x$values[, layers$response])
   if (any(!is.finite(y))) {
     .ngeo_abort(
       "CAR response must be finite.",
@@ -814,13 +814,13 @@ ngeo_car_iterative <- function(
     )
   }
   weight <- .ngeo_model_weights(
-    x, weights, seq_along(y), zero_policy
+    x, spatial_weights, seq_along(y), zero_policy
   )
   asymmetry <- weight - Matrix::t(weight)
   if (length(asymmetry@x) &&
       max(abs(asymmetry@x)) > sqrt(control$tolerance)) {
     .ngeo_abort(
-      "Iterative CAR requires symmetric weights.",
+      "Iterative CAR requires symmetric spatial_weights.",
       "ngeo_error_weights"
     )
   }
@@ -830,7 +830,7 @@ ngeo_car_iterative <- function(
   degree <- Matrix::rowSums(abs(weight))
   if (any(degree == 0) && !isTRUE(zero_policy)) {
     .ngeo_abort(
-      "CAR weights contain isolates.",
+      "CAR spatial_weights contain isolates.",
       "ngeo_error_zero_policy"
     )
   }
@@ -869,9 +869,9 @@ ngeo_car_iterative <- function(
       "proper precision"
     },
     isolates = which(degree == 0),
-    response = maps$response_name,
-    domain_hash = ngeo_domain_hash(x),
-    weights_method = weights$method,
+    response = layers$response_name,
+    base_hash = base_hash(x),
+    weights_method = spatial_weights$method,
     solve = solution,
     control_hash = control$control_hash,
     matrix_materialized = FALSE

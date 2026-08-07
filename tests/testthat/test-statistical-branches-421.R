@@ -1,7 +1,7 @@
 test_that("kernel regression validates bandwidth, support, and local rank", {
   coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
   predictor <- coordinates[, 1] + coordinates[, 2]
-  x <- ngeo_points(
+  x <- ngeo_point(
     coordinates,
     values = cbind(
       response = 1 + 2 * predictor,
@@ -22,7 +22,7 @@ test_that("kernel regression validates bandwidth, support, and local rank", {
   )
   expect_error(
     ngeo_kernel_regression(
-      x, "response", "predictor", bandwidth = 1, support = "domain"
+      x, "response", "predictor", bandwidth = 1, support = "base"
     ),
     class = "ngeo_error_support"
   )
@@ -111,41 +111,41 @@ test_that("kernel regression validates bandwidth, support, and local rank", {
   )
 })
 
-test_that("kernel regression can use explicit domain support", {
+test_that("kernel regression can use explicit base support", {
   values <- array(seq_len(8), c(2, 2, 2))
   volume <- ngeo_volume(
     values = values,
     dim = c(2, 2, 2),
     affine = diag(4),
-    measures = ngeo_measure(spatial_semantics = "intensive")
+    measures = ngeo_measure(support_behavior = "intensive")
   )
   result <- ngeo_kernel_regression(
     volume,
     response = 1,
     bandwidth = 2,
     targets = 1:2,
-    support = "domain"
+    support = "base"
   )
   expect_equal(nrow(result), 2L)
-  expect_identical(attr(result, "support"), "domain")
+  expect_identical(attr(result, "support"), "base")
 })
 
 test_that("variogram rejects undefined estimands and invalid pair bins", {
   coordinates <- matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE)
-  geometry <- ngeo_points(coordinates)
+  geometry <- ngeo_point(coordinates)
   expect_error(ngeo_variogram(geometry), class = "ngeo_error_values")
 
-  categorical <- ngeo_points(
+  categorical <- ngeo_point(
     coordinates,
     values = cbind(label = 1:4),
-    measures = ngeo_measure(spatial_semantics = "categorical")
+    measures = ngeo_measure(support_behavior = "categorical")
   )
   expect_error(
     ngeo_variogram(categorical),
     class = "ngeo_error_measure"
   )
 
-  x <- ngeo_points(
+  x <- ngeo_point(
     coordinates,
     values = cbind(a = c(1, 2, 4, 8), b = 1:4)
   )
@@ -181,7 +181,7 @@ test_that("variogram rejects undefined estimands and invalid pair bins", {
   expect_s3_class(regular, "ngeo_variogram")
   expect_gt(nrow(regular), 0L)
 
-  colocated <- ngeo_points(
+  colocated <- ngeo_point(
     matrix(0, nrow = 3, ncol = 2),
     values = cbind(signal = 1:3)
   )

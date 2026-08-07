@@ -2,19 +2,19 @@
 % Please edit documentation in R/basis-projection-45.R
 \name{ngeo_basis_project}
 \alias{ngeo_basis_project}
-\title{Project aligned maps into a fixed spatial basis}
+\title{Project aligned layers into a fixed spatial basis}
 \usage{
 ngeo_basis_project(
   x,
   basis,
   index = NULL,
-  maps = NULL,
+  layers = NULL,
   bands = NULL,
   center = TRUE,
   scale = FALSE,
   summaries = c("coefficients", "absolute_energy", "relative_energy", "roughness"),
   chunk_rows = 8192L,
-  chunk_maps = 32L
+  chunk_layers = 32L
 )
 }
 \arguments{
@@ -24,7 +24,7 @@ ngeo_basis_project(
 
 \item{index}{Optional `ngeo_layer_index`.}
 
-\item{maps}{Optional map selection.}
+\item{layers}{Optional map selection.}
 
 \item{bands}{Optional named, non-overlapping retained-mode groups.}
 
@@ -36,7 +36,7 @@ ngeo_basis_project(
 
 \item{chunk_rows}{Maximum component rows read together.}
 
-\item{chunk_maps}{Maximum maps read together.}
+\item{chunk_layers}{Maximum layers read together.}
 }
 \value{
 An `ngeo_subject_features` object.

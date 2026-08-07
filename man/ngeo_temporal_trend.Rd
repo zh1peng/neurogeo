@@ -12,7 +12,7 @@ ngeo_temporal_trend(x, budget = ngeo_resource_budget())
 \item{budget}{Resource limits for complete input and two-map output.}
 }
 \value{
-Two maps: intercept and slope per time unit.
+Two layers: intercept and slope per time unit.
 }
 \description{
 Fit per-element linear temporal trends

@@ -2,12 +2,12 @@
 % Please edit documentation in R/spatiotemporal.R
 \name{ngeo_longitudinal_change}
 \alias{ngeo_longitudinal_change}
-\title{Compute longitudinal change between two time maps}
+\title{Compute longitudinal change between two time layers}
 \usage{
 ngeo_longitudinal_change(
   x,
   from = 1L,
-  to = nrow(x$maps),
+  to = nrow(x$layers),
   scale = c("difference", "rate", "percent"),
   name = "change",
   budget = ngeo_resource_budget()
@@ -22,11 +22,11 @@ ngeo_longitudinal_change(
 
 \item{name}{Output map name.}
 
-\item{budget}{Resource limits for two input maps and one output map.}
+\item{budget}{Resource limits for two input layers and one output map.}
 }
 \value{
-One target-domain `ngeo` map.
+One target-base `ngeo` map.
 }
 \description{
-Compute longitudinal change between two time maps
+Compute longitudinal change between two time layers
 }

@@ -26,19 +26,19 @@ elapsed <- system.time({
       ncol = length(columns)
     ),
     dim = c(n, 1L),
-    map_names = "signal",
+    layer_names = "signal",
     source = "deterministic validation callback"
   )
-  source <- ngeo_points(
+  source <- ngeo_point(
     cbind(x = seq_len(n), y = 0),
     values = delayed,
-    measures = ngeo_measure(spatial_semantics = "intensive"),
-    space = ngeo_space("million-element-execution")
+    measures = ngeo_measure(support_behavior = "intensive"),
+    coordinate_space = ngeo_coordinate_space("million-element-execution")
   )
-  target <- ngeo_regions(
+  target <- ngeo_parcellation(
     data.frame(region_id = paste0("region_", seq_len(n_target))),
     support_size = rep(NA_real_, n_target),
-    space = source$domain$space
+    coordinate_space = source$base$coordinate_space
   )
   operator <- Matrix::sparseMatrix(
     i = ((seq_len(n) - 1L) %% n_target) + 1L,
@@ -57,7 +57,7 @@ elapsed <- system.time({
     elapsed_seconds = 180,
     materialized_elements = n_target
   )
-  changed <- ngeo_change_support(source, target, map, budget = budget)
+  changed <- aggregate_to(source, target, map, budget = budget)
   streamed <- ngeo_stream_summary(source, chunk_size = 100000L)
 })[["elapsed"]]
 
@@ -76,7 +76,7 @@ if (maximum_error > 1e-10 || summary_error > 1e-6 ||
 
 budget_rejected <- inherits(tryCatch(
   {
-    ngeo_change_support(
+    aggregate_to(
       source,
       target,
       map,
@@ -114,15 +114,15 @@ for (iteration in seq_along(conservation_errors)) {
   source_n <- sample(20:80, 1L)
   target_n <- sample(3:10, 1L)
   value <- stats::runif(source_n)
-  current_source <- ngeo_points(
+  current_source <- ngeo_point(
     cbind(x = seq_len(source_n), y = 0),
     values = cbind(signal = value),
-    measures = ngeo_measure(spatial_semantics = "extensive")
+    measures = ngeo_measure(support_behavior = "extensive")
   )
-  current_target <- ngeo_regions(
+  current_target <- ngeo_parcellation(
     data.frame(region_id = paste0("r", seq_len(target_n))),
     support_size = rep(NA_real_, target_n),
-    space = current_source$domain$space
+    space = current_source$base$coordinate_space
   )
   current_map <- ngeo_support_map(
     current_source,
@@ -135,7 +135,7 @@ for (iteration in seq_along(conservation_errors)) {
     ),
     source_support = rep.int(1, source_n)
   )
-  current <- ngeo_change_support(
+  current <- aggregate_to(
     current_source,
     current_target,
     current_map

@@ -69,7 +69,7 @@
   } else {
     read_ngeo_freesurfer(
       geometry = path,
-      domain = "surface",
+      base = "surface",
       strict = TRUE,
       checksum = FALSE
     )
@@ -94,14 +94,14 @@
   if (isTRUE(load_data)) values else NULL
 }
 
-.ngeo_cifti_maps <- function(cifti, brain_axis, n_map) {
-  map_names <- cifti$NamedMap$map_names %||% character()
-  if (length(map_names) != n_map) {
-    map_names <- paste0("map_", seq_len(n_map))
+.ngeo_cifti_maps <- function(cifti, brain_axis, n_layer) {
+  layer_names <- cifti$NamedMap$map_names %||% character()
+  if (length(layer_names) != n_layer) {
+    layer_names <- paste0("map_", seq_len(n_layer))
   }
-  maps <- data.frame(
-    name = map_names,
-    source_frame = seq_len(n_map) - 1L,
+  layers <- data.frame(
+    name = layer_names,
+    source_frame = seq_len(n_layer) - 1L,
     stringsAsFactors = FALSE
   )
 
@@ -117,11 +117,11 @@
     )) {
       start <- as.numeric(attributes[["SeriesStart"]] %||% 0)
       step <- as.numeric(attributes[["SeriesStep"]] %||% 1)
-      maps$time <- start + (seq_len(n_map) - 1L) * step
-      maps$time_unit <- attributes[["SeriesUnit"]] %||% "unknown"
+      layers$time <- start + (seq_len(n_layer) - 1L) * step
+      layers$time_unit <- attributes[["SeriesUnit"]] %||% "unknown"
     }
   }
-  maps
+  layers
 }
 
 .ngeo_cifti_components <- function(cifti, brain_axis, surfaces) {
@@ -201,21 +201,21 @@
 #' @param path CIFTI path.
 #' @param surfaces Optional left/right surface geometry paths.
 #' @param frames Optional map/frame selection.
-#' @param maps Optional map metadata overriding the file metadata.
+#' @param layers Optional map metadata overriding the file metadata.
 #' @param measures Optional measurement semantics.
-#' @param space Optional hybrid `ngeo_space`.
+#' @param coordinate_space Optional hybrid `ngeo_coordinate_space`.
 #' @param load_data Whether to retain the matrix values.
 #' @param strict Whether to run strict validation.
 #' @param checksum Whether to record an MD5 checksum.
 #'
-#' @return An `ngeo_grayordinates` object.
+#' @return An `ngeo_grayordinate` object.
 #' @export
 read_ngeo_cifti <- function(path,
                             surfaces = NULL,
                             frames = NULL,
-                            maps = NULL,
+                            layers = NULL,
                             measures = NULL,
-                            space = NULL,
+                            coordinate_space = NULL,
                             load_data = TRUE,
                             strict = TRUE,
                             checksum = TRUE) {
@@ -285,7 +285,7 @@ read_ngeo_cifti <- function(path,
   } else {
     .ngeo_cifti_axis_dimensions(cifti)
   }
-  n_map <- prod(axis_dim[-brain_axis])
+  n_layer <- prod(axis_dim[-brain_axis])
   if (axis_dim[[brain_axis]] != n_element) {
     .ngeo_abort(
       "CIFTI matrix rows do not match brain-model element counts.",
@@ -298,55 +298,55 @@ read_ngeo_cifti <- function(path,
   } else {
     NULL
   }
-  file_maps <- .ngeo_cifti_maps(cifti, brain_axis, n_map)
-  maps <- maps %||% file_maps
+  file_maps <- .ngeo_cifti_maps(cifti, brain_axis, n_layer)
+  layers <- layers %||% file_maps
   named_metadata <- .ngeo_cifti_read_named_metadata(
     path, file_maps$name
   )
   if (any(lengths(named_metadata) > 0L)) {
-    maps[["metadata"]] <- named_metadata
+    layers[["metadata"]] <- named_metadata
   }
   if (is.null(measures)) {
     is_label <- grepl("\\.dlabel\\.nii$", path, ignore.case = TRUE)
     measure <- ngeo_measure(
       value_type = if (is_label) "label" else "continuous",
-      spatial_semantics = if (is_label) "categorical" else "unknown"
+      support_behavior = if (is_label) "categorical" else "unknown"
     )
-    measures <- measure[rep.int(1L, n_map), , drop = FALSE]
+    measures <- measure[rep.int(1L, n_layer), , drop = FALSE]
     rownames(measures) <- NULL
   }
-  space <- space %||% ngeo_space(
+  coordinate_space <- coordinate_space %||% ngeo_coordinate_space(
     "unknown",
     kind = "hybrid",
     source_metadata = list(
       matrix_indices_attributes = cifti$matrix_indices_attributes
     )
   )
-  x <- ngeo_grayordinates(
+  x <- ngeo_grayordinate(
     components = components,
     values = values,
-    maps = maps,
+    layers = layers,
     measures = measures,
-    space = space
+    coordinate_space = coordinate_space
   )
 
   lookup <- cifti$NamedMap$look_up_table %||% NULL
   if (!is.null(lookup)) {
     label_names <- file_maps$name
-    x$labels <- stats::setNames(
+    x$base$labels <- stats::setNames(
       lapply(seq_along(lookup), function(i) {
         list(
           table = lookup[[i]],
-          map_id = x$maps$map_id[[i]]
+          layer_id = x$layers$layer_id[[i]]
         )
       }),
       label_names[seq_along(lookup)]
     )
   }
-  x$provenance$cifti <- list(
+  x$history$cifti <- list(
     matrix_indices_attributes = cifti$matrix_indices_attributes,
     brain_model_count = length(cifti$BrainModel),
-    named_maps = cifti$NamedMap,
+    named_layers = cifti$NamedMap,
     named_map_metadata = named_metadata,
     datatype = .ngeo_cifti_header_datatype(path)
   )
@@ -361,7 +361,7 @@ read_ngeo_cifti <- function(path,
     checksum = checksum
   )
   if (!is.null(frames)) {
-    x <- ngeo_subset(x, maps = frames)
+    x <- ngeo_subset(x, layers = frames)
   }
   if (isTRUE(strict)) {
     ngeo_validate(x, "strict")

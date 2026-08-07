@@ -37,13 +37,13 @@ values <- matrix(
   nrow = 2L
 )
 axis <- ngeo_time_axis(time = c(0, 1, 3), unit = "second")
-x <- ngeo_points(coordinates, values = values)
+x <- ngeo_point(coordinates, values = values)
 x <- ngeo_set_time_axis(x, axis, "instantaneous")
-domain_hash <- ngeo_domain_hash(x)
+base_hash <- base_hash(x)
 slice <- ngeo_time_slice(x, index = c(1L, 3L))
 axis_gate <- identical(axis$time, c(0, 1, 3)) &&
   !axis$regular &&
-  identical(ngeo_domain_hash(slice), domain_hash) &&
+  identical(base_hash(slice), base_hash) &&
   identical(ngeo_get_time_axis(slice)$time, c(0, 3)) &&
   identical(dim(slice$values), c(2L, 2L))
 assert(axis_gate, "Explicit time-axis or slicing gate failed.")
@@ -70,7 +70,7 @@ assert(
 )
 
 temporal <- ngeo_temporal_weights(axis, style = "B")
-spatial <- ngeo_weights(
+spatial <- ngeo_spatial_weights(
   x, method = "distance_band", threshold = 1.1, style = "B"
 )
 space_time <- ngeo_spatiotemporal_weights(
@@ -146,7 +146,7 @@ interval_axis <- ngeo_time_axis(
   interval_end = c(1, 3),
   unit = "hour"
 )
-interval_base <- ngeo_points(
+interval_base <- ngeo_point(
   coordinates,
   values = matrix(c(2, 4, 6, 8), nrow = 2L)
 )
@@ -175,7 +175,7 @@ trend_values <- rbind(
   2 + 3 * trend_time,
   5 - 2 * trend_time
 )
-trend_data <- ngeo_points(coordinates, values = trend_values)
+trend_data <- ngeo_point(coordinates, values = trend_values)
 trend_data <- ngeo_set_time_axis(
   trend_data, ngeo_time_axis(time = trend_time), "instantaneous"
 )
@@ -190,7 +190,7 @@ longitudinal_reference <- isTRUE(all.equal(
   as.numeric(trend$values[, "slope"]), c(3, -2),
   tolerance = 1e-12
 )) && identical(as.numeric(change$values), c(3, -2)) &&
-  identical(ngeo_domain_hash(trend), ngeo_domain_hash(trend_data))
+  identical(base_hash(trend), base_hash(trend_data))
 assert(longitudinal_reference, "Longitudinal helper reference failed.")
 
 large_n_space <- 10000L
@@ -204,7 +204,7 @@ large_values <- outer(
   seq_len(large_n_time),
   function(i, j) sin(i / 101) + cos(j / 11)
 )
-large <- ngeo_points(
+large <- ngeo_point(
   large_coordinates, values = large_values
 )
 large_axis <- ngeo_time_axis(
@@ -213,7 +213,7 @@ large_axis <- ngeo_time_axis(
 large <- ngeo_set_time_axis(
   large, large_axis, "instantaneous"
 )
-large_spatial <- ngeo_weights(
+large_spatial <- ngeo_spatial_weights(
   large, method = "knn", k = 2L,
   style = "W", symmetry = "union"
 )
@@ -237,8 +237,8 @@ large_gate <- identical(
   dim(large_lag), c(large_n_space, large_n_time)
 ) && !large_weights$matrix_materialized &&
   !"matrix" %in% names(large_weights) &&
-  nrow(large$domain$elements) == large_n_space &&
-  nrow(large$maps) == large_n_time &&
+  nrow(large$base$elements) == large_n_space &&
+  nrow(large$layers) == large_n_time &&
   length(large_spatial$matrix@x) < 10 * large_n_space &&
   unname(large_timing[["elapsed"]]) < 30 &&
   rejected_as(
@@ -261,8 +261,8 @@ schema_gate <- identical(corpus$corpus_version, "3.3") &&
     schemas,
     c(
       "ngcs/time-axis",
-      "ngcs/temporal-weights",
-      "ngcs/spatiotemporal-weights"
+      "ngcs/temporal-spatial_weights",
+      "ngcs/spatiotemporal-spatial_weights"
     )
   ) &&
   all(vapply(

@@ -20,9 +20,9 @@ test_that("CIFTI NamedMap metadata and datatypes round-trip", {
   )
 
   expect_equal(scalar_restored$values, scalar$values, tolerance = 1e-12)
-  expect_identical(scalar_restored$maps$metadata, metadata)
+  expect_identical(scalar_restored$layers$metadata, metadata)
   expect_identical(
-    scalar_restored$provenance$cifti$datatype,
+    scalar_restored$history$cifti$datatype,
     "float64"
   )
   expect_identical(manifest$format, "cifti")
@@ -39,10 +39,10 @@ test_that("CIFTI NamedMap metadata and datatypes round-trip", {
   label_manifest <- write_ngeo(label, label_path)
   label_restored <- read_ngeo_cifti(label_path, checksum = FALSE)
   expect_identical(label_manifest$format, "cifti")
-  expect_identical(label_restored$provenance$cifti$datatype, "int32")
+  expect_identical(label_restored$history$cifti$datatype, "int32")
   expect_identical(
-    label_restored$labels$atlas$table$Label,
-    label$labels$atlas$table$Label
+    label_restored$base$labels$atlas$table$Label,
+    label$base$labels$atlas$table$Label
   )
 })
 
@@ -52,12 +52,12 @@ test_that("CIFTI axes and label tables reject unsupported contracts", {
     golden_path("tiny.dtseries.nii"),
     checksum = FALSE
   )
-  series$maps$time <- c(0, 1, 3)
+  series$layers$time <- c(0, 1, 3)
   expect_error(
     ngeo_validate_cifti_contract(series, "dtseries"),
     class = "ngeo_error_format"
   )
-  series$maps$time <- c(0, 1, 2)
+  series$layers$time <- c(0, 1, 2)
   expect_error(
     ngeo_validate_cifti_contract(
       series,
@@ -71,7 +71,7 @@ test_that("CIFTI axes and label tables reject unsupported contracts", {
     golden_path("tiny.dlabel.nii"),
     checksum = FALSE
   )
-  label$labels$atlas$table$Red[[1L]] <- 2
+  label$base$labels$atlas$table$Red[[1L]] <- 2
   expect_error(
     ngeo_validate_cifti_contract(label, "dlabel"),
     class = "ngeo_error_format"
@@ -159,7 +159,7 @@ test_that("BIDS derivative transactions validate collision policies", {
 
 test_that("failed derivative writes leave no final pair", {
   skip_if_not_installed("cifti")
-  x <- ngeo_points(
+  x <- ngeo_point(
     cbind(x = 1:3, y = 0),
     values = cbind(signal = 1:3)
   )
@@ -181,7 +181,7 @@ test_that("failed derivative writes leave no final pair", {
   expect_false(file.exists(sub("\\.dscalar\\.nii$", ".json", path)))
 })
 
-test_that("support bundle schema 2 equals schema 1 and monolithic maps", {
+test_that("support bundle schema 2 equals schema 1 and monolithic layers", {
   skip_if_not_installed("jsonlite")
   fixture <- diagnostic_fixture()
   schema1 <- tempfile("schema1-")

@@ -17,9 +17,9 @@ ngeo_transform(
 )
 }
 \arguments{
-\item{source_space}{Source `ngeo_space`.}
+\item{source_space}{Source `ngeo_coordinate_space`.}
 
-\item{target_space}{Target `ngeo_space`.}
+\item{target_space}{Target `ngeo_coordinate_space`.}
 
 \item{type}{Transform type.}
 

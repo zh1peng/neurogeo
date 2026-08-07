@@ -19,7 +19,7 @@ memory and computation, but introduce convergence tolerance, truncation, and
 Monte Carlo error. These numerical choices are part of the scientific result
 and must be recorded.
 
-Exact small-domain modelling remains a calibration reference. Iterative or
+Exact small-base modelling remains a calibration reference. Iterative or
 approximate execution requires an explicit control object.
 
 ## Solver controls
@@ -33,8 +33,8 @@ values <- cbind(
   x = coordinates[, 1],
   y = coordinates[, 2]
 )
-data <- ngeo_points(coordinates, values = values)
-weights <- ngeo_weights(
+data <- ngeo_point(coordinates, values = values)
+spatial_weights <- ngeo_spatial_weights(
   data,
   method = "distance_band",
   threshold = 1.01,
@@ -61,7 +61,7 @@ sar <- ngeo_spatial_regression_iterative(
   data,
   response = "response",
   predictors = c("x", "y"),
-  weights = weights,
+  spatial_weights = spatial_weights,
   model = "sar",
   control = control,
   logdet = "exact"
@@ -77,7 +77,7 @@ results include Monte Carlo and series-truncation diagnostics.
 
 ```{r}
 approximate <- ngeo_logdet_approx(
-  weights,
+  spatial_weights,
   parameter = 0.2,
   control = ngeo_solver_control(
     trace_order = 30,
@@ -92,10 +92,10 @@ approximate
 
 ## CAR, GWR, and kriging
 
-Iterative CAR requires symmetric weights and a declared precision.
+Iterative CAR requires symmetric spatial_weights and a declared precision.
 
 ```{r}
-binary <- ngeo_weights(
+binary <- ngeo_spatial_weights(
   data,
   method = "distance_band",
   threshold = 1.01,

@@ -19,8 +19,8 @@ to the spatial elements on which they were observed. A row may describe a
 surface vertex, voxel, point, grayordinate, or region; changing that order
 without changing the values changes the data.
 
-`neurogeo` therefore represents one spatial domain and one strictly aligned
-values block. Space, topology, metric, measurement semantics, and provenance
+`neurogeo` therefore represents one spatial base and one strictly aligned
+values block. Space, topology, distance_method, measurement semantics, and history
 remain explicit instead of being inferred from filenames or column names.
 This contract separates *where an observation is defined* from *what was
 measured there*.
@@ -38,34 +38,34 @@ surface <- ngeo_surface(
   matrix(c(1, 2, 3), nrow = 1),
   values = cbind(thickness = c(2.1, 2.4, 2.2)),
   measures = ngeo_measure(
-    spatial_semantics = "intensive",
-    units = "mm"
+    support_behavior = "intensive",
+    unit = "mm"
   )
 )
 surface
 ngeo_capabilities(surface)
-ngeo_domain_hash(surface)
+base_hash(surface)
 ```
 
-Rows of `values` are aligned to `ngeo_elements(surface)` and columns are
-described by both `ngeo_maps(surface)` and `ngeo_measures(surface)`. A subset
-operation updates all aligned structures and records provenance.
+Rows of `values` are aligned to `base_elements(surface)` and columns are
+described by both `layers(surface)` and `measures(surface)`. A subset
+operation updates all aligned structures and records history.
 
 ```{r}
 subset <- ngeo_subset(surface, elements = c(1, 3))
-ngeo_elements(subset)
-ngeo_provenance(subset)$operations
+base_elements(subset)
+history(subset)$operations
 ```
 
-## Topology and metric
+## Topology and distance_method
 
-Topology and metric answer different questions. Topology records which
-elements are connected; a metric assigns a distance to pairs or paths. Two
+Topology and distance_method answer different questions. Topology records which
+elements are connected; a distance_method assigns a distance to pairs or paths. Two
 vertices may be adjacent in a mesh even though the physical length of their
 connecting edge differs from other edges. Edge-geodesic distance assigns
 lengths to those edges and finds a shortest path.
 
 ```{r}
 ngeo_adjacency(surface)
-ngeo_distance(surface, from = 1, to = 2, metric = "edge_geodesic")
+ngeo_distance(surface, from = 1, to = 2, distance_method = "edge_geodesic")
 ```

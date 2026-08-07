@@ -1,8 +1,8 @@
 ---
-title: "点数据空间统计：从 ngeo_points 到 Moran's I"
+title: "点数据空间统计：从 ngeo_point 到 Moran's I"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{点数据空间统计：从 ngeo_points 到 Moran's I}
+  %\VignetteIndexEntry{点数据空间统计：从 ngeo_point 到 Moran's I}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -28,21 +28,21 @@ library(neurogeo)
 3. 明确本次分析如何定义邻居和空间权重；
 4. 计算 global Moran's I 和 local Moran；
 5. 把点聚合到区域，并检查变量在聚合时应求均值还是求和；
-6. 查看分析对象自动保存的 provenance。
+6. 查看分析对象自动保存的 history。
 
 neurogeo 的核心对象可以先理解为：
 
 ```text
-一个 spatial domain
+一个 spatial base
 + 一个与其逐元素对齐的 values block
 + 描述每列 values 的 metadata
 ```
 
 这里：
 
-- **domain** 回答“数值定义在哪里”；
+- **base** 回答“数值定义在哪里”；
 - **values** 回答“在那里测量了什么”；
-- **alignment** 保证 values 第 $i$ 行始终属于 domain 第 $i$ 个元素。
+- **alignment** 保证 values 第 $i$ 行始终属于 base 第 $i$ 个元素。
 
 拓扑、距离、权重、support 转换和空间变换并不是每次构造对象时都必须填写的
 “字段”。它们是在相应分析真正需要时才显式创建的分析对象。
@@ -59,9 +59,9 @@ neurogeo 的核心对象可以先理解为：
 | 组件 | 回答的问题 | 本教程中的内容 |
 |---|---|---|
 | spatial elements | 数值依附于什么元素？ | 九个点 |
-| geometry and space | 元素位于什么坐标系统？ | 二维教学网格，单位 mm |
+| geometry and coordinate space | 元素位于什么坐标系统？ | 二维教学网格，单位 mm |
 | values | 每个元素测量了什么？ | 一列 `signal` |
-| map metadata | 每列 values 表示什么 map？ | 连续型 signal |
+| layer metadata | 每列 values 表示什么 map？ | 连续型 signal |
 | measurement metadata | 数值单位和聚合含义是什么？ | a.u.，intensive |
 
 ### 2.2 必须保持的不变量
@@ -69,7 +69,7 @@ neurogeo 的核心对象可以先理解为：
 最重要的不变量是：
 
 $$
-n_\text{domain elements} = n_\text{rows of values}.
+n_\text{base elements} = n_\text{rows of values}.
 $$
 
 行数相同仍然不够，元素顺序也必须一致。neurogeo 不会根据相似坐标、名称
@@ -77,36 +77,36 @@ $$
 
 ### 2.3 分析时构造的空间关系
 
-同一个 domain 可以支持不同分析定义。例如，点数据可以使用：
+同一个 base 可以支持不同分析定义。例如，点数据可以使用：
 
 - 距离阈值邻居；
 - $k$ nearest neighbours；
 - 反距离权重；
 - 用户提供的图结构。
 
-因此 metric、neighbors 和 weights 属于**分析选择**，而不是原始数据唯一且
-固定的属性。本教程稍后使用欧氏距离阈值构造一个 `ngeo_weights` 对象。
+因此 distance_method、neighbors 和 weights 属于**分析选择**，而不是原始数据唯一且
+固定的属性。本教程稍后使用欧氏距离阈值构造一个 `ngeo_spatial_weights` 对象。
 
 ### 2.4 只在特定任务中需要的对象
 
 - `ngeo_support_map`：描述 source elements 如何映射到 target regions；
 - `ngeo_transform`：描述一个 reference space 到另一个 space 的坐标变换；
-- provenance/manifest：由软件记录数据和操作来源，用于审计和复现。
+- history/manifest：由软件记录数据和操作来源，用于审计和复现。
 
-本教程只在聚合章节引入 support map；不需要 transform；provenance 则由构造
+本教程只在聚合章节引入 support map；不需要 transform；history 则由构造
 和分析函数自动记录。
 
-## 3. 五种基础 domain
+## 3. 五种基础类型
 
-neurogeo 的基础 domain 对应不同空间元素：
+neurogeo 的基础 base 对应不同空间元素：
 
-- `points`：没有天然连接关系的点；
+- `point`：没有天然连接关系的点；
 - `surface`：顶点和三角面组成的表面；
 - `volume`：规则或仿射网格中的体素；
-- `grayordinates`：CIFTI brain model 中排列的皮层顶点和体素；
-- `regions`：脑区或其他聚合区域。
+- `grayordinate`：CIFTI brain model 中排列的皮层顶点和体素；
+- `parcellation`：脑区或其他聚合区域。
 
-本教程从最简单的 `points` 开始。点本身只有位置，没有默认邻居；邻居关系将在
+本教程从最简单的 `point` 开始。点本身只有位置，没有默认邻居；邻居关系将在
 分析时显式构造。
 
 ## 4. 构造点数据对象
@@ -154,18 +154,18 @@ text(coordinates, labels = signal, font = 2, cex = 0.9)
 把坐标和数值放入 neurogeo：
 
 ```{r construct-object}
-x <- ngeo_points(
+x <- ngeo_point(
   coordinates = coordinates,
   values = cbind(signal = signal),
   measures = ngeo_measure(
     value_type = "continuous",
-    spatial_semantics = "intensive",
-    units = "a.u."
+    support_behavior = "intensive",
+    unit = "a.u."
   ),
-  space = ngeo_space(
+  coordinate_space = ngeo_coordinate_space(
     space_id = "tutorial-grid",
     kind = "unknown",
-    units = "mm",
+    unit = "mm",
     source_metadata = list(description = "3 x 3 teaching grid")
   )
 )
@@ -175,28 +175,28 @@ x
 
 这里需要区分三件事：
 
-1. `space` 描述坐标属于哪个参考空间以及坐标单位；
+1. `coordinate_space` 描述坐标属于哪个参考空间以及坐标单位；
 2. values 第 $i$ 行必须对应 coordinates 第 $i$ 行；
-3. `spatial_semantics = "intensive"` 只在后续 change of support 时决定默认
+3. `support_behavior = "intensive"` 只在后续 change of support 时决定默认
    聚合方式，对 Moran's I 本身不是必需条件。
 
 也就是说，基础对象可以暂时保留未知 measurement metadata；但一旦执行依赖
 这些信息的操作，例如区域聚合，就必须先作出科学上可辩护的声明。
 
 ```{r inspect}
-ngeo_domain_type(x)
-head(ngeo_elements(x))
-ngeo_values(x)
-ngeo_measures(x)
+base_type(x)
+head(base_elements(x))
+values(x)
+measures(x)
 ```
 
 ## 5. 验证 element--value alignment
 
 ```{r alignment-check}
 c(
-  domain_elements = nrow(ngeo_elements(x)),
-  value_rows = nrow(ngeo_values(x)),
-  value_maps = ncol(ngeo_values(x))
+  base_elements = nrow(base_elements(x)),
+  value_rows = nrow(values(x)),
+  value_layers = ncol(values(x))
 )
 
 ngeo_validate(x, level = "strict")
@@ -230,11 +230,11 @@ $$
 只连接上下左右。
 
 ```{r weights}
-w <- ngeo_weights(
+w <- ngeo_spatial_weights(
   x,
   method = "distance_band",
   threshold = 1.01,
-  metric = "euclidean",
+  distance_method = "euclidean",
   style = "W"
 )
 
@@ -243,12 +243,12 @@ w
 
 `w` 是独立于原始数据对象的分析对象。它记录：
 
-- 使用哪个 domain；
+- 使用哪个 base；
 - 怎样定义 neighbors；
-- 使用哪个 metric；
+- 使用哪个 distance_method；
 - 如何标准化权重。
 
-同一个 `x` 可以构造多个不同的权重对象，用于敏感性分析。权重对象保存 domain
+同一个 `x` 可以构造多个不同的权重对象，用于敏感性分析。权重对象保存 base
 identity，因此不能无声地复用于元素顺序不同的对象。
 
 行标准化为：
@@ -339,7 +339,7 @@ manual_I
 ```{r moran}
 moran <- ngeo_moran(
   x,
-  weights = w,
+  spatial_weights = w,
   map = "signal",
   permutations = 99,
   seed = 2026
@@ -352,7 +352,7 @@ all.equal(moran$estimate, manual_I, tolerance = 1e-12)
 99 次置换仅用于缩短教程运行时间，其最小 p 值步长为 $1/100=0.01$。正式研究
 应根据所需推断精度增加置换次数，并记录随机种子。
 
-Moran's I 必须与权重定义一起解释。它不是普通相关系数，也不能脱离 metric、
+Moran's I 必须与权重定义一起解释。它不是普通相关系数，也不能脱离 distance_method、
 邻居规则、标准化方式和 isolate policy 单独报告。
 
 ## 9. Local Moran
@@ -360,7 +360,7 @@ Moran's I 必须与权重定义一起解释。它不是普通相关系数，也�
 ```{r local-moran}
 lisa <- ngeo_local_moran(
   x,
-  weights = w,
+  spatial_weights = w,
   map = "signal",
   permutations = 99,
   seed = 2026,
@@ -411,14 +411,14 @@ as.matrix(atlas$operator)
 执行聚合：
 
 ```{r change-support}
-regional <- ngeo_change_support(
+regional <- aggregate_to(
   x,
   target = atlas$target,
   support_map = atlas
 )
 
-ngeo_values(regional)
-ngeo_measures(regional)
+values(regional)
+measures(regional)
 ```
 
 因为 `signal` 被声明为 intensive，默认聚合为 support-weighted mean：
@@ -450,32 +450,32 @@ $$
 ```{r count-change-support}
 event_count <- c(4, 2, 1, 3, 5, 2, 1, 4, 6)
 
-count_data <- ngeo_points(
+count_data <- ngeo_point(
   coordinates = coordinates,
   values = cbind(events = event_count),
   measures = ngeo_measure(
     value_type = "integer",
-    spatial_semantics = "count",
-    units = "events"
+    support_behavior = "count",
+    unit = "events"
   ),
-  space = x$domain$space
+  coordinate_space = x$base$coordinate_space
 )
 
-regional_count <- ngeo_change_support(
+regional_count <- aggregate_to(
   count_data,
   target = atlas$target,
   support_map = atlas
 )
 
 c(
-  source_total = sum(ngeo_values(count_data)),
-  target_total = sum(ngeo_values(regional_count))
+  source_total = sum(values(count_data)),
+  target_total = sum(values(regional_count))
 )
 ```
 
-## 11. Space 与 transform 不应混为一谈
+## 11. Coordinate space 与 transform 不应混为一谈
 
-`space` 是单个对象的参考空间声明；`transform` 是两个空间之间的映射关系。
+`coordinate_space` 是单个对象的参考空间声明；`transform` 是两个空间之间的映射关系。
 本教程所有点都在 `tutorial-grid` 中，因此不需要 transform。
 
 在真实数据中，即使两个 NIfTI 数组形状相同，也不能证明它们位于同一空间；
@@ -501,12 +501,12 @@ dense <- read_ngeo_cifti(
 
 ## 12. Provenance 由软件记录
 
-provenance 不是要求初学者手工填写的分析参数。构造、子集、聚合和其他受支持
+history 不是要求初学者手工填写的分析参数。构造、子集、聚合和其他受支持
 操作会自动追加记录。
 
-```{r provenance}
-ngeo_provenance(x)$operations
-ngeo_provenance(regional)$operations
+```{r history}
+history(x)$operations
+history(regional)$operations
 ```
 
 需要生成可移植审计信息时，可以创建 manifest：
@@ -523,28 +523,28 @@ manifest 用于记录 canonical metadata 和哈希，不复制完整 values bloc
 遇到新数据时，可以按以下顺序工作：
 
 1. **研究问题**：要描述、检验、预测还是进行 support 转换？
-2. **domain**：数值定义在 vertex、voxel、point、grayordinate 还是 region？
+2. **base**：数值定义在 vertex、voxel、point、grayordinate 还是 parcellation？
 3. **alignment**：values 每一行对应哪个 element？
-4. **space**：坐标或索引属于哪个参考空间？
-5. **分析关系**：本次问题需要什么 topology、metric、neighbors 和 weights？
+4. **coordinate space**：坐标或索引属于哪个参考空间？
+5. **分析关系**：本次问题需要什么 topology、distance_method、neighbors 和 weights？
 6. **统计量**：所选公式回答的问题是否与研究问题一致？
 7. **推断**：null model、置换次数、多重检验和随机种子是什么？
 8. **support 转换**：只有在聚合或重采样时，才声明 support map 和 aggregation rule；
-9. **敏感性**：改变邻居、阈值、metric 或 support 后结论是否稳定？
-10. **审计**：provenance 和 manifest 是否足以重建关键步骤？
+9. **敏感性**：改变邻居、阈值、distance_method 或 support 后结论是否稳定？
+10. **审计**：history 和 manifest 是否足以重建关键步骤？
 
 这条顺序比“先选择一个统计函数，再设法填满所有字段”更可靠。
 
 ## 14. 最小审阅清单
 
-- [ ] domain elements 与 values 行严格对齐；
-- [ ] space、units、template、surface density 或 structure 没有被隐式猜测；
-- [ ] weights 是针对当前 domain 和研究问题显式构造的；
-- [ ] metric 与 topology 没有混为一谈；
+- [ ] base elements 与 values 行严格对齐；
+- [ ] coordinate space、unit、template、surface density 或 structure 没有被隐式猜测；
+- [ ] weights 是针对当前 base 和研究问题显式构造的；
+- [ ] distance_method 与 topology 没有混为一谈；
 - [ ] 只有在 change of support 时才声明可辩护的 aggregation rule；
 - [ ] point 的等权重没有被误称为真实面积或体积 support；
 - [ ] permutation 次数、seed、alternative 和多重检验方法已记录；
-- [ ] provenance 由受支持操作自动维护；
+- [ ] history 由受支持操作自动维护；
 - [ ] 没有把 registration、segmentation 或 preprocessing 误认为 neurogeo 自动完成。
 
 接下来可以阅读：

@@ -13,16 +13,18 @@ Geoinformatics Core Specification (NGCS).
 ## Object contract
 
 ```text
-one spatial domain
+one shared spatial base
 + one aligned values block
-+ explicit space, topology, metric, measurement semantics, and provenance
++ layer metadata
++ de-duplicated measure definitions
++ operation history
 ```
 
 ## Scope
 
-The package provides standard-format input, spatial-domain objects, sparse
-weights, spatial statistics, change-of-support operators, transform graphs,
-and provenance records. It does not perform MRI preprocessing, registration,
+The package provides standard-format input, spatial-base objects, sparse
+spatial weights, spatial statistics, support aggregation, transform graphs,
+and operation history. It does not perform MRI preprocessing, registration,
 segmentation, or surface reconstruction.
 
 ## Documentation

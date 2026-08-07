@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial-models.R
 \name{ngeo_support_model}
 \alias{ngeo_support_model}
-\title{Fit a declared spatial model across support maps}
+\title{Fit a declared spatial model across support layers}
 \usage{
 ngeo_support_model(
   x,
@@ -10,7 +10,7 @@ ngeo_support_model(
   targets,
   response,
   predictors,
-  weights = NULL,
+  spatial_weights = NULL,
   model = c("ols", "slx", "sar", "sem"),
   zero_policy = FALSE
 )
@@ -18,15 +18,15 @@ ngeo_support_model(
 \arguments{
 \item{x}{Source `ngeo` dataset.}
 
-\item{support_maps}{Complete source-to-target maps.}
+\item{support_maps}{Complete source-to-target layers.}
 
 \item{targets}{Aligned target templates.}
 
 \item{response}{One response map.}
 
-\item{predictors}{Predictor maps.}
+\item{predictors}{Predictor layers.}
 
-\item{weights}{Aligned target weights or one weight reused for all targets.}
+\item{spatial_weights}{Aligned target spatial_weights or one weight reused for all targets.}
 
 \item{model}{OLS, SLX, spatial lag (SAR), or spatial error (SEM).}
 
@@ -36,5 +36,5 @@ ngeo_support_model(
 An `ngeo_support_model`.
 }
 \description{
-Fit a declared spatial model across support maps
+Fit a declared spatial model across support layers
 }

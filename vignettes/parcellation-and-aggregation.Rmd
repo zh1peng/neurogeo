@@ -55,14 +55,14 @@ surface <- ngeo_surface(
   faces,
   values = values,
   measures = rbind(
-    ngeo_measure(spatial_semantics = "intensive", units = "mm"),
-    ngeo_measure(spatial_semantics = "extensive", units = "mm2")
+    ngeo_measure(support_behavior = "intensive", unit = "mm"),
+    ngeo_measure(support_behavior = "extensive", unit = "mm2")
   )
 )
 partition <- ngeo_partition(surface, c("A", "A", "B", "B"))
 regional <- ngeo_aggregate(surface, partition)
 regional$values
-regional$domain$support_size
+regional$base$geometry$support_size
 ```
 
 Plot the surface map and the partition sizes before interpreting the regional
@@ -129,5 +129,5 @@ boundary <- ngeo_boundary(surface, partition)
 region_adjacency <- ngeo_region_adjacency(surface, partition)
 ```
 
-Partitions carry the base-domain hash, so they cannot be silently reused
+Partitions carry the source base hash, so they cannot be silently reused
 after a geometry or indexing change.
