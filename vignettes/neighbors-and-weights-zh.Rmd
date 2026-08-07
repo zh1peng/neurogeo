@@ -26,12 +26,12 @@ points 可使用距离带或 KNN；grayordinates 默认保持不同结构之间 
 
 ```{r}
 coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
-x <- ngeo_points(
+x <- ngeo_point(
   coordinates,
   values = cbind(signal = c(1, 2, 3, 2, 4, 7, 3, 7, 9)),
-  measures = ngeo_measure(spatial_semantics = "intensive")
+  measures = ngeo_measure(support_behavior = "intensive")
 )
-w <- ngeo_weights(
+w <- ngeo_spatial_weights(
   x, method = "distance_band", threshold = 1.01, style = "W"
 )
 w$diagnostics
@@ -59,7 +59,7 @@ text(coordinates, labels = seq_len(nrow(coordinates)))
 ## 用于空间统计
 
 ```{r}
-ngeo_distance(x, from = 1, to = c(2, 5, 9), metric = "euclidean")
+ngeo_distance(x, from = 1, to = c(2, 5, 9), distance_method = "euclidean")
 ngeo_moran(x, w, "signal")
 head(ngeo_local_moran(x, w, "signal"))
 ```

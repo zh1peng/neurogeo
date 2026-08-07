@@ -6,21 +6,21 @@
 \usage{
 ngeo_spatial_ordination(
   x,
-  maps,
-  weights,
+  layers,
+  spatial_weights,
   axes = 2L,
   regime = c("reference_map", "frozen_training"),
   newdata = NULL,
-  new_maps = maps,
+  new_layers = layers,
   independent_training = FALSE
 )
 }
 \arguments{
 \item{x}{An `ngeo` training or reference-map dataset.}
 
-\item{maps}{At least two map names, IDs, or indices.}
+\item{layers}{At least two map names, IDs, or indices.}
 
-\item{weights}{Matching `ngeo_weights`.}
+\item{spatial_weights}{Matching `ngeo_spatial_weights`.}
 
 \item{axes}{Maximum number of positive spatial axes retained.}
 
@@ -28,7 +28,7 @@ ngeo_spatial_ordination(
 
 \item{newdata}{Named list of test `ngeo` objects for frozen projection.}
 
-\item{new_maps}{Map selector used in every test object.}
+\item{new_layers}{Map selector used in every test object.}
 
 \item{independent_training}{Whether training independence is explicitly
 declared. Required for frozen projection.}

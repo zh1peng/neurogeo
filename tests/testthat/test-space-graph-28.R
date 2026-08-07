@@ -1,9 +1,9 @@
 space_graph_fixture <- function() {
   spaces <- list(
-    A = ngeo_space("A", template = "template-a"),
-    B = ngeo_space("B", template = "template-b"),
-    C = ngeo_space("C", template = "template-c"),
-    D = ngeo_space("D", template = "template-d")
+    A = ngeo_coordinate_space("A", template = "template-a"),
+    B = ngeo_coordinate_space("B", template = "template-b"),
+    C = ngeo_coordinate_space("C", template = "template-c"),
+    D = ngeo_coordinate_space("D", template = "template-d")
   )
   affine <- function(from, to, translation) {
     matrix <- diag(4)
@@ -23,14 +23,14 @@ space_graph_fixture <- function() {
     dc = affine("D", "C", c(1, 2, -3)),
     ca = affine("C", "A", c(-1, -2, 0))
   )
-  registry <- ngeo_space_registry(
+  registry <- ngeo_coordinate_space_registry(
     spaces,
     aliases = c(native = "A", standard = "C")
   )
   list(spaces = spaces, transforms = transforms, registry = registry)
 }
 
-test_that("space registry uses exact identities and explicit aliases", {
+test_that("coordinate_space registry uses exact identities and explicit aliases", {
   fixture <- space_graph_fixture()
   expect_silent(ngeo_validate_space_registry(fixture$registry))
   expect_identical(
@@ -40,19 +40,19 @@ test_that("space registry uses exact identities and explicit aliases", {
   expect_identical(
     ngeo_resolve_space(
       fixture$registry,
-      ngeo_space_hash(fixture$spaces$B)
+      ngeo_coordinate_space_hash(fixture$spaces$B)
     ),
     fixture$spaces$B
   )
 
-  duplicate_name <- ngeo_space("A", kind = "volume")
-  ambiguous <- ngeo_space_registry(c(
+  duplicate_name <- ngeo_coordinate_space("A", kind = "volume")
+  ambiguous <- ngeo_coordinate_space_registry(c(
     fixture$registry$spaces,
     list(duplicate_name)
   ))
   expect_error(
     ngeo_resolve_space(ambiguous, "A"),
-    class = "ngeo_error_space_ambiguity"
+    class = "ngeo_error_coordinate_space_ambiguity"
   )
   explicit <- ngeo_register_space(
     ambiguous, duplicate_name, aliases = "volume-A"
@@ -63,7 +63,7 @@ test_that("space registry uses exact identities and explicit aliases", {
   )
 })
 
-test_that("transform paths compose exactly and bind provenance", {
+test_that("transform paths compose exactly and bind history", {
   fixture <- space_graph_fixture()
   incremental <- ngeo_transform_graph(fixture$registry)
   incremental <- ngeo_add_transform(
@@ -85,7 +85,7 @@ test_that("transform paths compose exactly and bind provenance", {
     fixture$transforms$ab,
     fixture$transforms$bc
   )
-  provenance <- ngeo_transform_path_provenance(path)
+  history <- ngeo_transform_path_history(path)
 
   expect_s3_class(path, "ngeo_transform_path")
   expect_equal(
@@ -93,8 +93,8 @@ test_that("transform paths compose exactly and bind provenance", {
     direct$parameters$matrix
   )
   expect_identical(path$tokens, c("ab", "bc"))
-  expect_identical(provenance$edge_hashes, path$edge_hashes)
-  expect_identical(provenance$path_hash, path$path_hash)
+  expect_identical(history$edge_hashes, path$edge_hashes)
+  expect_identical(history$path_hash, path$path_hash)
 })
 
 test_that("path application requires authorization and preserves edge audit", {
@@ -105,10 +105,10 @@ test_that("path application requires authorization and preserves edge audit", {
     edge_ids = c("ab", "bc")
   )
   path <- ngeo_transform_path(graph, "A", "C")
-  x <- ngeo_points(
+  x <- ngeo_point(
     cbind(x = c(0, 1), y = c(0, 1)),
     values = cbind(signal = c(1, 2)),
-    space = fixture$spaces$A
+    coordinate_space = fixture$spaces$A
   )
   expect_error(
     ngeo_apply_transform_path(x, path),
@@ -116,12 +116,12 @@ test_that("path application requires authorization and preserves edge audit", {
   )
   changed <- ngeo_apply_transform_path(x, path, authorize = TRUE)
 
-  expect_equal(changed$domain$coordinates[, 1L], c(1, 2))
-  expect_equal(changed$domain$coordinates[, 2L], c(2, 3))
-  expect_identical(changed$domain$space, fixture$spaces$C)
+  expect_equal(changed$base$geometry$coordinates[, 1L], c(1, 2))
+  expect_equal(changed$base$geometry$coordinates[, 2L], c(2, 3))
+  expect_identical(changed$base$coordinate_space, fixture$spaces$C)
   expect_identical(
-    changed$provenance$operations[[length(
-      changed$provenance$operations
+    changed$history$operations[[length(
+      changed$history$operations
     )]]$parameters$path_hash,
     path$path_hash
   )
@@ -150,7 +150,7 @@ test_that("ambiguity fails until the caller selects a shortest path", {
   expect_gt(nrow(diagnostics$ambiguous_pairs), 0L)
 })
 
-test_that("cycles and space mismatches are explicitly diagnosed", {
+test_that("cycles and coordinate_space mismatches are explicitly diagnosed", {
   fixture <- space_graph_fixture()
   graph <- ngeo_transform_graph(
     fixture$registry,
@@ -160,18 +160,18 @@ test_that("cycles and space mismatches are explicitly diagnosed", {
   diagnostics <- ngeo_transform_graph_diagnostics(graph)
   expect_length(diagnostics$cycle_space_hashes, 3L)
 
-  left <- ngeo_space(
-    "surface-mm", kind = "surface", units = "mm",
+  left <- ngeo_coordinate_space(
+    "surface-mm", kind = "surface", unit = "mm",
     structure = "CORTEX_LEFT", density = "32k"
   )
-  right <- ngeo_space(
-    "surface-m", kind = "surface", units = "m",
+  right <- ngeo_coordinate_space(
+    "surface-m", kind = "surface", unit = "m",
     structure = "CORTEX_RIGHT", density = "164k"
   )
-  audit <- ngeo_space_audit(left, right)
+  audit <- ngeo_coordinate_space_audit(left, right)
   expect_false(attr(audit, "compatible"))
   expect_true(all(
-    c("units", "structure") %in%
+    c("unit", "structure") %in%
       audit$field[audit$severity == "incompatible"]
   ))
   expect_false(audit$match[audit$field == "density"])

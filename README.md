@@ -3,184 +3,32 @@
 `neurogeo` is the R reference implementation of the Neuroimaging
 Geoinformatics Core Specification (NGCS).
 
-The project starts from one deliberately small contract:
+The 5.1 data model has one sentence:
+
+> A spatial base defines where data live; layers contain the data observed on
+> that base; measures describe what those values mean.
+
+An `ngeo` object therefore contains five top-level components:
 
 ```text
-one spatial domain
-+ one aligned values block
-+ explicit space, topology, metric, measurement semantics, and provenance
+ngeo
+├── base
+├── values
+├── layers
+├── measures
+└── history
 ```
+
+`values[i, j]` is always aligned with `spatial_base(x)$elements[i, ]` and
+`layers(x)[j, ]`. Each layer refers to one row in `measures(x)` through
+`measure_id`.
 
 ## Installation
 
-Install the development version from the public GitHub repository:
-
 ```r
 install.packages("remotes")
-remotes::install_github(
-  "zh1peng/neurogeo"
-)
+remotes::install_github("zh1peng/neurogeo")
 ```
-
-To install a local source archive:
-
-```r
-install.packages(
-  "neurogeo_5.0.0.tar.gz",
-  repos = NULL,
-  type = "source"
-)
-```
-
-## Change of support
-
-Spatial aggregation uses an explicit, aligned support map:
-
-```r
-target <- ngeo_regions(
-  data.frame(region_id = c("A", "B")),
-  support_size = c(5, 4)
-)
-support_map <- ngeo_support_map(
-  x,
-  target,
-  operator = c(rep("A", 5), rep("B", 4)),
-  source_support = rep(1, 9)
-)
-regional <- ngeo_change_support(x, target, support_map)
-```
-
-Aligned atlas labels can construct both the operator and target:
-
-```r
-atlas <- ngeo_atlas_map(x, labels)
-ngeo_support_diagnostics(atlas)
-regional <- ngeo_change_support(x, atlas$target, atlas)
-```
-
-This is not an MRI preprocessing package. It does not perform registration,
-resampling, segmentation, surface reconstruction, or implicit conversion
-between incompatible spatial supports.
-
-## Supported inputs
-
-- NIfTI through `RNifti`;
-- GIFTI geometry, metric, and label through `gifti`;
-- CIFTI dscalar, dlabel, and dtseries through the pure-R `cifti` backend;
-- FreeSurfer surface, annot, curv, MGH, and MGZ through
-  `freesurferformats`;
-- ordinary coordinates, faces, labels, values, arrays, and affines through
-  native constructors.
-
-FreeSurfer, FSL, and Connectome Workbench are not runtime dependencies.
-Readers never register or resample data implicitly.
-
-## Multilayer spatial inference
-
-Version 5.0 provides one compact path from aligned subject maps to
-support-aware group inference:
-
-```r
-stack <- ngeo_bind_maps(subject_objects, metadata = map_metadata)
-index <- ngeo_validate_layers(stack, complete = "error")
-weights <- ngeo_weights(stack, method = "mesh_contiguity", style = "B")
-basis <- ngeo_spatial_basis(stack, weights = weights, n_modes = 64)
-features <- ngeo_layer_coupling(
-  stack, index, basis = basis,
-  bands = list(low_rank = 1:16, high_rank = 17:64),
-  estimands = c("spectral_coupling", "band_energy")
-)
-schedule <- ngeo_exchangeability(
-  subject_data$unit_id, permutations = 4999, seed = 5001
-)
-result <- ngeo_group_test(
-  features, subject_data, ~ age + sex + diagnosis,
-  "diagnosis", schedule
-)
-```
-
-The spatial basis is fixed independently of tested values, coupling and
-marginal energy are separate endpoints, and complete subjects are the
-inference units. A named list of support-specific feature objects uses one
-common schedule and one full-family max-T calculation. See the
-[English workflow](vignettes/multilayer-inference.Rmd) and the
-[Chinese null-regime guide](vignettes/reference-vs-subject-inference-zh.Rmd).
-
-Large supported files can remain file-backed:
-
-```r
-x <- read_ngeo_cifti_filebacked(
-  "sub-01_task-rest_bold.dtseries.nii",
-  frames = 1:100,
-  budget = ngeo_resource_budget(
-    memory_bytes = 64 * 1024^2,
-    materialized_elements = 8e6
-  )
-)
-ngeo_value_chunks(x, chunk_size = 4096, FUN = colMeans)
-```
-
-## Real cortical flatmaps
-
-Version 4.4.2 draws a registered cortical sheet rather than selecting a fixed
-atlas template or substituting a simplified polygon. Bind the source surface
-to an aligned flat GIFTI surface, then add a mask, anatomical underlay, vertex
-values, and any aligned atlas:
-
-```r
-flat <- ngeo_flatten_surface(
-  source_surface,
-  method = "imported",
-  coordinates = flat_surface
-)
-cortex <- ngeo_cortical_map(
-  flat,
-  map = "thickness",
-  atlas = "schaefer100",
-  mask = cortical_mask,
-  underlay = "sulc",
-  overlay_alpha = 0.78,
-  na_color = NA_character_
-)
-plot(cortex, show_boundaries = TRUE, show_outline = TRUE)
-plot_data <- ngeo_cortical_map_data(cortex)
-```
-
-Use one scale and one legend for bilateral or multi-panel maps:
-
-```r
-bilateral <- ngeo_cortical_layout(
-  left_map,
-  right_map,
-  ncol = 2,
-  labels = c("Left", "Right"),
-  shared_scale = TRUE
-)
-plot(bilateral)
-```
-
-The importer verifies ordered vertices and maps flat triangles back to source
-faces. It does not infer a cortical cut, registration, or resampling.
-Orthographic, PCA, and spherical results from `ngeo_project_surface()` remain
-viewing projections, not cortical flattening. See the
-[real-flatmap contract](design/cortical-flatmap-4.3.1.md) and the
-[Chinese tutorial](vignettes/cortical-cartography-zh.Rmd).
-
-## Scientific quality control
-
-`ngeo_qc()` reports analysis risks in an otherwise valid object without
-changing it:
-
-```r
-qc <- ngeo_qc(x)
-qc$checks
-plot(qc)
-```
-
-The report distinguishes warnings, descriptive information, conditions that
-are not applicable, and checks skipped because a values block exceeds the
-explicit scan budget. Structural validity remains the responsibility of
-`ngeo_validate()`.
 
 ## Minimal workflow
 
@@ -188,58 +36,112 @@ explicit scan budget. Structural validity remains the responsibility of
 library(neurogeo)
 
 coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
-x <- ngeo_points(
+x <- ngeo_point(
   coordinates,
   values = cbind(signal = c(1, 2, 3, 2, 4, 7, 3, 7, 9)),
-  measures = ngeo_measure(spatial_semantics = "intensive")
+  measures = ngeo_measure(
+    support_behavior = "intensive",
+    unit = "a.u."
+  ),
+  coordinate_space = ngeo_coordinate_space(
+    space_id = "example-grid",
+    kind = "unknown",
+    unit = "mm"
+  )
 )
-w <- ngeo_weights(
+
+spatial_base(x)
+values(x)
+layers(x)
+measures(x)
+history(x)
+
+w <- ngeo_spatial_weights(
   x,
   method = "distance_band",
   threshold = 1.01,
+  distance_method = "euclidean",
   style = "W"
 )
 ngeo_moran(x, w, map = "signal", permutations = 999, seed = 2026)
 ```
 
-The same analysis contract applies after importing a supported format:
+The five spatial-base types are `point`, `surface`, `volume`, `parcellation`,
+and `grayordinate`. Type-specific coordinates, meshes, voxel grids, affine
+matrices, memberships, and brain-model mappings live under `base$geometry`.
+`coordinate_space` is part of the base; topology is optional. Distance methods,
+spatial weights, transforms, and support mappings are analysis objects rather
+than mandatory dataset fields.
+
+## Multiple layers and measures
+
+One hundred subjects with DK68 cortical thickness are represented by a
+68-by-100 values matrix, 100 layer rows, and one measure row:
 
 ```r
-surface <- read_ngeo_gifti(
-  geometry = "subject.L.midthickness.surf.gii",
-  data = c(thickness = "subject.L.thickness.shape.gii"),
-  labels = c(aparc = "subject.L.aparc.label.gii")
-)
-surface$measures$spatial_semantics <- "intensive"
-w <- ngeo_weights(surface, method = "mesh_contiguity", style = "W")
-result <- ngeo_moran(
-  surface,
-  w,
-  map = "thickness",
-  permutations = 999,
-  seed = 2026
+x <- ngeo_parcellation(
+  parcels,
+  values = thickness,
+  layers = data.frame(
+    layer_id = sprintf("subject_%03d", 1:100),
+    measure_id = "cortical_thickness",
+    subject = sprintf("sub-%03d", 1:100)
+  ),
+  measures = data.frame(
+    measure_id = "cortical_thickness",
+    name = "cortical thickness",
+    unit = "mm",
+    value_type = "continuous",
+    support_behavior = "intensive",
+    aggregation = "area_weighted_mean"
+  )
 )
 ```
 
-## Scientific validation
+Layer and measure metadata may be omitted for simple inputs; constructors
+generate valid unknown metadata and operations validate capabilities when they
+need them.
 
-Version 4.2 independently compares matched spatial statistics and model
-quantities with `spdep`, `spatialreg`, `gstat`, and `GWmodel`, then applies
-seeded calibration gates. The exact estimands, tolerances, simulations, and
-non-claims are recorded in
-[the 4.2 scientific-validation contract](design/scientific-validation-4.2.md).
+## Spatial aggregation
 
-Start with the
-[Chinese learning path](https://zh1peng.github.io/neurogeo/guide/), then
-complete the visual walkthrough from a spatial object to
-[Moran's I](https://zh1peng.github.io/neurogeo/tutorials/getting-started).
-The [tutorial index](https://zh1peng.github.io/neurogeo/tutorials/) and
-[API reference](https://zh1peng.github.io/neurogeo/api/reference/) are built
-from the same R package sources.
+User-facing aggregation is `aggregate_to()`. It performs a formal change of
+spatial support using a declared support map and the measure's aggregation
+semantics:
 
-The supported entry points are grouped in the
-[4.2.1 API tiers](design/API-tiers-4.2.1.md), with compatibility notes in the
-[4.3 migration record](design/migration-4.3.md). The
-[4.2.2 real-data contract](design/real-data-validation-4.2.2.md) records
-download-only fixture governance, exercised scales, and non-claims. Use
-`citation("neurogeo")` for the installed citation.
+```r
+atlas <- ngeo_atlas_map(surface, atlas_labels)
+regional <- aggregate_to(surface, atlas$target, atlas)
+```
+
+No reader or analysis silently registers, resamples, segments, or converts an
+incompatible spatial base.
+
+## Supported inputs
+
+- NIfTI through `RNifti`;
+- GIFTI geometry, metric arrays, and labels through `gifti`;
+- CIFTI dscalar, dlabel, and dtseries through `cifti`;
+- FreeSurfer surface, annot, curv, MGH, and MGZ through
+  `freesurferformats`;
+- ordinary coordinates, faces, arrays, labels, and affine matrices through
+  native constructors.
+
+FreeSurfer, FSL, and Connectome Workbench are not runtime dependencies.
+
+## Validation
+
+```r
+ngeo_validate(x, "basic")
+ngeo_validate(x, "strict")
+ngeo_capabilities(x)
+```
+
+Construction enforces alignment. Operations add capability requirements only
+when needed: plotting requires geometry, geodesic analysis requires surface
+geometry and topology, spatial statistics require spatial weights, aggregation
+requires support and measure semantics, and cross-space mapping requires a
+coordinate space and transform.
+
+See the [Chinese guide](https://zh1peng.github.io/neurogeo/guide/),
+[tutorial index](https://zh1peng.github.io/neurogeo/tutorials/), and
+[API reference](https://zh1peng.github.io/neurogeo/api/reference/).

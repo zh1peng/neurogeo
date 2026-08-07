@@ -4,9 +4,9 @@ test_that("delayed values preserve one aligned block and chunk exactly", {
   delayed <- neurogeo:::.ngeo_delayed_values(
     function(rows, columns) backing[rows, columns, drop = FALSE],
     dim = dim(backing),
-    map_names = c("a", "b", "c")
+    layer_names = c("a", "b", "c")
   )
-  x <- ngeo_points(
+  x <- ngeo_point(
     cbind(x = 1:10, y = 0),
     values = delayed
   )
@@ -33,7 +33,7 @@ test_that("binary delayed values read selected cells without full materializatio
   delayed <- neurogeo:::.ngeo_delayed_values(
     path,
     dim = dim(backing),
-    map_names = c("a", "b", "c")
+    layer_names = c("a", "b", "c")
   )
 
   expect_equal(
@@ -60,33 +60,33 @@ test_that("pure-R CIFTI writer round-trips all supported dense types", {
     restored <- read_ngeo_cifti(path, checksum = FALSE)
 
     expect_equal(restored$values, source$values, tolerance = 1e-6)
-    expect_identical(restored$maps$name, source$maps$name)
+    expect_identical(restored$layers$name, source$layers$name)
     expect_identical(
-      restored$domain$elements$structure,
-      source$domain$elements$structure
+      restored$base$elements$structure,
+      source$base$elements$structure
     )
     expect_equal(
-      lapply(restored$domain$components, function(z) {
+      lapply(restored$base$geometry$components, function(z) {
         if (is.null(z$vertex_index)) z$voxel_index else z$vertex_index
       }),
-      lapply(source$domain$components, function(z) {
+      lapply(source$base$geometry$components, function(z) {
         if (is.null(z$vertex_index)) z$voxel_index else z$vertex_index
       })
     )
     if (type == "dlabel") {
       expect_identical(
-        restored$labels[[1L]]$table$Label,
-        source$labels[[1L]]$table$Label
+        restored$base$labels[[1L]]$table$Label,
+        source$base$labels[[1L]]$table$Label
       )
     }
     if (type == "dtseries") {
-      expect_equal(restored$maps$time, source$maps$time)
-      expect_identical(restored$maps$time_unit, source$maps$time_unit)
+      expect_equal(restored$layers$time, source$layers$time)
+      expect_identical(restored$layers$time_unit, source$layers$time_unit)
     }
   }
 })
 
-test_that("BIDS derivative sidecars retain semantics and provenance", {
+test_that("BIDS derivative sidecars retain semantics and history", {
   skip_if_not_installed("cifti")
   skip_if_not_installed("jsonlite")
   x <- read_ngeo_cifti(
@@ -102,9 +102,9 @@ test_that("BIDS derivative sidecars retain semantics and provenance", {
   sidecar <- jsonlite::fromJSON(output[["sidecar"]])
 
   expect_true(all(file.exists(output)))
-  expect_identical(sidecar$DomainHash, ngeo_domain_hash(x))
+  expect_identical(sidecar$DomainHash, base_hash(x))
   expect_identical(sidecar$Entities$space, "fsLR")
-  expect_equal(nrow(sidecar$MeasurementSemantics), nrow(x$maps))
+  expect_equal(nrow(sidecar$MeasurementSemantics), nrow(x$layers))
 })
 
 test_that("delayed contracts reject misalignment", {

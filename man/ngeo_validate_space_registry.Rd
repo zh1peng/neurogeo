@@ -7,7 +7,7 @@
 ngeo_validate_space_registry(x)
 }
 \arguments{
-\item{x}{An `ngeo_space_registry`.}
+\item{x}{An `ngeo_coordinate_space_registry`.}
 }
 \value{
 `x`, invisibly.

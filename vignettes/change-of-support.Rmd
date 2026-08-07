@@ -34,12 +34,12 @@ are target elements and columns are source elements.
 ## Build and audit a support map
 
 ```{r}
-source <- ngeo_points(
+source <- ngeo_point(
   cbind(x = 1:4, y = 0),
   values = cbind(intensity = c(10, 20, 30, 40)),
-  measures = ngeo_measure(spatial_semantics = "intensive")
+  measures = ngeo_measure(support_behavior = "intensive")
 )
-target <- ngeo_regions(
+target <- ngeo_parcellation(
   data.frame(region_id = c("A", "B")),
   support_size = c(3, 3)
 )
@@ -49,7 +49,7 @@ support_map <- ngeo_support_map(
   operator = c("A", "A", "B", "B"),
   source_support = c(1, 2, 1, 2)
 )
-regional <- ngeo_change_support(source, target, support_map)
+regional <- aggregate_to(source, target, support_map)
 regional
 ```
 
@@ -61,7 +61,7 @@ membership <- c("A", "A", "B", "B")
 region_colors <- c(A = "#3b82a0", B = "#e29b45")
 old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
 plot(
-  source$domain$coordinates,
+  source$base$geometry$coordinates,
   type = "n",
   asp = 1,
   xlab = "x",
@@ -70,21 +70,21 @@ plot(
   main = "Source support"
 )
 points(
-  source$domain$coordinates,
+  source$base$geometry$coordinates,
   pch = 21,
   bg = unname(region_colors[membership]),
   col = "white",
-  cex = 1.5 + source$domain$support_size
+  cex = 1.5 + source$base$geometry$support_size
 )
 text(
-  source$domain$coordinates,
+  source$base$geometry$coordinates,
   labels = source$values[, "intensity"],
   pos = 3
 )
 barplot(
   regional$values[, "intensity"],
-  names.arg = target$domain$elements$region_id,
-  col = unname(region_colors[target$domain$elements$region_id]),
+  names.arg = target$base$elements$region_id,
+  col = unname(region_colors[target$base$elements$region_id]),
   border = NA,
   ylab = "Support-weighted intensity",
   main = "Target support"
@@ -102,17 +102,17 @@ plot(support_map, type = "membership", col = "#26a69a", border = "white")
 
 ## Intensive and extensive variables
 
-Intensive maps use source-support weighted means. Extensive maps and counts
+Intensive layers use source-support weighted means. Extensive layers and counts
 use conservative allocation. Overlapping operators therefore require
 explicit column normalization before they can conserve totals.
 
 ## Compare atlases
 
-Two atlas maps with a common source domain can be compared by physical
+Two atlas layers with a common source base can be compared by physical
 support overlap:
 
 ```{r}
-target2 <- ngeo_regions(
+target2 <- ngeo_parcellation(
   data.frame(region_id = c("C", "D")),
   support_size = c(3, 3)
 )
@@ -123,7 +123,7 @@ support_map2 <- ngeo_support_map(
   source_support = c(1, 2, 1, 2)
 )
 overlap <- as.matrix(
-  ngeo_atlas_overlap(support_map, support_map2, metric = "dice")
+  ngeo_atlas_overlap(support_map, support_map2, distance_method = "dice")
 )
 overlap
 ```

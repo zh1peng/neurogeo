@@ -29,7 +29,7 @@ test_that("file-backed NIfTI matches loaded values and selections", {
     loaded$values[rev(seq_len(nrow(loaded$values))), , drop = FALSE]
   )
   expect_identical(
-    selected$provenance$file_backed$selected_maps, 2L
+    selected$history$file_backed$selected_layers, 2L
   )
   expect_true(nzchar(ngeo_file_values_identity(backed$values)))
   manifest <- ngeo_object_manifest(backed$values)
@@ -69,7 +69,7 @@ test_that("file-backed compressed NIfTI streams row chunks", {
   )
 })
 
-test_that("file-backed CIFTI matches loaded maps and brain structures", {
+test_that("file-backed CIFTI matches loaded layers and brain structures", {
   skip_if_not_installed("cifti")
   path <- golden_path("tiny.dscalar.nii")
   loaded <- read_ngeo_cifti(path, checksum = FALSE)
@@ -91,7 +91,7 @@ test_that("file-backed CIFTI matches loaded maps and brain structures", {
     loaded$values[1:2, 2L, drop = FALSE]
   )
   expect_true(all(
-    selected$domain$elements$structure == "CORTEX_LEFT"
+    selected$base$elements$structure == "CORTEX_LEFT"
   ))
 })
 
@@ -99,7 +99,7 @@ test_that("file-backed MGH and MGZ match backend values", {
   skip_if_not_installed("freesurferformats")
   path <- golden_path("tiny.mgh")
   loaded <- read_ngeo_freesurfer(
-    path, domain = "volume", checksum = FALSE
+    path, base = "volume", checksum = FALSE
   )
   backed <- read_ngeo_mgh_filebacked(path, checksum = FALSE)
 
@@ -110,7 +110,7 @@ test_that("file-backed MGH and MGZ match backend values", {
   freesurferformats::write.fs.mgh(
     mgz,
     data,
-    vox2ras_matrix = loaded$domain$affine
+    vox2ras_matrix = loaded$base$geometry$affine
   )
   compressed <- read_ngeo_mgh_filebacked(
     mgz, checksum = FALSE
@@ -178,7 +178,7 @@ test_that("file-backed identity binds source metadata and map names", {
   second <- tempfile()
   writeBin(as.raw(c(1, 2)), first)
   writeBin(as.raw(c(9, 8)), second)
-  selection <- list(element_index = 0:1, map_index = 0L)
+  selection <- list(element_index = 0:1, layer_index = 0L)
   binary <- list(
     what = "raw", bytes = 1L, signed = FALSE,
     endian = "little", data_offset = 0, compressed = FALSE

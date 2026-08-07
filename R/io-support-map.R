@@ -45,8 +45,8 @@ write_ngeo_support_map <- function(x, path, overwrite = FALSE) {
     direction = x$direction,
     type = x$type,
     coverage = x$coverage,
-    source_domain_hash = x$source_domain_hash,
-    target_domain_hash = x$target_domain_hash,
+    source_base_hash = x$source_base_hash,
+    target_base_hash = x$target_base_hash,
     source_element_id = x$source_element_id,
     target_element_id = x$target_element_id,
     source_support = x$source_support,
@@ -59,7 +59,7 @@ write_ngeo_support_map <- function(x, path, overwrite = FALSE) {
       basename(variance_path)
     },
     support_map_hash = ngeo_support_map_hash(x),
-    provenance = x$provenance
+    history = x$history
   )
   jsonlite::write_json(
     metadata,
@@ -117,7 +117,7 @@ write_ngeo_support_map <- function(x, path, overwrite = FALSE) {
 #'
 #' @param path Exchange prefix or JSON sidecar path.
 #'
-#' @return An `ngeo_support_map` bound to the stored ordered domain IDs.
+#' @return An `ngeo_support_map` bound to the stored ordered base IDs.
 #' @export
 read_ngeo_support_map <- function(path) {
   if (dir.exists(path) ||
@@ -200,8 +200,8 @@ read_ngeo_support_map <- function(path) {
   result <- .ngeo_support_map_structure(
     operator = operator,
     type = metadata$type,
-    source_hash = metadata$source_domain_hash,
-    target_hash = metadata$target_domain_hash,
+    source_hash = metadata$source_base_hash,
+    target_hash = metadata$target_base_hash,
     source_id = .ngeo_json_vector(
       metadata$source_element_id, "character"
     ),
@@ -216,7 +216,7 @@ read_ngeo_support_map <- function(path) {
     ),
     weight_variance = variance,
     coverage = metadata$coverage,
-    provenance = metadata$provenance %||% list()
+    history = metadata$history %||% list()
   )
   result$spec_version <- metadata$spec_version %||% "2.0"
   if (!identical(

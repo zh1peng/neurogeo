@@ -2,12 +2,12 @@
 % Please edit documentation in R/support-inference.R
 \name{ngeo_boundary_sensitivity}
 \alias{ngeo_boundary_sensitivity}
-\title{Summarize boundary and assignment sensitivity among support maps}
+\title{Summarize boundary and assignment sensitivity among support layers}
 \usage{
 ngeo_boundary_sensitivity(support_maps, reference = 1L, source_support = NULL)
 }
 \arguments{
-\item{support_maps}{Two or more maps on one ordered source domain.}
+\item{support_maps}{Two or more layers on one ordered source base.}
 
 \item{reference}{Reference map index.}
 
@@ -17,5 +17,5 @@ ngeo_boundary_sensitivity(support_maps, reference = 1L, source_support = NULL)
 A data frame of assignment disagreement and entropy change.
 }
 \description{
-Summarize boundary and assignment sensitivity among support maps
+Summarize boundary and assignment sensitivity among support layers
 }

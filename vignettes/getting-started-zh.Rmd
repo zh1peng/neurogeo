@@ -1,8 +1,8 @@
 ---
-title: "点数据空间统计：从 ngeo_points 到 Moran's I"
+title: "点数据空间统计：从 ngeo_point 到 Moran's I"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{点数据空间统计：从 ngeo_points 到 Moran's I}
+  %\VignetteIndexEntry{点数据空间统计：从 ngeo_point 到 Moran's I}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -23,18 +23,18 @@ library(neurogeo)
 
 本工作流使用 $3 \times 3$ 点网格验证以下接口：
 
-- `ngeo_points()` 对象构造与 element/value alignment；
+- `ngeo_point()` 对象构造与 element/value alignment；
 - distance-band 空间权重与空间滞后；
 - global Moran's I、permutation test 和 local Moran；
 - 元素到区域的 change of support；
-- measurement semantics 和 provenance 检查。
+- measurement semantics 和 history 检查。
 
 对象约束为：
 
 ```text
-一个空间 domain
+一个空间 base
 + 一个严格对齐的 values block
-+ 显式 space、topology、metric、measurement semantics 和 provenance
++ 显式 coordinate_space、topology、distance_method、measurement semantics 和 history
 ```
 
 该接口不执行配准、分割、表面重建或预处理，也不在不兼容空间之间隐式
@@ -47,19 +47,19 @@ library(neurogeo)
 
 | 字段 | 定义 | 本工作流中的值 |
 |---|---|---|
-| domain | 观测值所依附的一组空间元素 | 九个点 |
-| element indexing | domain 元素与 values 行之间的稳定对应 | 第 1 个点对应 values 第 1 行 |
+| base | 观测值所依附的一组空间元素 | 九个点 |
+| element indexing | base 元素与 values 行之间的稳定对应 | 第 1 个点对应 values 第 1 行 |
 | values block | $n$ 个元素上的 $p$ 个变量，形状为 $n \times p$ | 九行、一列 signal |
 | support | 每个值代表的空间范围或数量基础 | 每个点的 support 先设为 1 |
-| space | 坐标属于哪个参考空间以及使用什么单位 | tutorial-grid，单位 mm |
+| coordinate_space | 坐标属于哪个参考空间以及使用什么单位 | tutorial-grid，单位 mm |
 | topology | 哪些元素在结构上连接 | 表面 mesh 的边，或体素邻接 |
-| metric | “距离”如何定义 | 点坐标上的欧氏距离 |
-| weights | 邻居对当前元素的影响强度 | 行标准化邻接矩阵 $W$ |
+| distance_method | “距离”如何定义 | 点坐标上的欧氏距离 |
+| spatial_weights | 邻居对当前元素的影响强度 | 行标准化邻接矩阵 $W$ |
 | measurement semantics | 数值在 support 改变时应该求均值、求和还是取众数 | signal 是 intensive |
 | transform | 已知的空间间坐标映射 | 本教程不需要 transform |
-| provenance | 数据和操作从哪里来 | 构造参数、reader 和 checksum |
+| history | 数据和操作从哪里来 | 构造参数、reader 和 checksum |
 
-五种基础 domain 分别对应不同的空间元素：
+五种基础 base 分别对应不同的空间元素：
 
 - `points`：没有天然连接关系的点；
 - `surface`：顶点和三角面组成的表面；
@@ -70,7 +70,7 @@ library(neurogeo)
 最重要的不变量可以写成：
 
 $$
-n_\text{domain elements} = n_\text{rows of values}.
+n_\text{base elements} = n_\text{rows of values}.
 $$
 
 而且“行数相同”仍不够，顺序也必须相同。neurogeo 不会根据相似坐标或名称
@@ -152,18 +152,18 @@ text(coordinates, labels = signal, font = 2, cex = 0.9)
 
 ```{r construct-object}
 
-x <- ngeo_points(
+x <- ngeo_point(
   coordinates = coordinates,
   values = cbind(signal = signal),
   measures = ngeo_measure(
     value_type = "continuous",
-    spatial_semantics = "intensive",
-    units = "a.u."
+    support_behavior = "intensive",
+    unit = "a.u."
   ),
-  space = ngeo_space(
+  coordinate_space = ngeo_coordinate_space(
     space_id = "tutorial-grid",
     kind = "unknown",
-    units = "mm",
+    unit = "mm",
     source_metadata = list(description = "3 x 3 teaching grid")
   )
 )
@@ -173,9 +173,9 @@ x
 
 这里有三个不能省略的科学声明：
 
-- `space` 表示坐标属于哪个空间以及坐标单位；
+- `coordinate_space` 表示坐标属于哪个空间以及坐标单位；
 - values 第 $i$ 行严格对应 coordinates 第 $i$ 行；
-- `spatial_semantics = "intensive"` 表示区域聚合时应计算
+- `support_behavior = "intensive"` 表示区域聚合时应计算
   support-weighted mean，而不是求和。
 
 `intensive`、`extensive` 和 `count` 的区别不是软件实现细节，而是变量的
@@ -189,22 +189,22 @@ x
 | categorical | 分区标签、组织类别 | support 加权众数 |
 | unknown | 尚未判断 | change of support 默认拒绝 |
 
-检查 domain、元素索引、values 和测量语义：
+检查 base、元素索引、values 和测量语义：
 
 ```{r inspect}
-ngeo_domain_type(x)
-head(ngeo_elements(x))
-ngeo_values(x)
-ngeo_measures(x)
+base_type(x)
+head(base_elements(x))
+values(x)
+measures(x)
 ```
 
 把最重要的对齐关系直接核对一次：
 
 ```{r alignment-check}
 c(
-  domain_elements = nrow(ngeo_elements(x)),
-  value_rows = nrow(ngeo_values(x)),
-  value_maps = ncol(ngeo_values(x))
+  base_elements = nrow(base_elements(x)),
+  value_rows = nrow(values(x)),
+  value_maps = ncol(values(x))
 )
 ```
 
@@ -216,7 +216,7 @@ c(
 ngeo_validate(x, level = "strict")
 ```
 
-严格验证会检查 domain 结构、唯一元素索引、values 行数、map 元数据
+严格验证会检查 base 结构、唯一元素索引、values 行数、map 元数据
 和空间信息是否一致。验证成功时函数不可见地返回对象，因此控制台
 没有输出是正常现象。
 
@@ -234,8 +234,8 @@ tryCatch(
 )
 ```
 
-不要通过删除 domain 元素或补任意数值来“修好”这种错误；应回到数据
-读取或筛选步骤，保证 domain 与 values 使用完全相同的元素顺序。
+不要通过删除 base 元素或补任意数值来“修好”这种错误；应回到数据
+读取或筛选步骤，保证 base 与 values 使用完全相同的元素顺序。
 
 > **这一节的操作原则**
 >
@@ -262,19 +262,19 @@ a_{ij} =
 \end{cases}
 $$
 
-```{r weights}
-w <- ngeo_weights(
+```{r spatial_weights}
+w <- ngeo_spatial_weights(
   x,
   method = "distance_band",
   threshold = 1.01,
-  metric = "euclidean",
+  distance_method = "euclidean",
   style = "W"
 )
 
 w
 ```
 
-`style = "W"` 表示对每一行做标准化。权重对象保存 domain identity，
+`style = "W"` 表示对每一行做标准化。权重对象保存 base identity，
 不能无声地复用于另一个元素顺序不同的数据集。
 
 行标准化公式是：
@@ -299,7 +299,7 @@ rowSums(W)
 矩阵适合核对数值，网络图更适合发现连接是否符合预期。下面只画一次每条无向边；
 节点颜色仍然表示 signal。
 
-```{r weights-network, fig.width=7, fig.height=5, fig.alt="三乘三网格上的空间邻接网络，横纵相邻点由线段连接", fig.cap="距离阈值 1.01 形成的空间邻接网络。对角线没有连边。"}
+```{r spatial_weights-network, fig.width=7, fig.height=5, fig.alt="三乘三网格上的空间邻接网络，横纵相邻点由线段连接", fig.cap="距离阈值 1.01 形成的空间邻接网络。对角线没有连边。"}
 edge_index <- which(
   upper.tri(W) & ((W > 0) | (t(W) > 0)),
   arr.ind = TRUE
@@ -441,7 +441,7 @@ data.frame(
 ```{r moran}
 moran <- ngeo_moran(
   x,
-  weights = w,
+  spatial_weights = w,
   map = "signal",
   permutations = 99,
   seed = 2026
@@ -457,7 +457,7 @@ c(
 ```
 
 `plot()` 会直接使用统计对象中保存的标准化值和空间滞后，因此既是结果图，也是
-对输入 map 和 weights 的快速诊断。
+对输入 map 和 spatial_weights 的快速诊断。
 
 ```{r moran-object-plot, fig.width=6.5, fig.height=5, fig.alt="neurogeo 全局 Moran 统计对象的标准化值与空间滞后图", fig.cap="由 `plot.ngeo_global_stat()` 生成的 Moran 诊断图。回归线斜率反映全局空间关联方向。"}
 plot(moran, pch = 21, bg = "#26a69a", col = "white", cex = 1.7)
@@ -489,7 +489,7 @@ $$
 审阅结果时至少确认：
 
 - 使用的是哪一个 map；
-- 权重构造方法、metric 和标准化方式；
+- 权重构造方法、distance_method 和标准化方式；
 - 是否存在 isolate，以及 `zero_policy` 如何设置；
 - 置换次数、随机种子和 alternative hypothesis；
 - p 值来自解析近似还是置换分布。
@@ -500,7 +500,7 @@ Moran's I 说明全局空间自相关，不等于局部热点定位，也不能�
 
 ## 8. Local Moran
 
-全局 Moran's I 回答“整个 domain 是否存在空间模式”，局部 Moran 则为每个
+全局 Moran's I 回答“整个 base 是否存在空间模式”，局部 Moran 则为每个
 元素计算：
 
 $$
@@ -512,7 +512,7 @@ $$
 ```{r local-moran}
 lisa <- ngeo_local_moran(
   x,
-  weights = w,
+  spatial_weights = w,
   map = "signal",
   permutations = 99,
   seed = 2026,
@@ -620,7 +620,7 @@ as.matrix(atlas$operator)
 执行 change of support：
 
 ```{r change-support}
-regional <- ngeo_change_support(
+regional <- aggregate_to(
   x,
   target = atlas$target,
   support_map = atlas,
@@ -630,8 +630,8 @@ regional <- ngeo_change_support(
   )
 )
 
-ngeo_values(regional)
-ngeo_measures(regional)
+values(regional)
+measures(regional)
 ```
 
 下面把 source 元素、区域标签和聚合后的区域均值放在同一幅图中。它可以立即揭示
@@ -660,7 +660,7 @@ points(
   cex = 2.8
 )
 text(coordinates, labels = signal, font = 2, cex = 0.85)
-regional_signal <- as.numeric(ngeo_values(regional)[, "signal"])
+regional_signal <- as.numeric(values(regional)[, "signal"])
 barplot(
   regional_signal,
   names.arg = unique(labels),
@@ -693,7 +693,7 @@ manual_region_mean <- vapply(
 
 cbind(
   by_hand = manual_region_mean,
-  neurogeo = as.numeric(ngeo_values(regional))
+  neurogeo = as.numeric(values(regional))
 )
 ```
 
@@ -708,24 +708,24 @@ c_r = \sum_j A_{rj}c_j,
 \sum_r c_r = \sum_j c_j.
 $$
 
-下面只改变 values 和 measurement semantics，domain 保持不变，因此可以
+下面只改变 values 和 measurement semantics，base 保持不变，因此可以
 使用同一个 support map：
 
 ```{r count-change-support}
 event_count <- c(4, 2, 1, 3, 5, 2, 1, 4, 6)
 
-count_data <- ngeo_points(
+count_data <- ngeo_point(
   coordinates = coordinates,
   values = cbind(events = event_count),
   measures = ngeo_measure(
     value_type = "integer",
-    spatial_semantics = "count",
-    units = "events"
+    support_behavior = "count",
+    unit = "events"
   ),
-  space = x$domain$space
+  coordinate_space = x$base$coordinate_space
 )
 
-regional_count <- ngeo_change_support(
+regional_count <- aggregate_to(
   count_data,
   target = atlas$target,
   support_map = atlas,
@@ -736,10 +736,10 @@ regional_count <- ngeo_change_support(
 )
 
 c(
-  source_total = sum(ngeo_values(count_data)),
-  target_total = sum(ngeo_values(regional_count))
+  source_total = sum(values(count_data)),
+  target_total = sum(values(regional_count))
 )
-ngeo_values(regional_count)
+values(regional_count)
 ```
 
 如果把事件数错误声明为 `intensive`，总量会在聚合时改变；如果把厚度错误
@@ -756,7 +756,7 @@ Connectome Workbench 可执行程序。
 | 格式 | 主要内容 | 读取后首先检查 |
 |---|---|---|
 | NIfTI | 体素数组和 voxel-to-world affine | 维度、affine、单位、map |
-| GIFTI | 表面坐标、三角面、metric 或 label | 顶点数、faces、structure |
+| GIFTI | 表面坐标、三角面、distance_method 或 label | 顶点数、faces、structure |
 | CIFTI | grayordinate 与 brain model 排列 | structure、vertex/voxel index、map |
 | FreeSurfer | surface、annot、curv、MGH/MGZ | 几何/数据对齐和有效 transform |
 
@@ -819,12 +819,12 @@ summary_chunks <- ngeo_value_chunks(
 
 ```{r post-read, eval=FALSE}
 ngeo_validate(surface, level = "strict")
-surface$maps
+surface$layers
 surface$measures
-surface$domain$space
+surface$base$coordinate_space
 ```
 
-不要因为文件名看起来熟悉就假定 units、surface density、template
+不要因为文件名看起来熟悉就假定 unit、surface density、template
 或 measurement semantics。
 
 完整的真实文件 walkthrough，包括内置样例、图形和 write/read round-trip，
@@ -858,9 +858,9 @@ ngeo_validate_manifest(restored, x)
 
 ## 12. 常见错误
 
-### domain 与 values 不对齐
+### base 与 values 不对齐
 
-任何筛选都必须同步作用于 domain、values、maps 和 labels。优先使用
+任何筛选都必须同步作用于 base、values、layers 和 labels。优先使用
 `ngeo_subset()`，不要分别修改内部字段。
 
 ### measurement semantics 为 unknown
@@ -868,7 +868,7 @@ ngeo_validate_manifest(restored, x)
 聚合或 change of support 前应根据变量的科学含义声明 intensive、
 extensive、count 或 categorical。不要为了让代码通过而随意指定。
 
-### space 不兼容
+### coordinate_space 不兼容
 
 neurogeo 不会自动 registration 或 resampling。只有已经提供并授权的
 transform path 才能用于 `ngeo_resample()`。
@@ -881,22 +881,22 @@ transform path 才能用于 `ngeo_resample()`。
 ### 把统计关联解释为因果关系
 
 Moran's I、LISA、GWR、SAR/SEM 和 kriging 都依赖明确假设。结果必须
-与权重、support、metric、缺失值策略和不确定性声明一起解释。
+与权重、support、distance_method、缺失值策略和不确定性声明一起解释。
 
 ## 13. 分析执行顺序
 
 遇到新数据时，可以按这条顺序工作：
 
 1. **研究问题**：要描述、检验、预测还是做 support 转换？
-2. **domain**：值依附于顶点、体素、点、grayordinate 还是区域？
+2. **base**：值依附于顶点、体素、点、grayordinate 还是区域？
 3. **对齐**：values 每一行究竟对应哪个 element？
-4. **space 与 metric**：坐标在哪个空间，距离应使用欧氏、测地线还是 hops？
+4. **coordinate_space 与 distance_method**：坐标在哪个空间，距离应使用欧氏、测地线还是 hops？
 5. **measurement semantics**：变量聚合时应加权平均、守恒求和还是取众数？
-6. **weights/support map**：空间关系怎样构造，诊断是否存在 isolate 或缺失覆盖？
+6. **spatial_weights/support map**：空间关系怎样构造，诊断是否存在 isolate 或缺失覆盖？
 7. **统计量**：公式回答的问题是否与研究问题一致？
 8. **推断**：null model、置换次数、多重检验和随机种子是什么？
 9. **敏感性**：改变阈值、权重标准化或 support 定义后结论是否稳定？
-10. **审计**：能否从 provenance、manifest 和代码重建结果？
+10. **审计**：能否从 history、manifest 和代码重建结果？
 
 这条顺序比“先选择一个统计函数，再设法填参数”更可靠。
 
@@ -916,29 +916,29 @@ Moran's I、LISA、GWR、SAR/SEM 和 kriging 都依赖明确假设。结果必�
    并解释为什么错误。
 
 每个练习都应先写下预测，再运行代码。重点不是得到某个固定数字，而是能用
-domain、weights、公式和 measurement semantics 解释数字为什么变化。
+base、spatial_weights、公式和 measurement semantics 解释数字为什么变化。
 
 ## 15. 分析审阅清单
 
 提交或复核一次 neurogeo 分析时，逐项确认：
 
-- [ ] 每个对象只有一个 domain 和一个严格对齐的 values block；
+- [ ] 每个对象只有一个 base 和一个严格对齐的 values block；
 - [ ] element indexing 稳定且唯一；
-- [ ] space、units、structure、template 或 density 没有被隐式猜测；
-- [ ] topology 和 metric 与研究问题一致；
+- [ ] coordinate_space、unit、structure、template 或 density 没有被隐式猜测；
+- [ ] topology 和 distance_method 与研究问题一致；
 - [ ] 每个 map 的 measurement semantics 已明确；
-- [ ] weights 与当前 domain identity 匹配；
+- [ ] spatial_weights 与当前 base identity 匹配；
 - [ ] change of support 的覆盖率、守恒和 unmapped policy 已检查；
 - [ ] permutation 或 simulation 的 seed 与次数已记录；
 - [ ] 大规模运算有资源预算，没有稠密全脑回退；
-- [ ] provenance、manifest 或 replay 信息足以审计结果；
+- [ ] history、manifest 或 replay 信息足以审计结果；
 - [ ] 没有把 preprocessing、registration 或 segmentation 误认为
       neurogeo 自动完成的步骤。
 
 接下来可以阅读以下专题教程：
 
 - `vignette("reading-data", package = "neurogeo")`
-- `vignette("neighbors-and-weights", package = "neurogeo")`
+- `vignette("neighbors-and-spatial_weights", package = "neurogeo")`
 - `vignette("change-of-support", package = "neurogeo")`
 - `vignette("spatial-modelling", package = "neurogeo")`
 - `vignette("spatiotemporal-analysis", package = "neurogeo")`

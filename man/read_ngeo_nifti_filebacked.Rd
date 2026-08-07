@@ -9,9 +9,9 @@ read_ngeo_nifti_filebacked(
   mask = NULL,
   frames = NULL,
   elements = NULL,
-  maps = NULL,
+  layers = NULL,
   measures = NULL,
-  space = NULL,
+  coordinate_space = NULL,
   affine = c("auto", "sform", "qform"),
   strict = TRUE,
   checksum = TRUE,
@@ -26,13 +26,13 @@ read_ngeo_nifti_filebacked(
 
 \item{frames}{Optional frames passed to `RNifti::readNifti()`.}
 
-\item{elements}{Optional one-based active-domain element selection.}
+\item{elements}{Optional one-based active-base element selection.}
 
-\item{maps}{Optional map metadata.}
+\item{layers}{Optional map metadata.}
 
 \item{measures}{Optional measurement semantics.}
 
-\item{space}{Optional `ngeo_space`.}
+\item{coordinate_space}{Optional `ngeo_coordinate_space`.}
 
 \item{affine}{Active affine choice.}
 

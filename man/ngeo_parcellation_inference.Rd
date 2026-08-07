@@ -18,7 +18,7 @@ ngeo_parcellation_inference(
 \arguments{
 \item{x}{Source `ngeo` dataset.}
 
-\item{support_maps}{List of source-to-atlas support maps.}
+\item{support_maps}{List of source-to-atlas support layers.}
 
 \item{targets}{List of matching target templates.}
 
@@ -36,7 +36,7 @@ ngeo_parcellation_inference(
 An `ngeo_parcellation_inference` object.
 }
 \description{
-Applies complete support maps and verifies that a global intensive mean or
+Applies complete support layers and verifies that a global intensive mean or
 extensive/count total is invariant. Confidence intervals use one shared
 source-element bootstrap, independent of atlas.
 }

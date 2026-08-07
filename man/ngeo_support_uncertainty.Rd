@@ -2,14 +2,14 @@
 % Please edit documentation in R/support-uncertainty.R
 \name{ngeo_support_uncertainty}
 \alias{ngeo_support_uncertainty}
-\title{Propagate domain-bound value and operator uncertainty}
+\title{Propagate base-bound value and operator uncertainty}
 \usage{
 ngeo_support_uncertainty(
   x,
   target,
   support_map,
   value_covariance,
-  maps = NULL,
+  layers = NULL,
   method = c("analytic", "monte_carlo"),
   output = c("diagonal", "covariance"),
   operator_ensemble = NULL,
@@ -23,20 +23,20 @@ ngeo_support_uncertainty(
 \arguments{
 \item{x}{Source `ngeo` dataset.}
 
-\item{target}{Target-domain `ngeo` template.}
+\item{target}{Target-base `ngeo` template.}
 
 \item{support_map}{Matching `ngeo_support_map`.}
 
-\item{value_covariance}{One covariance object shared across selected maps,
+\item{value_covariance}{One covariance object shared across selected layers,
 or an aligned list.}
 
-\item{maps}{Optional source map selection.}
+\item{layers}{Optional source map selection.}
 
 \item{method}{Analytic or Monte Carlo propagation.}
 
 \item{output}{Return diagonal variance only or full bounded covariance.}
 
-\item{operator_ensemble}{Optional common-domain support-map ensemble.}
+\item{operator_ensemble}{Optional common-base support-map ensemble.}
 
 \item{nsim}{Monte Carlo draws.}
 
@@ -46,7 +46,7 @@ or an aligned list.}
 
 \item{unmapped}{Reject or explicitly drop unmapped source support.}
 
-\item{unknown}{Interpretation for maps with unknown spatial semantics.}
+\item{unknown}{Interpretation for layers with unknown spatial semantics.}
 }
 \value{
 An `ngeo_support_uncertainty`.

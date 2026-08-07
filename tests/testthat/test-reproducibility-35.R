@@ -6,9 +6,9 @@ replay_fixture_35 <- function() {
       t2 = c(4, 8, 12, 16)
     ),
     measures = rbind(
-      ngeo_measure(spatial_semantics = "intensive"),
-      ngeo_measure(spatial_semantics = "intensive"),
-      ngeo_measure(spatial_semantics = "intensive")
+      ngeo_measure(support_behavior = "intensive"),
+      ngeo_measure(support_behavior = "intensive"),
+      ngeo_measure(support_behavior = "intensive")
     )
   )
   ngeo_set_time_axis(
@@ -21,7 +21,7 @@ replay_fixture_35 <- function() {
 test_that("logical hashes cover scientific values but not timestamps", {
   x <- replay_fixture_35()
   copy <- x
-  copy$provenance$operations[[1L]]$timestamp_utc <-
+  copy$history$operations[[1L]]$timestamp_utc <-
     "2099-01-01T00:00:00Z"
 
   expect_identical(ngeo_logical_hash(x), ngeo_logical_hash(copy))
@@ -37,9 +37,9 @@ test_that("logical hashes cover scientific values but not timestamps", {
   )
 })
 
-test_that("provenance DAGs reject cycles, missing parents, and mutation", {
+test_that("history DAGs reject cycles, missing parents, and mutation", {
   hash <- paste(rep("a", 64), collapse = "")
-  dag <- ngeo_provenance_dag(
+  dag <- ngeo_history_dag(
     list(
       list(id = "source", type = "input", logical_hash = hash),
       list(id = "result", type = "operation:test", logical_hash = hash)
@@ -47,33 +47,33 @@ test_that("provenance DAGs reject cycles, missing parents, and mutation", {
     list(list(from = "source", to = "result", role = "x"))
   )
 
-  expect_s3_class(dag, "ngeo_provenance_dag")
-  expect_invisible(ngeo_validate_provenance_dag(dag))
+  expect_s3_class(dag, "ngeo_history_dag")
+  expect_invisible(ngeo_validate_history_dag(dag))
   expect_identical(
     ngeo_object_manifest(dag)$object_schema_version, "3.5"
   )
   expect_error(
-    ngeo_provenance_dag(
+    ngeo_history_dag(
       dag$nodes,
       c(
         dag$edges,
         list(list(from = "result", to = "source", role = "x"))
       )
     ),
-    class = "ngeo_error_provenance_cycle"
+    class = "ngeo_error_history_cycle"
   )
   expect_error(
-    ngeo_provenance_dag(
+    ngeo_history_dag(
       dag$nodes,
       list(list(from = "missing", to = "result", role = "x"))
     ),
-    class = "ngeo_error_provenance_parent"
+    class = "ngeo_error_history_parent"
   )
   changed <- dag
   changed$nodes[[1L]]$type <- "changed"
   expect_error(
-    ngeo_validate_provenance_dag(changed),
-    class = "ngeo_error_provenance_hash"
+    ngeo_validate_history_dag(changed),
+    class = "ngeo_error_history_hash"
   )
 })
 
@@ -210,7 +210,7 @@ test_that("artifact manifests are portable and root confined", {
   root <- tempfile()
   dir.create(root)
   on.exit(unlink(root, recursive = TRUE), add = TRUE)
-  path <- file.path(root, "metric.tsv")
+  path <- file.path(root, "distance_method.tsv")
   writeLines(c("id\tvalue", "1\t2"), path)
   manifest <- ngeo_artifact_manifest(path, root, "tabular_metric")
   manifest_path <- file.path(root, "artifacts.json")
@@ -242,7 +242,7 @@ test_that("artifact batches publish atomically with derivative-only scope", {
       function(path) writeLines("1\t2", path),
       function(path) writeLines('{"Units":"z"}', path)
     ),
-    roles = c("metric", "sidecar"),
+    roles = c("distance_method", "sidecar"),
     entities = list(subject = "01", datatype = "anat")
   )
   on.exit(unlink(directory, recursive = TRUE), add = TRUE)
@@ -289,7 +289,7 @@ test_that("3.5 reproducibility schemas and environment are explicit", {
   snapshot <- ngeo_environment_snapshot()
 
   expect_true(all(c(
-    "ngcs/provenance-dag", "ngcs/replay-manifest",
+    "ngcs/history-dag", "ngcs/replay-manifest",
     "ngcs/artifact-manifest", "ngcs/batch-manifest"
   ) %in% definitions$schema_id))
   expect_match(snapshot$environment_sha256, "^[0-9a-f]{64}$")

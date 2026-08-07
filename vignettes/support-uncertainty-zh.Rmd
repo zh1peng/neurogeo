@@ -23,11 +23,11 @@ value uncertainty 与 operator uncertainty 是不同来源，应分别报告。
 ## 传播 value uncertainty
 
 ```{r}
-source <- ngeo_points(
+source <- ngeo_point(
   cbind(x = 1:6, y = 0),
   values = cbind(signal = c(2, 4, 3, 8, 6, 10)),
-  measures = ngeo_measure(spatial_semantics = "intensive"),
-  space = ngeo_space("uncertainty-example")
+  measures = ngeo_measure(support_behavior = "intensive"),
+  coordinate_space = ngeo_coordinate_space("uncertainty-example")
 )
 atlas <- ngeo_atlas_map(
   source, c("A", "A", "B", "B", "C", "C"),
@@ -59,6 +59,6 @@ ngeo_support_uncertainty(
 
 ## Operator ensemble
 
-多个 operator 只有在有序 source 和 target domain 完全相同时才能比较。
+多个 operator 只有在有序 source 和 target base 完全相同时才能比较。
 between-operator variance 衡量对给定 atlas/segmentation 替代方案的敏感性，
 不应自动解释为已校准的 registration confidence interval。

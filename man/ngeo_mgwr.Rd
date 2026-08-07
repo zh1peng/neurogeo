@@ -9,7 +9,7 @@ ngeo_mgwr(
   response,
   predictors,
   bandwidths,
-  metric = NULL,
+  distance_method = NULL,
   kernel = c("bisquare", "gaussian"),
   max_iterations = 200L,
   threshold = 1e-05
@@ -20,12 +20,12 @@ ngeo_mgwr(
 
 \item{response}{One response map.}
 
-\item{predictors}{Predictor maps.}
+\item{predictors}{Predictor layers.}
 
 \item{bandwidths}{Positive fixed bandwidths for the intercept followed by
 each predictor.}
 
-\item{metric}{Explicit NGCS distance metric.}
+\item{distance_method}{Explicit NGCS distance distance_method.}
 
 \item{kernel}{Bisquare or Gaussian kernel.}
 

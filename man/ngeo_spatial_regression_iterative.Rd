@@ -8,7 +8,7 @@ ngeo_spatial_regression_iterative(
   x,
   response,
   predictors = character(),
-  weights,
+  spatial_weights,
   model = c("sar", "sem"),
   control = ngeo_solver_control(),
   logdet = c("auto", "exact", "approximate"),
@@ -22,9 +22,9 @@ ngeo_spatial_regression_iterative(
 
 \item{response}{One numeric response map.}
 
-\item{predictors}{Optional numeric predictor maps.}
+\item{predictors}{Optional numeric predictor layers.}
 
-\item{weights}{Matching sparse spatial weights.}
+\item{spatial_weights}{Matching sparse spatial spatial_weights.}
 
 \item{model}{Spatial lag (SAR) or spatial error (SEM).}
 

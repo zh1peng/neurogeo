@@ -81,9 +81,9 @@
 #' @param path NIfTI path.
 #' @param mask Optional mask path, logical array/vector, or `"nonzero"`.
 #' @param frames Optional frames passed to `RNifti::readNifti()`.
-#' @param maps Optional map metadata.
+#' @param layers Optional map metadata.
 #' @param measures Optional measurement semantics.
-#' @param space Optional `ngeo_space`.
+#' @param coordinate_space Optional `ngeo_coordinate_space`.
 #' @param affine Active affine choice.
 #' @param load_data Whether to retain values.
 #' @param strict Whether to run strict validation.
@@ -94,9 +94,9 @@
 read_ngeo_nifti <- function(path,
                             mask = NULL,
                             frames = NULL,
-                            maps = NULL,
+                            layers = NULL,
                             measures = NULL,
-                            space = NULL,
+                            coordinate_space = NULL,
                             affine = c("auto", "sform", "qform"),
                             load_data = TRUE,
                             strict = TRUE,
@@ -135,11 +135,11 @@ read_ngeo_nifti <- function(path,
   }
 
   pixunits <- attr(header, "pixunits")
-  units <- if (length(pixunits)) pixunits[[1L]] else "mm"
-  space <- space %||% ngeo_space(
+  unit <- if (length(pixunits)) pixunits[[1L]] else "mm"
+  coordinate_space <- coordinate_space %||% ngeo_coordinate_space(
     "unknown",
     kind = "volume",
-    units = units,
+    unit = unit,
     source_metadata = list(
       qform_code = header$qform_code,
       sform_code = header$sform_code
@@ -148,19 +148,19 @@ read_ngeo_nifti <- function(path,
   values <- if (isTRUE(load_data)) as.array(image) else NULL
   active_mask <- .ngeo_nifti_mask(mask, image, lattice_dim)
   image_dim <- as.integer(header$dim[2:(header$dim[[1L]] + 1L)])
-  n_map <- if (length(image_dim) <= 3L) {
+  n_layer <- if (length(image_dim) <= 3L) {
     1L
   } else {
     prod(image_dim[-seq_len(3L)])
   }
-  if (is.null(maps)) {
+  if (is.null(layers)) {
     source_frame <- if (is.null(frames)) {
-      seq_len(n_map) - 1L
+      seq_len(n_layer) - 1L
     } else {
       frames
     }
-    maps <- data.frame(
-      name = paste0("frame_", seq_len(n_map)),
+    layers <- data.frame(
+      name = paste0("frame_", seq_len(n_layer)),
       source_frame = source_frame,
       stringsAsFactors = FALSE
     )
@@ -171,16 +171,16 @@ read_ngeo_nifti <- function(path,
     dim = lattice_dim,
     affine = active$matrix,
     mask = active_mask,
-    maps = maps,
+    layers = layers,
     measures = measures,
-    space = space,
+    coordinate_space = coordinate_space,
     index_base = "zero"
   )
-  x$domain$header_transforms <- c(
+  x$base$geometry$header_transforms <- c(
     transforms,
     list(active = active$source)
   )
-  x$provenance$header_summary <- list(
+  x$history$header_summary <- list(
     version = attr(header, "version"),
     dim = header$dim,
     pixdim = header$pixdim,
@@ -191,7 +191,7 @@ read_ngeo_nifti <- function(path,
   )
   sidecar <- .ngeo_bids_sidecar(path)
   if (!is.null(sidecar)) {
-    x$provenance$bids_sidecar <- sidecar
+    x$history$bids_sidecar <- sidecar
   }
   paths <- c(path, if (is.character(mask) &&
     length(mask) == 1L &&

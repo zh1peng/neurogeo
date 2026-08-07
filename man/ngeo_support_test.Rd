@@ -2,7 +2,7 @@
 % Please edit documentation in R/support-inference.R
 \name{ngeo_support_test}
 \alias{ngeo_support_test}
-\title{Common-source permutation test across support maps}
+\title{Common-source permutation test across support layers}
 \usage{
 ngeo_support_test(
   x,
@@ -19,7 +19,7 @@ ngeo_support_test(
 \arguments{
 \item{x}{Source `ngeo` dataset.}
 
-\item{support_maps}{Source-to-atlas support maps.}
+\item{support_maps}{Source-to-atlas support layers.}
 
 \item{targets}{Matching target templates.}
 
@@ -39,6 +39,6 @@ ngeo_support_test(
 An `ngeo_support_test`.
 }
 \description{
-One source-domain permutation is reused across every atlas in a replicate,
+One source-base permutation is reused across every atlas in a replicate,
 preserving comparability among atlas-specific null statistics.
 }

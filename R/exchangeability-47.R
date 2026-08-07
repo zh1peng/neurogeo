@@ -165,7 +165,7 @@
 
 #' Declare subject-level exchangeability transformations
 #'
-#' Transformations are stored in rows and independent units in columns. The
+#' Transformations are stored in rows and independent unit in columns. The
 #' observed identity transformation is kept outside the schedule.
 #'
 #' @param unit_id Ordered unique independent-unit identifiers.
@@ -294,7 +294,7 @@ print.ngeo_exchangeability <- function(x, ...) {
     "<ngeo_exchangeability>\n",
     "  scheme: ", x$scheme, "\n",
     "  transformation: ", x$transformation, "\n",
-    "  units: ", length(x$unit_id), "\n",
+    "  unit: ", length(x$unit_id), "\n",
     "  transformations: ", nrow(x$schedule), " (", x$status, ")\n",
     "  schedule hash: ", x$schedule_hash, "\n",
     sep = ""

@@ -2,15 +2,15 @@
   ngeo_validate_support_map(first)
   ngeo_validate_support_map(second)
   if (!identical(
-    first$source_domain_hash,
-    second$source_domain_hash
+    first$source_base_hash,
+    second$source_base_hash
   ) || !identical(
     first$source_element_id,
     second$source_element_id
   )) {
     .ngeo_abort(
-      "Atlas comparison requires a common source domain.",
-      "ngeo_error_domain_mismatch"
+      "Atlas comparison requires a common source base.",
+      "ngeo_error_base_mismatch"
     )
   }
   support <- source_support %||% first$source_support %||%
@@ -32,7 +32,7 @@
 #' @param first First base-to-atlas support map.
 #' @param second Second base-to-atlas support map.
 #' @param source_support Optional common base support.
-#' @param metric Intersection, Jaccard, or Dice support.
+#' @param distance_method Intersection, Jaccard, or Dice support.
 #'
 #' @return A sparse first-atlas by second-atlas matrix.
 #' @export
@@ -40,8 +40,8 @@ ngeo_atlas_overlap <- function(
     first,
     second,
     source_support = NULL,
-    metric = c("intersection", "jaccard", "dice")) {
-  metric <- match.arg(metric)
+    distance_method = c("intersection", "jaccard", "dice")) {
+  distance_method <- match.arg(distance_method)
   support <- .ngeo_support_source(first, second, source_support)
   intersection <- .ngeo_as_dgCMatrix(
     first$operator %*% Matrix::Diagonal(x = support) %*%
@@ -51,18 +51,18 @@ ngeo_atlas_overlap <- function(
     first$target_element_id,
     second$target_element_id
   )
-  if (identical(metric, "intersection")) {
+  if (identical(distance_method, "intersection")) {
     return(intersection)
   }
   first_size <- as.numeric(first$operator %*% support)
   second_size <- as.numeric(second$operator %*% support)
   entries <- Matrix::summary(intersection)
-  denominator <- if (identical(metric, "jaccard")) {
+  denominator <- if (identical(distance_method, "jaccard")) {
     first_size[entries$i] + second_size[entries$j] - entries$x
   } else {
     first_size[entries$i] + second_size[entries$j]
   }
-  entries$x <- if (identical(metric, "jaccard")) {
+  entries$x <- if (identical(distance_method, "jaccard")) {
     entries$x / denominator
   } else {
     2 * entries$x / denominator
@@ -204,8 +204,8 @@ ngeo_cross_atlas <- function(
     operator = .ngeo_as_dgCMatrix(transfer),
     model = model,
     semantics = semantics,
-    source_atlas_hash = first$target_domain_hash,
-    target_atlas_hash = second$target_domain_hash
+    source_atlas_hash = first$target_base_hash,
+    target_atlas_hash = second$target_base_hash
   )
   class(result) <- "ngeo_cross_atlas"
   result
@@ -221,12 +221,12 @@ ngeo_cross_atlas <- function(
 
 #' Parcellation-invariant support inference
 #'
-#' Applies complete support maps and verifies that a global intensive mean or
+#' Applies complete support layers and verifies that a global intensive mean or
 #' extensive/count total is invariant. Confidence intervals use one shared
 #' source-element bootstrap, independent of atlas.
 #'
 #' @param x Source `ngeo` dataset.
-#' @param support_maps List of source-to-atlas support maps.
+#' @param support_maps List of source-to-atlas support layers.
 #' @param targets List of matching target templates.
 #' @param map One map.
 #' @param nsim Shared source bootstrap replicates.
@@ -254,14 +254,17 @@ ngeo_parcellation_inference <- function(
       "ngeo_error_argument"
     )
   }
-  map_index <- .ngeo_map_selection(x, map)
-  if (length(map_index) != 1L || is.null(x$values)) {
+  layer_index <- .ngeo_layer_selection(x, map)
+  if (length(layer_index) != 1L || is.null(x$values)) {
     .ngeo_abort(
       "Inference requires one loaded map.",
       "ngeo_error_values"
     )
   }
-  semantics <- x$measures$spatial_semantics[[map_index]]
+  semantics <- .ngeo_measures_for_layers(
+    x,
+    layer_index
+  )$support_behavior[[1L]]
   if (!semantics %in% c("intensive", "extensive", "count")) {
     .ngeo_abort(
       "Inference requires intensive, extensive, or count semantics.",
@@ -280,23 +283,23 @@ ngeo_parcellation_inference <- function(
           check.attributes = FALSE
         ))) {
       .ngeo_abort(
-        "Invariant inference requires complete maps with common source support.",
+        "Invariant inference requires complete layers with common source support.",
         "ngeo_error_invariant"
       )
     }
   }
-  source_values <- as.numeric(x$values[, map_index])
+  source_values <- as.numeric(x$values[, layer_index])
   source_estimate <- .ngeo_invariant_estimate(
     source_values,
     support,
     semantics
   )
   atlas_estimates <- vapply(seq_along(support_maps), function(i) {
-    changed <- ngeo_change_support(
+    changed <- aggregate_to(
       x,
       targets[[i]],
       support_maps[[i]],
-      maps = map_index,
+      layers = layer_index,
       allocation = allocation
     )
     target_support <- as.numeric(
@@ -355,7 +358,7 @@ ngeo_parcellation_inference <- function(
     semantics = semantics,
     max_deviation = deviation,
     tolerance = tolerance,
-    domain_hash = ngeo_domain_hash(x),
+    base_hash = base_hash(x),
     support_map_hashes = vapply(
       support_maps,
       ngeo_support_map_hash,

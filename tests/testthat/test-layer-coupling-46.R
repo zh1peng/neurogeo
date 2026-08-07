@@ -1,24 +1,24 @@
-coupling_fixture <- function(values, subjects, layers, regions = FALSE,
+coupling_fixture <- function(values, subjects, features, parcellation = FALSE,
                              support = NULL) {
   values <- as.matrix(values)
-  maps <- data.frame(
-    map_id = paste0("map_", seq_len(ncol(values))),
-    name = paste(subjects, layers, sep = "_"),
+  layers <- data.frame(
+    layer_id = paste0("map_", seq_len(ncol(values))),
+    name = paste(subjects, features, sep = "_"),
     subject_id = subjects,
-    feature = layers,
+    feature = features,
     stringsAsFactors = FALSE
   )
-  measures <- do.call(rbind, lapply(layers, function(layer) {
+  measures <- do.call(rbind, lapply(features, function(layer) {
     ngeo_measure(
-      spatial_semantics = "intensive",
-      units = if (layer == "x") "mm" else "ratio"
+      support_behavior = "intensive",
+      unit = if (layer == "x") "mm" else "ratio"
     )
   }))
   n <- nrow(values)
-  if (!regions) {
-    return(ngeo_points(
+  if (!parcellation) {
+    return(ngeo_point(
       cbind(x = seq_len(n), y = 0), values = values,
-      maps = maps, measures = measures
+      layers = layers, measures = measures
     ))
   }
   adjacency <- Matrix::sparseMatrix(
@@ -27,21 +27,21 @@ coupling_fixture <- function(values, subjects, layers, regions = FALSE,
     x = 1,
     dims = c(n, n)
   )
-  ngeo_regions(
+  ngeo_parcellation(
     data.frame(region_id = seq_len(n)),
     values = values,
     support_size = if (is.null(support)) rep.int(1, n) else support,
     adjacency = adjacency,
-    maps = maps,
+    layers = layers,
     measures = measures
   )
 }
 
 coupling_weights <- function(x, style = "W") {
-  if (inherits(x, "ngeo_regions")) {
-    ngeo_weights(x, method = "region_contiguity", style = style)
+  if (inherits(x, "ngeo_parcellation")) {
+    ngeo_spatial_weights(x, method = "region_contiguity", style = style)
   } else {
-    ngeo_weights(
+    ngeo_spatial_weights(
       x, method = "distance_band", threshold = 1.01, style = style
     )
   }
@@ -63,7 +63,7 @@ test_that("same-location coupling is support weighted and bounded", {
   expect_equal(unname(observed), c(1, -1), tolerance = 1e-12)
   expect_true(all(c(
     "centering", "support_weighting", "standardization", "direction",
-    "bounds", "units", "null_target"
+    "bounds", "unit", "null_target"
   ) %in% names(result$endpoints)))
 
   support <- c(1, 2, 7, 3, 1)
@@ -71,7 +71,7 @@ test_that("same-location coupling is support weighted and bounded", {
   second <- c(4, 1, 1, 0, 0)
   regional <- coupling_fixture(
     cbind(first, second), "s1", c("x", "y"),
-    regions = TRUE, support = support
+    parcellation = TRUE, support = support
   )
   expected <- sum(support * (first - weighted.mean(first, support)) *
     (second - weighted.mean(second, support))) /
@@ -111,13 +111,13 @@ test_that("missing layers remain missing and invalid measures fail", {
     class = "ngeo_error_measure"
   )
   invalid <- x
-  invalid$measures$spatial_semantics[[1L]] <- "extensive"
+  invalid$measures$support_behavior[[1L]] <- "extensive"
   expect_error(
     ngeo_layer_coupling(invalid, index, estimands = "same_location"),
     class = "ngeo_error_measure"
   )
   inconsistent <- x
-  inconsistent$measures$units[[3L]] <- "other"
+  inconsistent$measures$unit[[3L]] <- "other"
   loose_index <- ngeo_validate_layers(
     inconsistent, complete = "report", require_consistent_measures = FALSE
   )
@@ -135,9 +135,9 @@ test_that("spectral coupling separates energy from normalized coupling", {
     rep(c("s1", "s2", "s3", "s4"), each = 2L),
     rep(c("x", "y"), 4L)
   )
-  weights <- coupling_weights(placeholder, "B")
+  spatial_weights <- coupling_weights(placeholder, "B")
   basis <- ngeo_spatial_basis(
-    placeholder, weights, support = "identity", n_modes = 5L
+    placeholder, spatial_weights, support = "identity", n_modes = 5L
   )
   mode <- basis$components[[1L]]$vectors[, 1L]
   mode_2 <- basis$components[[1L]]$vectors[, 2L]
@@ -202,11 +202,11 @@ test_that("complete degenerate bands are rotation invariant", {
     j = c(2:n, 1L, n, seq_len(n - 1L)),
     x = 1, dims = c(n, n)
   )
-  weights <- ngeo_weights(x, method = "distance_band", threshold = 1.01,
+  spatial_weights <- ngeo_spatial_weights(x, method = "distance_band", threshold = 1.01,
                           style = "B")
-  weights$raw_matrix <- adjacency
-  weights$matrix <- adjacency
-  basis <- ngeo_spatial_basis(x, weights, support = "identity", n_modes = 7L)
+  spatial_weights$raw_matrix <- adjacency
+  spatial_weights$matrix <- adjacency
+  basis <- ngeo_spatial_basis(x, spatial_weights, support = "identity", n_modes = 7L)
   cluster <- which(basis$components[[1L]]$degenerate_cluster ==
     basis$components[[1L]]$degenerate_cluster[[1L]])
   expect_equal(length(cluster), 2L)
@@ -234,9 +234,9 @@ test_that("directional lag and classic cross-Moran retain direction", {
   x_values <- c(-2, 0, 1, 4, 3, -1, 2)
   y_values <- c(3, -1, 2, 0, 5, 4, -2)
   x <- coupling_fixture(cbind(x_values, y_values), "s1", c("x", "y"))
-  weights <- coupling_weights(x, "W")
+  spatial_weights <- coupling_weights(x, "W")
   result <- ngeo_layer_coupling(
-    x, ngeo_validate_layers(x), weights = weights,
+    x, ngeo_validate_layers(x), spatial_weights = spatial_weights,
     estimands = c("directional_lag", "classic_cross_moran"),
     lag_direction = "both"
   )
@@ -247,7 +247,7 @@ test_that("directional lag and classic cross-Moran retain direction", {
     result$values[1L, moran_rows[[1L]]],
     result$values[1L, moran_rows[[2L]]]
   )))
-  listw <- spdep::mat2listw(as.matrix(weights$matrix), style = "W")
+  listw <- spdep::mat2listw(as.matrix(spatial_weights$matrix), style = "W")
   reference_xy <- spdep::moran_bv(
     x_values, y_values, listw, nsim = 2L, scale = TRUE
   )$t0
@@ -258,7 +258,7 @@ test_that("directional lag and classic cross-Moran retain direction", {
 
   binary <- coupling_weights(x, "B")
   binary_result <- ngeo_layer_coupling(
-    x, ngeo_validate_layers(x), weights = binary,
+    x, ngeo_validate_layers(x), spatial_weights = binary,
     estimands = "classic_cross_moran", lag_direction = "x_to_y"
   )
   zx <- as.numeric(scale(x_values))
@@ -280,13 +280,13 @@ test_that("directional lag and classic cross-Moran retain direction", {
 
 test_that("isolates and ambiguous pair families are rejected", {
   x <- coupling_fixture(cbind(1:5, c(2, 4, 1, 5, 3)), "s1", c("x", "y"))
-  weights <- coupling_weights(x, "W")
-  weights$raw_matrix[5L, ] <- 0
-  weights$raw_matrix[, 5L] <- 0
-  weights$matrix <- neurogeo:::.ngeo_row_standardize(weights$raw_matrix)
+  spatial_weights <- coupling_weights(x, "W")
+  spatial_weights$raw_matrix[5L, ] <- 0
+  spatial_weights$raw_matrix[, 5L] <- 0
+  spatial_weights$matrix <- neurogeo:::.ngeo_row_standardize(spatial_weights$raw_matrix)
   expect_error(
     ngeo_layer_coupling(
-      x, ngeo_validate_layers(x), weights = weights,
+      x, ngeo_validate_layers(x), spatial_weights = spatial_weights,
       estimands = "directional_lag"
     ),
     class = "ngeo_error_zero_policy"
@@ -304,7 +304,7 @@ test_that("isolates and ambiguous pair families are rejected", {
   )
 })
 
-test_that("reference-map nulls retain regime and transformation provenance", {
+test_that("reference-map nulls retain regime and transformation history", {
   x <- coupling_fixture(
     cbind(c(-2, -1, 0, 1, 2), c(2, 0, -1, 1, -2)),
     "reference", c("x", "y")
@@ -313,7 +313,7 @@ test_that("reference-map nulls retain regime and transformation provenance", {
   group <- structure(list(
     method = "declared_permutation_group",
     mappings = mappings,
-    domain_hash = ngeo_domain_hash(x),
+    base_hash = base_hash(x),
     nsim = ncol(mappings)
   ), class = "ngeo_null")
   null <- list(

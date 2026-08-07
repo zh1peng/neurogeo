@@ -66,11 +66,11 @@
 .ngeo_spherical_coordinates <- function(x, coordinates) {
   if (!inherits(x, "ngeo_surface")) {
     .ngeo_abort(
-      "Surface spin requires a surface domain.",
-      "ngeo_error_domain"
+      "Surface spin requires a surface base.",
+      "ngeo_error_base"
     )
   }
-  metadata <- x$domain$coordinate_meta
+  metadata <- x$base$geometry$coordinate_meta
   if (is.null(coordinates)) {
     candidates <- metadata$name[metadata$role == "registration"]
     if (length(candidates) != 1L) {
@@ -89,7 +89,7 @@
       "ngeo_error_capability"
     )
   }
-  result <- x$domain$coordinates[[coordinates]]
+  result <- x$base$geometry$coordinates[[coordinates]]
   if (ncol(result) != 3L) {
     .ngeo_abort(
       "Surface spin requires 3D spherical coordinates.",
@@ -99,7 +99,7 @@
   result
 }
 
-#' Generate spherical surface-spin null maps
+#' Generate spherical surface-spin null layers
 #'
 #' Spins require an explicitly declared 3D registration coordinate set.
 #' No anatomical registration is estimated. Optional strata are rotated
@@ -108,7 +108,7 @@
 #' @param x An `ngeo_surface`.
 #' @param map One numeric map.
 #' @param coordinates Registration coordinate-set name.
-#' @param nsim Number of null maps.
+#' @param nsim Number of null layers.
 #' @param seed Reproducible seed.
 #' @param strata Optional element-aligned hemisphere or structure strata.
 #' @param workers Number of R worker processes.
@@ -128,14 +128,14 @@ ngeo_spin_null <- function(
   .ngeo_require("dbscan", "surface-spin nearest-neighbor mapping")
   ngeo_validate(x, "strict")
   spherical <- .ngeo_spherical_coordinates(x, coordinates)
-  map_index <- .ngeo_map_selection(x, map)
-  if (length(map_index) != 1L || is.null(x$values)) {
+  layer_index <- .ngeo_layer_selection(x, map)
+  if (length(layer_index) != 1L || is.null(x$values)) {
     .ngeo_abort(
       "Surface spin requires exactly one loaded map.",
       "ngeo_error_values"
     )
   }
-  values <- as.numeric(x$values[, map_index])
+  values <- as.numeric(x$values[, layer_index])
   if (any(!is.finite(values))) {
     .ngeo_abort(
       "Surface spin does not accept missing map values.",
@@ -197,13 +197,13 @@ ngeo_spin_null <- function(
     method = "surface_spin",
     simulations = do.call(cbind, lapply(simulations, `[[`, "values")),
     mappings = do.call(cbind, lapply(simulations, `[[`, "mapping")),
-    element_id = x$domain$elements$element_id,
-    map_id = x$maps$map_id[[map_index]],
-    map_name = x$maps$name[[map_index]],
-    domain_hash = ngeo_domain_hash(x),
+    element_id = x$base$elements$element_id,
+    layer_id = x$layers$layer_id[[layer_index]],
+    layer_name = x$layers$name[[layer_index]],
+    base_hash = base_hash(x),
     coordinate_set = coordinates %||%
-      x$domain$coordinate_meta$name[
-        x$domain$coordinate_meta$role == "registration"
+      x$base$geometry$coordinate_meta$name[
+        x$base$geometry$coordinate_meta$role == "registration"
       ][[1L]],
     strata = strata,
     nsim = .ngeo_nsim(nsim),
@@ -222,14 +222,14 @@ ngeo_spin_null <- function(
 #' `options(neurogeo.max_spectral_null_elements)`.
 #'
 #' @inheritParams ngeo_moran
-#' @param nsim Number of null maps.
+#' @param nsim Number of null layers.
 #' @param workers Number of R worker processes.
 #'
 #' @return An `ngeo_null` object.
 #' @export
 ngeo_moran_null <- function(
     x,
-    weights,
+    spatial_weights,
     map = 1L,
     nsim = 999L,
     seed = NULL,
@@ -239,7 +239,7 @@ ngeo_moran_null <- function(
   na_action <- match.arg(na_action)
   input <- .ngeo_spatial_inputs(
     x,
-    weights,
+    spatial_weights,
     map,
     na_action,
     zero_policy
@@ -274,16 +274,16 @@ ngeo_moran_null <- function(
     method = "moran_spectral",
     simulations = do.call(cbind, simulations),
     element_id = input$element_id,
-    map_id = input$map_id,
-    map_name = input$map_name,
-    domain_hash = input$domain_hash,
+    layer_id = input$layer_id,
+    layer_name = input$layer_name,
+    base_hash = input$base_hash,
     weights_method = input$weights_method,
     normalization = input$normalization,
     observed_moran = .ngeo_moran_value(input$values, input$matrix),
     nsim = .ngeo_nsim(nsim),
     seed = .ngeo_seed(seed),
     workers = .ngeo_workers(workers),
-    omitted = nrow(x$domain$elements) - length(input$values)
+    omitted = nrow(x$base$elements) - length(input$values)
   )
   class(result) <- "ngeo_null"
   result

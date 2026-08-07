@@ -2,7 +2,7 @@ test_that("atlas-robust effects report a bounded coefficient family", {
   fixture <- inference_fixture()
   result <- ngeo_atlas_robust_effect(
     fixture$source,
-    fixture$maps,
+    fixture$layers,
     fixture$targets,
     outcome = "outcome",
     predictor = "predictor"
@@ -18,7 +18,7 @@ test_that("common-source permutation inference is reproducible", {
   fixture <- inference_fixture()
   first <- ngeo_support_test(
     fixture$source,
-    fixture$maps,
+    fixture$layers,
     fixture$targets,
     outcome = "outcome",
     predictor = "predictor",
@@ -27,7 +27,7 @@ test_that("common-source permutation inference is reproducible", {
   )
   second <- ngeo_support_test(
     fixture$source,
-    fixture$maps,
+    fixture$layers,
     fixture$targets,
     outcome = "outcome",
     predictor = "predictor",
@@ -43,7 +43,7 @@ test_that("common-source permutation inference is reproducible", {
 
 test_that("boundary sensitivity compares target identities", {
   fixture <- inference_fixture()
-  result <- ngeo_boundary_sensitivity(fixture$maps)
+  result <- ngeo_boundary_sensitivity(fixture$layers)
 
   expect_equal(nrow(result), 2L)
   expect_equal(result$assignment_disagreement_fraction[[1L]], 0)

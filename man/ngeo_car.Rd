@@ -7,7 +7,7 @@
 ngeo_car(
   x,
   response,
-  weights,
+  spatial_weights,
   type = c("proper", "intrinsic"),
   rho = 0.95,
   precision = NULL,
@@ -19,7 +19,7 @@ ngeo_car(
 
 \item{response}{One numeric map.}
 
-\item{weights}{Matching symmetric spatial weights.}
+\item{spatial_weights}{Matching symmetric spatial spatial_weights.}
 
 \item{type}{Proper or intrinsic CAR.}
 
@@ -34,7 +34,7 @@ selected by bounded leave-one-out-like generalized cross-validation.}
 An `ngeo_car`.
 }
 \description{
-This is an exact dense smoother. Its domain size is bounded by
+This is an exact dense smoother. Its base size is bounded by
 `getOption("neurogeo.max_exact_logdet", 2000L)` before dense work begins.
 Use [ngeo_car_iterative()] for larger supported problems.
 }

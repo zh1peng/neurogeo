@@ -49,13 +49,13 @@
                                   k,
                                   threshold,
                                   symmetry,
-                                  metric) {
-  n <- nrow(x$domain$elements)
+                                  distance_method) {
+  n <- nrow(x$base$elements)
   limit <- getOption("neurogeo.max_exact_neighbors", 5000L)
   if (n > limit) {
     .ngeo_abort(
       sprintf(
-        "Graph-metric neighbour queries are limited to %s elements.",
+        "Graph-distance_method neighbour queries are limited to %s elements.",
         format(limit, big.mark = ",")
       ),
       "ngeo_error_resource"
@@ -69,7 +69,7 @@
     current <- as.numeric(ngeo_distance(
       x,
       from = i,
-      metric = metric,
+      distance_method = distance_method,
       max_distance = if (identical(method, "knn")) Inf else threshold
     ))
     current[[i]] <- Inf
@@ -122,8 +122,8 @@
                                    k,
                                    threshold,
                                    symmetry,
-                                   metric) {
-  if (metric %in% c(
+                                   distance_method) {
+  if (distance_method %in% c(
     "euclidean", "world_euclidean", "region_centroid"
   )) {
     return(.ngeo_coordinate_neighbors(
@@ -131,7 +131,7 @@
     ))
   }
   .ngeo_graph_neighbors(
-    x, method, k, threshold, symmetry, metric
+    x, method, k, threshold, symmetry, distance_method
   )
 }
 
@@ -287,7 +287,7 @@
   )
 }
 
-#' Construct sparse spatial weights
+#' Construct sparse spatial spatial_weights
 #'
 #' @param x An `ngeo` object.
 #' @param method Contiguity, KNN, radius/distance band, or a distance kernel.
@@ -295,23 +295,23 @@
 #' @param connectivity Voxel connectivity.
 #' @param k K for nearest neighbours.
 #' @param threshold Distance-band threshold.
-#' @param metric Coordinate metric recorded in the result.
+#' @param distance_method Coordinate distance_method recorded in the result.
 #' @param bandwidth Gaussian bandwidth.
 #' @param symmetry KNN symmetry policy.
 #'
-#' @return An `ngeo_weights` object.
+#' @return An `ngeo_spatial_weights` object.
 #' @examples
-#' points <- ngeo_points(
+#' point <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 1, 1, 0, 1), ncol = 2, byrow = TRUE)
 #' )
-#' weights <- ngeo_weights(
-#'   points, method = "knn", k = 2, style = "W", symmetry = "union"
+#' spatial_weights <- ngeo_spatial_weights(
+#'   point, method = "knn", k = 2, style = "W", symmetry = "union"
 #' )
-#' weights
-#' ngeo_components(weights$matrix)
-#' Matrix::rowSums(weights$matrix)
+#' spatial_weights
+#' ngeo_components(spatial_weights$matrix)
+#' Matrix::rowSums(spatial_weights$matrix)
 #' @export
-ngeo_weights <- function(x,
+ngeo_spatial_weights <- function(x,
                          method = c(
                            "mesh_contiguity", "voxel_contiguity",
                            "component_contiguity", "region_contiguity",
@@ -322,7 +322,7 @@ ngeo_weights <- function(x,
                          connectivity = 6L,
                          k = NULL,
                          threshold = NULL,
-                         metric = NULL,
+                         distance_method = NULL,
                          bandwidth = NULL,
                          symmetry = c("union", "directed", "mutual")) {
   ngeo_validate(x, "basic")
@@ -330,17 +330,17 @@ ngeo_weights <- function(x,
   style <- match.arg(style)
   symmetry <- match.arg(symmetry)
   contiguity_method <- grepl("_contiguity$", method)
-  metric <- metric %||% if (contiguity_method) {
+  distance_method <- distance_method %||% if (contiguity_method) {
     "hops"
   } else {
     switch(
-      x$domain$type,
+      x$base$type,
       volume = "world_euclidean",
-      regions = "region_centroid",
+      parcellation = "region_centroid",
       "euclidean"
     )
   }
-  metric_name <- .ngeo_metric_name(metric)
+  metric_name <- .ngeo_metric_name(distance_method)
 
   raw <- switch(
     method,
@@ -384,7 +384,7 @@ ngeo_weights <- function(x,
       if (is.null(bandwidth) || length(bandwidth) != 1L ||
           is.na(bandwidth) || bandwidth <= 0) {
         .ngeo_abort(
-          "Gaussian weights require a positive `bandwidth`.",
+          "Gaussian spatial_weights require a positive `bandwidth`.",
           "ngeo_error_argument"
         )
       }
@@ -416,9 +416,9 @@ ngeo_weights <- function(x,
     list(
       matrix = matrix,
       raw_matrix = raw,
-      domain_hash = ngeo_domain_hash(x),
+      base_hash = base_hash(x),
       method = method,
-      metric = metric_name,
+      distance_method = metric_name,
       normalization = style,
       parameters = list(
         connectivity = connectivity,
@@ -430,58 +430,58 @@ ngeo_weights <- function(x,
       diagonal = "zero",
       diagnostics = .ngeo_weight_diagnostics(raw)
     ),
-    class = "ngeo_weights"
+    class = "ngeo_spatial_weights"
   )
 }
 
-#' Construct neighbours through the weights API
+#' Construct neighbours through the spatial_weights API
 #'
 #' @param x An `ngeo` object.
 #' @param method Contiguity, KNN, or distance band.
 #' @param k K for nearest neighbours.
 #' @param threshold Distance threshold.
-#' @param metric Explicit metric.
-#' @param ... Additional `ngeo_weights()` arguments.
+#' @param distance_method Explicit distance_method.
+#' @param ... Additional `ngeo_spatial_weights()` arguments.
 #'
-#' @return An `ngeo_weights` object.
+#' @return An `ngeo_spatial_weights` object.
 #' @export
 ngeo_neighbors <- function(x,
                            method = c("contiguity", "knn", "distance_band"),
                            k = NULL,
                            threshold = NULL,
-                           metric = NULL,
+                           distance_method = NULL,
                            ...) {
   method <- match.arg(method)
   weight_method <- if (identical(method, "contiguity")) {
     switch(
-      x$domain$type,
+      x$base$type,
       surface = "mesh_contiguity",
       volume = "voxel_contiguity",
-      grayordinates = "component_contiguity",
-      regions = "region_contiguity",
+      grayordinate = "component_contiguity",
+      parcellation = "region_contiguity",
       .ngeo_abort(
-        sprintf("Domain `%s` has no contiguity.", x$domain$type),
+        sprintf("Domain `%s` has no contiguity.", x$base$type),
         "ngeo_error_capability"
       )
     )
   } else {
     method
   }
-  ngeo_weights(
+  ngeo_spatial_weights(
     x,
     method = weight_method,
     style = "B",
     k = k,
     threshold = threshold,
-    metric = metric,
+    distance_method = distance_method,
     ...
   )
 }
 
 #' @export
-print.ngeo_weights <- function(x, ...) {
+print.ngeo_spatial_weights <- function(x, ...) {
   cat(
-    "<ngeo_weights>\n",
+    "<ngeo_spatial_weights>\n",
     "  method: ", x$method, "\n",
     "  elements: ", nrow(x$matrix), "\n",
     "  nonzero: ", length(x$matrix@x), "\n",
@@ -492,15 +492,15 @@ print.ngeo_weights <- function(x, ...) {
   invisible(x)
 }
 
-#' Convert weights to an igraph graph
+#' Convert spatial_weights to an igraph graph
 #'
-#' @param x An `ngeo_weights`.
+#' @param x An `ngeo_spatial_weights`.
 #' @return An igraph object.
 #' @export
 as_igraph <- function(x) {
   .ngeo_require("igraph", "igraph conversion")
-  if (!inherits(x, "ngeo_weights")) {
-    .ngeo_abort("`x` must be `ngeo_weights`.", "ngeo_error_argument")
+  if (!inherits(x, "ngeo_spatial_weights")) {
+    .ngeo_abort("`x` must be `ngeo_spatial_weights`.", "ngeo_error_argument")
   }
   igraph::graph_from_adjacency_matrix(
     x$matrix,
@@ -510,15 +510,15 @@ as_igraph <- function(x) {
   )
 }
 
-#' Convert weights to an spdep neighbour list
+#' Convert spatial_weights to an spdep neighbour list
 #'
-#' @param x An `ngeo_weights`.
+#' @param x An `ngeo_spatial_weights`.
 #' @return An `spdep` `nb` object.
 #' @export
 as_spdep_nb <- function(x) {
   .ngeo_require("spdep", "spdep conversion")
-  if (!inherits(x, "ngeo_weights")) {
-    .ngeo_abort("`x` must be `ngeo_weights`.", "ngeo_error_argument")
+  if (!inherits(x, "ngeo_spatial_weights")) {
+    .ngeo_abort("`x` must be `ngeo_spatial_weights`.", "ngeo_error_argument")
   }
   n <- nrow(x$matrix)
   entries <- Matrix::summary(x$matrix)
@@ -537,9 +537,9 @@ as_spdep_nb <- function(x) {
   neighbors
 }
 
-#' Convert weights to an spdep listw object
+#' Convert spatial_weights to an spdep listw object
 #'
-#' @param x An `ngeo_weights`.
+#' @param x An `ngeo_spatial_weights`.
 #' @return An `spdep` `listw` object.
 #' @export
 as_spdep_listw <- function(x) {
@@ -547,10 +547,10 @@ as_spdep_listw <- function(x) {
   nb <- as_spdep_nb(x)
   n <- nrow(x$matrix)
   entries <- Matrix::summary(x$matrix)
-  weights <- split(entries$x, factor(entries$i, levels = seq_len(n)))
+  spatial_weights <- split(entries$x, factor(entries$i, levels = seq_len(n)))
   spdep::nb2listw(
     nb,
-    glist = weights,
+    glist = spatial_weights,
     style = "B",
     zero.policy = TRUE
   )

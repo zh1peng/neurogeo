@@ -17,7 +17,7 @@
 #' Fit a bounded weighted least-squares variogram model
 #'
 #' @param x An empirical `ngeo_variogram` or an `ngeo` dataset.
-#' @param map,metric,breaks,max_distance Passed to `ngeo_variogram()`.
+#' @param map,distance_method,breaks,max_distance Passed to `ngeo_variogram()`.
 #' @param model Spherical, exponential, or Gaussian model.
 #' @param start Optional named nugget, partial-sill, and range start.
 #'
@@ -25,9 +25,9 @@
 #' @examples
 #' coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
 #' signal <- sin(coordinates[, 1] / 2) + cos(coordinates[, 2] / 2)
-#' points <- ngeo_points(coordinates, values = cbind(signal = signal))
+#' point <- ngeo_point(coordinates, values = cbind(signal = signal))
 #' fit <- ngeo_fit_variogram(
-#'   points, "signal", breaks = c(0, 1.1, 2.1, 3.1, 4.5, 6),
+#'   point, "signal", breaks = c(0, 1.1, 2.1, 3.1, 4.5, 6),
 #'   model = "spherical"
 #' )
 #' fit
@@ -35,7 +35,7 @@
 ngeo_fit_variogram <- function(
     x,
     map = 1L,
-    metric = NULL,
+    distance_method = NULL,
     breaks = 10L,
     max_distance = Inf,
     model = c("spherical", "exponential", "gaussian"),
@@ -45,7 +45,7 @@ ngeo_fit_variogram <- function(
     x
   } else {
     ngeo_variogram(
-      x, map = map, metric = metric, breaks = breaks,
+      x, map = map, distance_method = distance_method, breaks = breaks,
       max_distance = max_distance
     )
   }
@@ -106,10 +106,10 @@ ngeo_fit_variogram <- function(
       empirical$distance, model, fit$par[[1L]],
       fit$par[[2L]], fit$par[[3L]]
     ),
-    weights = "n_pairs / semivariance^2",
+    spatial_weights = "n_pairs / semivariance^2",
     convergence = fit$convergence,
-    metric = attr(empirical, "metric"),
-    domain_hash = attr(empirical, "domain_hash")
+    distance_method = attr(empirical, "distance_method"),
+    base_hash = attr(empirical, "base_hash")
   )
   class(result) <- "ngeo_variogram_fit"
   result
@@ -155,22 +155,22 @@ print.ngeo_variogram_fit <- function(x, ...) {
 #' @param map Response map.
 #' @param variogram A fitted `ngeo_variogram_fit`.
 #' @param targets Target element selection or coordinate matrix.
-#' @param predictors Optional trend predictor maps for universal kriging.
+#' @param predictors Optional trend predictor layers for universal kriging.
 #' @param target_predictors Predictor matrix for external target coordinates.
 #' @param neighbors Maximum local observations.
-#' @param metric Declared metric; current prediction coordinates must be
+#' @param distance_method Declared distance_method; current prediction coordinates must be
 #'   Euclidean-eligible.
 #'
 #' @return An `ngeo_kriging` data frame.
 #' @examples
 #' coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
 #' signal <- sin(coordinates[, 1] / 2) + cos(coordinates[, 2] / 2)
-#' points <- ngeo_points(coordinates, values = cbind(signal = signal))
+#' point <- ngeo_point(coordinates, values = cbind(signal = signal))
 #' fit <- ngeo_fit_variogram(
-#'   points, "signal", breaks = c(0, 1.1, 2.1, 3.1, 4.5, 6)
+#'   point, "signal", breaks = c(0, 1.1, 2.1, 3.1, 4.5, 6)
 #' )
 #' ngeo_kriging(
-#'   points, "signal", fit,
+#'   point, "signal", fit,
 #'   targets = matrix(
 #'     c(1.5, 1.5, 0, 2.5, 2.5, 0),
 #'     ncol = 3, byrow = TRUE
@@ -186,24 +186,24 @@ ngeo_kriging <- function(
     predictors = character(),
     target_predictors = NULL,
     neighbors = 50L,
-    metric = NULL) {
+    distance_method = NULL) {
   ngeo_validate(x, "strict")
   if (!inherits(variogram, "ngeo_variogram_fit")) {
     .ngeo_abort("`variogram` must be fitted.", "ngeo_error_argument")
   }
-  metric <- metric %||% variogram$metric %||% switch(
-    x$domain$type,
+  distance_method <- distance_method %||% variogram$distance_method %||% switch(
+    x$base$type,
     surface = "edge_geodesic",
     volume = "world_euclidean",
-    points = "euclidean",
-    regions = "region_centroid",
-    grayordinates = "edge_geodesic"
+    point = "euclidean",
+    parcellation = "region_centroid",
+    grayordinate = "edge_geodesic"
   )
-  metric_name <- .ngeo_metric_name(metric)
-  if (!is.null(variogram$metric) &&
-      !identical(.ngeo_metric_name(variogram$metric), metric_name)) {
+  metric_name <- .ngeo_metric_name(distance_method)
+  if (!is.null(variogram$distance_method) &&
+      !identical(.ngeo_metric_name(variogram$distance_method), metric_name)) {
     .ngeo_abort(
-      "Kriging metric must match the fitted variogram metric.",
+      "Kriging distance_method must match the fitted variogram distance_method.",
       "ngeo_error_metric"
     )
   }
@@ -211,12 +211,12 @@ ngeo_kriging <- function(
   if (length(neighbors) != 1L || neighbors < 2L) {
     .ngeo_abort("`neighbors` must be at least two.", "ngeo_error_argument")
   }
-  maps <- .ngeo_model_maps(x, map, predictors)
+  layers <- .ngeo_model_maps(x, map, predictors)
   coordinates <- .ngeo_element_coordinates(x)
-  values <- as.numeric(x$values[, maps$response])
+  values <- as.numeric(x$values[, layers$response])
   design <- cbind(
     `(Intercept)` = 1,
-    x$values[, maps$predictors, drop = FALSE]
+    x$values[, layers$predictors, drop = FALSE]
   )
   finite <- is.finite(values) & apply(is.finite(design), 1L, all)
   training <- which(finite)
@@ -229,7 +229,7 @@ ngeo_kriging <- function(
       "euclidean", "world_euclidean", "region_centroid"
     )) {
       .ngeo_abort(
-        "External kriging targets require a coordinate metric.",
+        "External kriging targets require a coordinate distance_method.",
         "ngeo_error_metric"
       )
     }
@@ -274,7 +274,7 @@ ngeo_kriging <- function(
         x,
         from = target_index[[i]],
         to = training,
-        metric = metric_name
+        distance_method = metric_name
       ))
     } else {
       sqrt(rowSums(
@@ -297,7 +297,7 @@ ngeo_kriging <- function(
         x,
         from = local,
         to = local,
-        metric = metric_name
+        distance_method = metric_name
       ))
     } else {
       .ngeo_euclidean_matrix(
@@ -313,7 +313,7 @@ ngeo_kriging <- function(
         x,
         from = local,
         to = target_index[[i]],
-        metric = metric_name
+        distance_method = metric_name
       ))
     } else {
       .ngeo_euclidean_matrix(
@@ -351,7 +351,7 @@ ngeo_kriging <- function(
   }
   result <- data.frame(
     target = if (is.null(target_index)) seq_len(nrow(target_coordinates)) else
-      x$domain$elements$element_id[target_index],
+      x$base$elements$element_id[target_index],
     prediction = prediction,
     variance = variance,
     standard_error = sqrt(variance),
@@ -359,8 +359,8 @@ ngeo_kriging <- function(
     stringsAsFactors = FALSE
   )
   attr(result, "method") <- if (length(predictors)) "universal" else "ordinary"
-  attr(result, "metric") <- metric_name
-  attr(result, "domain_hash") <- ngeo_domain_hash(x)
+  attr(result, "distance_method") <- metric_name
+  attr(result, "base_hash") <- base_hash(x)
   attr(result, "linear_weights") <- .ngeo_as_dgCMatrix(
     linear_weights
   )
@@ -382,7 +382,7 @@ ngeo_gwr_bandwidth <- function(
     response,
     predictors,
     candidates,
-    metric = NULL,
+    distance_method = NULL,
     kernel = c("gaussian", "bisquare"),
     cv = c("loo", "kfold"),
     folds = 5L) {
@@ -393,23 +393,23 @@ ngeo_gwr_bandwidth <- function(
       any(candidates <= 0)) {
     .ngeo_abort("Bandwidth candidates must be positive.", "ngeo_error_argument")
   }
-  maps <- .ngeo_model_maps(x, response, predictors)
-  y <- as.numeric(x$values[, maps$response])
-  design <- cbind(1, x$values[, maps$predictors, drop = FALSE])
-  metric <- metric %||% switch(
-    x$domain$type,
+  layers <- .ngeo_model_maps(x, response, predictors)
+  y <- as.numeric(x$values[, layers$response])
+  design <- cbind(1, x$values[, layers$predictors, drop = FALSE])
+  distance_method <- distance_method %||% switch(
+    x$base$type,
     surface = "edge_geodesic",
     volume = "world_euclidean",
-    points = "euclidean",
-    regions = "region_centroid",
-    grayordinates = "edge_geodesic"
+    point = "euclidean",
+    parcellation = "region_centroid",
+    grayordinate = "edge_geodesic"
   )
-  metric_name <- .ngeo_metric_name(metric)
+  metric_name <- .ngeo_metric_name(distance_method)
   distances <- unname(ngeo_distance(
     x,
     from = seq_len(nrow(design)),
     to = seq_len(nrow(design)),
-    metric = metric_name
+    distance_method = metric_name
   ))
   folds <- if (cv == "loo") seq_len(nrow(design)) else
     ((seq_len(nrow(design)) - 1L) %% .ngeo_as_integer(folds, "folds")) + 1L
@@ -443,9 +443,9 @@ ngeo_gwr_bandwidth <- function(
     candidates = data.frame(bandwidth = candidates, rmse = score),
     cv = cv,
     folds = if (cv == "loo") nrow(design) else length(unique(folds)),
-    metric = metric_name,
+    distance_method = metric_name,
     kernel = kernel,
-    domain_hash = ngeo_domain_hash(x)
+    base_hash = base_hash(x)
   )
   class(result) <- "ngeo_gwr_bandwidth"
   result
@@ -460,7 +460,7 @@ ngeo_gwr_bandwidth <- function(
 #' @examples
 #' coordinates <- as.matrix(expand.grid(x = 0:3, y = 0:3))
 #' predictor <- coordinates[, 1] - coordinates[, 2]
-#' points <- ngeo_points(
+#' point <- ngeo_point(
 #'   coordinates,
 #'   values = cbind(
 #'     response = 1 + 2 * predictor + 0.05 * coordinates[, 1],
@@ -468,7 +468,7 @@ ngeo_gwr_bandwidth <- function(
 #'   )
 #' )
 #' head(ngeo_gwr(
-#'   points, "response", "predictor",
+#'   point, "response", "predictor",
 #'   bandwidth = 2.5, singular = "error"
 #' ))
 #' @export
@@ -477,10 +477,10 @@ ngeo_gwr <- function(
     response,
     predictors,
     bandwidth,
-    metric = NULL,
+    distance_method = NULL,
     kernel = c("gaussian", "bisquare"),
     targets = NULL,
-    support = c("none", "domain"),
+    support = c("none", "base"),
     singular = c("na", "error")) {
   value <- if (inherits(bandwidth, "ngeo_gwr_bandwidth")) {
     bandwidth$bandwidth
@@ -488,7 +488,7 @@ ngeo_gwr <- function(
     bandwidth
   }
   result <- ngeo_kernel_regression(
-    x, response, predictors, value, metric = metric,
+    x, response, predictors, value, distance_method = distance_method,
     kernel = match.arg(kernel), targets = targets,
     support = match.arg(support), singular = match.arg(singular)
   )
@@ -563,7 +563,7 @@ print.ngeo_gwr <- function(x, ...) {
   )
   if (parameter_interval[[1L]] >= parameter_interval[[2L]]) {
     .ngeo_abort(
-      "Spatial weights have no usable autoregressive parameter interval.",
+      "Spatial spatial_weights have no usable autoregressive parameter interval.",
       "ngeo_error_model"
     )
   }
@@ -615,7 +615,7 @@ print.ngeo_gwr <- function(x, ...) {
   objective(optimized$minimum, details = TRUE)
 }
 
-#' Fit OLS, SLX, SAR, or SEM on one aligned domain
+#' Fit OLS, SLX, SAR, or SEM on one aligned base
 #'
 #' SAR and SEM use a bounded exact dense log determinant. They are intended
 #' for reference-sized problems; larger inputs fail rather than silently
@@ -628,32 +628,32 @@ print.ngeo_gwr <- function(x, ...) {
 #' @examples
 #' coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
 #' predictor <- coordinates[, 1] + coordinates[, 2]
-#' data <- ngeo_points(
+#' data <- ngeo_point(
 #'   coordinates,
 #'   values = cbind(
 #'     response = 1 + 1.5 * predictor + rep(c(-0.2, 0, 0.2), 3),
 #'     predictor = predictor
 #'   )
 #' )
-#' weights <- ngeo_weights(
+#' spatial_weights <- ngeo_spatial_weights(
 #'   data, method = "knn", k = 4, symmetry = "union"
 #' )
 #' ngeo_spatial_regression(
-#'   data, "response", "predictor", weights, model = "sar"
+#'   data, "response", "predictor", spatial_weights, model = "sar"
 #' )
 #' @export
 ngeo_spatial_regression <- function(
     x,
     response,
     predictors = character(),
-    weights = NULL,
+    spatial_weights = NULL,
     model = c("ols", "slx", "sar", "sem"),
     na_action = c("fail", "omit"),
     zero_policy = FALSE) {
   model <- match.arg(model)
   if (model %in% c("ols", "slx")) {
     result <- ngeo_spatial_lm(
-      x, response, predictors, weights,
+      x, response, predictors, spatial_weights,
       model = model, na_action = match.arg(na_action),
       zero_policy = zero_policy
     )
@@ -661,26 +661,26 @@ ngeo_spatial_regression <- function(
     result$log_determinant_method <- NULL
     return(result)
   }
-  if (is.null(weights)) {
-    .ngeo_abort("SAR and SEM require matching weights.", "ngeo_error_weights")
+  if (is.null(spatial_weights)) {
+    .ngeo_abort("SAR and SEM require matching spatial_weights.", "ngeo_error_weights")
   }
-  maps <- .ngeo_model_maps(x, response, predictors)
-  y <- as.numeric(x$values[, maps$response])
-  predictor <- x$values[, maps$predictors, drop = FALSE]
+  layers <- .ngeo_model_maps(x, response, predictors)
+  y <- as.numeric(x$values[, layers$response])
+  predictor <- x$values[, layers$predictors, drop = FALSE]
   finite <- is.finite(y)
   if (ncol(predictor)) {
     finite <- finite & apply(is.finite(predictor), 1L, all)
   }
   if (match.arg(na_action) == "fail" && !all(finite)) {
-    .ngeo_abort("Model maps contain non-finite values.", "ngeo_error_missing")
+    .ngeo_abort("Model layers contain non-finite values.", "ngeo_error_missing")
   }
   index <- which(finite)
   design <- cbind(`(Intercept)` = 1, predictor[index, , drop = FALSE])
-  colnames(design) <- c("(Intercept)", maps$predictor_names)
+  colnames(design) <- c("(Intercept)", layers$predictor_names)
   if (nrow(design) <= ncol(design)) {
     .ngeo_abort("The spatial design is underpowered.", "ngeo_error_model")
   }
-  weight <- .ngeo_model_weights(x, weights, index, zero_policy)
+  weight <- .ngeo_model_weights(x, spatial_weights, index, zero_policy)
   fit <- .ngeo_spatial_ml(y[index], design, weight, model)
   coefficient <- data.frame(
     term = colnames(design),
@@ -694,10 +694,10 @@ ngeo_spatial_regression <- function(
     parameter_name = if (model == "sar") "rho" else "lambda",
     fitted = fit$fitted,
     residuals = fit$residuals,
-    element_id = x$domain$elements$element_id[index],
+    element_id = x$base$elements$element_id[index],
     complete_index = index,
-    response = maps$response_name,
-    predictors = maps$predictor_names,
+    response = layers$response_name,
+    predictors = layers$predictor_names,
     sigma = sqrt(fit$sigma2),
     logLik = fit$logLik,
     residual_moran = if (stats::var(fit$residuals) > 0) {
@@ -709,8 +709,8 @@ ngeo_spatial_regression <- function(
     log_determinant_method = "exact_dense",
     parameter_interval = fit$parameter_interval,
     tolerance = 1e-8,
-    domain_hash = ngeo_domain_hash(x),
-    weights_method = weights$method,
+    base_hash = base_hash(x),
+    weights_method = spatial_weights$method,
     zero_policy = isTRUE(zero_policy)
   )
   class(result) <- "ngeo_spatial_regression"
@@ -734,13 +734,13 @@ print.ngeo_spatial_regression <- function(x, ...) {
 
 #' Fit a foundational Gaussian CAR smoother
 #'
-#' This is an exact dense smoother. Its domain size is bounded by
+#' This is an exact dense smoother. Its base size is bounded by
 #' `getOption("neurogeo.max_exact_logdet", 2000L)` before dense work begins.
 #' Use [ngeo_car_iterative()] for larger supported problems.
 #'
 #' @param x An `ngeo` dataset.
 #' @param response One numeric map.
-#' @param weights Matching symmetric spatial weights.
+#' @param spatial_weights Matching symmetric spatial spatial_weights.
 #' @param type Proper or intrinsic CAR.
 #' @param rho Proper-CAR dependence in `[0, 1)`.
 #' @param precision Optional positive smoothing precision; when omitted it is
@@ -752,28 +752,28 @@ print.ngeo_spatial_regression <- function(x, ...) {
 ngeo_car <- function(
     x,
     response,
-    weights,
+    spatial_weights,
     type = c("proper", "intrinsic"),
     rho = 0.95,
     precision = NULL,
     zero_policy = FALSE) {
   type <- match.arg(type)
-  maps <- .ngeo_model_maps(x, response, character())
+  layers <- .ngeo_model_maps(x, response, character())
   .ngeo_assert_exact_model_size(
-    nrow(x$domain$elements),
+    nrow(x$base$elements),
     "Exact CAR smoothing"
   )
-  y <- as.numeric(x$values[, maps$response])
+  y <- as.numeric(x$values[, layers$response])
   if (any(!is.finite(y))) {
     .ngeo_abort("CAR response must be finite.", "ngeo_error_missing")
   }
   weight <- .ngeo_model_weights(
-    x, weights, seq_along(y), zero_policy
+    x, spatial_weights, seq_along(y), zero_policy
   )
   weight <- (weight + Matrix::t(weight)) / 2
   degree <- Matrix::rowSums(abs(weight))
   if (any(degree == 0) && !isTRUE(zero_policy)) {
-    .ngeo_abort("CAR weights contain isolates.", "ngeo_error_zero_policy")
+    .ngeo_abort("CAR spatial_weights contain isolates.", "ngeo_error_zero_policy")
   }
   if (!is.numeric(rho) || length(rho) != 1L ||
       !is.finite(rho) || rho < 0 || rho >= 1) {
@@ -820,9 +820,9 @@ ngeo_car <- function(
       constraint = if (type == "intrinsic") "sum-to-zero spatial effect" else
         "proper precision",
       isolates = which(degree == 0),
-      response = maps$response_name,
-      domain_hash = ngeo_domain_hash(x),
-      weights_method = weights$method
+      response = layers$response_name,
+      base_hash = base_hash(x),
+      weights_method = spatial_weights$method
     )
   )
   class(result) <- "ngeo_car"
@@ -837,12 +837,12 @@ print.ngeo_car <- function(x, ...) {
   invisible(x)
 }
 
-#' Fit a declared spatial model across support maps
+#' Fit a declared spatial model across support layers
 #'
 #' @param x Source `ngeo` dataset.
-#' @param support_maps Complete source-to-target maps.
+#' @param support_maps Complete source-to-target layers.
 #' @param targets Aligned target templates.
-#' @param weights Aligned target weights or one weight reused for all targets.
+#' @param spatial_weights Aligned target spatial_weights or one weight reused for all targets.
 #' @inheritParams ngeo_spatial_regression
 #'
 #' @return An `ngeo_support_model`.
@@ -853,37 +853,37 @@ ngeo_support_model <- function(
     targets,
     response,
     predictors,
-    weights = NULL,
+    spatial_weights = NULL,
     model = c("ols", "slx", "sar", "sem"),
     zero_policy = FALSE) {
   model <- match.arg(model)
   if (inherits(targets, "ngeo")) {
     targets <- rep(list(targets), length(support_maps))
   }
-  if (inherits(weights, "ngeo_weights")) {
-    weights <- rep(list(weights), length(support_maps))
+  if (inherits(spatial_weights, "ngeo_spatial_weights")) {
+    spatial_weights <- rep(list(spatial_weights), length(support_maps))
   }
   if (!is.list(support_maps) || !length(support_maps) ||
       !is.list(targets) || length(targets) != length(support_maps) ||
-      (!is.null(weights) && (
-        !is.list(weights) || length(weights) != length(support_maps)
+      (!is.null(spatial_weights) && (
+        !is.list(spatial_weights) || length(spatial_weights) != length(support_maps)
       ))) {
     .ngeo_abort("Support-model inputs must align.", "ngeo_error_alignment")
   }
   selected <- c(
-    .ngeo_map_selection(x, response),
-    .ngeo_map_selection(x, predictors)
+    .ngeo_layer_selection(x, response),
+    .ngeo_layer_selection(x, predictors)
   )
   fits <- lapply(seq_along(support_maps), function(i) {
-    changed <- ngeo_change_support(
-      x, targets[[i]], support_maps[[i]], maps = selected
+    changed <- aggregate_to(
+      x, targets[[i]], support_maps[[i]], layers = selected
     )
     ngeo_spatial_regression(
       changed,
       response = 1L,
       predictors = if (length(predictors)) seq.int(2L, length(selected)) else
         character(),
-      weights = if (is.null(weights)) NULL else weights[[i]],
+      spatial_weights = if (is.null(spatial_weights)) NULL else spatial_weights[[i]],
       model = model,
       zero_policy = zero_policy
     )

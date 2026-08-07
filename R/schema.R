@@ -9,25 +9,25 @@
       "one_domain", "aligned_values", "unique_element_id",
       "invertible_affine", "bounded_voxel_index"
     )),
-    list("ngcs/ngeo-points", "ngeo_points", c(
+    list("ngcs/ngeo-point", "ngeo_point", c(
       "one_domain", "aligned_values", "unique_element_id",
       "finite_coordinates"
     )),
-    list("ngcs/ngeo-grayordinates", "ngeo_grayordinates", c(
+    list("ngcs/ngeo-grayordinate", "ngeo_grayordinate", c(
       "one_domain", "aligned_values", "unique_element_id",
       "ordered_component_partition"
     )),
-    list("ngcs/ngeo-regions", "ngeo_regions", c(
+    list("ngcs/ngeo-parcellation", "ngeo_parcellation", c(
       "one_domain", "aligned_values", "unique_region_id",
       "aligned_support"
     )),
-    list("ngcs/space", "ngeo_space", c(
+    list("ngcs/coordinate_space", "ngeo_coordinate_space", c(
       "stable_signature", "explicit_units", "explicit_kind"
     )),
     list("ngcs/transform", "ngeo_transform", c(
       "exact_source_space", "exact_target_space", "declared_method"
     )),
-    list("ngcs/weights", "ngeo_weights", c(
+    list("ngcs/spatial_weights", "ngeo_spatial_weights", c(
       "square_sparse_matrix", "domain_bound", "declared_style"
     )),
     list("ngcs/partition", "ngeo_partition", c(
@@ -52,19 +52,19 @@
       "explicit_resampling_policies", "bounded_execution"
     )),
     list("ngcs/resampling-result", "ngeo_resampling_result", c(
-      "one_target_domain", "joint_path_map_identity",
+      "one_target_domain", "joint_path_layer_identity",
       "explicit_uncertainty_policy"
     )),
     list("ngcs/time-axis", "ngeo_time_axis", c(
       "strictly_increasing_time", "explicit_temporal_unit",
       "explicit_support", "stable_axis_identity"
     )),
-    list("ngcs/temporal-weights", "ngeo_temporal_weights", c(
+    list("ngcs/temporal-spatial_weights", "ngeo_temporal_weights", c(
       "square_sparse_matrix", "axis_bound",
       "declared_temporal_relation"
     )),
     list(
-      "ngcs/spatiotemporal-weights",
+      "ngcs/spatiotemporal-spatial_weights",
       "ngeo_spatiotemporal_weights",
       c(
         "separable_component_operators", "domain_and_axis_bound",
@@ -95,7 +95,7 @@
       "domain_and_weights_bound", "declared_car_precision",
       "iterative_convergence", "sparse_operator"
     )),
-    list("ngcs/provenance-dag", "ngeo_provenance_dag", c(
+    list("ngcs/history-dag", "ngeo_history_dag", c(
       "unique_nodes", "existing_parents", "acyclic_graph",
       "immutable_identity"
     )),
@@ -111,7 +111,7 @@
       "derivative_only_scope", "complete_batch",
       "verified_artifact_manifest", "atomic_publication"
     )),
-    list("ngcs/space-registry", "ngeo_space_registry", c(
+    list("ngcs/coordinate_space-registry", "ngeo_coordinate_space_registry", c(
       "exact_space_hashes", "immutable_alias_targets", "registry_hash"
     )),
     list("ngcs/transform-graph", "ngeo_transform_graph", c(
@@ -132,8 +132,8 @@
         "3.1" = "ngcs/file-values",
         "3.2" = c("ngcs/resampling-plan", "ngcs/resampling-result"),
         "3.3" = c(
-          "ngcs/time-axis", "ngcs/temporal-weights",
-          "ngcs/spatiotemporal-weights"
+          "ngcs/time-axis", "ngcs/temporal-spatial_weights",
+          "ngcs/spatiotemporal-spatial_weights"
         ),
         "3.4" = c(
           "ngcs/solver-control", "ngcs/iterative-solution",
@@ -141,7 +141,7 @@
           "ngcs/iterative-car"
         ),
         "3.5" = c(
-          "ngcs/provenance-dag", "ngcs/replay-manifest",
+          "ngcs/history-dag", "ngcs/replay-manifest",
           "ngcs/artifact-manifest", "ngcs/batch-manifest"
         )
       )
@@ -176,18 +176,18 @@
   }
   switch(
     schema_id,
-    "ngcs/space" = {
-      ngeo_space_hash(x)
+    "ngcs/coordinate_space" = {
+      ngeo_coordinate_space_hash(x)
       invisible(x)
     },
     "ngcs/transform" = ngeo_validate_transform(x),
-    "ngcs/weights" = {
-      if (!inherits(x, "ngeo_weights") ||
+    "ngcs/spatial_weights" = {
+      if (!inherits(x, "ngeo_spatial_weights") ||
           !inherits(x$matrix, "Matrix") ||
           nrow(x$matrix) != ncol(x$matrix) ||
-          !is.character(x$domain_hash) ||
-          length(x$domain_hash) != 1L) {
-        .ngeo_abort("Invalid `ngeo_weights` object.",
+          !is.character(x$base_hash) ||
+          length(x$base_hash) != 1L) {
+        .ngeo_abort("Invalid `ngeo_spatial_weights` object.",
                     "ngeo_error_weights")
       }
       invisible(x)
@@ -203,8 +203,8 @@
     "ngcs/resampling-plan" = ngeo_validate_resampling_plan(x),
     "ngcs/resampling-result" = .ngeo_validate_resampling_result(x),
     "ngcs/time-axis" = ngeo_validate_time_axis(x),
-    "ngcs/temporal-weights" = ngeo_validate_temporal_weights(x),
-    "ngcs/spatiotemporal-weights" =
+    "ngcs/temporal-spatial_weights" = ngeo_validate_temporal_weights(x),
+    "ngcs/spatiotemporal-spatial_weights" =
       ngeo_validate_spatiotemporal_weights(x),
     "ngcs/solver-control" = ngeo_validate_solver_control(x),
     "ngcs/iterative-solution" = {
@@ -259,7 +259,7 @@
           !is.list(x$optimization) ||
           !is.logical(x$optimization$converged) ||
           length(x$optimization$converged) != 1L ||
-          !is.character(x$domain_hash) ||
+          !is.character(x$base_hash) ||
           !is.character(x$control_hash)) {
         .ngeo_abort(
           "Invalid iterative spatial regression result.",
@@ -277,7 +277,7 @@
           !is.numeric(x$precision) || length(x$precision) != 1L ||
           !is.finite(x$precision) || x$precision <= 0 ||
           !inherits(x$solve, "ngeo_iterative_solution") ||
-          !is.character(x$domain_hash) ||
+          !is.character(x$base_hash) ||
           !is.character(x$control_hash)) {
         .ngeo_abort(
           "Invalid iterative CAR result.",
@@ -286,14 +286,14 @@
       }
       invisible(x)
     },
-    "ngcs/provenance-dag" = ngeo_validate_provenance_dag(x),
+    "ngcs/history-dag" = ngeo_validate_history_dag(x),
     "ngcs/replay-manifest" =
       ngeo_validate_replay_manifest(x, mode = "error"),
     "ngcs/artifact-manifest" =
       ngeo_validate_artifact_manifest(x, mode = "error"),
     "ngcs/batch-manifest" =
       ngeo_validate_artifact_batch(x, mode = "error"),
-    "ngcs/space-registry" = ngeo_validate_space_registry(x),
+    "ngcs/coordinate_space-registry" = ngeo_validate_space_registry(x),
     "ngcs/transform-graph" = ngeo_validate_transform_graph(x),
     "ngcs/resource-budget" = {
       limits <- unlist(x, use.names = FALSE)
@@ -420,37 +420,37 @@
   )
 }
 
-.ngeo_portable_domain_signature <- function(domain) {
+.ngeo_portable_domain_signature <- function(base) {
   common <- list(
-    type = domain$type,
-    elements = domain$elements,
-    space = .ngeo_space_signature(domain$space)
+    type = base$type,
+    elements = base$elements,
+    coordinate_space = .ngeo_coordinate_space_signature(base$coordinate_space)
   )
   specific <- switch(
-    domain$type,
+    base$type,
     surface = list(
-      coordinates = domain$coordinates,
-      coordinate_meta = domain$coordinate_meta,
-      faces = domain$faces,
-      active_coordinate = domain$active_coordinate
+      coordinates = base$geometry$coordinates,
+      coordinate_meta = base$geometry$coordinate_meta,
+      faces = base$geometry$faces,
+      active_coordinate = base$active_coordinate
     ),
     volume = list(
-      dimensions = domain$dim,
-      affine = domain$affine,
-      voxel_index = domain$voxel_index
+      dimensions = base$geometry$dim,
+      affine = base$geometry$affine,
+      voxel_index = base$geometry$voxel_index
     ),
-    points = list(
-      coordinates = domain$coordinates,
-      uncertainty = domain$uncertainty
+    point = list(
+      coordinates = base$geometry$coordinates,
+      uncertainty = base$geometry$uncertainty
     ),
-    grayordinates = list(
-      components = lapply(domain$components, function(component) {
+    grayordinate = list(
+      components = lapply(base$geometry$components, function(component) {
         geometry <- component$geometry
         component$geometry <- NULL
         if (inherits(geometry, "ngeo")) {
           component$geometry_sha256 <- digest::digest(
             .ngeo_manifest_json(
-              .ngeo_portable_domain_signature(geometry$domain)
+              .ngeo_portable_domain_signature(geometry$base)
             ),
             algo = "sha256",
             serialize = FALSE
@@ -459,24 +459,24 @@
         component
       })
     ),
-    regions = list(
-      support_size = domain$support_size,
-      centroid = domain$centroid,
-      adjacency = if (inherits(domain$adjacency, "Matrix")) {
-        .ngeo_portable_sparse_signature(domain$adjacency)
+    parcellation = list(
+      support_size = base$geometry$support_size,
+      centroid = base$geometry$centroid,
+      adjacency = if (inherits(base$topology$adjacency, "Matrix")) {
+        .ngeo_portable_sparse_signature(base$topology$adjacency)
       } else {
-        domain$adjacency
+        base$topology$adjacency
       }
     ),
-    .ngeo_abort("Portable domain signature is not implemented.",
+    .ngeo_abort("Portable base signature is not implemented.",
                 "ngeo_error_schema")
   )
   c(common, specific)
 }
 
-.ngeo_portable_domain_hash <- function(domain) {
+.ngeo_portable_base_hash <- function(base) {
   digest::digest(
-    .ngeo_manifest_json(.ngeo_portable_domain_signature(domain)),
+    .ngeo_manifest_json(.ngeo_portable_domain_signature(base)),
     algo = "sha256",
     serialize = FALSE
   )
@@ -485,15 +485,15 @@
 .ngeo_object_manifest_metadata <- function(x, schema_id) {
   if (inherits(x, "ngeo")) {
     return(list(
-      domain_type = x$domain$type,
-      domain_sha256 = .ngeo_portable_domain_hash(x$domain),
+      domain_type = x$base$type,
+      domain_sha256 = .ngeo_portable_base_hash(x$base),
       ordered_element_id_sha256 = .ngeo_order_hash(
-        x$domain$elements$element_id
+        x$base$elements$element_id
       ),
-      element_count = nrow(x$domain$elements),
-      space = list(
-        space_id = x$domain$space$space_id,
-        sha256 = ngeo_space_hash(x$domain$space)
+      element_count = nrow(x$base$elements),
+      coordinate_space = list(
+        space_id = x$base$coordinate_space$space_id,
+        sha256 = ngeo_coordinate_space_hash(x$base$coordinate_space)
       ),
       values = list(
         storage = .ngeo_storage_name(x$values),
@@ -504,30 +504,30 @@
           NULL
         }
       ),
-      map_count = nrow(x$maps),
-      ordered_map_id_sha256 = .ngeo_order_hash(x$maps$map_id),
-      maps = x$maps,
+      map_count = nrow(x$layers),
+      ordered_layer_id_sha256 = .ngeo_order_hash(x$layers$layer_id),
+      layers = x$layers,
       measures = x$measures
     ))
   }
-  if (inherits(x, "ngeo_space")) {
+  if (inherits(x, "ngeo_coordinate_space")) {
     return(list(
       space_id = x$space_id,
       kind = x$kind,
-      units = x$units,
+      unit = x$unit,
       structure = x$structure,
       template = x$template,
       density = x$density,
       resolution = x$resolution,
-      sha256 = ngeo_space_hash(x)
+      sha256 = ngeo_coordinate_space_hash(x)
     ))
   }
   if (inherits(x, "ngeo_transform")) {
     return(list(
       type = x$type,
       method = x$method,
-      source_space_sha256 = ngeo_space_hash(x$source_space),
-      target_space_sha256 = ngeo_space_hash(x$target_space),
+      source_space_sha256 = ngeo_coordinate_space_hash(x$source_space),
+      target_space_sha256 = ngeo_coordinate_space_hash(x$target_space),
       transform_sha256 = ngeo_transform_hash(x)
     ))
   }
@@ -537,16 +537,16 @@
       type = x$type,
       coverage = x$coverage,
       dimensions = dim(x$operator),
-      source_domain_hash = x$source_domain_hash,
-      target_domain_hash = x$target_domain_hash,
+      source_base_hash = x$source_base_hash,
+      target_base_hash = x$target_base_hash,
       logical_hash = ngeo_support_map_hash(x)
     ))
   }
   if (inherits(x, "ngeo_resampling_plan")) {
     return(list(
       plan_hash = x$plan_hash,
-      source_domain_hash = x$source_domain_hash,
-      target_domain_hash = x$target_domain_hash,
+      source_base_hash = x$source_base_hash,
+      target_base_hash = x$target_base_hash,
       path_hash = x$path$path_hash,
       method = x$method,
       policies = x$policies
@@ -554,11 +554,11 @@
   }
   if (inherits(x, "ngeo_resampling_result")) {
     return(list(
-      plan_hash = x$provenance$plan_hash,
-      path_hash = x$provenance$path$path_hash,
-      support_map_hash = x$provenance$support_map_hash,
-      joint_hash = x$provenance$joint_hash,
-      target_domain_hash = ngeo_domain_hash(x$data),
+      plan_hash = x$history$plan_hash,
+      path_hash = x$history$path$path_hash,
+      support_map_hash = x$history$support_map_hash,
+      joint_hash = x$history$joint_hash,
+      target_base_hash = base_hash(x$data),
       dimensions = dim(x$data$values),
       variance_dimensions = dim(x$variance) %||% NULL
     ))
@@ -585,7 +585,7 @@
   if (inherits(x, "ngeo_spatiotemporal_weights")) {
     return(list(
       weights_hash = x$weights_hash,
-      domain_hash = x$domain_hash,
+      base_hash = x$base_hash,
       axis_hash = x$axis_hash,
       n_space = x$n_space,
       n_time = x$n_time,
@@ -625,7 +625,7 @@
   if (inherits(x, "ngeo_iterative_spatial_regression")) {
     return(list(
       model = x$model,
-      domain_hash = x$domain_hash,
+      base_hash = x$base_hash,
       control_hash = x$control_hash,
       spatial_parameter = x$spatial_parameter,
       coefficients = x$coefficients,
@@ -639,7 +639,7 @@
   if (inherits(x, "ngeo_iterative_car")) {
     return(list(
       type = x$type,
-      domain_hash = x$domain_hash,
+      base_hash = x$base_hash,
       control_hash = x$control_hash,
       precision = x$precision,
       rho = x$rho,
@@ -652,7 +652,7 @@
   if (inherits(x, "ngeo_delayed_values")) {
     return(list(
       dimensions = x$dim,
-      ordered_map_name_sha256 = .ngeo_order_hash(x$dimnames[[2L]]),
+      ordered_layer_name_sha256 = .ngeo_order_hash(x$dimnames[[2L]]),
       source = as.character(x$source)
     ))
   }
@@ -668,13 +668,13 @@
 #' @param x A valid registered NGCS object.
 #' @return A JSON-compatible `ngeo_object_manifest`.
 #' @examples
-#' points <- ngeo_points(
+#' point <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 1, 1), ncol = 2, byrow = TRUE),
 #'   values = cbind(signal = c(1, 2, 3))
 #' )
-#' manifest <- ngeo_object_manifest(points)
+#' manifest <- ngeo_object_manifest(point)
 #' manifest$object_schema
-#' ngeo_validate_manifest(manifest, points)
+#' ngeo_validate_manifest(manifest, point)
 #' @export
 ngeo_object_manifest <- function(x) {
   report <- .ngeo_schema_report(x)

@@ -6,7 +6,7 @@
     )
   }
   ngeo_validate(x, "strict")
-  if (!nrow(x$domain$faces)) {
+  if (!nrow(x$base$geometry$faces)) {
     .ngeo_abort(
       "Cortical cartography requires triangle faces.",
       "ngeo_error_topology"
@@ -17,12 +17,12 @@
 
 .ngeo_cartography_coordinates <- function(x, coordinates, dimension) {
   value <- if (is.character(coordinates) && length(coordinates) == 1L) {
-    x$domain$coordinates[[coordinates]]
+    x$base$geometry$coordinates[[coordinates]]
   } else {
     coordinates
   }
   if (!is.matrix(value) || !is.numeric(value) ||
-      nrow(value) != nrow(x$domain$elements) ||
+      nrow(value) != nrow(x$base$elements) ||
       ncol(value) != dimension || anyNA(value) ||
       any(!is.finite(value))) {
     .ngeo_abort(
@@ -50,14 +50,14 @@
   }
 
   .ngeo_cartography_surface(coordinates)
-  if (nrow(coordinates$domain$elements) != nrow(x$domain$elements) ||
+  if (nrow(coordinates$base$elements) != nrow(x$base$elements) ||
       !identical(
-        coordinates$domain$elements$element_id,
-        x$domain$elements$element_id
+        coordinates$base$elements$element_id,
+        x$base$elements$element_id
       ) ||
       !identical(
-        coordinates$domain$elements$source_index,
-        x$domain$elements$source_index
+        coordinates$base$elements$source_index,
+        x$base$elements$source_index
       )) {
     .ngeo_abort(
       paste0(
@@ -67,8 +67,8 @@
       "ngeo_error_alignment"
     )
   }
-  source_face <- x$domain$faces
-  imported_face <- coordinates$domain$faces
+  source_face <- x$base$geometry$faces
+  imported_face <- coordinates$base$geometry$faces
   face_key <- function(face) {
     first <- pmin.int(face[, 1L], face[, 2L], face[, 3L])
     third <- pmax.int(face[, 1L], face[, 2L], face[, 3L])
@@ -96,15 +96,15 @@
     "face_subset"
   }
 
-  available <- coordinates$domain$coordinate_meta
+  available <- coordinates$base$geometry$coordinate_meta
   candidate <- available$name[
     available$role == "chart" & available$dimension == 2L
   ]
   name <- if (length(candidate) == 1L) {
     candidate[[1L]]
   } else {
-    active <- coordinates$domain$active_coordinates
-    if (ncol(coordinates$domain$coordinates[[active]]) == 2L) {
+    active <- coordinates$base$geometry$active_coordinates
+    if (ncol(coordinates$base$geometry$coordinates[[active]]) == 2L) {
       active
     } else {
       .ngeo_abort(
@@ -118,7 +118,7 @@
   }
 
   list(
-    coordinates = coordinates$domain$coordinates[[name]],
+    coordinates = coordinates$base$geometry$coordinates[[name]],
     invariants = list(
       imported = TRUE,
       topology_assumed = FALSE,
@@ -127,7 +127,7 @@
       source_face_in_chart = source_face_in_chart,
       source_kind = "ngeo_surface",
       source_chart = name,
-      imported_surface_domain_hash = ngeo_domain_hash(coordinates)
+      imported_surface_base_hash = base_hash(coordinates)
     )
   )
 }
@@ -155,7 +155,7 @@
 
 .ngeo_boundary_invariants <- function(x, boundary) {
   boundary <- .ngeo_as_integer(boundary, "boundary")
-  n <- nrow(x$domain$elements)
+  n <- nrow(x$base$elements)
   if (length(boundary) < 3L || any(boundary < 1L | boundary > n) ||
       anyDuplicated(boundary)) {
     .ngeo_abort(
@@ -163,7 +163,7 @@
       "ngeo_error_topology"
     )
   }
-  edges <- .ngeo_cartography_edges(x$domain$faces)
+  edges <- .ngeo_cartography_edges(x$base$geometry$faces)
   if (any(edges$count > 2L)) {
     .ngeo_abort(
       "Harmonic parameterization requires a manifold triangle mesh.",
@@ -175,7 +175,7 @@
   supplied <- t(apply(supplied, 1L, sort))
   supplied_key <- paste(supplied[, 1L], supplied[, 2L], sep = ":")
   components <- ngeo_components(x)
-  euler <- n - nrow(edges) + nrow(x$domain$faces)
+  euler <- n - nrow(edges) + nrow(x$base$geometry$faces)
   if (max(components) != 1L || euler != 1L ||
       nrow(boundary_edges) != length(boundary) ||
       !setequal(boundary_edges$key, supplied_key)) {
@@ -241,9 +241,9 @@
 }
 
 .ngeo_cartography_distortion <- function(x, chart, tolerance) {
-  source <- x$domain$coordinates[[x$domain$active_coordinates]]
+  source <- x$base$geometry$coordinates[[x$base$geometry$active_coordinates]]
   if (ncol(source) == 2L) source <- cbind(source, 0)
-  faces <- x$domain$faces
+  faces <- x$base$geometry$faces
   source_area <- .ngeo_triangle_area(source, faces)
   if (any(!is.finite(source_area)) || any(source_area <= tolerance)) {
     .ngeo_abort(
@@ -312,21 +312,21 @@
     distortion = distortion_summary,
     source = paste("neurogeo cortical cartography", method)
   )
-  metadata <- result$domain$charts[[name]]
+  metadata <- result$base$charts[[name]]
   metadata$method <- method
   metadata$kind <- kind
   metadata$is_metric_flattening <- identical(kind, "parameterization")
   metadata$boundary <- boundary
   metadata$seam <- seam
   metadata$tolerance <- tolerance
-  metadata$source_vertex_id <- x$domain$elements$element_id
-  metadata$source_face <- seq_len(nrow(x$domain$faces))
+  metadata$source_vertex_id <- x$base$elements$element_id
+  metadata$source_face <- seq_len(nrow(x$base$geometry$faces))
   metadata$invariants <- invariants
   metadata$distortion <- distortion
   metadata$distortion_summary <- distortion_summary
-  result$domain$charts[[name]] <- metadata
-  result$provenance$operations <- c(
-    result$provenance$operations,
+  result$base$charts[[name]] <- metadata
+  result$history$operations <- c(
+    result$history$operations,
     list(.ngeo_operation(
       "ngeo_cartography_chart",
       list(
@@ -356,7 +356,7 @@
 #' @param method Imported coordinates or harmonic disk parameterization.
 #' @param coordinates For imported charts, either a finite vertex-by-two
 #'   coordinate matrix or an aligned `ngeo_surface` carrying a flat chart.
-#'   A surface input verifies ordered source vertices and maps every imported
+#'   A surface input verifies ordered source vertices and layers every imported
 #'   face to the source topology; a registered flat surface may contain a
 #'   verified subset of source faces around its cut or medial wall.
 #' @param boundary Required ordered boundary loop for harmonic charts.
@@ -399,7 +399,7 @@ ngeo_flatten_surface <- function(
   } else {
     invariants <- .ngeo_boundary_invariants(x, boundary)
     boundary <- invariants$boundary
-    source <- x$domain$coordinates[[x$domain$active_coordinates]]
+    source <- x$base$geometry$coordinates[[x$base$geometry$active_coordinates]]
     if (ncol(source) == 2L) source <- cbind(source, 0)
     next_boundary <- c(boundary[-1L], boundary[[1L]])
     segment <- sqrt(rowSums(
@@ -449,7 +449,7 @@ ngeo_flatten_surface <- function(
 
 #' Project a cortical surface for planar viewing
 #'
-#' Viewing projections are explicitly non-metric. Spherical projection
+#' Viewing projections are explicitly non-distance_method. Spherical projection
 #' requires a caller-supplied seam longitude and does not estimate a spherical
 #' registration.
 #'
@@ -460,7 +460,7 @@ ngeo_flatten_surface <- function(
 #' @param seam Explicit seam longitude in radians for spherical projection.
 #' @param name New chart name.
 #' @param tolerance Degenerate-face tolerance.
-#' @return `x` with a non-metric viewing chart.
+#' @return `x` with a non-distance_method viewing chart.
 #' @examples
 #' surface <- ngeo_surface(
 #'   matrix(c(0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1),
@@ -468,7 +468,7 @@ ngeo_flatten_surface <- function(
 #'   matrix(c(1, 2, 3, 1, 3, 4), ncol = 3, byrow = TRUE)
 #' )
 #' viewed <- ngeo_project_surface(surface, "orthographic", view = "xy")
-#' viewed$domain$charts$view$kind
+#' viewed$base$charts$view$kind
 #' @export
 ngeo_project_surface <- function(
     x,
@@ -488,12 +488,12 @@ ngeo_project_surface <- function(
     )
   }
   source <- if (is.null(coordinates)) {
-    x$domain$coordinates[[x$domain$active_coordinates]]
+    x$base$geometry$coordinates[[x$base$geometry$active_coordinates]]
   } else {
     .ngeo_cartography_coordinates(x, coordinates, 3L)
   }
   if (ncol(source) == 2L) source <- cbind(source, 0)
-  invariants <- list(metric = FALSE, registration_estimated = FALSE)
+  invariants <- list(distance_method = FALSE, registration_estimated = FALSE)
   chart <- switch(
     method,
     orthographic = {
@@ -534,8 +534,8 @@ ngeo_project_surface <- function(
       longitude <- ((atan2(unit[, 2L], unit[, 1L]) - seam + pi) %%
         (2 * pi)) - pi
       latitude <- asin(pmax(-1, pmin(1, unit[, 3L])))
-      face_longitude <- matrix(longitude[x$domain$faces], ncol = 3L)
-      edges <- .ngeo_cartography_edges(x$domain$faces)
+      face_longitude <- matrix(longitude[x$base$geometry$faces], ncol = 3L)
+      edges <- .ngeo_cartography_edges(x$base$geometry$faces)
       invariants$seam_edges <- edges[
         abs(
           longitude[edges$from] -
@@ -565,7 +565,7 @@ ngeo_project_surface <- function(
 .ngeo_cortical_vertex_values <- function(x, map, values) {
   if (!is.null(values)) {
     if (!is.atomic(values) || !is.null(dim(values)) ||
-        length(values) != nrow(x$domain$elements)) {
+        length(values) != nrow(x$base$elements)) {
       .ngeo_abort(
         "`values` must contain one value per surface vertex.",
         "ngeo_error_alignment"
@@ -578,10 +578,10 @@ ngeo_project_surface <- function(
     ))
   }
   selected <- .ngeo_plot_map(x, map)
-  index <- .ngeo_map_selection(x, map)
-  measure <- x$measures[index, , drop = FALSE]
+  index <- .ngeo_layer_selection(x, map)
+  measure <- .ngeo_measures_for_layers(x, index)
   categorical <- measure$value_type %in% c("label", "categorical") ||
-    measure$spatial_semantics == "categorical" ||
+    measure$support_behavior == "categorical" ||
     !is.numeric(selected$values)
   list(
     values = selected$values,
@@ -641,7 +641,7 @@ ngeo_project_surface <- function(
   if (identical(type, "continuous")) {
     if (!is.null(colors)) {
       .ngeo_abort(
-        "`colors` can only be used for categorical cortical maps.",
+        "`colors` can only be used for categorical cortical layers.",
         "ngeo_error_argument"
       )
     }
@@ -782,10 +782,10 @@ ngeo_project_surface <- function(
 .ngeo_cortical_atlas <- function(x, atlas, chart) {
   if (is.null(atlas)) return(NULL)
   if (is.character(atlas) && length(atlas) == 1L &&
-      atlas %in% names(x$labels)) {
-    source <- x$labels[[atlas]]
+      atlas %in% names(x$base$labels)) {
+    source <- x$base$labels[[atlas]]
     if (!is.list(source) || is.null(source$values) ||
-        length(source$values) != nrow(x$domain$elements)) {
+        length(source$values) != nrow(x$base$elements)) {
       .ngeo_abort(
         sprintf("Label source `%s` is not vertex aligned.", atlas),
         "ngeo_error_alignment"
@@ -802,19 +802,19 @@ ngeo_project_surface <- function(
   }
   if (inherits(atlas, "ngeo_partition")) {
     .ngeo_validate_partition(atlas)
-    chart_source_hash <- x$domain$charts[[chart]]$source_domain_hash
-    compatible_hash <- atlas$base_domain_hash %in% c(
-      ngeo_domain_hash(x),
+    chart_source_hash <- x$base$charts[[chart]]$source_base_hash
+    compatible_hash <- atlas$source_base_hash %in% c(
+      base_hash(x),
       chart_source_hash
     )
     if (!compatible_hash ||
-        length(atlas$membership) != nrow(x$domain$elements)) {
+        length(atlas$membership) != nrow(x$base$elements)) {
       .ngeo_abort(
         paste0(
-          "Partition atlas must match the mapped domain or the exact source ",
-          "domain from which the selected chart was added."
+          "Partition atlas must match the mapped base or the exact source ",
+          "base from which the selected chart was added."
         ),
-        "ngeo_error_domain_mismatch"
+        "ngeo_error_base_mismatch"
       )
     }
     return(list(
@@ -826,7 +826,7 @@ ngeo_project_surface <- function(
     ))
   }
   if (!is.atomic(atlas) || !is.null(dim(atlas)) ||
-      length(atlas) != nrow(x$domain$elements)) {
+      length(atlas) != nrow(x$base$elements)) {
     .ngeo_abort(
       "`atlas` must be an aligned vector or `ngeo_partition`.",
       "ngeo_error_alignment"
@@ -842,8 +842,8 @@ ngeo_project_surface <- function(
 }
 
 .ngeo_cortical_mask <- function(x, mask) {
-  mask <- mask %||% x$domain$mask
-  if (!is.logical(mask) || length(mask) != nrow(x$domain$elements) ||
+  mask <- mask %||% x$base$geometry$mask
+  if (!is.logical(mask) || length(mask) != nrow(x$base$elements) ||
       anyNA(mask)) {
     .ngeo_abort(
       "`mask` must be a non-missing logical vector with one item per vertex.",
@@ -856,7 +856,7 @@ ngeo_project_surface <- function(
 .ngeo_cortical_underlay <- function(x, underlay) {
   if (is.null(underlay)) return(NULL)
   if (is.numeric(underlay) &&
-      length(underlay) == nrow(x$domain$elements)) {
+      length(underlay) == nrow(x$base$elements)) {
     value <- underlay
     name <- "underlay"
   } else {
@@ -864,7 +864,7 @@ ngeo_project_surface <- function(
     value <- selected$values
     name <- selected$name
   }
-  if (!is.numeric(value) || length(value) != nrow(x$domain$elements)) {
+  if (!is.numeric(value) || length(value) != nrow(x$base$elements)) {
     .ngeo_abort(
       "`underlay` must resolve to one numeric value per surface vertex.",
       "ngeo_error_alignment"
@@ -912,7 +912,7 @@ ngeo_project_surface <- function(
 #' @param limits Optional continuous color limits.
 #' @param na_color Missing-value color.
 #' @param fill Whether face colors represent vertex values or atlas membership.
-#' @param mask Optional logical vertex mask. By default the domain mask is used.
+#' @param mask Optional logical vertex mask. By default the base mask is used.
 #'   A face is visible only when all three vertices are included.
 #' @param underlay Optional numeric vertex vector or map selector used as a
 #'   grayscale or colored anatomical underlay.
@@ -1000,11 +1000,11 @@ ngeo_cortical_map <- function(
   } else {
     .ngeo_cortical_vertex_values(x, map, values)
   }
-  faces <- x$domain$faces
+  faces <- x$base$geometry$faces
   mask <- .ngeo_cortical_mask(x, mask)
   charted_face <- rep.int(FALSE, nrow(faces))
   source_face_in_chart <-
-    x$domain$charts[[chart]]$invariants$source_face_in_chart %||%
+    x$base$charts[[chart]]$invariants$source_face_in_chart %||%
     seq_len(nrow(faces))
   charted_face[source_face_in_chart] <- TRUE
   included_face <- rowSums(
@@ -1082,7 +1082,7 @@ ngeo_cortical_map <- function(
     rep.int(NA_character_, nrow(coordinates))
   vertices <- data.frame(
     source_vertex = seq_len(nrow(coordinates)),
-    element_id = x$domain$elements$element_id,
+    element_id = x$base$elements$element_id,
     x = coordinates[, 1L],
     y = coordinates[, 2L],
     value = value$values,
@@ -1109,9 +1109,9 @@ ngeo_cortical_map <- function(
     mask
   )
   result <- list(
-    source_domain_hash = ngeo_domain_hash(x),
+    source_base_hash = base_hash(x),
     chart = chart,
-    chart_metadata = x$domain$charts[[chart]],
+    chart_metadata = x$base$charts[[chart]],
     coordinates = coordinates,
     faces = faces,
     vertices = vertices,
@@ -1121,7 +1121,7 @@ ngeo_cortical_map <- function(
     label_positions = label_positions,
     legend = color$legend,
     limits = color$limits,
-    map_name = value$name,
+    layer_name = value$name,
     value_type = value$type,
     fill = fill,
     palette = palette,
@@ -1132,12 +1132,12 @@ ngeo_cortical_map <- function(
     underlay_palette = underlay_palette,
     underlay_limits = underlay_limits,
     overlay_alpha = overlay_alpha,
-    provenance = list(
-      source_domain_hash = ngeo_domain_hash(x),
-      chart_source_domain_hash =
-        x$domain$charts[[chart]]$source_domain_hash,
+    history = list(
+      source_base_hash = base_hash(x),
+      chart_source_base_hash =
+        x$base$charts[[chart]]$source_base_hash,
       seam_faces =
-        x$domain$charts[[chart]]$invariants$seam_faces %||% integer(),
+        x$base$charts[[chart]]$invariants$seam_faces %||% integer(),
       atlas_source = atlas_info$source %||% NULL,
       included_vertices = sum(mask),
       included_faces = sum(included_face),
@@ -1169,10 +1169,10 @@ ngeo_cortical_map_data <- function(x) {
     label_positions = x$label_positions,
     legend = x$legend,
     metadata = list(
-      source_domain_hash = x$source_domain_hash,
+      source_base_hash = x$source_base_hash,
       chart = x$chart,
       chart_metadata = x$chart_metadata,
-      map_name = x$map_name,
+      layer_name = x$layer_name,
       value_type = x$value_type,
       fill = x$fill,
       limits = x$limits,
@@ -1183,18 +1183,18 @@ ngeo_cortical_map_data <- function(x) {
       underlay_palette = x$underlay_palette,
       underlay_limits = x$underlay_limits,
       overlay_alpha = x$overlay_alpha,
-      provenance = x$provenance
+      history = x$history
     )
   )
 }
 
-#' Combine cortical maps into an auditable panel layout
+#' Combine cortical layers into an auditable panel layout
 #'
 #' @param ... `ngeo_cortical_map` objects or one list of them.
 #' @param ncol Number of panel columns.
 #' @param labels Optional panel labels.
 #' @param shared_scale Whether every panel must use one continuous scale or
-#'   one categorical color contract and one legend. Categorical maps with
+#'   one categorical color contract and one legend. Categorical layers with
 #'   conflicting colors for the same label are rejected.
 #' @return An `ngeo_cortical_layout`.
 #' @export
@@ -1203,15 +1203,15 @@ ngeo_cortical_layout <- function(
     ncol = NULL,
     labels = NULL,
     shared_scale = FALSE) {
-  maps <- list(...)
-  if (length(maps) == 1L && is.list(maps[[1L]]) &&
-      !inherits(maps[[1L]], "ngeo_cortical_map")) {
-    maps <- maps[[1L]]
+  layers <- list(...)
+  if (length(layers) == 1L && is.list(layers[[1L]]) &&
+      !inherits(layers[[1L]], "ngeo_cortical_map")) {
+    layers <- layers[[1L]]
   }
-  if (!length(maps) ||
-      any(!vapply(maps, inherits, logical(1), "ngeo_cortical_map"))) {
+  if (!length(layers) ||
+      any(!vapply(layers, inherits, logical(1), "ngeo_cortical_map"))) {
     .ngeo_abort(
-      "A cortical layout requires one or more cortical maps.",
+      "A cortical layout requires one or more cortical layers.",
       "ngeo_error_argument"
     )
   }
@@ -1224,7 +1224,7 @@ ngeo_cortical_layout <- function(
   }
   shared_legend <- NULL
   if (isTRUE(shared_scale)) {
-    value_type <- unique(vapply(maps, `[[`, character(1), "value_type"))
+    value_type <- unique(vapply(layers, `[[`, character(1), "value_type"))
     if (length(value_type) != 1L) {
       .ngeo_abort(
         "A shared cortical scale requires one common value type.",
@@ -1232,19 +1232,19 @@ ngeo_cortical_layout <- function(
       )
     }
     if (identical(value_type, "continuous")) {
-      palette <- unique(vapply(maps, `[[`, character(1), "palette"))
+      palette <- unique(vapply(layers, `[[`, character(1), "palette"))
       if (length(palette) != 1L) {
         .ngeo_abort(
           "A shared continuous scale requires one common palette.",
           "ngeo_error_alignment"
         )
       }
-      finite <- unlist(lapply(maps, function(map) {
+      finite <- unlist(lapply(layers, function(map) {
         value <- map$face_data$value[map$face_data$included]
         value[is.finite(value)]
       }), use.names = FALSE)
       limits <- if (length(finite)) range(finite) else c(0, 1)
-      maps <- lapply(maps, function(map) {
+      layers <- lapply(layers, function(map) {
         scale <- .ngeo_cortical_colors(
           map$face_data$value,
           "continuous",
@@ -1258,9 +1258,9 @@ ngeo_cortical_layout <- function(
         map$limits <- scale$limits
         map
       })
-      shared_legend <- maps[[1L]]$legend
+      shared_legend <- layers[[1L]]$legend
     } else {
-      entries <- do.call(rbind, lapply(maps, function(map) {
+      entries <- do.call(rbind, lapply(layers, function(map) {
         data.frame(
           value = as.character(map$legend$value),
           color = as.character(map$legend$color),
@@ -1287,7 +1287,7 @@ ngeo_cortical_layout <- function(
         stringsAsFactors = FALSE
       )
       lookup <- stats::setNames(shared_legend$color, shared_legend$value)
-      maps <- lapply(maps, function(map) {
+      layers <- lapply(layers, function(map) {
         scale <- .ngeo_cortical_colors(
           map$face_data$value,
           "categorical",
@@ -1304,33 +1304,33 @@ ngeo_cortical_layout <- function(
       })
     }
   }
-  ncol <- ncol %||% ceiling(sqrt(length(maps)))
+  ncol <- ncol %||% ceiling(sqrt(length(layers)))
   ncol <- .ngeo_as_integer(ncol, "ncol")
   if (length(ncol) != 1L || ncol < 1L) {
     .ngeo_abort("`ncol` must be positive.", "ngeo_error_argument")
   }
-  labels <- labels %||% vapply(maps, `[[`, character(1), "map_name")
-  if (!is.character(labels) || length(labels) != length(maps)) {
+  labels <- labels %||% vapply(layers, `[[`, character(1), "layer_name")
+  if (!is.character(labels) || length(labels) != length(layers)) {
     .ngeo_abort(
-      "`labels` must align with cortical maps.",
+      "`labels` must align with cortical layers.",
       "ngeo_error_alignment"
     )
   }
   structure(
     list(
-      maps = maps,
+      layers = layers,
       ncol = ncol,
-      nrow = as.integer(ceiling(length(maps) / ncol)),
+      nrow = as.integer(ceiling(length(layers) / ncol)),
       labels = labels,
       shared_scale = shared_scale,
       legend = shared_legend,
       legend_title = if (length(unique(vapply(
-        maps,
+        layers,
         `[[`,
         character(1),
-        "map_name"
+        "layer_name"
       ))) == 1L) {
-        maps[[1L]]$map_name
+        layers[[1L]]$layer_name
       } else {
         "Shared scale"
       }
@@ -1344,7 +1344,7 @@ print.ngeo_cortical_map <- function(x, ...) {
   cat(
     "<ngeo_cortical_map>\n",
     "  chart: ", x$chart, "\n",
-    "  map: ", x$map_name, " (", x$value_type, ")\n",
+    "  map: ", x$layer_name, " (", x$value_type, ")\n",
     "  vertices: ", nrow(x$vertices), "\n",
     "  visible faces: ", sum(x$face_data$included), " / ",
     nrow(x$face_data), "\n",
@@ -1393,7 +1393,7 @@ plot.ngeo_cortical_map <- function(
     label_color = "grey10",
     label_cex = 0.65,
     label_font = 2,
-    main = x$map_name,
+    main = x$layer_name,
     axes = FALSE,
     show_legend = TRUE,
     legend_position = NULL,
@@ -1584,7 +1584,7 @@ plot.ngeo_cortical_map <- function(
       graphics::text(
         (left + right) / 2,
         top + 0.012 * height,
-        labels = x$map_name,
+        labels = x$layer_name,
         adj = c(0.5, 0),
         cex = legend_cex
       )
@@ -1606,7 +1606,7 @@ plot.ngeo_cortical_map <- function(
         legend_position,
         legend = legend_label,
         fill = legend_color,
-        title = x$map_name,
+        title = x$layer_name,
         bty = "n",
         cex = legend_cex
       )
@@ -1619,7 +1619,7 @@ plot.ngeo_cortical_map <- function(
 print.ngeo_cortical_layout <- function(x, ...) {
   cat(
     "<ngeo_cortical_layout>\n",
-    "  panels: ", length(x$maps), "\n",
+    "  panels: ", length(x$layers), "\n",
     "  arrangement: ", x$nrow, " x ", x$ncol, "\n",
     "  shared scale: ", isTRUE(x$shared_scale), "\n",
     sep = ""
@@ -1628,7 +1628,7 @@ print.ngeo_cortical_layout <- function(x, ...) {
 }
 
 .ngeo_plot_cortical_layout_legend <- function(x, cex = 0.75) {
-  map <- x$maps[[1L]]
+  map <- x$layers[[1L]]
   graphics::plot.new()
   graphics::plot.window(xlim = c(0, 1), ylim = c(0, 1))
   if (identical(map$value_type, "continuous")) {
@@ -1697,18 +1697,18 @@ plot.ngeo_cortical_layout <- function(x, ...) {
       ncol = x$ncol,
       byrow = TRUE
     )
-    panel[panel > length(x$maps)] <- 0L
+    panel[panel > length(x$layers)] <- 0L
     graphics::layout(
-      rbind(panel, rep.int(length(x$maps) + 1L, x$ncol)),
+      rbind(panel, rep.int(length(x$layers) + 1L, x$ncol)),
       heights = c(rep.int(1, x$nrow), 0.22)
     )
   } else {
     graphics::par(mfrow = c(x$nrow, x$ncol))
   }
-  for (i in seq_along(x$maps)) {
+  for (i in seq_along(x$layers)) {
     current <- dots
-    current$x <- x$maps[[i]]
-    current$main <- x$labels[[i]]
+    current$x <- x$layers[[i]]
+    current$main <- x$base$labels[[i]]
     do.call(graphics::plot, current)
   }
   if (isTRUE(x$shared_scale) && show_legend) {

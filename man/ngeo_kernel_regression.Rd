@@ -9,10 +9,10 @@ ngeo_kernel_regression(
   response,
   predictors = character(),
   bandwidth,
-  metric = NULL,
+  distance_method = NULL,
   kernel = c("gaussian", "bisquare"),
   targets = NULL,
-  support = c("none", "domain"),
+  support = c("none", "base"),
   cutoff = 3,
   na_action = c("fail", "omit"),
   singular = c("na", "error")
@@ -23,17 +23,17 @@ ngeo_kernel_regression(
 
 \item{response}{One response map.}
 
-\item{predictors}{Predictor maps.}
+\item{predictors}{Predictor layers.}
 
 \item{bandwidth}{Positive distance bandwidth.}
 
-\item{metric}{Explicit NGCS metric.}
+\item{distance_method}{Explicit NGCS distance_method.}
 
 \item{kernel}{Gaussian or compact bisquare kernel.}
 
 \item{targets}{Optional target elements.}
 
-\item{support}{Multiply kernel weights by explicit element support.}
+\item{support}{Multiply kernel spatial_weights by explicit element support.}
 
 \item{cutoff}{Gaussian truncation multiplier.}
 
@@ -45,7 +45,7 @@ ngeo_kernel_regression(
 An `ngeo_kernel_regression` data frame.
 }
 \description{
-Local weighted least squares uses the selected NGCS metric. Surface
+Local weighted least squares uses the selected NGCS distance_method. Surface
 defaults to edge geodesic distance. Gaussian kernels are explicitly
 truncated at `cutoff * bandwidth`; bisquare support is one bandwidth.
 }

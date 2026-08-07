@@ -154,7 +154,7 @@ NULL
 ngeo_validate_time_axis <- function(x) {
   if (!inherits(x, "ngeo_time_axis")) {
     .ngeo_abort(
-      "Time-axis coordinates, units, support, or regularity are invalid.",
+      "Time-axis coordinates, unit, support, or regularity are invalid.",
       "ngeo_error_time_axis"
     )
   }
@@ -210,7 +210,7 @@ ngeo_validate_time_axis <- function(x) {
       !is.character(x$axis_hash) || length(x$axis_hash) != 1L ||
       is.na(x$axis_hash) || !nzchar(x$axis_hash)) {
     .ngeo_abort(
-      "Time-axis coordinates, units, support, or regularity are invalid.",
+      "Time-axis coordinates, unit, support, or regularity are invalid.",
       "ngeo_error_time_axis"
     )
   }
@@ -300,9 +300,9 @@ ngeo_time_axis_hash <- function(x) {
   semantics
 }
 
-.ngeo_temporal_measure_template <- function(x, index = seq_len(nrow(x$maps))) {
-  fields <- c("value_type", "spatial_semantics", "units")
-  measure <- x$measures[index, fields, drop = FALSE]
+.ngeo_temporal_measure_template <- function(x, index = seq_len(nrow(x$layers))) {
+  fields <- c("value_type", "support_behavior", "unit")
+  measure <- .ngeo_measures_for_layers(x, index)[, fields, drop = FALSE]
   compatible <- vapply(
     measure,
     function(value) length(unique(value)) == 1L,
@@ -311,13 +311,13 @@ ngeo_time_axis_hash <- function(x) {
   if (!all(compatible)) {
     .ngeo_abort(
       paste(
-        "Time-aligned maps require matching value type, spatial semantics,",
-        "and measurement units."
+        "Time-aligned layers require matching value type, spatial semantics,",
+        "and measurement unit."
       ),
       "ngeo_error_temporal_measure"
     )
   }
-  x$measures[index[[1L]], , drop = FALSE]
+  .ngeo_measures_for_layers(x, index[[1L]])
 }
 
 .ngeo_temporal_divide_unit <- function(unit, time_unit) {
@@ -341,7 +341,7 @@ ngeo_time_axis_hash <- function(x) {
 #' @param x An `ngeo` object with one map per time coordinate.
 #' @param axis An `ngeo_time_axis`.
 #' @param temporal_semantics Scalar or map-aligned temporal semantics.
-#' @return `x` with time metadata aligned to maps and measures.
+#' @return `x` with time metadata aligned to layers and measures.
 #' @export
 ngeo_set_time_axis <- function(
     x,
@@ -349,7 +349,7 @@ ngeo_set_time_axis <- function(
     temporal_semantics = "instantaneous") {
   ngeo_validate(x, "strict")
   ngeo_validate_time_axis(axis)
-  if (is.null(x$values) || nrow(x$maps) != length(axis$time)) {
+  if (is.null(x$values) || nrow(x$layers) != length(axis$time)) {
     .ngeo_abort(
       "Time-axis length must equal the sole values block map count.",
       "ngeo_error_alignment"
@@ -360,26 +360,46 @@ ngeo_set_time_axis <- function(
     temporal_semantics, axis
   )
   result <- x
-  result$maps$time_index <- seq_along(axis$time)
-  result$maps$time <- axis$time
-  result$maps$time_unit <- rep.int(axis$unit, length(axis$time))
-  result$maps$interval_start <- if (axis$support == "interval") {
+  result$layers$time_index <- seq_along(axis$time)
+  result$layers$time <- axis$time
+  result$layers$time_unit <- rep.int(axis$unit, length(axis$time))
+  result$layers$interval_start <- if (axis$support == "interval") {
     axis$interval_start
   } else {
     rep.int(NA_real_, length(axis$time))
   }
-  result$maps$interval_end <- if (axis$support == "interval") {
+  result$layers$interval_end <- if (axis$support == "interval") {
     axis$interval_end
   } else {
     rep.int(NA_real_, length(axis$time))
   }
-  result$maps$time_axis_hash <- rep.int(
+  result$layers$time_axis_hash <- rep.int(
     axis$axis_hash, length(axis$time)
   )
-  result$measures$temporal_semantics <- temporal_semantics
-  result$provenance$time_axis <- axis
-  result$provenance$operations <- c(
-    result$provenance$operations %||% list(),
+  layer_measures <- .ngeo_measures_for_layers(
+    result,
+    seq_len(nrow(result$layers))
+  )
+  original_measure_id <- layer_measures$measure_id
+  semantic_key <- paste(original_measure_id, temporal_semantics, sep = "\u001f")
+  keep <- !duplicated(semantic_key)
+  new_measure_id <- original_measure_id
+  split_ids <- original_measure_id %in%
+    original_measure_id[duplicated(original_measure_id) &
+      !duplicated(semantic_key)]
+  new_measure_id[split_ids] <- paste0(
+    original_measure_id[split_ids],
+    "::",
+    temporal_semantics[split_ids]
+  )
+  layer_measures$measure_id <- new_measure_id
+  layer_measures$temporal_semantics <- temporal_semantics
+  result$layers$measure_id <- new_measure_id
+  result$measures <- layer_measures[keep, , drop = FALSE]
+  rownames(result$measures) <- NULL
+  result$history$time_axis <- axis
+  result$history$operations <- c(
+    result$history$operations %||% list(),
     list(.ngeo_operation(
       "ngeo_set_time_axis",
       list(
@@ -401,7 +421,7 @@ ngeo_set_time_axis <- function(
 #' @export
 ngeo_get_time_axis <- function(x) {
   ngeo_validate(x, "strict")
-  axis <- x$provenance$time_axis %||% NULL
+  axis <- x$history$time_axis %||% NULL
   if (!inherits(axis, "ngeo_time_axis")) {
     .ngeo_abort(
       "The object has no explicit time axis.",
@@ -413,17 +433,17 @@ ngeo_get_time_axis <- function(x) {
     "time_index", "time", "time_unit", "interval_start",
     "interval_end", "time_axis_hash"
   )
-  if (any(!required %in% names(x$maps)) ||
+  if (any(!required %in% names(x$layers)) ||
       !"temporal_semantics" %in% names(x$measures) ||
-      nrow(x$maps) != length(axis$time) ||
-      !identical(as.integer(x$maps$time_index), seq_along(axis$time)) ||
+      nrow(x$layers) != length(axis$time) ||
+      !identical(as.integer(x$layers$time_index), seq_along(axis$time)) ||
       !isTRUE(all.equal(
-        as.numeric(x$maps$time), axis$time,
+        as.numeric(x$layers$time), axis$time,
         tolerance = axis$tolerance,
         check.attributes = FALSE
       )) ||
-      any(x$maps$time_unit != axis$unit) ||
-      any(x$maps$time_axis_hash != axis$axis_hash)) {
+      any(x$layers$time_unit != axis$unit) ||
+      any(x$layers$time_axis_hash != axis$axis_hash)) {
     .ngeo_abort(
       "Map time metadata no longer matches the explicit axis.",
       "ngeo_error_time_axis_mutation"
@@ -439,25 +459,29 @@ ngeo_get_time_axis <- function(x) {
   } else {
     rep.int(NA_real_, length(axis$time))
   }
-  if (!identical(as.numeric(x$maps$interval_start), expected_start) ||
-      !identical(as.numeric(x$maps$interval_end), expected_end)) {
+  if (!identical(as.numeric(x$layers$interval_start), expected_start) ||
+      !identical(as.numeric(x$layers$interval_end), expected_end)) {
     .ngeo_abort(
       "Map interval support no longer matches the explicit axis.",
       "ngeo_error_time_axis_mutation"
     )
   }
   .ngeo_validate_temporal_semantics(
-    x$measures$temporal_semantics, axis
+    .ngeo_measures_for_layers(
+      x,
+      seq_len(nrow(x$layers))
+    )$temporal_semantics,
+    axis
   )
   axis
 }
 
-#' Slice a time-aware object without changing its spatial domain
+#' Slice a time-aware object without changing its spatial base
 #'
 #' @param x A time-aware `ngeo` object.
 #' @param index Optional ordered one-based time indices.
 #' @param range Optional inclusive numeric time range.
-#' @return A time-aware subset with the same spatial domain.
+#' @return A time-aware subset with the same spatial base.
 #' @export
 ngeo_time_slice <- function(x, index = NULL, range = NULL) {
   axis <- ngeo_get_time_axis(x)
@@ -518,12 +542,12 @@ ngeo_time_slice <- function(x, index = NULL, range = NULL) {
   )
   result <- x
   result$values <- x$values[, index, drop = FALSE]
-  result$maps <- x$maps[index, , drop = FALSE]
-  result$measures <- x$measures[index, , drop = FALSE]
-  rownames(result$maps) <- NULL
+  result$layers <- x$layers[index, , drop = FALSE]
+  result$measures <- .ngeo_measures_for_layers(x, index, unique = TRUE)
+  rownames(result$layers) <- NULL
   rownames(result$measures) <- NULL
-  result$provenance$operations <- c(
-    result$provenance$operations %||% list(),
+  result$history$operations <- c(
+    result$history$operations %||% list(),
     list(.ngeo_operation(
       "ngeo_time_slice",
       list(
@@ -537,7 +561,7 @@ ngeo_time_slice <- function(x, index = NULL, range = NULL) {
     result,
     selected_axis,
     temporal_semantics =
-      x$measures$temporal_semantics[index]
+      .ngeo_measures_for_layers(x, index)$temporal_semantics
   )
 }
 
@@ -556,14 +580,14 @@ ngeo_time_slice <- function(x, index = NULL, range = NULL) {
   )
 }
 
-#' Construct sparse temporal weights
+#' Construct sparse temporal spatial_weights
 #'
 #' @param axis An `ngeo_time_axis`.
 #' @param method Consecutive adjacency, index lag, or time-distance band.
 #' @param lag Positive index lag.
 #' @param threshold Positive time-distance threshold.
 #' @param directed Whether only later rows receive earlier neighbours.
-#' @param style Binary, row-standardized, or unnormalized weights.
+#' @param style Binary, row-standardized, or unnormalized spatial_weights.
 #' @return An `ngeo_temporal_weights`.
 #' @export
 ngeo_temporal_weights <- function(
@@ -584,7 +608,7 @@ ngeo_temporal_weights <- function(
   n <- length(axis$time)
   if (n < 2L) {
     .ngeo_abort(
-      "Temporal weights require at least two time coordinates.",
+      "Temporal spatial_weights require at least two time coordinates.",
       "ngeo_error_temporal_weights"
     )
   }
@@ -605,7 +629,7 @@ ngeo_temporal_weights <- function(
         is.na(threshold) || !is.finite(threshold) ||
         threshold <= 0) {
       .ngeo_abort(
-        "Distance weights require a positive finite threshold.",
+        "Distance spatial_weights require a positive finite threshold.",
         "ngeo_error_argument"
       )
     }
@@ -659,7 +683,7 @@ ngeo_temporal_weights <- function(
   result
 }
 
-#' Validate temporal weights
+#' Validate temporal spatial_weights
 #'
 #' @param x An `ngeo_temporal_weights`.
 #' @return `x`, invisibly.
@@ -693,7 +717,7 @@ ngeo_validate_temporal_weights <- function(x) {
         .ngeo_temporal_weights_hash(x)
       )) {
     .ngeo_abort(
-      "Temporal weights identity or sparse matrix is invalid.",
+      "Temporal spatial_weights identity or sparse matrix is invalid.",
       "ngeo_error_temporal_weights"
     )
   }
@@ -711,18 +735,18 @@ ngeo_temporal_neighbors <- function(
     lag = 1L,
     threshold = NULL,
     directed = FALSE) {
-  weights <- ngeo_temporal_weights(
+  spatial_weights <- ngeo_temporal_weights(
     axis, method, lag, threshold, directed, style = "B"
   )
-  lapply(seq_len(weights$n_time), function(i) {
-    which(weights$matrix[i, ] != 0)
+  lapply(seq_len(spatial_weights$n_time), function(i) {
+    which(spatial_weights$matrix[i, ] != 0)
   })
 }
 
 .ngeo_st_weights_hash <- function(x) {
   digest::digest(
     list(
-      domain_hash = x$domain_hash,
+      base_hash = x$base_hash,
       axis_hash = x$axis_hash,
       spatial = digest::digest(x$spatial$matrix, algo = "sha256"),
       temporal = x$temporal$weights_hash,
@@ -733,23 +757,23 @@ ngeo_temporal_neighbors <- function(
   )
 }
 
-#' Construct separable matrix-free spatiotemporal weights
+#' Construct separable matrix-free spatiotemporal spatial_weights
 #'
-#' @param spatial Matching `ngeo_weights`.
+#' @param spatial Matching `ngeo_spatial_weights`.
 #' @param temporal Matching `ngeo_temporal_weights`.
 #' @param combination Weighted Kronecker sum or Kronecker product.
 #' @param spatial_scale Spatial share for the sum.
-#' @return An `ngeo_spatiotemporal_weights` without a space-by-time matrix.
+#' @return An `ngeo_spatiotemporal_weights` without a coordinate_space-by-time matrix.
 #' @export
 ngeo_spatiotemporal_weights <- function(
     spatial,
     temporal,
     combination = c("sum", "product"),
     spatial_scale = 0.5) {
-  if (!inherits(spatial, "ngeo_weights") ||
+  if (!inherits(spatial, "ngeo_spatial_weights") ||
       !inherits(spatial$matrix, "dgCMatrix")) {
     .ngeo_abort(
-      "`spatial` must be sparse `ngeo_weights`.",
+      "`spatial` must be sparse `ngeo_spatial_weights`.",
       "ngeo_error_spatiotemporal_weights"
     )
   }
@@ -769,7 +793,7 @@ ngeo_spatiotemporal_weights <- function(
     list(
       spatial = spatial,
       temporal = temporal,
-      domain_hash = spatial$domain_hash,
+      base_hash = spatial$base_hash,
       axis_hash = temporal$axis_hash,
       n_space = nrow(spatial$matrix),
       n_time = temporal$n_time,
@@ -785,14 +809,14 @@ ngeo_spatiotemporal_weights <- function(
   result
 }
 
-#' Validate separable spatiotemporal weights
+#' Validate separable spatiotemporal spatial_weights
 #'
 #' @param x An `ngeo_spatiotemporal_weights`.
 #' @return `x`, invisibly.
 #' @export
 ngeo_validate_spatiotemporal_weights <- function(x) {
   if (!inherits(x, "ngeo_spatiotemporal_weights") ||
-      !inherits(x$spatial, "ngeo_weights") ||
+      !inherits(x$spatial, "ngeo_spatial_weights") ||
       !inherits(x$spatial$matrix, "dgCMatrix") ||
       any(!is.finite(x$spatial$matrix@x)) ||
       any(x$spatial$matrix@x < 0) ||
@@ -801,7 +825,7 @@ ngeo_validate_spatiotemporal_weights <- function(x) {
       is.na(x$n_space) || x$n_space < 1 ||
       !identical(nrow(x$spatial$matrix), x$n_space) ||
       !identical(ncol(x$spatial$matrix), x$n_space) ||
-      !identical(x$spatial$domain_hash, x$domain_hash) ||
+      !identical(x$spatial$base_hash, x$base_hash) ||
       !inherits(x$temporal, "ngeo_temporal_weights") ||
       !identical(x$temporal$n_time, x$n_time) ||
       !identical(x$temporal$axis_hash, x$axis_hash) ||
@@ -826,12 +850,12 @@ ngeo_validate_spatiotemporal_weights <- function(x) {
   invisible(x)
 }
 
-.ngeo_st_nonzero_estimate <- function(weights) {
-  spatial_nnz <- length(weights$spatial$matrix@x)
-  temporal_nnz <- length(weights$temporal$matrix@x)
-  if (weights$combination == "sum") {
-    weights$n_time * spatial_nnz +
-      weights$n_space * temporal_nnz
+.ngeo_st_nonzero_estimate <- function(spatial_weights) {
+  spatial_nnz <- length(spatial_weights$spatial$matrix@x)
+  temporal_nnz <- length(spatial_weights$temporal$matrix@x)
+  if (spatial_weights$combination == "sum") {
+    spatial_weights$n_time * spatial_nnz +
+      spatial_weights$n_space * temporal_nnz
   } else {
     spatial_nnz * temporal_nnz
   }
@@ -839,17 +863,17 @@ ngeo_validate_spatiotemporal_weights <- function(x) {
 
 #' Explicitly materialize a small spatiotemporal reference matrix
 #'
-#' @param weights Separable spatiotemporal weights.
-#' @param max_observations Maximum permitted space-time observations.
+#' @param spatial_weights Separable spatiotemporal spatial_weights.
+#' @param max_observations Maximum permitted coordinate_space-time observations.
 #' @param budget Resource budget for sparse nonzeros and bytes.
 #' @return A sparse Kronecker reference matrix.
 #' @export
 ngeo_materialize_spatiotemporal_weights <- function(
-    weights,
+    spatial_weights,
     max_observations = 10000L,
     budget = ngeo_resource_budget()) {
-  ngeo_validate_spatiotemporal_weights(weights)
-  n <- as.double(weights$n_space) * as.double(weights$n_time)
+  ngeo_validate_spatiotemporal_weights(spatial_weights)
+  n <- as.double(spatial_weights$n_space) * as.double(spatial_weights$n_time)
   if (!is.numeric(max_observations) ||
       length(max_observations) != 1L ||
       is.na(max_observations) || max_observations < 1 ||
@@ -859,17 +883,17 @@ ngeo_materialize_spatiotemporal_weights <- function(
       "ngeo_error_resource"
     )
   }
-  nonzero <- .ngeo_st_nonzero_estimate(weights)
+  nonzero <- .ngeo_st_nonzero_estimate(spatial_weights)
   .ngeo_budget_assert(budget, "materialized_elements", nonzero)
   .ngeo_budget_assert(budget, "memory_bytes", 24 * nonzero)
-  spatial <- weights$spatial$matrix
-  temporal <- weights$temporal$matrix
-  result <- if (weights$combination == "sum") {
-    weights$spatial_scale *
-      Matrix::kronecker(Matrix::Diagonal(weights$n_time), spatial) +
-      (1 - weights$spatial_scale) *
+  spatial <- spatial_weights$spatial$matrix
+  temporal <- spatial_weights$temporal$matrix
+  result <- if (spatial_weights$combination == "sum") {
+    spatial_weights$spatial_scale *
+      Matrix::kronecker(Matrix::Diagonal(spatial_weights$n_time), spatial) +
+      (1 - spatial_weights$spatial_scale) *
         Matrix::kronecker(
-          temporal, Matrix::Diagonal(weights$n_space)
+          temporal, Matrix::Diagonal(spatial_weights$n_space)
         )
   } else {
     Matrix::kronecker(temporal, spatial)
@@ -879,20 +903,20 @@ ngeo_materialize_spatiotemporal_weights <- function(
 
 .ngeo_st_values <- function(
     x,
-    weights,
+    spatial_weights,
     budget = ngeo_resource_budget()) {
   axis <- ngeo_get_time_axis(x)
-  ngeo_validate_spatiotemporal_weights(weights)
-  if (!identical(ngeo_domain_hash(x), weights$domain_hash) ||
-      !identical(axis$axis_hash, weights$axis_hash) ||
-      nrow(x$domain$elements) != weights$n_space ||
-      nrow(x$maps) != weights$n_time) {
+  ngeo_validate_spatiotemporal_weights(spatial_weights)
+  if (!identical(base_hash(x), spatial_weights$base_hash) ||
+      !identical(axis$axis_hash, spatial_weights$axis_hash) ||
+      nrow(x$base$elements) != spatial_weights$n_space ||
+      nrow(x$layers) != spatial_weights$n_time) {
     .ngeo_abort(
-      "Spatiotemporal weights do not align with the domain and time axis.",
+      "Spatiotemporal spatial_weights do not align with the base and time axis.",
       "ngeo_error_alignment"
     )
   }
-  n_value <- as.double(weights$n_space) * weights$n_time
+  n_value <- as.double(spatial_weights$n_space) * spatial_weights$n_time
   .ngeo_budget_assert(
     budget, "materialized_elements", n_value
   )
@@ -911,7 +935,7 @@ ngeo_materialize_spatiotemporal_weights <- function(
       x$measures$value_type %in% "label"
   )) {
     .ngeo_abort(
-      "Categorical time maps do not support numeric spatiotemporal statistics.",
+      "Categorical time layers do not support numeric spatiotemporal statistics.",
       "ngeo_error_temporal_measure"
     )
   }
@@ -921,63 +945,63 @@ ngeo_materialize_spatiotemporal_weights <- function(
 #' Compute a matrix-free separable spatiotemporal lag
 #'
 #' @param x Time-aware `ngeo` data.
-#' @param weights Matching separable spatiotemporal weights.
-#' @param center Whether to subtract the global space-time mean.
+#' @param spatial_weights Matching separable spatiotemporal spatial_weights.
+#' @param center Whether to subtract the global coordinate_space-time mean.
 #' @param budget Resource limits for materializing the aligned values block.
 #' @return An element-by-time lag matrix.
 #' @export
 ngeo_spatiotemporal_lag <- function(
     x,
-    weights,
+    spatial_weights,
     center = FALSE,
     budget = ngeo_resource_budget()) {
   if (!is.logical(center) || length(center) != 1L || is.na(center)) {
     .ngeo_abort("`center` must be TRUE or FALSE.",
                 "ngeo_error_argument")
   }
-  input <- .ngeo_st_values(x, weights, budget)
+  input <- .ngeo_st_values(x, spatial_weights, budget)
   values <- input$values
   if (center) values <- values - mean(values)
-  if (weights$combination == "sum") {
-    weights$spatial_scale *
-      as.matrix(weights$spatial$matrix %*% values) +
-      (1 - weights$spatial_scale) *
-        as.matrix(values %*% Matrix::t(weights$temporal$matrix))
+  if (spatial_weights$combination == "sum") {
+    spatial_weights$spatial_scale *
+      as.matrix(spatial_weights$spatial$matrix %*% values) +
+      (1 - spatial_weights$spatial_scale) *
+        as.matrix(values %*% Matrix::t(spatial_weights$temporal$matrix))
   } else {
     as.matrix(
-      weights$spatial$matrix %*% values %*%
-        Matrix::t(weights$temporal$matrix)
+      spatial_weights$spatial$matrix %*% values %*%
+        Matrix::t(spatial_weights$temporal$matrix)
     )
   }
 }
 
-.ngeo_st_s0 <- function(weights) {
-  spatial_sum <- sum(weights$spatial$matrix)
-  temporal_sum <- sum(weights$temporal$matrix)
-  if (weights$combination == "sum") {
-    weights$spatial_scale * weights$n_time * spatial_sum +
-      (1 - weights$spatial_scale) *
-        weights$n_space * temporal_sum
+.ngeo_st_s0 <- function(spatial_weights) {
+  spatial_sum <- sum(spatial_weights$spatial$matrix)
+  temporal_sum <- sum(spatial_weights$temporal$matrix)
+  if (spatial_weights$combination == "sum") {
+    spatial_weights$spatial_scale * spatial_weights$n_time * spatial_sum +
+      (1 - spatial_weights$spatial_scale) *
+        spatial_weights$n_space * temporal_sum
   } else {
     spatial_sum * temporal_sum
   }
 }
 
-.ngeo_st_moran_value <- function(values, weights) {
+.ngeo_st_moran_value <- function(values, spatial_weights) {
   centered <- values - mean(values)
-  lag <- if (weights$combination == "sum") {
-    weights$spatial_scale *
-      as.matrix(weights$spatial$matrix %*% centered) +
-      (1 - weights$spatial_scale) *
-        as.matrix(centered %*% Matrix::t(weights$temporal$matrix))
+  lag <- if (spatial_weights$combination == "sum") {
+    spatial_weights$spatial_scale *
+      as.matrix(spatial_weights$spatial$matrix %*% centered) +
+      (1 - spatial_weights$spatial_scale) *
+        as.matrix(centered %*% Matrix::t(spatial_weights$temporal$matrix))
   } else {
     as.matrix(
-      weights$spatial$matrix %*% centered %*%
-        Matrix::t(weights$temporal$matrix)
+      spatial_weights$spatial$matrix %*% centered %*%
+        Matrix::t(spatial_weights$temporal$matrix)
     )
   }
   denominator <- sum(centered^2)
-  s0 <- .ngeo_st_s0(weights)
+  s0 <- .ngeo_st_s0(spatial_weights)
   if (denominator <= 0 || s0 <= 0) return(NA_real_)
   length(centered) / s0 *
     sum(centered * lag) / denominator
@@ -986,26 +1010,26 @@ ngeo_spatiotemporal_lag <- function(
 #' Per-element temporal Moran statistics
 #'
 #' @param x Time-aware `ngeo` data.
-#' @param weights Matching temporal weights.
+#' @param spatial_weights Matching temporal spatial_weights.
 #' @param elements Optional spatial element selection.
 #' @param budget Resource limits for materializing selected values.
 #' @return An `ngeo_temporal_moran` data frame.
 #' @export
 ngeo_temporal_moran <- function(
     x,
-    weights,
+    spatial_weights,
     elements = NULL,
     budget = ngeo_resource_budget()) {
   axis <- ngeo_get_time_axis(x)
-  ngeo_validate_temporal_weights(weights)
-  if (!identical(axis$axis_hash, weights$axis_hash)) {
+  ngeo_validate_temporal_weights(spatial_weights)
+  if (!identical(axis$axis_hash, spatial_weights$axis_hash)) {
     .ngeo_abort(
-      "Temporal weights do not match the object time axis.",
+      "Temporal spatial_weights do not match the object time axis.",
       "ngeo_error_alignment"
     )
   }
   index <- .ngeo_element_selection(x, elements)
-  n_value <- as.double(length(index)) * weights$n_time
+  n_value <- as.double(length(index)) * spatial_weights$n_time
   .ngeo_budget_assert(
     budget, "materialized_elements", n_value
   )
@@ -1020,17 +1044,17 @@ ngeo_temporal_moran <- function(
   }
   estimate <- apply(values, 1L, function(value) {
     if (stats::var(value) == 0) NA_real_ else
-      .ngeo_moran_value(value, weights$matrix)
+      .ngeo_moran_value(value, spatial_weights$matrix)
   })
   result <- data.frame(
-    element_id = x$domain$elements$element_id[index],
+    element_id = x$base$elements$element_id[index],
     moran_i = as.numeric(estimate),
-    expectation = rep.int(-1 / (weights$n_time - 1), length(index)),
-    n_time = rep.int(weights$n_time, length(index)),
+    expectation = rep.int(-1 / (spatial_weights$n_time - 1), length(index)),
+    n_time = rep.int(spatial_weights$n_time, length(index)),
     stringsAsFactors = FALSE
   )
   attr(result, "axis_hash") <- axis$axis_hash
-  attr(result, "weights_hash") <- weights$weights_hash
+  attr(result, "weights_hash") <- spatial_weights$weights_hash
   class(result) <- c("ngeo_temporal_moran", "data.frame")
   result
 }
@@ -1038,7 +1062,7 @@ ngeo_temporal_moran <- function(
 #' Matrix-free global spatiotemporal Moran's I
 #'
 #' @param x Time-aware `ngeo` data.
-#' @param weights Matching separable spatiotemporal weights.
+#' @param spatial_weights Matching separable spatiotemporal spatial_weights.
 #' @param permutations Number of deterministic Monte Carlo permutations.
 #' @param null Permute whole spatial profiles or all observations.
 #' @param seed Optional seed.
@@ -1048,13 +1072,13 @@ ngeo_temporal_moran <- function(
 #' @export
 ngeo_spatiotemporal_moran <- function(
     x,
-    weights,
+    spatial_weights,
     permutations = 0L,
     null = c("spatial_profiles", "observations"),
     seed = NULL,
     alternative = c("two.sided", "greater", "less"),
     budget = ngeo_resource_budget()) {
-  input <- .ngeo_st_values(x, weights, budget)
+  input <- .ngeo_st_values(x, spatial_weights, budget)
   null <- match.arg(null)
   alternative <- match.arg(alternative)
   permutations <- .ngeo_as_integer(permutations, "permutations")
@@ -1064,7 +1088,7 @@ ngeo_spatiotemporal_moran <- function(
       "ngeo_error_argument"
     )
   }
-  observed <- .ngeo_st_moran_value(input$values, weights)
+  observed <- .ngeo_st_moran_value(input$values, spatial_weights)
   expectation <- -1 / (length(input$values) - 1)
   simulated <- .ngeo_with_seed(seed, function() {
     if (!permutations) return(numeric())
@@ -1080,7 +1104,7 @@ ngeo_spatiotemporal_moran <- function(
           ncol = ncol(input$values)
         )
       }
-      .ngeo_st_moran_value(permuted, weights)
+      .ngeo_st_moran_value(permuted, spatial_weights)
     }, numeric(1))
   })
   result <- list(
@@ -1094,12 +1118,12 @@ ngeo_spatiotemporal_moran <- function(
     simulated = simulated,
     null = null,
     alternative = alternative,
-    n_space = weights$n_space,
-    n_time = weights$n_time,
-    n_observation = weights$n_space * weights$n_time,
-    domain_hash = weights$domain_hash,
-    axis_hash = weights$axis_hash,
-    weights_hash = weights$weights_hash,
+    n_space = spatial_weights$n_space,
+    n_time = spatial_weights$n_time,
+    n_observation = spatial_weights$n_space * spatial_weights$n_time,
+    base_hash = spatial_weights$base_hash,
+    axis_hash = spatial_weights$axis_hash,
+    weights_hash = spatial_weights$weights_hash,
     matrix_materialized = FALSE,
     seed = seed
   )
@@ -1163,13 +1187,13 @@ ngeo_temporal_variogram <- function(
   index <- .ngeo_element_selection(x, elements)
   if (length(axis$time) < 2L) {
     .ngeo_abort(
-      "Temporal variograms require at least two time maps.",
+      "Temporal variograms require at least two time layers.",
       "ngeo_error_statistic"
     )
   }
   if (any(x$measures$temporal_semantics == "categorical")) {
     .ngeo_abort(
-      "Categorical time maps have no numeric semivariogram.",
+      "Categorical time layers have no numeric semivariogram.",
       "ngeo_error_temporal_measure"
     )
   }
@@ -1224,19 +1248,19 @@ ngeo_temporal_variogram <- function(
   result
 }
 
-#' Bounded empirical space-time semivariogram
+#' Bounded empirical coordinate_space-time semivariogram
 #'
 #' @param x Time-aware `ngeo` data.
 #' @param spatial_distance Optional explicit square spatial distance matrix.
-#' @param metric Metric used only when a small distance matrix is constructed.
+#' @param distance_method Metric used only when a small distance matrix is constructed.
 #' @param spatial_breaks,temporal_breaks Bin counts or boundaries.
-#' @param max_pairs Hard space-time observation-pair budget.
+#' @param max_pairs Hard coordinate_space-time observation-pair budget.
 #' @return An `ngeo_spatiotemporal_variogram`.
 #' @export
 ngeo_spatiotemporal_variogram <- function(
     x,
     spatial_distance = NULL,
-    metric = NULL,
+    distance_method = NULL,
     spatial_breaks = 5L,
     temporal_breaks = 5L,
     max_pairs = getOption("neurogeo.max_spatiotemporal_pairs", 1e6)) {
@@ -1247,8 +1271,8 @@ ngeo_spatiotemporal_variogram <- function(
       "ngeo_error_temporal_measure"
     )
   }
-  n_space <- nrow(x$domain$elements)
-  n_time <- nrow(x$maps)
+  n_space <- nrow(x$base$elements)
+  n_time <- nrow(x$layers)
   n_observation <- as.double(n_space) * as.double(n_time)
   pair_count <- n_observation * (n_observation - 1) / 2
   if (!is.numeric(max_pairs) || length(max_pairs) != 1L ||
@@ -1283,7 +1307,7 @@ ngeo_spatiotemporal_variogram <- function(
       x,
       from = seq_len(n_space),
       to = seq_len(n_space),
-      metric = metric
+      distance_method = distance_method
     ))
   }
   if (!is.matrix(spatial_distance) ||
@@ -1339,7 +1363,7 @@ ngeo_spatiotemporal_variogram <- function(
     )
   }))
   rownames(result) <- NULL
-  attr(result, "domain_hash") <- ngeo_domain_hash(x)
+  attr(result, "base_hash") <- base_hash(x)
   attr(result, "axis_hash") <- axis$axis_hash
   attr(result, "pair_count") <- pair_count
   class(result) <- c(
@@ -1350,30 +1374,30 @@ ngeo_spatiotemporal_variogram <- function(
 
 .ngeo_temporal_derived <- function(
     x, values, names, operation, parameters, measures = NULL) {
-  maps <- data.frame(name = names, stringsAsFactors = FALSE)
+  layers <- data.frame(name = names, stringsAsFactors = FALSE)
   if (is.null(measures)) {
     template <- .ngeo_temporal_measure_template(x)
     measures <- template[rep.int(1L, length(names)), , drop = FALSE]
   }
   if (!is.data.frame(measures) || nrow(measures) != length(names)) {
     .ngeo_abort(
-      "Derived temporal measures must align with output maps.",
+      "Derived temporal measures must align with output layers.",
       "ngeo_error_temporal_measure"
     )
   }
-  measures$map_id <- NULL
+  measures$measure_id <- NULL
   measures$temporal_semantics <- "derived"
   rownames(measures) <- NULL
   .new_ngeo(
-    domain = x$domain,
+    base = x$base,
     values = values,
-    maps = maps,
+    layers = layers,
     measures = measures,
     labels = list(),
-    provenance = list(
+    history = list(
       spec_version = "3.3",
       source_dataset = list(
-        domain_hash = ngeo_domain_hash(x),
+        base_hash = base_hash(x),
         axis_hash = ngeo_get_time_axis(x)$axis_hash
       ),
       operations = list(.ngeo_operation(operation, parameters))
@@ -1382,34 +1406,37 @@ ngeo_spatiotemporal_variogram <- function(
   )
 }
 
-#' Compute longitudinal change between two time maps
+#' Compute longitudinal change between two time layers
 #'
 #' @param x Time-aware `ngeo` data.
 #' @param from,to One time-map selector each.
 #' @param scale Difference, rate per time unit, or percent change.
 #' @param name Output map name.
-#' @param budget Resource limits for two input maps and one output map.
-#' @return One target-domain `ngeo` map.
+#' @param budget Resource limits for two input layers and one output map.
+#' @return One target-base `ngeo` map.
 #' @export
 ngeo_longitudinal_change <- function(
     x,
     from = 1L,
-    to = nrow(x$maps),
+    to = nrow(x$layers),
     scale = c("difference", "rate", "percent"),
     name = "change",
     budget = ngeo_resource_budget()) {
   axis <- ngeo_get_time_axis(x)
   scale <- match.arg(scale)
-  from <- .ngeo_map_selection(x, from)
-  to <- .ngeo_map_selection(x, to)
+  from <- .ngeo_layer_selection(x, from)
+  to <- .ngeo_layer_selection(x, to)
   if (length(from) != 1L || length(to) != 1L ||
       from == to || axis$time[[to]] <= axis$time[[from]]) {
     .ngeo_abort(
-      "`from` and `to` must select two increasing time maps.",
+      "`from` and `to` must select two increasing time layers.",
       "ngeo_error_time_axis"
     )
   }
-  semantics <- x$measures$temporal_semantics[c(from, to)]
+  semantics <- .ngeo_measures_for_layers(
+    x,
+    c(from, to)
+  )$temporal_semantics
   if (any(semantics == "categorical") ||
       length(unique(semantics)) != 1L) {
     .ngeo_abort(
@@ -1417,7 +1444,7 @@ ngeo_longitudinal_change <- function(
       "ngeo_error_temporal_measure"
     )
   }
-  n_value <- 3 * as.double(nrow(x$domain$elements))
+  n_value <- 3 * as.double(nrow(x$base$elements))
   .ngeo_budget_assert(
     budget, "materialized_elements", n_value
   )
@@ -1425,19 +1452,19 @@ ngeo_longitudinal_change <- function(
   before <- as.numeric(x$values[, from])
   after <- as.numeric(x$values[, to])
   change <- after - before
-  measure <- x$measures[from, , drop = FALSE]
+  measure <- .ngeo_measures_for_layers(x, from)
   if (scale == "rate") {
     change <- change / (axis$time[[to]] - axis$time[[from]])
-    measure$units <- .ngeo_temporal_divide_unit(
-      measure$units[[1L]], axis$unit
+    measure$unit <- .ngeo_temporal_divide_unit(
+      measure$unit[[1L]], axis$unit
     )
   } else if (scale == "percent") {
     change <- 100 * change / before
     change[before == 0] <- NA_real_
     measure$value_type <- "continuous"
-    measure$spatial_semantics <- "intensive"
-    measure$units <- "percent"
-    measure$default_aggregation <- "support_weighted_mean"
+    measure$support_behavior <- "intensive"
+    measure$unit <- "percent"
+    measure$aggregation <- "support_weighted_mean"
   }
   .ngeo_temporal_derived(
     x,
@@ -1456,7 +1483,7 @@ ngeo_longitudinal_change <- function(
 #'
 #' @param x Time-aware `ngeo` data.
 #' @param budget Resource limits for complete input and two-map output.
-#' @return Two maps: intercept and slope per time unit.
+#' @return Two layers: intercept and slope per time unit.
 #' @export
 ngeo_temporal_trend <- function(
     x,
@@ -1465,7 +1492,7 @@ ngeo_temporal_trend <- function(
   if (length(axis$time) < 2L ||
       any(x$measures$temporal_semantics == "categorical")) {
     .ngeo_abort(
-      "Temporal trend requires at least two numeric time maps.",
+      "Temporal trend requires at least two numeric time layers.",
       "ngeo_error_temporal_measure"
     )
   }
@@ -1483,14 +1510,14 @@ ngeo_temporal_trend <- function(
       "ngeo_error_temporal_support"
     )
   }
-  n_value <- as.double(nrow(x$domain$elements)) * nrow(x$maps)
+  n_value <- as.double(nrow(x$base$elements)) * nrow(x$layers)
   .ngeo_budget_assert(
     budget, "materialized_elements",
-    n_value + 2 * nrow(x$domain$elements)
+    n_value + 2 * nrow(x$base$elements)
   )
   .ngeo_budget_assert(
     budget, "memory_bytes", 8 * (
-      n_value + 2 * nrow(x$domain$elements)
+      n_value + 2 * nrow(x$base$elements)
     )
   )
   values <- as.matrix(x$values)
@@ -1501,8 +1528,8 @@ ngeo_temporal_trend <- function(
   intercept_measure <- .ngeo_temporal_measure_template(x)
   slope_measure <- intercept_measure
   slope_measure$value_type <- "continuous"
-  slope_measure$units <- .ngeo_temporal_divide_unit(
-    slope_measure$units[[1L]], axis$unit
+  slope_measure$unit <- .ngeo_temporal_divide_unit(
+    slope_measure$unit[[1L]], axis$unit
   )
   .ngeo_temporal_derived(
     x,
@@ -1522,7 +1549,7 @@ ngeo_temporal_trend <- function(
 #' @param coefficients Explicit coefficients for `operation = "linear"`.
 #' @param name Output map name.
 #' @param budget Resource limits for complete input and one-map output.
-#' @return One target-domain `ngeo` map.
+#' @return One target-base `ngeo` map.
 #' @export
 ngeo_temporal_contrast <- function(
     x,
@@ -1542,14 +1569,14 @@ ngeo_temporal_contrast <- function(
   }
   semantics <- semantics[[1L]]
   n <- length(axis$time)
-  n_value <- as.double(nrow(x$domain$elements)) * n
+  n_value <- as.double(nrow(x$base$elements)) * n
   .ngeo_budget_assert(
     budget, "materialized_elements",
-    n_value + nrow(x$domain$elements)
+    n_value + nrow(x$base$elements)
   )
   .ngeo_budget_assert(
     budget, "memory_bytes",
-    8 * (n_value + nrow(x$domain$elements))
+    8 * (n_value + nrow(x$base$elements))
   )
   coefficient <- switch(
     operation,
@@ -1599,8 +1626,8 @@ ngeo_temporal_contrast <- function(
   output <- as.numeric(as.matrix(x$values) %*% coefficient)
   measure <- .ngeo_temporal_measure_template(x)
   if (operation == "integral") {
-    measure$units <- .ngeo_temporal_multiply_unit(
-      measure$units[[1L]], axis$unit
+    measure$unit <- .ngeo_temporal_multiply_unit(
+      measure$unit[[1L]], axis$unit
     )
   }
   .ngeo_temporal_derived(
@@ -1645,7 +1672,7 @@ print.ngeo_temporal_weights <- function(x, ...) {
 #' @export
 print.ngeo_spatiotemporal_weights <- function(x, ...) {
   cat(
-    "<ngeo_spatiotemporal_weights>\n  space: ", x$n_space,
+    "<ngeo_spatiotemporal_weights>\n  coordinate_space: ", x$n_space,
     "\n  time: ", x$n_time,
     "\n  combination: ", x$combination,
     "\n  matrix materialized: ", x$matrix_materialized, "\n",

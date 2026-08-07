@@ -20,7 +20,7 @@ ngeo_support_monte_carlo(
 \item{seed}{Reproducible seed.}
 
 \item{normalization}{Column-normalize each non-empty source membership or
-leave sampled weights unchanged.}
+leave sampled spatial_weights unchanged.}
 
 \item{tolerance}{Numerical mapping tolerance.}
 }

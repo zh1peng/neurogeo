@@ -8,7 +8,7 @@ ngeo_variogram_uncertainty(
   x,
   map,
   value_covariance,
-  metric = NULL,
+  distance_method = NULL,
   breaks = 10L,
   max_distance = Inf,
   model = c("spherical", "exponential", "gaussian"),
@@ -23,9 +23,9 @@ ngeo_variogram_uncertainty(
 
 \item{map}{One numeric map.}
 
-\item{value_covariance}{Matching domain-bound measurement covariance.}
+\item{value_covariance}{Matching base-bound measurement covariance.}
 
-\item{metric, breaks, max_distance, model}{Passed to variogram estimation.}
+\item{distance_method, breaks, max_distance, model}{Passed to variogram estimation.}
 
 \item{nsim}{Number of parameter simulations.}
 

@@ -10,7 +10,7 @@ description: neurogeo 的对象、I/O、空间关系、模型、执行和复现�
 
 ## 中文工作流
 
-- [点数据空间统计：从 ngeo_points 到 Moran's I](/tutorials/getting-started)
+- [点数据空间统计：从 ngeo_point 到 Moran's I](/tutorials/getting-started)
 - [标准格式 I/O：NIfTI、GIFTI、CIFTI 与 FreeSurfer](/tutorials/format-workflows)
 
 ## 数据模型与 I/O

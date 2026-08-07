@@ -1,3 +1,18 @@
+# neurogeo 5.1.0
+
+* Replaced the core `domain / maps / provenance` schema with
+  `base / layers / history`; objects now contain exactly the shared spatial
+  base, aligned values, layer metadata, measure definitions, and history.
+* Nested type-specific geometry under `base$geometry`, made topology optional,
+  and standardized base types as point, surface, volume, parcellation, and
+  grayordinate.
+* Added the public `spatial_base()`, `values()`, `layers()`, `measures()`, and
+  `history()` accessors. Layers now reference de-duplicated measures through
+  `measure_id`.
+* Renamed user-facing coordinate-space, distance-method, spatial-weights, and
+  aggregation APIs. This is an intentional breaking release with no migration
+  or compatibility layer for 5.0 serialized objects.
+
 # neurogeo 5.0.0
 
 * Froze seven stable multilayer entry points spanning exact map binding,

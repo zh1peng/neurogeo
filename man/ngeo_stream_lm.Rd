@@ -11,7 +11,7 @@ ngeo_stream_lm(x, response, predictors = character(), chunk_size = 65536L)
 
 \item{response}{One response map.}
 
-\item{predictors}{Predictor maps.}
+\item{predictors}{Predictor layers.}
 
 \item{chunk_size}{Row chunk size.}
 }

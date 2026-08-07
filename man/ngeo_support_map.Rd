@@ -12,7 +12,7 @@ ngeo_support_map(
   source_support = NULL,
   weight_variance = NULL,
   coverage = c("complete", "partial"),
-  provenance = list()
+  history = list()
 )
 }
 \arguments{
@@ -31,7 +31,7 @@ variances.}
 
 \item{coverage}{Require complete source coverage or allow partial coverage.}
 
-\item{provenance}{Optional mapping provenance.}
+\item{history}{Optional mapping history.}
 }
 \value{
 An `ngeo_support_map`.

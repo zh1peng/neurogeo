@@ -2,14 +2,14 @@ ordination_fixture_49 <- function(n = 25L) {
   coordinates <- cbind(seq_len(n), sin(seq_len(n) / 3))
   layer_a <- scale(coordinates[, 1])[, 1]
   layer_b <- 0.7 * layer_a + 0.3 * scale(coordinates[, 2])[, 1]
-  x <- ngeo_points(
+  x <- ngeo_point(
     coordinates,
     values = cbind(layer_a = layer_a, layer_b = layer_b)
   )
-  weights <- ngeo_weights(
+  spatial_weights <- ngeo_spatial_weights(
     x, method = "knn", k = 2L, style = "W", symmetry = "union"
   )
-  list(x = x, weights = weights)
+  list(x = x, spatial_weights = spatial_weights)
 }
 
 test_that("experimental spatial ordination delegates to MULTISPATI", {
@@ -19,22 +19,22 @@ test_that("experimental spatial ordination delegates to MULTISPATI", {
   fixture <- ordination_fixture_49()
 
   fit <- ngeo_spatial_ordination(
-    fixture$x, c("layer_a", "layer_b"), fixture$weights, axes = 2L
+    fixture$x, c("layer_a", "layer_b"), fixture$spatial_weights, axes = 2L
   )
 
   expect_s3_class(fit, "ngeo_spatial_ordination")
   expect_identical(fit$backend, "adespatial::multispati")
   expect_false(fit$population_inference)
   expect_identical(fit$regime, "reference_map")
-  expect_equal(nrow(fit$training_scores), nrow(fixture$x$domain$elements))
+  expect_equal(nrow(fit$training_scores), nrow(fixture$x$base$elements))
   expect_equal(nrow(fit$loadings), 2L)
-  expect_identical(fit$domain_hash, ngeo_domain_hash(fixture$x))
+  expect_identical(fit$base_hash, base_hash(fixture$x))
   expect_match(fit$ordination_hash, "^[0-9a-f]{64}$")
   expect_output(print(fit), "population inference: FALSE")
 
   test <- fixture$x
   frozen <- ngeo_spatial_ordination(
-    fixture$x, c("layer_a", "layer_b"), fixture$weights,
+    fixture$x, c("layer_a", "layer_b"), fixture$spatial_weights,
     axes = 1L, regime = "frozen_training", newdata = list(test = test),
     independent_training = TRUE
   )
@@ -43,28 +43,28 @@ test_that("experimental spatial ordination delegates to MULTISPATI", {
 
   expect_error(
     ngeo_spatial_ordination(
-      fixture$x, 1:2, fixture$weights, regime = "frozen_training",
+      fixture$x, 1:2, fixture$spatial_weights, regime = "frozen_training",
       newdata = list(test = test)
     ),
     class = "ngeo_error_inference_leakage"
   )
 })
 
-test_that("ordination rejects stale weights and categorical layers", {
+test_that("ordination rejects stale spatial_weights and categorical layers", {
   skip_if_not_installed("adespatial")
   skip_if_not_installed("ade4")
   skip_if_not_installed("spdep")
   fixture <- ordination_fixture_49()
   other <- ordination_fixture_49(20L)
   expect_error(
-    ngeo_spatial_ordination(fixture$x, 1:2, other$weights),
-    class = "ngeo_error_domain_mismatch"
+    ngeo_spatial_ordination(fixture$x, 1:2, other$spatial_weights),
+    class = "ngeo_error_base_mismatch"
   )
 
   categorical <- fixture$x
-  categorical$measures$spatial_semantics[[1L]] <- "categorical"
+  categorical$measures$support_behavior[[1L]] <- "categorical"
   expect_error(
-    ngeo_spatial_ordination(categorical, 1:2, fixture$weights),
+    ngeo_spatial_ordination(categorical, 1:2, fixture$spatial_weights),
     class = "ngeo_error_measure"
   )
 })
@@ -74,53 +74,53 @@ test_that("experimental ordination boundaries fail before inference", {
   skip_if_not_installed("ade4")
   skip_if_not_installed("spdep")
   fixture <- ordination_fixture_49()
-  empty <- ngeo_points(cbind(x = 1:4, y = 0))
+  empty <- ngeo_point(cbind(x = 1:4, y = 0))
   expect_error(
-    ngeo_spatial_ordination(empty, 1:2, fixture$weights),
+    ngeo_spatial_ordination(empty, 1:2, fixture$spatial_weights),
     class = "ngeo_error_values"
   )
   expect_error(
-    ngeo_spatial_ordination(fixture$x, 1L, fixture$weights),
+    ngeo_spatial_ordination(fixture$x, 1L, fixture$spatial_weights),
     class = "ngeo_error_argument"
   )
   missing <- fixture$x
   missing$values[[1L]] <- NA_real_
   expect_error(
-    ngeo_spatial_ordination(missing, 1:2, fixture$weights),
+    ngeo_spatial_ordination(missing, 1:2, fixture$spatial_weights),
     class = "ngeo_error_missing"
   )
   constant <- fixture$x
   constant$values[, 1L] <- 1
   expect_error(
-    ngeo_spatial_ordination(constant, 1:2, fixture$weights),
+    ngeo_spatial_ordination(constant, 1:2, fixture$spatial_weights),
     class = "ngeo_error_measure"
   )
   expect_error(
-    ngeo_spatial_ordination(fixture$x, 1:2, "not-weights"),
+    ngeo_spatial_ordination(fixture$x, 1:2, "not-spatial_weights"),
     class = "ngeo_error_argument"
   )
   expect_error(
     ngeo_spatial_ordination(
-      fixture$x, 1:2, fixture$weights, axes = 0L
+      fixture$x, 1:2, fixture$spatial_weights, axes = 0L
     ),
     class = "ngeo_error_argument"
   )
   expect_error(
     ngeo_spatial_ordination(
-      fixture$x, 1:2, fixture$weights, newdata = list(test = fixture$x)
+      fixture$x, 1:2, fixture$spatial_weights, newdata = list(test = fixture$x)
     ),
     class = "ngeo_error_argument"
   )
   expect_error(
     ngeo_spatial_ordination(
-      fixture$x, 1:2, fixture$weights, regime = "frozen_training",
+      fixture$x, 1:2, fixture$spatial_weights, regime = "frozen_training",
       newdata = list(), independent_training = TRUE
     ),
     class = "ngeo_error_argument"
   )
 
   model <- list(
-    domain_hash = ngeo_domain_hash(fixture$x),
+    base_hash = base_hash(fixture$x),
     layer_names = c("one", "two", "three"), center = c(0, 0, 0),
     scale = c(1, 1, 1), loadings = matrix(1, 3, 1)
   )
@@ -128,7 +128,7 @@ test_that("experimental ordination boundaries fail before inference", {
     neurogeo:::.ngeo_ordination_projection(
       ordination_fixture_49(20L)$x, 1:2, model
     ),
-    class = "ngeo_error_domain_mismatch"
+    class = "ngeo_error_base_mismatch"
   )
   expect_error(
     neurogeo:::.ngeo_ordination_projection(fixture$x, 1:2, model),
@@ -150,7 +150,7 @@ test_that("sampled cross-variograms are deterministic and auditable", {
   expect_identical(one$sampling$design, "uniform_without_replacement")
   expect_identical(one$sampling$seed, 49L)
   expect_identical(one$sampling$requested_pairs, 100L)
-  expect_identical(one$metric, "euclidean")
+  expect_identical(one$distance_method, "euclidean")
   expect_match(one$sampling$hash, "^[0-9a-f]{64}$")
 
   expect_error(
@@ -178,7 +178,7 @@ test_that("cross-variogram sampling rejects ambiguous inputs", {
   )
   expect_error(
     neurogeo:::.ngeo_cross_variograms(
-      ngeo_points(cbind(x = 1:4, y = 0)), 1:2,
+      ngeo_point(cbind(x = 1:4, y = 0)), 1:2,
       pair_sample = 2L, seed = 1L
     ),
     class = "ngeo_error_values"
@@ -198,7 +198,7 @@ test_that("cross-variogram sampling rejects ambiguous inputs", {
     class = "ngeo_error_missing"
   )
   categorical <- fixture$x
-  categorical$measures$spatial_semantics[[1L]] <- "categorical"
+  categorical$measures$support_behavior[[1L]] <- "categorical"
   expect_error(
     neurogeo:::.ngeo_cross_variograms(
       categorical, 1:2, pair_sample = 10L, seed = 1L
@@ -257,7 +257,7 @@ test_that("experimental LMC returns PSD sill diagnostics", {
   expect_output(print(fit), "co-kriging: FALSE")
 })
 
-test_that("experimental LMC enforces its bounded domain and model", {
+test_that("experimental LMC enforces its bounded base and model", {
   skip_if_not_installed("gstat")
   skip_if_not_installed("sf")
   surface <- ngeo_surface(
@@ -287,7 +287,7 @@ test_that("experimental LMC enforces its bounded domain and model", {
   )
 })
 
-test_that("experimental MGWR uses fixed term bandwidths without p maps", {
+test_that("experimental MGWR uses fixed term bandwidths without p layers", {
   skip_if_not_installed("GWmodel")
   skip_if_not_installed("sf")
   set.seed(49)
@@ -295,7 +295,7 @@ test_that("experimental MGWR uses fixed term bandwidths without p maps", {
   coordinates <- cbind(runif(n), runif(n))
   p1 <- rnorm(n)
   p2 <- rnorm(n)
-  x <- ngeo_points(
+  x <- ngeo_point(
     coordinates,
     values = cbind(response = 1 + 2 * p1 - p2 + rnorm(n, sd = 0.2), p1, p2)
   )
@@ -325,7 +325,7 @@ test_that("experimental MGWR uses fixed term bandwidths without p maps", {
 test_that("experimental MGWR validates model dimensions and values", {
   skip_if_not_installed("GWmodel")
   skip_if_not_installed("sf")
-  x <- ngeo_points(
+  x <- ngeo_point(
     cbind(x = 1:8, y = sin(1:8)),
     values = cbind(response = 1:8, predictor = rep(c(0, 1), 4))
   )
@@ -349,7 +349,7 @@ test_that("experimental MGWR validates model dimensions and values", {
     ngeo_mgwr(missing, "response", "predictor", c(1, 1)),
     class = "ngeo_error_missing"
   )
-  tiny <- ngeo_points(
+  tiny <- ngeo_point(
     cbind(x = 1:4, y = 0),
     values = cbind(response = 1:4, predictor = c(0, 1, 0, 1))
   )

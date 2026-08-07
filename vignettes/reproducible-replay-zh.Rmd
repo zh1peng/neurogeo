@@ -18,7 +18,7 @@ output。限制可用 operation vocabulary 能让记录被审阅，也避免 man
 
 ```{r}
 library(neurogeo)
-x <- ngeo_points(
+x <- ngeo_point(
   cbind(x = 1:4, y = 0, z = 0),
   values = cbind(t0 = 1:4, t1 = 2 * (1:4), t2 = 3 * (1:4))
 )
@@ -45,8 +45,8 @@ verified$verified
 
 ## Logical identity
 
-logical hash 覆盖 ordered domain、aligned values、measurement semantics、
-maps、labels 和 file identity；execution timestamp 不改变该 identity。
+logical hash 覆盖 ordered base、aligned values、measurement semantics、
+layers、labels 和 file identity；execution timestamp 不改变该 identity。
 replay 在返回结果前检查 environment 以及每个 input、intermediate 和 final
 hash。
 
@@ -57,10 +57,10 @@ ngeo_write_artifact_batch(
   "derivatives/neurogeo/sub-01",
   c("sub-01_metric.tsv", "sub-01_metric.json"),
   list(
-    function(path) write.table(metric, path, sep = "\t"),
+    function(path) write.table(distance_method, path, sep = "\t"),
     function(path) jsonlite::write_json(sidecar, path)
   ),
-  roles = c("metric", "sidecar"),
+  roles = c("distance_method", "sidecar"),
   entities = list(subject = "01", datatype = "anat")
 )
 ```

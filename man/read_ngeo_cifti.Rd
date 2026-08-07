@@ -8,9 +8,9 @@ read_ngeo_cifti(
   path,
   surfaces = NULL,
   frames = NULL,
-  maps = NULL,
+  layers = NULL,
   measures = NULL,
-  space = NULL,
+  coordinate_space = NULL,
   load_data = TRUE,
   strict = TRUE,
   checksum = TRUE
@@ -23,11 +23,11 @@ read_ngeo_cifti(
 
 \item{frames}{Optional map/frame selection.}
 
-\item{maps}{Optional map metadata overriding the file metadata.}
+\item{layers}{Optional map metadata overriding the file metadata.}
 
 \item{measures}{Optional measurement semantics.}
 
-\item{space}{Optional hybrid `ngeo_space`.}
+\item{coordinate_space}{Optional hybrid `ngeo_coordinate_space`.}
 
 \item{load_data}{Whether to retain the matrix values.}
 
@@ -36,7 +36,7 @@ read_ngeo_cifti(
 \item{checksum}{Whether to record an MD5 checksum.}
 }
 \value{
-An `ngeo_grayordinates` object.
+An `ngeo_grayordinate` object.
 }
 \description{
 Read CIFTI dscalar, dlabel, or dtseries without Workbench

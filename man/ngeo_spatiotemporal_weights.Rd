@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatiotemporal.R
 \name{ngeo_spatiotemporal_weights}
 \alias{ngeo_spatiotemporal_weights}
-\title{Construct separable matrix-free spatiotemporal weights}
+\title{Construct separable matrix-free spatiotemporal spatial_weights}
 \usage{
 ngeo_spatiotemporal_weights(
   spatial,
@@ -12,7 +12,7 @@ ngeo_spatiotemporal_weights(
 )
 }
 \arguments{
-\item{spatial}{Matching `ngeo_weights`.}
+\item{spatial}{Matching `ngeo_spatial_weights`.}
 
 \item{temporal}{Matching `ngeo_temporal_weights`.}
 
@@ -21,8 +21,8 @@ ngeo_spatiotemporal_weights(
 \item{spatial_scale}{Spatial share for the sum.}
 }
 \value{
-An `ngeo_spatiotemporal_weights` without a space-by-time matrix.
+An `ngeo_spatiotemporal_weights` without a coordinate_space-by-time matrix.
 }
 \description{
-Construct separable matrix-free spatiotemporal weights
+Construct separable matrix-free spatiotemporal spatial_weights
 }

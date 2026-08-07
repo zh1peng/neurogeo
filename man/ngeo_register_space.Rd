@@ -2,20 +2,20 @@
 % Please edit documentation in R/space-graph.R
 \name{ngeo_register_space}
 \alias{ngeo_register_space}
-\title{Add one space to a registry}
+\title{Add one coordinate_space to a registry}
 \usage{
-ngeo_register_space(registry, space, aliases = character())
+ngeo_register_space(registry, coordinate_space, aliases = character())
 }
 \arguments{
-\item{registry}{An `ngeo_space_registry`.}
+\item{registry}{An `ngeo_coordinate_space_registry`.}
 
-\item{space}{An `ngeo_space`.}
+\item{coordinate_space}{An `ngeo_coordinate_space`.}
 
-\item{aliases}{Optional aliases for this exact space.}
+\item{aliases}{Optional aliases for this exact coordinate_space.}
 }
 \value{
-A new `ngeo_space_registry`.
+A new `ngeo_coordinate_space_registry`.
 }
 \description{
-Add one space to a registry
+Add one coordinate_space to a registry
 }

@@ -14,26 +14,26 @@ library(neurogeo)
 
 ## Background
 
-A coordinate is interpretable only relative to a coordinate reference space.
+A coordinate is interpretable only relative to a coordinate reference coordinate_space.
 Two files can both use millimetres and still refer to different subjects,
 templates, orientations, or surface registrations. A transform is a directed,
-auditable claim that coordinates in one exact space can be mapped to another.
+auditable claim that coordinates in one exact coordinate_space can be mapped to another.
 
 Matching names are not proof that coordinate spaces are equivalent. A
-registry stores the complete normative space description and resolves
+registry stores the complete normative coordinate_space description and resolves
 aliases to one exact hash.
 
 ## Register exact spaces
 
 ```{r}
-native <- ngeo_space("native", template = "subject-01")
-intermediate <- ngeo_space("intermediate", template = "study-template")
-standard <- ngeo_space("standard", template = "public-template")
-registry <- ngeo_space_registry(
+native <- ngeo_coordinate_space("native", template = "subject-01")
+intermediate <- ngeo_coordinate_space("intermediate", template = "study-template")
+standard <- ngeo_coordinate_space("standard", template = "public-template")
+registry <- ngeo_coordinate_space_registry(
   list(native, intermediate, standard),
   aliases = c(subject = "native", reference = "standard")
 )
-ngeo_space_audit(native, standard)
+ngeo_coordinate_space_audit(native, standard)
 ```
 
 ## Build and resolve a transform graph
@@ -65,7 +65,7 @@ graph <- ngeo_transform_graph(
   edge_ids = c("native-study", "study-standard")
 )
 path <- ngeo_transform_path(graph, "subject", "reference")
-ngeo_transform_path_provenance(path)
+ngeo_transform_path_history(path)
 ```
 
 ## Apply a path
@@ -74,11 +74,11 @@ Path application is geometry-only and requires explicit authorization.
 Lossy or unsupported non-affine paths remain auditable but cannot be applied.
 
 ```{r}
-x <- ngeo_points(
+x <- ngeo_point(
   cbind(x = c(0, 1), y = c(0, 1)),
   values = cbind(signal = c(1, 2)),
-  space = native
+  coordinate_space = native
 )
 changed <- ngeo_apply_transform_path(x, path, authorize = TRUE)
-changed$domain$coordinates
+changed$base$geometry$coordinates
 ```

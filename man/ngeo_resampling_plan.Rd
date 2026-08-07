@@ -21,10 +21,10 @@ ngeo_resampling_plan(
 )
 }
 \arguments{
-\item{source, target}{Source data and target-domain template.}
+\item{source, target}{Source data and target-base template.}
 
 \item{path}{An explicitly selected `ngeo_transform_path` from the exact
-source space to the exact target space.}
+source coordinate_space to the exact target coordinate_space.}
 
 \item{method}{Nearest, linear/trilinear, barycentric, or exact
 axis-aligned overlap mapping.}
@@ -32,7 +32,7 @@ axis-aligned overlap mapping.}
 \item{coverage}{Geometric coverage policy: reject, retain partial
 contributions, or normalize covered contributions.}
 
-\item{conservation}{For extensive/count maps, reject non-unit allocation
+\item{conservation}{For extensive/count layers, reject non-unit allocation
 or explicitly normalize it.}
 
 \item{missing}{Reject or explicitly drop wholly unmapped source support.}

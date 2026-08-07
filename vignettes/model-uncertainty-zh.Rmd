@@ -18,7 +18,7 @@ library(neurogeo)
 covariance parameter uncertainty，以及 support 或 tuning choice 的敏感性。
 只有把这些成分分开命名，总 variance 才能被正确解释。
 
-covariance 的行列必须绑定到一个 exact ordered domain，防止 uncertainty 与
+covariance 的行列必须绑定到一个 exact ordered base，防止 uncertainty 与
 observation 错位。
 
 ## Measurement covariance
@@ -26,7 +26,7 @@ observation 错位。
 ```{r}
 coordinates <- as.matrix(expand.grid(x = 0:3, y = 0:3))
 predictor <- coordinates[, 1] + coordinates[, 2] / 4
-x <- ngeo_points(
+x <- ngeo_point(
   coordinates,
   values = cbind(
     response = 1 + 2 * predictor +

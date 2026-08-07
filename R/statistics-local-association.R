@@ -75,7 +75,7 @@
 #' @export
 ngeo_getis_ord <- function(
     x,
-    weights,
+    spatial_weights,
     map = 1L,
     star = TRUE,
     permutations = 0L,
@@ -101,7 +101,7 @@ ngeo_getis_ord <- function(
   )
   input <- .ngeo_spatial_inputs(
     x,
-    weights,
+    spatial_weights,
     map,
     na_action,
     zero_policy
@@ -145,9 +145,9 @@ ngeo_getis_ord <- function(
     stringsAsFactors = FALSE
   )
   attr(result, "statistic") <- if (star) "Gi*" else "Gi"
-  attr(result, "map_id") <- input$map_id
-  attr(result, "map_name") <- input$map_name
-  attr(result, "domain_hash") <- input$domain_hash
+  attr(result, "layer_id") <- input$layer_id
+  attr(result, "layer_name") <- input$layer_name
+  attr(result, "base_hash") <- input$base_hash
   attr(result, "weights_method") <- input$weights_method
   attr(result, "normalization") <- input$normalization
   attr(result, "permutations") <- permutations
@@ -218,7 +218,7 @@ ngeo_getis_ord <- function(
 #' @export
 ngeo_correlogram <- function(
     x,
-    weights,
+    spatial_weights,
     map = 1L,
     lags = 1:10,
     permutations = 0L,
@@ -239,7 +239,7 @@ ngeo_correlogram <- function(
   )
   input <- .ngeo_spatial_inputs(
     x,
-    weights,
+    spatial_weights,
     map,
     na_action,
     zero_policy
@@ -297,9 +297,9 @@ ngeo_correlogram <- function(
     ),
     stringsAsFactors = FALSE
   )
-  attr(result, "map_id") <- input$map_id
-  attr(result, "map_name") <- input$map_name
-  attr(result, "domain_hash") <- input$domain_hash
+  attr(result, "layer_id") <- input$layer_id
+  attr(result, "layer_name") <- input$layer_name
+  attr(result, "base_hash") <- input$base_hash
   attr(result, "permutations") <- inference$permutations
   attr(result, "alternative") <- inference$alternative
   attr(result, "adjustment") <- inference$adjust
@@ -314,7 +314,7 @@ print.ngeo_getis <- function(x, ...) {
     "<ngeo_getis>\n",
     "  statistic: ", attr(x, "statistic"), "\n",
     "  observations: ", nrow(x), "\n",
-    "  map: ", attr(x, "map_name"), "\n",
+    "  map: ", attr(x, "layer_name"), "\n",
     "  permutations: ", attr(x, "permutations"), "\n",
     sep = ""
   )
@@ -326,7 +326,7 @@ print.ngeo_correlogram <- function(x, ...) {
   cat(
     "<ngeo_correlogram>\n",
     "  lags: ", nrow(x), "\n",
-    "  map: ", attr(x, "map_name"), "\n",
+    "  map: ", attr(x, "layer_name"), "\n",
     "  permutations: ", attr(x, "permutations"), "\n",
     sep = ""
   )
@@ -341,7 +341,7 @@ plot.ngeo_getis <- function(x, ...) {
     pch = 19,
     xlab = "Analysed element",
     ylab = paste(attr(x, "statistic"), "z-score"),
-    main = paste(attr(x, "statistic"), "-", attr(x, "map_name")),
+    main = paste(attr(x, "statistic"), "-", attr(x, "layer_name")),
     ...
   )
   graphics::abline(h = 0, col = "grey70", lty = 2)
@@ -356,7 +356,7 @@ plot.ngeo_correlogram <- function(x, ...) {
     type = "b",
     xlab = "Graph lag",
     ylab = "Moran's I",
-    main = paste("Spatial correlogram -", attr(x, "map_name")),
+    main = paste("Spatial correlogram -", attr(x, "layer_name")),
     ...
   )
   graphics::abline(h = x$expectation[[1L]], col = "grey70", lty = 2)

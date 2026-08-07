@@ -1,22 +1,22 @@
 path_basis_fixture <- function(n = 6L) {
-  x <- ngeo_points(
+  x <- ngeo_point(
     cbind(x = seq_len(n), y = 0),
     values = cbind(signal = seq_len(n)),
-    maps = data.frame(
-      map_id = "signal",
+    layers = data.frame(
+      layer_id = "signal",
       name = "signal",
       subject_id = "s01",
       feature = "signal"
     ),
-    measures = ngeo_measure(spatial_semantics = "intensive")
+    measures = ngeo_measure(support_behavior = "intensive")
   )
-  weights <- ngeo_weights(
+  spatial_weights <- ngeo_spatial_weights(
     x,
     method = "distance_band",
     threshold = 1.01,
     style = "B"
   )
-  list(x = x, weights = weights)
+  list(x = x, spatial_weights = spatial_weights)
 }
 
 test_that("graph basis matches path analytic eigenvalues", {
@@ -24,7 +24,7 @@ test_that("graph basis matches path analytic eigenvalues", {
   fixture <- path_basis_fixture(6L)
   basis <- ngeo_spatial_basis(
     fixture$x,
-    fixture$weights,
+    fixture$spatial_weights,
     support = "identity",
     n_modes = 5L
   )
@@ -50,12 +50,12 @@ test_that("graph basis matches cycle and Cartesian-grid spectra", {
     x = 1,
     dims = c(cycle_n, cycle_n)
   )
-  cycle <- ngeo_regions(
+  cycle <- ngeo_parcellation(
     data.frame(region_id = seq_len(cycle_n)),
     support_size = rep(1, cycle_n),
     adjacency = cycle_adjacency
   )
-  cycle_weights <- ngeo_weights(
+  cycle_weights <- ngeo_spatial_weights(
     cycle, method = "region_contiguity", style = "B"
   )
   cycle_basis <- ngeo_spatial_basis(
@@ -69,8 +69,8 @@ test_that("graph basis matches cycle and Cartesian-grid spectra", {
   )
 
   coordinates <- as.matrix(expand.grid(x = 1:3, y = 1:4))
-  grid <- ngeo_points(coordinates)
-  grid_weights <- ngeo_weights(
+  grid <- ngeo_point(coordinates)
+  grid_weights <- ngeo_spatial_weights(
     grid, method = "distance_band", threshold = 1.01, style = "B"
   )
   grid_basis <- ngeo_spatial_basis(
@@ -88,17 +88,17 @@ test_that("graph basis matches cycle and Cartesian-grid spectra", {
 
 test_that("graph basis keeps disconnected components separate", {
   skip_if_not_installed("RSpectra")
-  x <- ngeo_points(
+  x <- ngeo_point(
     matrix(c(0, 0, 1, 0, 10, 0, 11, 0), ncol = 2L, byrow = TRUE)
   )
-  weights <- ngeo_weights(
+  spatial_weights <- ngeo_spatial_weights(
     x,
     method = "distance_band",
     threshold = 1.01,
     style = "B"
   )
   basis <- ngeo_spatial_basis(
-    x, weights, support = "identity", n_modes = 1L
+    x, spatial_weights, support = "identity", n_modes = 1L
   )
 
   expect_length(basis$components, 2L)
@@ -106,7 +106,7 @@ test_that("graph basis keeps disconnected components separate", {
   expect_identical(basis$diagnostics$observed_zero_modes, 2L)
   expect_error(
     ngeo_spatial_basis(
-      x, weights, support = "identity", n_modes = 1L,
+      x, spatial_weights, support = "identity", n_modes = 1L,
       components = "error"
     ),
     class = "ngeo_error_topology"
@@ -116,21 +116,21 @@ test_that("graph basis keeps disconnected components separate", {
 test_that("surface graph basis uses one support-weighted inner product", {
   skip_if_not_installed("RSpectra")
   x <- builder_surface(values = cbind(signal = 1:4))
-  weights <- ngeo_weights(x, method = "mesh_contiguity", style = "B")
-  basis <- ngeo_spatial_basis(x, weights, n_modes = 2L)
+  spatial_weights <- ngeo_spatial_weights(x, method = "mesh_contiguity", style = "B")
+  basis <- ngeo_spatial_basis(x, spatial_weights, n_modes = 2L)
   current <- basis$components[[1L]]
   gram <- crossprod(
     current$vectors,
     current$support * current$vectors
   )
   expect_equal(gram, diag(2L), tolerance = 1e-8)
-  expect_identical(basis$support$type, "domain")
+  expect_identical(basis$support$type, "base")
 })
 
 test_that("graph basis rejects directed, negative, or mismatched operators", {
   skip_if_not_installed("RSpectra")
   fixture <- path_basis_fixture(6L)
-  directed <- fixture$weights
+  directed <- fixture$spatial_weights
   directed$raw_matrix[2L, 1L] <- 0
   directed$matrix <- directed$raw_matrix
   expect_error(
@@ -138,7 +138,7 @@ test_that("graph basis rejects directed, negative, or mismatched operators", {
     class = "ngeo_error_operator"
   )
 
-  negative <- fixture$weights
+  negative <- fixture$spatial_weights
   negative$raw_matrix@x[[1L]] <- -1
   negative$matrix <- negative$raw_matrix
   expect_error(
@@ -146,10 +146,10 @@ test_that("graph basis rejects directed, negative, or mismatched operators", {
     class = "ngeo_error_operator"
   )
 
-  other <- ngeo_points(cbind(x = 1:6, y = 1))
+  other <- ngeo_point(cbind(x = 1:6, y = 1))
   expect_error(
-    ngeo_spatial_basis(other, fixture$weights, support = "identity"),
-    class = "ngeo_error_domain_mismatch"
+    ngeo_spatial_basis(other, fixture$spatial_weights, support = "identity"),
+    class = "ngeo_error_base_mismatch"
   )
 })
 
@@ -159,7 +159,7 @@ test_that("basis budget rejects dense output before eigensolving", {
   expect_error(
     ngeo_spatial_basis(
       fixture$x,
-      fixture$weights,
+      fixture$spatial_weights,
       support = "identity",
       n_modes = 5L,
       budget = ngeo_resource_budget(memory_bytes = 1)

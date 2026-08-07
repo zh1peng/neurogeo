@@ -10,7 +10,7 @@ ngeo_support_size(x)
 \item{x}{An `ngeo` object.}
 }
 \value{
-A numeric vector aligned with domain elements.
+A numeric vector aligned with base elements.
 }
 \description{
 Return element support sizes

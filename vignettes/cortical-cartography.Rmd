@@ -31,7 +31,7 @@ does not substitute a fixed atlas drawing or a toy polygon for the caller's
 surface.
 
 The following release-validation figures use the HCP S1200 Conte69 32k flat
-surfaces. The first overlays a continuous vertex metric. The second overlays
+surfaces. The first overlays a continuous vertex distance_method. The second overlays
 the Schaefer 2018 atlas aggregated to seven networks. A geometry-derived
 curvature diagnostic supplies the grayscale folding underlay.
 
@@ -78,7 +78,7 @@ Replace these paths with aligned GIFTI files from the same surface system:
 source_surface <- read_ngeo_gifti(
   geometry = "S1200.L.midthickness_MSMAll.32k_fs_LR.surf.gii",
   data = c(
-    metric = "metric.shape.gii",
+    distance_method = "distance_method.shape.gii",
     sulc = "sulc.shape.gii",
     atlasroi = "L.atlasroi.32k_fs_LR.shape.gii"
   ),
@@ -100,7 +100,7 @@ left <- ngeo_flatten_surface(
   name = "flat"
 )
 
-left$domain$charts$flat$invariants[
+left$base$charts$flat$invariants[
   c("topology_verified", "topology_relation")
 ]
 ```
@@ -113,7 +113,7 @@ surfaces fail instead of producing an unauditable picture.
 ```{r continuous-map, eval=FALSE}
 continuous_map <- ngeo_cortical_map(
   left,
-  map = "metric",
+  map = "distance_method",
   chart = "flat",
   atlas = "schaefer100",
   mask = left$values[, "atlasroi"] > 0,
@@ -188,12 +188,12 @@ names(plot_data)
 # vertices, faces, boundaries, outline, label_positions, legend, metadata
 
 plot_data$metadata$chart_metadata$invariants$source_face_in_chart
-plot_data$metadata$provenance
+plot_data$metadata$history
 ```
 
 Panels retain independent domains. Downstream renderers should preserve
 source vertex/face indices, inclusion status, chart metadata, and
-provenance.
+history.
 
 ## Scientific boundary
 
@@ -201,7 +201,7 @@ The module does not reconstruct surfaces, cut a closed hemisphere,
 register/resample data, perform inference, or run QC. Orthographic and PCA
 outputs are views, not cortical flattening. A formal result should report
 the source surface, flat-chart source, topology verification, mask,
-underlay, atlas, color limits, and provenance.
+underlay, atlas, color limits, and history.
 
 The validation fixtures are governed by the
 [HCP Open Access Data Use Terms](https://www.humanconnectome.org/study/hcp-young-adult/document/wu-minn-hcp-consortium-open-access-data-use-terms).

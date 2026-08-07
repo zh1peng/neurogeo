@@ -1,6 +1,6 @@
 # Internal delayed, strictly aligned values block.
 #'
-.ngeo_delayed_values <- function(reader, dim, map_names = NULL, source = NULL) {
+.ngeo_delayed_values <- function(reader, dim, layer_names = NULL, source = NULL) {
   dim <- .ngeo_as_integer(dim, "dim")
   if (length(dim) != 2L || any(dim < 1L)) {
     .ngeo_abort("`dim` must contain two positive integers.", "ngeo_error_argument")
@@ -10,11 +10,11 @@
     .ngeo_abort("`reader` must be a callback or existing binary file.",
                 "ngeo_error_argument")
   }
-  if (!is.null(map_names) && (
-      length(map_names) != dim[[2L]] || anyNA(map_names) ||
-      any(!nzchar(map_names)) || anyDuplicated(map_names)
+  if (!is.null(layer_names) && (
+      length(layer_names) != dim[[2L]] || anyNA(layer_names) ||
+      any(!nzchar(layer_names)) || anyDuplicated(layer_names)
   )) {
-    .ngeo_abort("`map_names` must uniquely name every column.",
+    .ngeo_abort("`layer_names` must uniquely name every column.",
                 "ngeo_error_alignment")
   }
   if (is.character(reader)) {
@@ -31,7 +31,7 @@
     list(
       reader = reader,
       dim = dim,
-      dimnames = list(NULL, map_names),
+      dimnames = list(NULL, layer_names),
       source = source %||% if (is.character(reader)) {
         normalizePath(reader, winslash = "/", mustWork = TRUE)
       } else {
@@ -122,13 +122,13 @@ as.matrix.ngeo_delayed_values <- function(x, ...) {
 #'
 #' @param x An `ngeo` dataset or `ngeo_delayed_values`.
 #' @param chunk_size Positive row count.
-#' @param maps Optional map selection.
+#' @param layers Optional map selection.
 #' @param FUN Optional function called with `(block, rows)`. When omitted an
 #'   iterator closure is returned.
 #'
 #' @return An iterator or list of callback results.
 #' @export
-ngeo_value_chunks <- function(x, chunk_size = 65536L, maps = NULL, FUN = NULL) {
+ngeo_value_chunks <- function(x, chunk_size = 65536L, layers = NULL, FUN = NULL) {
   values <- if (inherits(x, "ngeo")) x$values else x
   if (is.null(values)) {
     .ngeo_abort("No values are loaded.", "ngeo_error_values")
@@ -137,10 +137,10 @@ ngeo_value_chunks <- function(x, chunk_size = 65536L, maps = NULL, FUN = NULL) {
   if (length(chunk_size) != 1L || chunk_size < 1L) {
     .ngeo_abort("`chunk_size` must be positive.", "ngeo_error_argument")
   }
-  columns <- if (is.null(maps)) seq_len(ncol(values)) else if (
+  columns <- if (is.null(layers)) seq_len(ncol(values)) else if (
     inherits(x, "ngeo")
-  ) .ngeo_map_selection(x, maps) else
-    .ngeo_delayed_index(maps, ncol(values), colnames(values))
+  ) .ngeo_layer_selection(x, layers) else
+    .ngeo_delayed_index(layers, ncol(values), colnames(values))
   position <- 1L
   iterator <- function() {
     if (position > nrow(values)) return(NULL)

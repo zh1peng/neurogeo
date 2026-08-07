@@ -22,7 +22,7 @@ matrix.}
 
 \item{region_id}{Region identifiers, defaulting to matrix column names.}
 
-\item{target}{Optional regions target. A target is stored in `map$target`
+\item{target}{Optional parcellation target. A target is stored in `map$target`
 when omitted.}
 
 \item{coverage}{Complete, partial, or infer from column sums.}
@@ -38,7 +38,7 @@ A sparse probabilistic or overlapping `ngeo_support_map`.
 Build a support map from aligned probabilistic atlas memberships
 }
 \examples{
-source <- ngeo_points(
+source <- ngeo_point(
   matrix(c(0, 0, 1, 0, 2, 0), ncol = 2, byrow = TRUE)
 )
 probability <- matrix(

@@ -15,9 +15,9 @@ library(neurogeo)
 ## Background
 
 Schema validation checks structural claims before a scientific operation is
-allowed to use them. For a spatial dataset this includes domain type,
-element/value alignment, measurement metadata, space identity, and the
-internal consistency of topology and maps. Validation cannot prove that an
+allowed to use them. For a spatial dataset this includes base type,
+element/value alignment, measurement metadata, coordinate_space identity, and the
+internal consistency of topology and layers. Validation cannot prove that an
 experimental design is scientifically appropriate; it proves that the object
 satisfies its declared contract.
 
@@ -28,11 +28,11 @@ object model.
 ## Validate an object
 
 ```{r}
-x <- ngeo_points(
+x <- ngeo_point(
   cbind(x = c(0, 1, 0), y = c(0, 0, 1)),
   values = cbind(signal = c(1, 2, 3)),
-  measures = ngeo_measure(spatial_semantics = "intensive"),
-  space = ngeo_space("reference-points", kind = "unknown")
+  measures = ngeo_measure(support_behavior = "intensive"),
+  coordinate_space = ngeo_coordinate_space("reference-points", kind = "unknown")
 )
 ngeo_validate(x)
 ```

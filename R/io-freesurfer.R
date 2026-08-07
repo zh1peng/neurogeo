@@ -42,7 +42,7 @@
 
 .ngeo_fs_surface_data <- function(paths, n_vertex) {
   if (is.null(paths)) {
-    return(list(values = NULL, maps = NULL))
+    return(list(values = NULL, layers = NULL))
   }
   if (!is.character(paths) || any(!file.exists(paths))) {
     .ngeo_abort(
@@ -52,7 +52,7 @@
   }
 
   columns <- list()
-  map_names <- character()
+  layer_names <- character()
   for (i in seq_along(paths)) {
     extension <- .ngeo_path_extension(paths[[i]])
     path <- paths[[i]]
@@ -89,14 +89,14 @@
     for (column in seq_len(ncol(value))) {
       columns[[length(columns) + 1L]] <- value[, column]
       suffix <- if (ncol(value) > 1L) paste0("_", column) else ""
-      map_names <- c(map_names, paste0(base_name, suffix))
+      layer_names <- c(layer_names, paste0(base_name, suffix))
     }
   }
   values <- do.call(cbind, columns)
-  colnames(values) <- make.unique(map_names)
+  colnames(values) <- make.unique(layer_names)
   list(
     values = values,
-    maps = data.frame(name = colnames(values), stringsAsFactors = FALSE)
+    layers = data.frame(name = colnames(values), stringsAsFactors = FALSE)
   )
 }
 
@@ -138,17 +138,17 @@
                                           coordinates,
                                           data,
                                           labels,
-                                          maps,
+                                          layers,
                                           measures,
-                                          space,
+                                          coordinate_space,
                                           strict,
                                           checksum) {
   geometry_data <- .ngeo_fs_surface_geometry(geometry, coordinates)
   n_vertex <- nrow(geometry_data$coordinates[[1L]])
   value_data <- .ngeo_fs_surface_data(data, n_vertex)
   label_data <- .ngeo_fs_annot(labels, n_vertex)
-  maps <- maps %||% value_data$maps
-  space <- space %||% ngeo_space(
+  layers <- layers %||% value_data$layers
+  coordinate_space <- coordinate_space %||% ngeo_coordinate_space(
     "unknown",
     kind = "surface",
     source_metadata = list(freesurfer = geometry_data$metadata)
@@ -158,10 +158,10 @@
     coordinates = geometry_data$coordinates,
     faces = geometry_data$faces,
     values = value_data$values,
-    maps = maps,
+    layers = layers,
     measures = measures,
     labels = label_data,
-    space = space,
+    coordinate_space = coordinate_space,
     coordinate_roles = geometry_data$roles,
     index_base = "one",
     source_index_base = 0L
@@ -182,9 +182,9 @@
 .ngeo_read_freesurfer_volume <- function(path,
                                          affine,
                                          mask,
-                                         maps,
+                                         layers,
                                          measures,
-                                         space,
+                                         coordinate_space,
                                          load_data,
                                          strict,
                                          checksum) {
@@ -200,15 +200,15 @@
   header <- volume$header
   data <- volume$data
   lattice_dim <- as.integer(dim(data)[1:3])
-  n_map <- if (length(dim(data)) <= 3L) {
+  n_layer <- if (length(dim(data)) <= 3L) {
     1L
   } else {
     prod(dim(data)[-seq_len(3L)])
   }
-  if (is.null(maps)) {
-    maps <- data.frame(
-      name = paste0("frame_", seq_len(n_map)),
-      source_frame = seq_len(n_map) - 1L,
+  if (is.null(layers)) {
+    layers <- data.frame(
+      name = paste0("frame_", seq_len(n_layer)),
+      source_frame = seq_len(n_layer) - 1L,
       stringsAsFactors = FALSE
     )
   }
@@ -228,7 +228,7 @@
       )
     }
   }
-  space <- space %||% ngeo_space(
+  coordinate_space <- coordinate_space %||% ngeo_coordinate_space(
     "unknown",
     kind = "volume",
     source_metadata = list(
@@ -241,12 +241,12 @@
     dim = lattice_dim,
     affine = affine,
     mask = mask,
-    maps = maps,
+    layers = layers,
     measures = measures,
-    space = space,
+    coordinate_space = coordinate_space,
     index_base = "zero"
   )
-  x$provenance$header_summary <- header
+  x$history$header_summary <- header
   x <- .ngeo_append_import_provenance(
     x,
     paths = path,
@@ -267,12 +267,12 @@
 #' @param coordinates Optional additional surface coordinate paths.
 #' @param data Optional morphometry paths.
 #' @param labels Optional annotation path.
-#' @param domain Explicit surface/volume domain, or safe automatic detection.
+#' @param base Explicit surface/volume base, or safe automatic detection.
 #' @param affine Optional explicit MGH/MGZ affine.
 #' @param mask Optional volume mask.
-#' @param maps Optional map metadata.
+#' @param layers Optional map metadata.
 #' @param measures Optional measurement semantics.
-#' @param space Optional `ngeo_space`.
+#' @param coordinate_space Optional `ngeo_coordinate_space`.
 #' @param load_data Whether to retain volume data.
 #' @param strict Whether to run strict validation.
 #' @param checksum Whether to record MD5 checksums.
@@ -284,17 +284,17 @@ read_ngeo_freesurfer <- function(x = NULL,
                                  coordinates = NULL,
                                  data = NULL,
                                  labels = NULL,
-                                 domain = c("auto", "surface", "volume"),
+                                 base = c("auto", "surface", "volume"),
                                  affine = NULL,
                                  mask = NULL,
-                                 maps = NULL,
+                                 layers = NULL,
                                  measures = NULL,
-                                 space = NULL,
+                                 coordinate_space = NULL,
                                  load_data = TRUE,
                                  strict = TRUE,
                                  checksum = TRUE) {
   .ngeo_require("freesurferformats", "FreeSurfer format reading")
-  domain <- match.arg(domain)
+  base <- match.arg(base)
   primary <- x %||% geometry
   if (is.null(primary) || !is.character(primary) ||
       length(primary) != 1L || !file.exists(primary)) {
@@ -306,8 +306,8 @@ read_ngeo_freesurfer <- function(x = NULL,
 
   extension <- .ngeo_path_extension(primary)
   is_mgh <- extension %in% c("mgh", "mgz")
-  if (identical(domain, "auto")) {
-    domain <- if (!is.null(geometry) && !identical(primary, geometry)) {
+  if (identical(base, "auto")) {
+    base <- if (!is.null(geometry) && !identical(primary, geometry)) {
       "surface"
     } else if (!is_mgh) {
       "surface"
@@ -327,16 +327,16 @@ read_ngeo_freesurfer <- function(x = NULL,
       } else {
         .ngeo_abort(
           paste0(
-            "MGH/MGZ domain is ambiguous. Specify `domain = \"surface\"` ",
-            "with matching `geometry`, or `domain = \"volume\"`."
+            "MGH/MGZ base is ambiguous. Specify `base = \"surface\"` ",
+            "with matching `geometry`, or `base = \"volume\"`."
           ),
-          "ngeo_error_domain_ambiguous"
+          "ngeo_error_base_ambiguous"
         )
       }
     }
   }
 
-  if (identical(domain, "volume")) {
+  if (identical(base, "volume")) {
     if (!is_mgh) {
       .ngeo_abort(
         "FreeSurfer volume input must be MGH or MGZ.",
@@ -347,9 +347,9 @@ read_ngeo_freesurfer <- function(x = NULL,
       primary,
       affine = affine,
       mask = mask,
-      maps = maps,
+      layers = layers,
       measures = measures,
-      space = space,
+      coordinate_space = coordinate_space,
       load_data = load_data,
       strict = strict,
       checksum = checksum
@@ -372,9 +372,9 @@ read_ngeo_freesurfer <- function(x = NULL,
     coordinates = coordinates,
     data = data,
     labels = labels,
-    maps = maps,
+    layers = layers,
     measures = measures,
-    space = space,
+    coordinate_space = coordinate_space,
     strict = strict,
     checksum = checksum
   )

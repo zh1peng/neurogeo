@@ -90,7 +90,7 @@
 
 .ngeo_gifti_data <- function(paths, n_vertex) {
   if (is.null(paths)) {
-    return(list(values = NULL, maps = NULL, metadata = list()))
+    return(list(values = NULL, layers = NULL, metadata = list()))
   }
   if (!is.character(paths) || any(!file.exists(paths))) {
     .ngeo_abort(
@@ -100,7 +100,7 @@
   }
 
   columns <- list()
-  map_names <- character()
+  layer_names <- character()
   metadata <- list()
   for (file_index in seq_along(paths)) {
     path <- paths[[file_index]]
@@ -142,7 +142,7 @@
       for (column in seq_len(ncol(value))) {
         columns[[length(columns) + 1L]] <- value[, column]
         suffix <- if (ncol(value) > 1L) paste0("_", column) else ""
-        map_names <- c(map_names, paste0(file_name, suffix))
+        layer_names <- c(layer_names, paste0(file_name, suffix))
       }
       metadata[[length(metadata) + 1L]] <- list(
         source = paths[[file_index]],
@@ -153,10 +153,10 @@
   }
 
   values <- do.call(cbind, columns)
-  colnames(values) <- make.unique(map_names)
+  colnames(values) <- make.unique(layer_names)
   list(
     values = values,
-    maps = data.frame(
+    layers = data.frame(
       name = colnames(values),
       stringsAsFactors = FALSE
     ),
@@ -224,14 +224,14 @@
   result
 }
 
-#' Read GIFTI geometry, metric, and labels
+#' Read GIFTI geometry, distance_method, and labels
 #'
 #' @param geometry One or more GIFTI surface paths.
-#' @param data Optional metric/shape/functional GIFTI paths.
+#' @param data Optional distance_method/shape/functional GIFTI paths.
 #' @param labels Optional label GIFTI paths.
-#' @param maps Optional map metadata overriding generated names.
+#' @param layers Optional map metadata overriding generated names.
 #' @param measures Optional measurement semantics.
-#' @param space Optional `ngeo_space`.
+#' @param coordinate_space Optional `ngeo_coordinate_space`.
 #' @param coordinate_roles Optional roles for coordinate files.
 #' @param strict Whether to run strict validation.
 #' @param checksum Whether to record MD5 checksums.
@@ -241,9 +241,9 @@
 read_ngeo_gifti <- function(geometry,
                             data = NULL,
                             labels = NULL,
-                            maps = NULL,
+                            layers = NULL,
                             measures = NULL,
-                            space = NULL,
+                            coordinate_space = NULL,
                             coordinate_roles = NULL,
                             strict = TRUE,
                             checksum = TRUE) {
@@ -263,9 +263,9 @@ read_ngeo_gifti <- function(geometry,
   n_vertex <- nrow(geometry_data$coordinates[[1L]])
   value_data <- .ngeo_gifti_data(data, n_vertex)
   label_data <- .ngeo_gifti_labels(labels, n_vertex)
-  maps <- maps %||% value_data$maps
+  layers <- layers %||% value_data$layers
 
-  space <- space %||% ngeo_space(
+  coordinate_space <- coordinate_space %||% ngeo_coordinate_space(
     "unknown",
     kind = "surface",
     source_metadata = list(gifti = geometry_data$metadata)
@@ -274,10 +274,10 @@ read_ngeo_gifti <- function(geometry,
     coordinates = geometry_data$coordinates,
     faces = geometry_data$faces,
     values = value_data$values,
-    maps = maps,
+    layers = layers,
     measures = measures,
     labels = label_data,
-    space = space,
+    coordinate_space = coordinate_space,
     coordinate_roles = geometry_data$roles,
     index_base = "zero",
     source_index_base = 0L

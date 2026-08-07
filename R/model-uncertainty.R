@@ -34,14 +34,14 @@
     x,
     map,
     covariance,
-    metric,
+    distance_method,
     breaks,
     max_distance) {
-  map_index <- .ngeo_map_selection(x, map)
-  if (length(map_index) != 1L) {
+  layer_index <- .ngeo_layer_selection(x, map)
+  if (length(layer_index) != 1L) {
     .ngeo_abort("Select one variogram map.", "ngeo_error_argument")
   }
-  values <- as.numeric(x$values[, map_index])
+  values <- as.numeric(x$values[, layer_index])
   if (any(!is.finite(values))) {
     .ngeo_abort("Uncertain variograms require finite values.",
                 "ngeo_error_missing")
@@ -62,7 +62,7 @@
     target <- seq.int(i + 1L, n)
     current <- seq.int(position, length.out = length(target))
     distance[current] <- as.numeric(ngeo_distance(
-      x, from = i, to = target, metric = metric,
+      x, from = i, to = target, distance_method = distance_method,
       max_distance = max_distance
     ))
     raw[current] <- 0.5 * (values[[i]] - values[target])^2
@@ -110,16 +110,16 @@
   }))
   result <- result[result$n_pairs > 0L, , drop = FALSE]
   rownames(result) <- NULL
-  attr(result, "map_id") <- x$maps$map_id[[map_index]]
-  attr(result, "map_name") <- x$maps$name[[map_index]]
-  attr(result, "domain_hash") <- ngeo_domain_hash(x)
-  attr(result, "metric") <- .ngeo_metric_name(metric %||% switch(
-    x$domain$type,
+  attr(result, "layer_id") <- x$layers$layer_id[[layer_index]]
+  attr(result, "layer_name") <- x$layers$name[[layer_index]]
+  attr(result, "base_hash") <- base_hash(x)
+  attr(result, "distance_method") <- .ngeo_metric_name(distance_method %||% switch(
+    x$base$type,
     surface = "edge_geodesic",
     volume = "world_euclidean",
-    points = "euclidean",
-    regions = "region_centroid",
-    grayordinates = "edge_geodesic"
+    point = "euclidean",
+    parcellation = "region_centroid",
+    grayordinate = "edge_geodesic"
   ))
   attr(result, "pair_count") <- length(distance)
   class(result) <- c("ngeo_variogram", "data.frame")
@@ -130,8 +130,8 @@
 #'
 #' @param x An `ngeo` dataset.
 #' @param map One numeric map.
-#' @param value_covariance Matching domain-bound measurement covariance.
-#' @param metric,breaks,max_distance,model Passed to variogram estimation.
+#' @param value_covariance Matching base-bound measurement covariance.
+#' @param distance_method,breaks,max_distance,model Passed to variogram estimation.
 #' @param nsim Number of parameter simulations.
 #' @param seed Reproducible seed.
 #' @param workers Deterministic worker-group count.
@@ -143,7 +143,7 @@ ngeo_variogram_uncertainty <- function(
     x,
     map,
     value_covariance,
-    metric = NULL,
+    distance_method = NULL,
     breaks = 10L,
     max_distance = Inf,
     model = c("spherical", "exponential", "gaussian"),
@@ -158,11 +158,11 @@ ngeo_variogram_uncertainty <- function(
   }
   .ngeo_interval(0, 1, level)
   empirical <- .ngeo_variogram_uncertain_empirical(
-    x, map, value_covariance, metric, breaks, max_distance
+    x, map, value_covariance, distance_method, breaks, max_distance
   )
   fit <- ngeo_fit_variogram(empirical, model = model)
   nsim <- .ngeo_nsim(nsim)
-  map_index <- .ngeo_map_selection(x, map)
+  layer_index <- .ngeo_layer_selection(x, map)
   draws <- .ngeo_with_seed(
     seed,
     function() .ngeo_draw_covariance(value_covariance, nsim)
@@ -171,12 +171,16 @@ ngeo_variogram_uncertainty <- function(
     nsim, seed, workers,
     function(i) {
       current <- x
-      current$values[, map_index] <-
-        as.numeric(x$values[, map_index]) + draws[, i]
+      current$values[, layer_index] <-
+        as.numeric(x$values[, layer_index]) + draws[, i]
       current_fit <- tryCatch(
         ngeo_fit_variogram(
-          current, map = map_index, metric = metric, breaks = breaks,
-          max_distance = max_distance, model = model
+          current,
+          layer_index,
+          distance_method,
+          breaks,
+          max_distance,
+          model
         ),
         error = function(...) NULL
       )
@@ -214,7 +218,7 @@ ngeo_variogram_uncertainty <- function(
       "additive zero-mean Gaussian measurement error;",
       "measurement error independent of the latent spatial field"
     ),
-    domain_hash = ngeo_domain_hash(x)
+    base_hash = base_hash(x)
   )
   class(result) <- "ngeo_variogram_uncertainty"
   result
@@ -239,14 +243,14 @@ ngeo_kriging_uncertainty <- function(
     predictors = character(),
     target_predictors = NULL,
     neighbors = 50L,
-    metric = NULL,
+    distance_method = NULL,
     value_covariance = NULL,
     variogram_uncertainty = NULL,
     support_variance = NULL,
     level = 0.95) {
   base <- ngeo_kriging(
     x, map, variogram, targets, predictors, target_predictors,
-    neighbors, metric
+    neighbors, distance_method
   )
   linear <- attr(base, "linear_weights")
   measurement <- rep.int(0, nrow(base))
@@ -258,9 +262,9 @@ ngeo_kriging_uncertainty <- function(
   parameter <- rep.int(0, nrow(base))
   if (!is.null(variogram_uncertainty)) {
     if (!inherits(variogram_uncertainty, "ngeo_variogram_uncertainty") ||
-        !identical(variogram_uncertainty$domain_hash, ngeo_domain_hash(x))) {
-      .ngeo_abort("Variogram uncertainty does not match the domain.",
-                  "ngeo_error_domain_mismatch")
+        !identical(variogram_uncertainty$base_hash, base_hash(x))) {
+      .ngeo_abort("Variogram uncertainty does not match the base.",
+                  "ngeo_error_base_mismatch")
     }
     draws <- variogram_uncertainty$parameter_simulations
     predictions <- vapply(seq_len(nrow(draws)), function(i) {
@@ -268,7 +272,7 @@ ngeo_kriging_uncertainty <- function(
       current$parameters <- draws[i, ]
       ngeo_kriging(
         x, map, current, targets, predictors, target_predictors,
-        neighbors, metric
+        neighbors, distance_method
       )$prediction
     }, numeric(nrow(base)))
     if (is.null(dim(predictions))) {
@@ -325,10 +329,10 @@ ngeo_gwr_uncertainty <- function(
     bandwidth,
     value_covariance,
     bandwidths = NULL,
-    metric = NULL,
+    distance_method = NULL,
     kernel = c("gaussian", "bisquare"),
     targets = NULL,
-    support = c("none", "domain"),
+    support = c("none", "base"),
     singular = c("na", "error"),
     level = 0.95) {
   kernel <- match.arg(kernel)
@@ -340,28 +344,28 @@ ngeo_gwr_uncertainty <- function(
     bandwidth
   }
   base <- ngeo_gwr(
-    x, response, predictors, value, metric, kernel,
+    x, response, predictors, value, distance_method, kernel,
     targets, support, singular
   )
   covariance <- .ngeo_model_covariance_matrix(value_covariance, x)
-  maps <- .ngeo_model_maps(x, response, predictors)
-  y <- as.numeric(x$values[, maps$response])
-  predictor <- x$values[, maps$predictors, drop = FALSE]
+  layers <- .ngeo_model_maps(x, response, predictors)
+  y <- as.numeric(x$values[, layers$response])
+  predictor <- x$values[, layers$predictors, drop = FALSE]
   training <- which(is.finite(y) & apply(
     cbind(1, predictor), 1L, function(row) all(is.finite(row))
   ))
   design <- cbind(`(Intercept)` = 1, predictor[training, , drop = FALSE])
-  colnames(design) <- c("(Intercept)", maps$predictor_names)
+  colnames(design) <- c("(Intercept)", layers$predictor_names)
   target_index <- base$target_index
   support_weight <- rep.int(1, length(training))
-  if (support == "domain") {
+  if (support == "base") {
     support_weight <- ngeo_support_size(x)[training]
   }
   covariance_list <- vector("list", length(target_index))
   rows <- vector("list", length(target_index))
   for (i in seq_along(target_index)) {
     distance <- as.numeric(ngeo_distance(
-      x, from = target_index[[i]], to = training, metric = metric,
+      x, from = target_index[[i]], to = training, distance_method = distance_method,
       max_distance = value * if (kernel == "gaussian") 3 else 1
     ))
     weight <- .ngeo_kernel_weights(distance, value, kernel, 3) *
@@ -418,7 +422,7 @@ ngeo_gwr_uncertainty <- function(
   }
   sensitivity_fits <- lapply(bandwidths, function(current) {
     ngeo_gwr(
-      x, response, predictors, current, metric, kernel,
+      x, response, predictors, current, distance_method, kernel,
       targets, support, singular
     )
   })
@@ -445,7 +449,7 @@ ngeo_gwr_uncertainty <- function(
     bandwidths = bandwidths,
     base = base,
     level = level,
-    domain_hash = ngeo_domain_hash(x),
+    base_hash = base_hash(x),
     assumptions = paste(
       "local linearization; Gaussian intervals;",
       "bandwidth ranges are sensitivity ranges, not confidence intervals"
@@ -470,7 +474,7 @@ ngeo_spatial_regression_uncertainty <- function(
     x,
     response,
     predictors = character(),
-    weights,
+    spatial_weights,
     model = c("sar", "sem"),
     value_covariance,
     nsim = 199L,
@@ -491,10 +495,10 @@ ngeo_spatial_regression_uncertainty <- function(
   }
   .ngeo_interval(0, 1, level)
   base <- ngeo_spatial_regression(
-    x, response, predictors, weights, model,
+    x, response, predictors, spatial_weights, model,
     zero_policy = zero_policy
   )
-  map_index <- .ngeo_map_selection(x, response)
+  layer_index <- .ngeo_layer_selection(x, response)
   draws <- .ngeo_with_seed(
     seed,
     function() .ngeo_draw_covariance(value_covariance, nsim)
@@ -503,11 +507,11 @@ ngeo_spatial_regression_uncertainty <- function(
     nsim, seed, workers,
     function(i) {
       current <- x
-      current$values[, map_index] <-
-        x$values[, map_index] + draws[, i]
+      current$values[, layer_index] <-
+        x$values[, layer_index] + draws[, i]
       tryCatch(
         ngeo_spatial_regression(
-          current, response, predictors, weights, model,
+          current, response, predictors, spatial_weights, model,
           zero_policy = zero_policy
         ),
         error = function(...) NULL
@@ -567,7 +571,7 @@ ngeo_spatial_regression_uncertainty <- function(
     seed = .ngeo_seed(seed),
     workers = workers,
     level = level,
-    domain_hash = ngeo_domain_hash(x),
+    base_hash = base_hash(x),
     assumptions = "additive Gaussian measurement covariance"
   )
   class(result) <- "ngeo_spatial_regression_uncertainty"
@@ -577,7 +581,7 @@ ngeo_spatial_regression_uncertainty <- function(
 #' Compute Gaussian CAR MAP and posterior uncertainty
 #'
 #' This exact calculation materializes dense observation and posterior
-#' covariance matrices. Its domain size is bounded by
+#' covariance matrices. Its base size is bounded by
 #' `getOption("neurogeo.max_exact_logdet", 2000L)` before allocation.
 #'
 #' @inheritParams ngeo_car
@@ -589,7 +593,7 @@ ngeo_spatial_regression_uncertainty <- function(
 ngeo_car_uncertainty <- function(
     x,
     response,
-    weights,
+    spatial_weights,
     value_covariance,
     type = c("proper", "intrinsic"),
     rho = 0.95,
@@ -599,7 +603,7 @@ ngeo_car_uncertainty <- function(
   type <- match.arg(type)
   ngeo_validate(x, "basic")
   .ngeo_assert_exact_model_size(
-    nrow(x$domain$elements),
+    nrow(x$base$elements),
     "Exact CAR uncertainty"
   )
   covariance <- .ngeo_model_covariance_matrix(value_covariance, x)
@@ -609,12 +613,12 @@ ngeo_car_uncertainty <- function(
                 "ngeo_error_uncertainty")
   }
   base <- ngeo_car(
-    x, response, weights, type, rho, precision, zero_policy
+    x, response, spatial_weights, type, rho, precision, zero_policy
   )
-  map <- .ngeo_map_selection(x, response)
+  map <- .ngeo_layer_selection(x, response)
   y <- as.numeric(x$values[, map])
   weight <- .ngeo_model_weights(
-    x, weights, seq_along(y), zero_policy
+    x, spatial_weights, seq_along(y), zero_policy
   )
   weight <- (weight + Matrix::t(weight)) / 2
   degree <- Matrix::rowSums(abs(weight))
@@ -644,7 +648,7 @@ ngeo_car_uncertainty <- function(
   interval <- .ngeo_interval(estimate, standard_error, level)
   result <- list(
     map = data.frame(
-      element_id = x$domain$elements$element_id,
+      element_id = x$base$elements$element_id,
       estimate = estimate,
       standard_error = standard_error,
       lower = interval[, "lower"],
@@ -657,7 +661,7 @@ ngeo_car_uncertainty <- function(
     type = type,
     constraint = constraint,
     level = level,
-    domain_hash = ngeo_domain_hash(x),
+    base_hash = base_hash(x),
     assumptions = "Gaussian observation model with declared covariance"
   )
   class(result) <- "ngeo_car_uncertainty"
@@ -690,14 +694,14 @@ ngeo_car_uncertainty <- function(
 #' Combine model effects across declared supports
 #'
 #' @param fits Model fits with coefficient standard errors.
-#' @param weights Optional non-negative support-family weights.
+#' @param spatial_weights Optional non-negative support-family spatial_weights.
 #' @param level Interval level.
 #'
 #' @return An `ngeo_support_model_ensemble`.
 #' @export
 ngeo_support_model_ensemble <- function(
     fits,
-    weights = NULL,
+    spatial_weights = NULL,
     level = 0.95) {
   if (!is.list(fits) || length(fits) < 2L) {
     .ngeo_abort("At least two support-model fits are required.",
@@ -713,20 +717,20 @@ ngeo_support_model_ensemble <- function(
     .ngeo_abort("Support-model coefficient terms do not align.",
                 "ngeo_error_alignment")
   }
-  if (is.null(weights)) weights <- rep.int(1 / length(fits), length(fits))
-  if (!is.numeric(weights) || length(weights) != length(fits) ||
-      any(!is.finite(weights)) || any(weights < 0) || sum(weights) <= 0) {
-    .ngeo_abort("Support-model weights are invalid.", "ngeo_error_argument")
+  if (is.null(spatial_weights)) spatial_weights <- rep.int(1 / length(fits), length(fits))
+  if (!is.numeric(spatial_weights) || length(spatial_weights) != length(fits) ||
+      any(!is.finite(spatial_weights)) || any(spatial_weights < 0) || sum(spatial_weights) <= 0) {
+    .ngeo_abort("Support-model spatial_weights are invalid.", "ngeo_error_argument")
   }
-  weights <- weights / sum(weights)
+  spatial_weights <- spatial_weights / sum(spatial_weights)
   estimate <- do.call(cbind, lapply(effect, `[[`, "estimate"))
   variance <- do.call(cbind, lapply(
     effect, function(current) current$standard_error^2
   ))
-  consensus <- as.numeric(estimate %*% weights)
-  within <- as.numeric(variance %*% weights)
+  consensus <- as.numeric(estimate %*% spatial_weights)
+  within <- as.numeric(variance %*% spatial_weights)
   between <- rowSums(
-    sweep((estimate - consensus)^2, 2L, weights, "*")
+    sweep((estimate - consensus)^2, 2L, spatial_weights, "*")
   )
   total <- within + between
   interval <- .ngeo_interval(consensus, sqrt(total), level)
@@ -743,7 +747,7 @@ ngeo_support_model_ensemble <- function(
       stringsAsFactors = FALSE
     ),
     effects = effect,
-    weights = weights,
+    spatial_weights = spatial_weights,
     supports = names(fits) %||% paste0("support_", seq_along(fits)),
     level = level,
     claim = paste(

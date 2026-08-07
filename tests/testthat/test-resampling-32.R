@@ -1,16 +1,16 @@
 resampling_volume <- function(
-    space,
+    coordinate_space,
     affine = diag(4),
     values = NULL,
     semantics = "intensive") {
   measures <- if (is.null(values)) {
     NULL
   } else {
-    n_map <- if (is.null(dim(values)) ||
+    n_layer <- if (is.null(dim(values)) ||
       length(dim(values)) == 3L) 1L else dim(values)[[4L]]
     do.call(rbind, rep(
-      list(ngeo_measure(spatial_semantics = semantics)),
-      n_map
+      list(ngeo_measure(support_behavior = semantics)),
+      n_layer
     ))
   }
   ngeo_volume(
@@ -18,12 +18,12 @@ resampling_volume <- function(
     dim = c(2, 2, 2),
     affine = affine,
     measures = measures,
-    space = space,
+    coordinate_space = coordinate_space,
     index_base = "zero"
   )
 }
 
-resampling_surface <- function(space, translation = 0, values = NULL) {
+resampling_surface <- function(coordinate_space, translation = 0, values = NULL) {
   coordinates <- matrix(
     c(
       0, 0, 0,
@@ -40,8 +40,8 @@ resampling_surface <- function(space, translation = 0, values = NULL) {
     matrix(c(1, 2, 3, 1, 3, 4), ncol = 3L, byrow = TRUE),
     values = values,
     measures = if (is.null(values)) NULL else
-      ngeo_measure(spatial_semantics = "intensive"),
-    space = space
+      ngeo_measure(support_behavior = "intensive"),
+    coordinate_space = coordinate_space
   )
 }
 
@@ -51,10 +51,10 @@ resampling_path <- function(
     matrix = diag(4),
     lossy = FALSE,
     type = "affine") {
-  registry <- ngeo_space_registry(
+  registry <- ngeo_coordinate_space_registry(
     if (identical(
-      ngeo_space_hash(source_space),
-      ngeo_space_hash(target_space)
+      ngeo_coordinate_space_hash(source_space),
+      ngeo_coordinate_space_hash(target_space)
     )) {
       list(source_space)
     } else {
@@ -62,8 +62,8 @@ resampling_path <- function(
     }
   )
   if (identical(
-    ngeo_space_hash(source_space),
-    ngeo_space_hash(target_space)
+    ngeo_coordinate_space_hash(source_space),
+    ngeo_coordinate_space_hash(target_space)
   )) {
     graph <- ngeo_transform_graph(registry)
   } else {
@@ -88,19 +88,19 @@ resampling_path <- function(
   }
   ngeo_transform_path(
     graph,
-    ngeo_space_hash(source_space),
-    ngeo_space_hash(target_space)
+    ngeo_coordinate_space_hash(source_space),
+    ngeo_coordinate_space_hash(target_space)
   )
 }
 
 test_that("identity volume resampling agrees for every 3.2 method", {
-  space <- ngeo_space("grid", kind = "volume")
+  coordinate_space <- ngeo_coordinate_space("grid", kind = "volume")
   source <- resampling_volume(
-    space,
+    coordinate_space,
     values = array(1:8, dim = c(2, 2, 2))
   )
-  target <- resampling_volume(space)
-  path <- resampling_path(space)
+  target <- resampling_volume(coordinate_space)
+  path <- resampling_path(coordinate_space)
 
   for (method in c("nearest", "linear", "overlap")) {
     plan <- ngeo_resampling_plan(
@@ -114,18 +114,18 @@ test_that("identity volume resampling agrees for every 3.2 method", {
     expect_true(result$diagnostics$conservative)
     expect_false(result$diagnostics$registration_estimated)
     expect_identical(
-      result$provenance$path$path_hash, path$path_hash
+      result$history$path$path_hash, path$path_hash
     )
     expect_identical(
-      result$data$provenance$resampling$joint_hash,
+      result$data$history$resampling$joint_hash,
       result$diagnostics$joint_hash
     )
   }
 })
 
 test_that("supplied affine paths bridge volume grids exactly", {
-  source_space <- ngeo_space("native", kind = "volume")
-  target_space <- ngeo_space("standard", kind = "volume")
+  source_space <- ngeo_coordinate_space("native", kind = "volume")
+  target_space <- ngeo_coordinate_space("standard", kind = "volume")
   translated <- diag(4)
   translated[1L, 4L] <- 1
   source <- resampling_volume(
@@ -147,18 +147,18 @@ test_that("supplied affine paths bridge volume grids exactly", {
     )
     expect_equal(result$data$values, source$values)
     expect_identical(
-      result$support_map$provenance$resampling$path$tokens,
+      result$support_map$history$resampling$path$tokens,
       "supplied"
     )
   }
 })
 
 test_that("surface nearest and barycentric consume an affine path", {
-  source_space <- ngeo_space(
+  source_space <- ngeo_coordinate_space(
     "native-surface", kind = "surface",
     structure = "CORTEX_LEFT"
   )
-  target_space <- ngeo_space(
+  target_space <- ngeo_coordinate_space(
     "standard-surface", kind = "surface",
     structure = "CORTEX_LEFT"
   )
@@ -187,14 +187,14 @@ test_that("surface nearest and barycentric consume an affine path", {
 })
 
 test_that("authorization and path boundaries are explicit", {
-  space <- ngeo_space("grid", kind = "volume")
+  coordinate_space <- ngeo_coordinate_space("grid", kind = "volume")
   source <- resampling_volume(
-    space,
+    coordinate_space,
     values = array(seq_len(8), dim = c(2, 2, 2))
   )
-  target <- resampling_volume(space)
+  target <- resampling_volume(coordinate_space)
   plan <- ngeo_resampling_plan(
-    source, target, resampling_path(space), method = "nearest"
+    source, target, resampling_path(coordinate_space), method = "nearest"
   )
 
   expect_error(
@@ -206,22 +206,22 @@ test_that("authorization and path boundaries are explicit", {
     class = "ngeo_error_authorization"
   )
 
-  point_space <- ngeo_space("points")
-  points <- ngeo_points(
+  point_space <- ngeo_coordinate_space("point")
+  point <- ngeo_point(
     cbind(x = 1:2, y = 1:2),
     values = 1:2,
-    space = point_space
+    coordinate_space = point_space
   )
   expect_error(
     ngeo_resampling_plan(
-      points, points, resampling_path(point_space)
+      point, point, resampling_path(point_space)
     ),
     class = "ngeo_error_resampling_method"
   )
 
-  target_space <- ngeo_space("other", kind = "volume")
+  target_space <- ngeo_coordinate_space("other", kind = "volume")
   lossy <- resampling_path(
-    space, target_space, lossy = TRUE
+    coordinate_space, target_space, lossy = TRUE
   )
   expect_error(
     ngeo_resampling_plan(
@@ -230,7 +230,7 @@ test_that("authorization and path boundaries are explicit", {
     class = "ngeo_error_resampling_path"
   )
   warp <- resampling_path(
-    space, target_space, type = "warp"
+    coordinate_space, target_space, type = "warp"
   )
   expect_error(
     ngeo_resampling_plan(
@@ -238,7 +238,7 @@ test_that("authorization and path boundaries are explicit", {
     ),
     class = "ngeo_error_resampling_path"
   )
-  changed_path <- resampling_path(space, target_space)
+  changed_path <- resampling_path(coordinate_space, target_space)
   changed_path$composed$parameters$matrix[1L, 4L] <- 99
   expect_error(
     ngeo_resampling_plan(
@@ -249,16 +249,16 @@ test_that("authorization and path boundaries are explicit", {
 })
 
 test_that("coverage, missing support, and conservation policies differ", {
-  space <- ngeo_space("grid", kind = "volume")
+  coordinate_space <- ngeo_coordinate_space("grid", kind = "volume")
   source <- resampling_volume(
-    space,
+    coordinate_space,
     values = array(rep(1, 8), dim = c(2, 2, 2)),
     semantics = "extensive"
   )
   shifted <- diag(4)
   shifted[1L, 4L] <- 0.25
-  target <- resampling_volume(space, affine = shifted)
-  path <- resampling_path(space)
+  target <- resampling_volume(coordinate_space, affine = shifted)
+  path <- resampling_path(coordinate_space)
 
   complete <- ngeo_resampling_plan(
     source, target, path, method = "linear",
@@ -290,13 +290,13 @@ test_that("coverage, missing support, and conservation policies differ", {
 })
 
 test_that("uncertainty policy requires exactly its declared inputs", {
-  space <- ngeo_space("grid", kind = "volume")
+  coordinate_space <- ngeo_coordinate_space("grid", kind = "volume")
   source <- resampling_volume(
-    space,
+    coordinate_space,
     values = array(seq_len(8), dim = c(2, 2, 2))
   )
-  target <- resampling_volume(space)
-  path <- resampling_path(space)
+  target <- resampling_volume(coordinate_space)
+  path <- resampling_path(coordinate_space)
   value_plan <- ngeo_resampling_plan(
     source, target, path, method = "nearest",
     uncertainty = "value"
@@ -343,13 +343,13 @@ test_that("uncertainty policy requires exactly its declared inputs", {
 })
 
 test_that("plans reject mutation and resource overruns", {
-  space <- ngeo_space("grid", kind = "volume")
+  coordinate_space <- ngeo_coordinate_space("grid", kind = "volume")
   source <- resampling_volume(
-    space,
+    coordinate_space,
     values = array(seq_len(8), dim = c(2, 2, 2))
   )
-  target <- resampling_volume(space)
-  path <- resampling_path(space)
+  target <- resampling_volume(coordinate_space)
+  path <- resampling_path(coordinate_space)
   plan <- ngeo_resampling_plan(
     source, target, path, method = "nearest"
   )
@@ -373,16 +373,16 @@ test_that("plans reject mutation and resource overruns", {
   )
 })
 
-test_that("result provenance, schema manifests, and atomic output verify", {
+test_that("result history, schema manifests, and atomic output verify", {
   skip_if_not_installed("jsonlite")
-  space <- ngeo_space("grid", kind = "volume")
+  coordinate_space <- ngeo_coordinate_space("grid", kind = "volume")
   source <- resampling_volume(
-    space,
+    coordinate_space,
     values = array(seq_len(8), dim = c(2, 2, 2))
   )
-  target <- resampling_volume(space)
+  target <- resampling_volume(coordinate_space)
   plan <- ngeo_resampling_plan(
-    source, target, resampling_path(space), method = "nearest"
+    source, target, resampling_path(coordinate_space), method = "nearest"
   )
   output <- tempfile(fileext = ".txt")
   result <- ngeo_resample(
@@ -408,7 +408,7 @@ test_that("result provenance, schema manifests, and atomic output verify", {
   expect_true(ngeo_validate_manifest(result_manifest, result)$valid)
 
   another <- ngeo_resampling_plan(
-    source, target, resampling_path(space), method = "linear"
+    source, target, resampling_path(coordinate_space), method = "linear"
   )
   expect_error(
     ngeo_resampling_diagnostics(

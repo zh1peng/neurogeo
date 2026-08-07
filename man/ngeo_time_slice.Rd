@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatiotemporal.R
 \name{ngeo_time_slice}
 \alias{ngeo_time_slice}
-\title{Slice a time-aware object without changing its spatial domain}
+\title{Slice a time-aware object without changing its spatial base}
 \usage{
 ngeo_time_slice(x, index = NULL, range = NULL)
 }
@@ -14,8 +14,8 @@ ngeo_time_slice(x, index = NULL, range = NULL)
 \item{range}{Optional inclusive numeric time range.}
 }
 \value{
-A time-aware subset with the same spatial domain.
+A time-aware subset with the same spatial base.
 }
 \description{
-Slice a time-aware object without changing its spatial domain
+Slice a time-aware object without changing its spatial base
 }

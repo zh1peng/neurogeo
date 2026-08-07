@@ -1,4 +1,4 @@
-.ngeo_sparse_edges <- function(n, edges, weights = NULL) {
+.ngeo_sparse_edges <- function(n, edges, spatial_weights = NULL) {
   if (is.null(edges) || !nrow(edges)) {
     return(Matrix::sparseMatrix(
       i = integer(),
@@ -8,13 +8,13 @@
     ))
   }
   edges <- as.matrix(edges)
-  if (is.null(weights)) {
-    weights <- rep.int(1, nrow(edges))
+  if (is.null(spatial_weights)) {
+    spatial_weights <- rep.int(1, nrow(edges))
   }
   Matrix::sparseMatrix(
     i = c(edges[, 1L], edges[, 2L]),
     j = c(edges[, 2L], edges[, 1L]),
-    x = c(weights, weights),
+    x = c(spatial_weights, spatial_weights),
     dims = c(n, n),
     giveCsparse = TRUE
   )
@@ -87,25 +87,25 @@
 }
 
 .ngeo_surface_adjacency <- function(x, include_masked) {
-  edges <- .ngeo_surface_edges(x$domain$faces)
+  edges <- .ngeo_surface_edges(x$base$geometry$faces)
   if (!isTRUE(include_masked) && nrow(edges)) {
-    include <- x$domain$mask
+    include <- x$base$geometry$mask
     edges <- edges[
       include[edges[, 1L]] & include[edges[, 2L]],
       ,
       drop = FALSE
     ]
   }
-  .ngeo_sparse_edges(nrow(x$domain$elements), edges)
+  .ngeo_sparse_edges(nrow(x$base$elements), edges)
 }
 
 .ngeo_grayordinate_adjacency <- function(x, connectivity) {
-  n <- nrow(x$domain$elements)
+  n <- nrow(x$base$elements)
   i_values <- integer()
   j_values <- integer()
   x_values <- numeric()
 
-  for (component in x$domain$components) {
+  for (component in x$base$geometry$components) {
     adjacency <- if (identical(component$kind, "surface")) {
       if (!inherits(component$geometry, "ngeo_surface")) {
         .ngeo_abort(
@@ -147,10 +147,10 @@
   )
 }
 
-#' Construct sparse domain adjacency
+#' Construct sparse base adjacency
 #'
 #' @param x An `ngeo` object.
-#' @param method Automatic or domain-specific topology.
+#' @param method Automatic or base-specific topology.
 #' @param connectivity Voxel 6, 18, or 26 connectivity.
 #' @param include_masked Whether masked surface vertices retain edges.
 #'
@@ -164,14 +164,14 @@ ngeo_adjacency <- function(x,
                            include_masked = FALSE) {
   ngeo_validate(x, "basic")
   method <- match.arg(method)
-  type <- x$domain$type
+  type <- x$base$type
   if (identical(method, "auto")) {
     method <- switch(
       type,
       surface = "mesh",
       volume = "voxel",
-      grayordinates = "component",
-      regions = "region",
+      grayordinate = "component",
+      parcellation = "region",
       .ngeo_abort(
         sprintf("Domain `%s` has no implicit topology.", type),
         "ngeo_error_capability"
@@ -191,25 +191,25 @@ ngeo_adjacency <- function(x,
       if (!identical(type, "volume")) {
         .ngeo_abort("Voxel adjacency requires a volume.", "ngeo_error_capability")
       }
-      .ngeo_voxel_adjacency_index(x$domain$voxel_index, connectivity)
+      .ngeo_voxel_adjacency_index(x$base$geometry$voxel_index, connectivity)
     },
     component = {
-      if (!identical(type, "grayordinates")) {
+      if (!identical(type, "grayordinate")) {
         .ngeo_abort(
-          "Component adjacency requires grayordinates.",
+          "Component adjacency requires grayordinate.",
           "ngeo_error_capability"
         )
       }
       .ngeo_grayordinate_adjacency(x, connectivity)
     },
     region = {
-      if (!identical(type, "regions") || is.null(x$domain$adjacency)) {
+      if (!identical(type, "parcellation") || is.null(x$base$topology$adjacency)) {
         .ngeo_abort(
           "Region adjacency is unavailable.",
           "ngeo_error_capability"
         )
       }
-      Matrix::Matrix(x$domain$adjacency, sparse = TRUE)
+      Matrix::Matrix(x$base$topology$adjacency, sparse = TRUE)
     }
   )
   diag(adjacency) <- 0
@@ -226,7 +226,7 @@ ngeo_adjacency <- function(x,
 ngeo_components <- function(x, adjacency = NULL) {
   if (inherits(x, "ngeo")) {
     adjacency <- adjacency %||% ngeo_adjacency(x)
-    n <- nrow(x$domain$elements)
+    n <- nrow(x$base$elements)
   } else {
     adjacency <- x
     n <- nrow(adjacency)
@@ -263,19 +263,19 @@ ngeo_components <- function(x, adjacency = NULL) {
 #' Return element support sizes
 #'
 #' @param x An `ngeo` object.
-#' @return A numeric vector aligned with domain elements.
+#' @return A numeric vector aligned with base elements.
 #' @export
 ngeo_support_size <- function(x) {
   ngeo_validate(x, "basic")
   switch(
-    x$domain$type,
+    x$base$type,
     surface = ngeo_vertex_area(x),
-    volume = rep.int(ngeo_voxel_volume(x), nrow(x$domain$elements)),
-    points = rep.int(NA_real_, nrow(x$domain$elements)),
-    regions = x$domain$support_size,
-    grayordinates = {
-      result <- rep.int(NA_real_, nrow(x$domain$elements))
-      for (component in x$domain$components) {
+    volume = rep.int(ngeo_voxel_volume(x), nrow(x$base$elements)),
+    point = rep.int(NA_real_, nrow(x$base$elements)),
+    parcellation = x$base$geometry$support_size,
+    grayordinate = {
+      result <- rep.int(NA_real_, nrow(x$base$elements))
+      for (component in x$base$geometry$components) {
         if (identical(component$kind, "surface")) {
           if (!inherits(component$geometry, "ngeo_surface")) {
             next

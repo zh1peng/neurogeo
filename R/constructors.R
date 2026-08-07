@@ -76,10 +76,10 @@
 #' @param coordinates A coordinate matrix or named list of matrices.
 #' @param faces A three-column triangle index matrix.
 #' @param values Optional vertex-aligned values.
-#' @param maps Optional map metadata.
+#' @param layers Optional map metadata.
 #' @param measures Optional measurement semantics.
 #' @param labels Optional label tables.
-#' @param space An `ngeo_space`.
+#' @param coordinate_space An `ngeo_coordinate_space`.
 #' @param active_coordinates Name of the active coordinate set.
 #' @param coordinate_roles Roles corresponding to coordinate sets.
 #' @param mask Optional logical vertex mask.
@@ -98,19 +98,19 @@
 #'   coordinates, faces,
 #'   values = cbind(thickness = c(2.1, 2.3, 2.2, 2.4))
 #' )
-#' ngeo_domain_type(surface)
-#' ngeo_elements(surface)
-#' ngeo_values(surface)
+#' base_type(surface)
+#' base_elements(surface)
+#' values(surface)
 #' ngeo_vertex_area(surface)
 #' ngeo_validate(surface, "strict")
 #' @export
 ngeo_surface <- function(coordinates,
                          faces,
                          values = NULL,
-                         maps = NULL,
+                         layers = NULL,
                          measures = NULL,
                          labels = list(),
-                         space = ngeo_space(kind = "surface"),
+                         coordinate_space = ngeo_coordinate_space(kind = "surface"),
                          active_coordinates = NULL,
                          coordinate_roles = NULL,
                          mask = NULL,
@@ -121,13 +121,13 @@ ngeo_surface <- function(coordinates,
   n_vertex <- nrow(coordinates[[1L]])
   faces <- .ngeo_faces(faces, n_vertex, index_base)
 
-  if (!inherits(space, "ngeo_space")) {
-    .ngeo_abort("`space` must be an `ngeo_space` object.", "ngeo_error_space")
+  if (!inherits(coordinate_space, "ngeo_coordinate_space")) {
+    .ngeo_abort("`coordinate_space` must be an `ngeo_coordinate_space` object.", "ngeo_error_coordinate_space")
   }
-  if (!space$kind %in% c("surface", "unknown")) {
+  if (!coordinate_space$kind %in% c("surface", "unknown")) {
     .ngeo_abort(
-      "A surface domain requires a surface or unknown space kind.",
-      "ngeo_error_space"
+      "A surface base requires a surface or unknown coordinate_space kind.",
+      "ngeo_error_coordinate_space"
     )
   }
 
@@ -185,27 +185,30 @@ ngeo_surface <- function(coordinates,
     name = names(coordinates),
     dimension = vapply(coordinates, ncol, integer(1)),
     role = coordinate_roles,
-    units = rep.int(space$units, length(coordinates)),
+    unit = rep.int(coordinate_space$unit, length(coordinates)),
     metric_eligible = coordinate_roles == "anatomical",
     stringsAsFactors = FALSE
   )
 
-  domain <- structure(
+  base <- structure(
     list(
       type = "surface",
       elements = elements,
-      coordinates = coordinates,
-      coordinate_meta = coordinate_meta,
-      active_coordinates = active_coordinates,
-      faces = faces,
-      face_source_index_base = source_base,
-      space = space,
-      mask = mask
+      geometry = list(
+        coordinates = coordinates,
+        coordinate_meta = coordinate_meta,
+        active_coordinates = active_coordinates,
+        faces = faces,
+        face_source_index_base = source_base,
+        mask = mask
+      ),
+      coordinate_space = coordinate_space,
+      topology = NULL
     ),
-    class = c("ngeo_surface_domain", "ngeo_domain")
+    class = c("ngeo_surface_base", "ngeo_base")
   )
 
-  provenance <- list(
+  history <- list(
     operations = list(.ngeo_operation(
       "ngeo_surface",
       list(
@@ -216,12 +219,12 @@ ngeo_surface <- function(coordinates,
   )
 
   .new_ngeo(
-    domain = domain,
+    base = base,
     values = values,
-    maps = maps,
+    layers = layers,
     measures = measures,
     labels = labels,
-    provenance = provenance,
+    history = history,
     class = "ngeo_surface"
   )
 }
@@ -282,10 +285,10 @@ ngeo_surface <- function(coordinates,
 #' @param dim Three lattice dimensions.
 #' @param affine Active voxel-to-world 4 by 4 affine.
 #' @param mask Optional logical lattice mask.
-#' @param maps Optional map metadata.
+#' @param layers Optional map metadata.
 #' @param measures Optional measurement semantics.
 #' @param labels Optional label tables.
-#' @param space An `ngeo_space`.
+#' @param coordinate_space An `ngeo_coordinate_space`.
 #' @param index_base Source IJK index base to preserve.
 #'
 #' @return An `ngeo_volume` object.
@@ -304,10 +307,10 @@ ngeo_volume <- function(values = NULL,
                         dim,
                         affine,
                         mask = NULL,
-                        maps = NULL,
+                        layers = NULL,
                         measures = NULL,
                         labels = list(),
-                        space = ngeo_space(kind = "volume"),
+                        coordinate_space = ngeo_coordinate_space(kind = "volume"),
                         index_base = c("one", "zero")) {
   index_base <- match.arg(index_base)
   dim <- .ngeo_as_integer(dim, "dim")
@@ -334,13 +337,13 @@ ngeo_volume <- function(values = NULL,
     )
   }
 
-  if (!inherits(space, "ngeo_space")) {
-    .ngeo_abort("`space` must be an `ngeo_space` object.", "ngeo_error_space")
+  if (!inherits(coordinate_space, "ngeo_coordinate_space")) {
+    .ngeo_abort("`coordinate_space` must be an `ngeo_coordinate_space` object.", "ngeo_error_coordinate_space")
   }
-  if (!space$kind %in% c("volume", "unknown")) {
+  if (!coordinate_space$kind %in% c("volume", "unknown")) {
     .ngeo_abort(
-      "A volume domain requires a volume or unknown space kind.",
-      "ngeo_error_space"
+      "A volume base requires a volume or unknown coordinate_space kind.",
+      "ngeo_error_coordinate_space"
     )
   }
 
@@ -374,23 +377,26 @@ ngeo_volume <- function(values = NULL,
   elements <- .ngeo_element_table(nrow(voxel_index), source_base)
   elements$included <- TRUE
 
-  domain <- structure(
+  base <- structure(
     list(
       type = "volume",
       elements = elements,
-      dim = dim,
-      affine = affine,
-      voxel_index = voxel_index,
-      source_voxel_index = source_voxel_index,
-      source_index_base = source_base,
-      header_transforms = list(),
-      space = space,
-      mask = mask
+      geometry = list(
+        dim = dim,
+        affine = affine,
+        voxel_index = voxel_index,
+        source_voxel_index = source_voxel_index,
+        source_index_base = source_base,
+        header_transforms = list(),
+        mask = mask
+      ),
+      coordinate_space = coordinate_space,
+      topology = NULL
     ),
-    class = c("ngeo_volume_domain", "ngeo_domain")
+    class = c("ngeo_volume_base", "ngeo_base")
   )
 
-  provenance <- list(
+  history <- list(
     operations = list(.ngeo_operation(
       "ngeo_volume",
       list(
@@ -401,12 +407,12 @@ ngeo_volume <- function(values = NULL,
   )
 
   .new_ngeo(
-    domain = domain,
+    base = base,
     values = values,
-    maps = maps,
+    layers = layers,
     measures = measures,
     labels = labels,
-    provenance = provenance,
+    history = history,
     class = "ngeo_volume"
   )
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/topology.R
 \name{ngeo_adjacency}
 \alias{ngeo_adjacency}
-\title{Construct sparse domain adjacency}
+\title{Construct sparse base adjacency}
 \usage{
 ngeo_adjacency(
   x,
@@ -14,7 +14,7 @@ ngeo_adjacency(
 \arguments{
 \item{x}{An `ngeo` object.}
 
-\item{method}{Automatic or domain-specific topology.}
+\item{method}{Automatic or base-specific topology.}
 
 \item{connectivity}{Voxel 6, 18, or 26 connectivity.}
 
@@ -24,5 +24,5 @@ ngeo_adjacency(
 A sparse symmetric `Matrix`.
 }
 \description{
-Construct sparse domain adjacency
+Construct sparse base adjacency
 }

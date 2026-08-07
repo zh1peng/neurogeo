@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatiotemporal.R
 \name{ngeo_temporal_weights}
 \alias{ngeo_temporal_weights}
-\title{Construct sparse temporal weights}
+\title{Construct sparse temporal spatial_weights}
 \usage{
 ngeo_temporal_weights(
   axis,
@@ -24,11 +24,11 @@ ngeo_temporal_weights(
 
 \item{directed}{Whether only later rows receive earlier neighbours.}
 
-\item{style}{Binary, row-standardized, or unnormalized weights.}
+\item{style}{Binary, row-standardized, or unnormalized spatial_weights.}
 }
 \value{
 An `ngeo_temporal_weights`.
 }
 \description{
-Construct sparse temporal weights
+Construct sparse temporal spatial_weights
 }

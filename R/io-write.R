@@ -86,20 +86,20 @@
 }
 
 .ngeo_volume_arrays <- function(x, fill = 0) {
-  n_map <- nrow(x$maps)
-  dimensions <- c(x$domain$dim, if (n_map > 1L) n_map)
+  n_layer <- nrow(x$layers)
+  dimensions <- c(x$base$geometry$dim, if (n_layer > 1L) n_layer)
   values <- array(fill, dim = dimensions)
   if (!is.null(x$values)) {
-    for (map in seq_len(n_map)) {
-      if (n_map > 1L) {
-        values[cbind(x$domain$voxel_index, map)] <- x$values[, map]
+    for (map in seq_len(n_layer)) {
+      if (n_layer > 1L) {
+        values[cbind(x$base$geometry$voxel_index, map)] <- x$values[, map]
       } else {
-        values[x$domain$voxel_index] <- x$values[, map]
+        values[x$base$geometry$voxel_index] <- x$values[, map]
       }
     }
   }
-  mask <- array(FALSE, dim = x$domain$dim)
-  mask[x$domain$voxel_index] <- TRUE
+  mask <- array(FALSE, dim = x$base$geometry$dim)
+  mask[x$base$geometry$voxel_index] <- TRUE
   list(values = values, mask = mask)
 }
 
@@ -123,7 +123,7 @@
 
 #' Write an NGCS volume to NIfTI
 #'
-#' The returned mask path is part of the round-trip contract: active domain
+#' The returned mask path is part of the round-trip contract: active base
 #' membership is not inferred from zero or missing values.
 #'
 #' @param x An `ngeo_volume`.
@@ -144,7 +144,7 @@ write_ngeo_nifti <- function(x,
   if (!inherits(x, "ngeo_volume")) {
     .ngeo_abort(
       "NIfTI writing requires an `ngeo_volume`.",
-      "ngeo_error_domain"
+      "ngeo_error_base"
     )
   }
   if (!grepl("[.]nii([.]gz)?$", path, ignore.case = TRUE)) {
@@ -164,7 +164,7 @@ write_ngeo_nifti <- function(x,
     .ngeo_assert_output(output, overwrite)
   }
   arrays <- .ngeo_volume_arrays(x)
-  transform <- structure(x$domain$affine, code = 2L)
+  transform <- structure(x$base$geometry$affine, code = 2L)
   image <- RNifti::asNifti(arrays$values)
   image <- RNifti::`sform<-`(image, transform)
   mask_image <- RNifti::asNifti(array(
@@ -193,9 +193,9 @@ write_ngeo_nifti <- function(x,
   .ngeo_write_json(
     list(
       Neurogeo = list(
-        specification = x$provenance$spec_version,
-        domain_hash = ngeo_domain_hash(x),
-        maps = x$maps,
+        specification = x$history$spec_version,
+        base_hash = base_hash(x),
+        layers = x$layers,
         measures = x$measures,
         mask = basename(mask_path)
       )
@@ -261,7 +261,7 @@ write_ngeo_nifti <- function(x,
   path
 }
 
-#' Write a surface to GIFTI geometry, metric, and label files
+#' Write a surface to GIFTI geometry, distance_method, and label files
 #'
 #' @param x An `ngeo_surface`.
 #' @param path Primary geometry `.surf.gii` path.
@@ -275,7 +275,7 @@ write_ngeo_gifti <- function(x, path, overwrite = FALSE) {
   if (!inherits(x, "ngeo_surface")) {
     .ngeo_abort(
       "GIFTI writing requires an `ngeo_surface`.",
-      "ngeo_error_domain"
+      "ngeo_error_base"
     )
   }
   if (!grepl("[.]surf[.]gii$", path, ignore.case = TRUE)) {
@@ -284,9 +284,9 @@ write_ngeo_gifti <- function(x, path, overwrite = FALSE) {
       "ngeo_error_argument"
     )
   }
-  coordinate_names <- names(x$domain$coordinates)
+  coordinate_names <- names(x$base$geometry$coordinates)
   paths <- vapply(coordinate_names, function(name) {
-    if (identical(name, x$domain$active_coordinates)) {
+    if (identical(name, x$base$geometry$active_coordinates)) {
       path
     } else {
       .ngeo_gifti_output(
@@ -304,19 +304,19 @@ write_ngeo_gifti <- function(x, path, overwrite = FALSE) {
       paths[[i]],
       function() freesurferformats::write.fs.surface.gii(
         paths[[i]],
-        if (ncol(x$domain$coordinates[[i]]) == 2L) {
-          cbind(x$domain$coordinates[[i]], 0)
+        if (ncol(x$base$geometry$coordinates[[i]]) == 2L) {
+          cbind(x$base$geometry$coordinates[[i]], 0)
         } else {
-          x$domain$coordinates[[i]]
+          x$base$geometry$coordinates[[i]]
         },
-        x$domain$faces
+        x$base$geometry$faces
       )
     )
   }
   data_paths <- character()
   if (!is.null(x$values)) {
-    safe_maps <- .ngeo_safe_name(x$maps$name)
-    data_paths <- vapply(seq_len(nrow(x$maps)), function(i) {
+    safe_maps <- .ngeo_safe_name(x$layers$name)
+    data_paths <- vapply(seq_len(nrow(x$layers)), function(i) {
       output <- .ngeo_gifti_output(
         path,
         paste0(".", safe_maps[[i]]),
@@ -324,7 +324,7 @@ write_ngeo_gifti <- function(x, path, overwrite = FALSE) {
       )
       .ngeo_assert_output(output, overwrite)
       .ngeo_backend_write(
-        "GIFTI metric",
+        "GIFTI distance_method",
         output,
         function() freesurferformats::write.fs.morph.gii(
           output,
@@ -333,12 +333,12 @@ write_ngeo_gifti <- function(x, path, overwrite = FALSE) {
       )
       output
     }, character(1))
-    names(data_paths) <- x$maps$name
+    names(data_paths) <- x$layers$name
   }
   label_paths <- character()
-  if (length(x$labels)) {
-    safe_labels <- .ngeo_safe_name(names(x$labels))
-    label_paths <- vapply(seq_along(x$labels), function(i) {
+  if (length(x$base$labels)) {
+    safe_labels <- .ngeo_safe_name(names(x$base$labels))
+    label_paths <- vapply(seq_along(x$base$labels), function(i) {
       output <- .ngeo_gifti_output(
         path,
         paste0(".", safe_labels[[i]]),
@@ -346,7 +346,7 @@ write_ngeo_gifti <- function(x, path, overwrite = FALSE) {
       )
       temporary <- tempfile(fileext = ".annot")
       on.exit(unlink(temporary), add = TRUE)
-      .ngeo_write_annot(x$labels[[i]], temporary, overwrite = TRUE)
+      .ngeo_write_annot(x$base$labels[[i]], temporary, overwrite = TRUE)
       annot <- freesurferformats::read.fs.annot(temporary)
       .ngeo_assert_output(output, overwrite)
       .ngeo_backend_write(
@@ -356,20 +356,20 @@ write_ngeo_gifti <- function(x, path, overwrite = FALSE) {
       )
       output
     }, character(1))
-    names(label_paths) <- names(x$labels)
+    names(label_paths) <- names(x$base$labels)
   }
   sidecar <- .ngeo_gifti_output(path, "", ".json")
   .ngeo_write_json(
     list(
       Neurogeo = list(
-        specification = x$provenance$spec_version,
-        domain_hash = ngeo_domain_hash(x),
-        active_coordinates = x$domain$active_coordinates,
+        specification = x$history$spec_version,
+        base_hash = base_hash(x),
+        active_coordinates = x$base$geometry$active_coordinates,
         coordinate_roles = stats::setNames(
-          x$domain$coordinate_meta$role,
-          x$domain$coordinate_meta$name
+          x$base$geometry$coordinate_meta$role,
+          x$base$geometry$coordinate_meta$name
         ),
-        maps = x$maps,
+        layers = x$layers,
         measures = x$measures
       )
     ),
@@ -392,8 +392,8 @@ write_ngeo_gifti <- function(x, path, overwrite = FALSE) {
     ),
     sidecar = normalizePath(sidecar, winslash = "/"),
     coordinate_roles = stats::setNames(
-      x$domain$coordinate_meta$role,
-      x$domain$coordinate_meta$name
+      x$base$geometry$coordinate_meta$role,
+      x$base$geometry$coordinate_meta$name
     ),
     capabilities = c(
       "surface_geometry", "coordinate_sets", "map_order",
@@ -428,7 +428,7 @@ write_ngeo_freesurfer <- function(x, path, overwrite = FALSE) {
       function() freesurferformats::write.fs.mgh(
         path,
         arrays$values,
-        vox2ras_matrix = x$domain$affine
+        vox2ras_matrix = x$base$geometry$affine
       )
     )
     return(list(
@@ -439,8 +439,8 @@ write_ngeo_freesurfer <- function(x, path, overwrite = FALSE) {
   }
   if (!inherits(x, "ngeo_surface")) {
     .ngeo_abort(
-      "FreeSurfer writing requires a surface or volume domain.",
-      "ngeo_error_domain"
+      "FreeSurfer writing requires a surface or volume base.",
+      "ngeo_error_base"
     )
   }
   .ngeo_assert_output(path, overwrite)
@@ -449,14 +449,14 @@ write_ngeo_freesurfer <- function(x, path, overwrite = FALSE) {
     path,
     function() freesurferformats::write.fs.surface(
       path,
-      x$domain$coordinates[[x$domain$active_coordinates]],
-      x$domain$faces
+      x$base$geometry$coordinates[[x$base$geometry$active_coordinates]],
+      x$base$geometry$faces
     )
   )
   data_paths <- character()
   if (!is.null(x$values)) {
-    data_paths <- vapply(seq_len(nrow(x$maps)), function(i) {
-      output <- paste0(path, ".", .ngeo_safe_name(x$maps$name[[i]]), ".curv")
+    data_paths <- vapply(seq_len(nrow(x$layers)), function(i) {
+      output <- paste0(path, ".", .ngeo_safe_name(x$layers$name[[i]]), ".curv")
       .ngeo_assert_output(output, overwrite)
       .ngeo_backend_write(
         "FreeSurfer morphometry",
@@ -469,15 +469,15 @@ write_ngeo_freesurfer <- function(x, path, overwrite = FALSE) {
       )
       output
     }, character(1))
-    names(data_paths) <- x$maps$name
+    names(data_paths) <- x$layers$name
   }
   label_paths <- character()
-  if (length(x$labels)) {
-    label_paths <- vapply(seq_along(x$labels), function(i) {
-      output <- paste0(path, ".", .ngeo_safe_name(names(x$labels)[[i]]), ".annot")
-      .ngeo_write_annot(x$labels[[i]], output, overwrite)
+  if (length(x$base$labels)) {
+    label_paths <- vapply(seq_along(x$base$labels), function(i) {
+      output <- paste0(path, ".", .ngeo_safe_name(names(x$base$labels)[[i]]), ".annot")
+      .ngeo_write_annot(x$base$labels[[i]], output, overwrite)
     }, character(1))
-    names(label_paths) <- names(x$labels)
+    names(label_paths) <- names(x$base$labels)
   }
   list(
     format = "freesurfer",
@@ -587,7 +587,7 @@ write_ngeo <- function(x,
   x
 }
 
-#' Export auditable provenance as JSON-compatible data
+#' Export auditable history as JSON-compatible data
 #'
 #' @param x An `ngeo` dataset.
 #' @param path Optional JSON output path. If `NULL`, return the record only.
@@ -595,30 +595,30 @@ write_ngeo <- function(x,
 #'   source identifiers and checksums.
 #' @param overwrite Replace an existing JSON output.
 #'
-#' @return A JSON-compatible provenance record, invisibly when written.
+#' @return A JSON-compatible history record, invisibly when written.
 #' @export
-ngeo_export_provenance <- function(
+ngeo_export_history <- function(
     x,
     path = NULL,
     redact = c("none", "paths", "all"),
     overwrite = FALSE) {
   ngeo_validate(x, "basic")
   redact <- match.arg(redact)
-  provenance <- if (identical(redact, "none")) {
-    x$provenance
+  history <- if (identical(redact, "none")) {
+    x$history
   } else {
-    .ngeo_redact_provenance(x$provenance, redact)
+    .ngeo_redact_provenance(x$history, redact)
   }
   record <- list(
-    schema = "neurogeo-provenance-1.0",
-    specification = x$provenance$spec_version,
-    package_version = x$provenance$package_version,
-    domain_type = x$domain$type,
-    domain_hash = ngeo_domain_hash(x),
-    element_count = nrow(x$domain$elements),
-    maps = x$maps,
+    schema = "neurogeo-history-1.0",
+    specification = x$history$spec_version,
+    package_version = x$history$package_version,
+    domain_type = x$base$type,
+    base_hash = base_hash(x),
+    element_count = nrow(x$base$elements),
+    layers = x$layers,
     measures = x$measures,
-    provenance = provenance,
+    history = history,
     redaction = redact
   )
   if (is.null(path)) {

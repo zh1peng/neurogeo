@@ -37,19 +37,22 @@
 }
 
 .ngeo_cross_variograms <- function(
-    x, maps, pair_sample, breaks = 10L, metric = NULL, seed = NULL) {
+    x, layers, pair_sample, breaks = 10L, distance_method = NULL, seed = NULL) {
   ngeo_validate(x, "strict")
   if (is.null(x$values)) {
     .ngeo_abort("Cross-variograms require loaded values.", "ngeo_error_values")
   }
-  selected <- .ngeo_map_selection(x, maps)
+  selected <- .ngeo_layer_selection(x, layers)
   if (length(selected) < 2L || anyDuplicated(selected)) {
     .ngeo_abort(
       "Cross-variograms require at least two distinct layers.",
       "ngeo_error_argument"
     )
   }
-  if (any(x$measures$spatial_semantics[selected] == "categorical")) {
+  if (any(.ngeo_measures_for_layers(
+    x,
+    selected
+  )$support_behavior == "categorical")) {
     .ngeo_abort(
       "Categorical layers do not have cross-semivariograms.",
       "ngeo_error_measure"
@@ -86,19 +89,19 @@
     sort(sample.int(total, pair_sample, replace = FALSE))
   })
   pairs <- .ngeo_pair_rank_index(ranks, n)
-  metric_name <- .ngeo_metric_name(metric %||% switch(
-    x$domain$type,
+  metric_name <- .ngeo_metric_name(distance_method %||% switch(
+    x$base$type,
     surface = "edge_geodesic",
     volume = "world_euclidean",
-    points = "euclidean",
-    regions = "region_centroid",
-    grayordinates = "edge_geodesic"
+    point = "euclidean",
+    parcellation = "region_centroid",
+    grayordinate = "edge_geodesic"
   ))
   distance <- numeric(pair_sample)
   for (source in unique(pairs[, "i"])) {
     rows <- which(pairs[, "i"] == source)
     distance[rows] <- as.numeric(ngeo_distance(
-      x, from = source, to = pairs[rows, "j"], metric = metric_name
+      x, from = source, to = pairs[rows, "j"], distance_method = metric_name
     ))
   }
   finite <- is.finite(distance) & distance > 0
@@ -164,16 +167,16 @@
     convention = "0.5 * (x_i - x_j) * (y_i - y_j)",
     direction = "unordered element pairs; declared layer order",
     hash = .ngeo_layer_digest(list(
-      domain_hash = ngeo_domain_hash(x), ranks = ranks, seed = seed
+      base_hash = base_hash(x), ranks = ranks, seed = seed
     ))
   )
   list(
     table = table,
     pair_ranks = ranks,
     boundaries = boundaries,
-    metric = metric_name,
-    layer_ids = stats::setNames(layer_ids, x$maps$name[selected]),
-    map_index = selected,
+    distance_method = metric_name,
+    layer_ids = stats::setNames(layer_ids, x$layers$name[selected]),
+    layer_index = selected,
     sampling = sampling
   )
 }
@@ -220,11 +223,11 @@
 #' stationarity and isotropy, reports positive-semidefinite sill diagnostics,
 #' and deliberately provides no co-kriging facade.
 #'
-#' @param x An `ngeo` points or regions dataset.
-#' @param maps Two or more continuous map selectors.
+#' @param x An `ngeo` point or parcellation dataset.
+#' @param layers Two or more continuous map selectors.
 #' @param pair_sample Number of unordered element pairs sampled explicitly.
 #' @param breaks Number of distance bins or explicit boundaries.
-#' @param metric Explicit NGCS metric.
+#' @param distance_method Explicit NGCS distance_method.
 #' @param model A `gstat` variogram model name.
 #' @param range Positive fixed shared range used by the initial LMC model.
 #' @param nugget Non-negative initial nugget.
@@ -234,10 +237,10 @@
 #' @export
 ngeo_coregionalization <- function(
     x,
-    maps,
+    layers,
     pair_sample,
     breaks = 10L,
-    metric = NULL,
+    distance_method = NULL,
     model = c("Exp", "Sph", "Gau"),
     range,
     nugget = 0,
@@ -245,10 +248,10 @@ ngeo_coregionalization <- function(
   .ngeo_require("gstat", "experimental coregionalization")
   .ngeo_require("sf", "experimental coregionalization")
   model <- match.arg(model)
-  if (!x$domain$type %in% c("points", "regions")) {
+  if (!x$base$type %in% c("point", "parcellation")) {
     .ngeo_abort(
       paste(
-        "The experimental LMC adapter is limited to points and regions;",
+        "The experimental LMC adapter is limited to point and parcellation;",
         "bounded surface cross-variograms remain descriptive only."
       ),
       "ngeo_error_capability"
@@ -264,10 +267,10 @@ ngeo_coregionalization <- function(
     )
   }
   empirical <- .ngeo_cross_variograms(
-    x, maps, pair_sample = pair_sample, breaks = breaks,
-    metric = metric, seed = seed
+    x, layers, pair_sample = pair_sample, breaks = breaks,
+    distance_method = distance_method, seed = seed
   )
-  if (length(empirical$map_index) >
+  if (length(empirical$layer_index) >
       getOption("neurogeo.max_coregionalization_layers", 6L)) {
     .ngeo_abort(
       "The experimental LMC layer count exceeds its resource limit.",
@@ -281,7 +284,7 @@ ngeo_coregionalization <- function(
       "ngeo_error_capability"
     )
   }
-  data <- as.data.frame(x$values[, empirical$map_index, drop = FALSE])
+  data <- as.data.frame(x$values[, empirical$layer_index, drop = FALSE])
   names(data) <- unname(empirical$layer_ids)
   coordinate_names <- paste0(".coord", seq_len(ncol(coordinates)))
   spatial_data <- cbind(data, stats::setNames(as.data.frame(coordinates),
@@ -319,8 +322,8 @@ ngeo_coregionalization <- function(
     stringsAsFactors = FALSE
   )
   model_hash <- .ngeo_layer_digest(list(
-    domain_hash = ngeo_domain_hash(x),
-    maps = x$maps$map_id[empirical$map_index],
+    base_hash = base_hash(x),
+    layers = x$layers$layer_id[empirical$layer_index],
     empirical_hash = empirical$sampling$hash,
     model = fit$model,
     assumptions = list(stationarity = "second_order", isotropy = TRUE)
@@ -328,7 +331,7 @@ ngeo_coregionalization <- function(
   result <- list(
     status = "experimental",
     backend = "gstat::fit.lmc",
-    maps = stats::setNames(x$maps$name[empirical$map_index], layer_ids),
+    layers = stats::setNames(x$layers$name[empirical$layer_index], layer_ids),
     empirical = empirical,
     models = fit$model,
     psd_diagnostics = psd$summary,
@@ -341,7 +344,7 @@ ngeo_coregionalization <- function(
       variogram_model = model
     ),
     capabilities = list(shared_scale_decomposition = TRUE, co_kriging = FALSE),
-    domain_hash = ngeo_domain_hash(x),
+    base_hash = base_hash(x),
     model_hash = model_hash
   )
   class(result) <- "ngeo_coregionalization"
@@ -354,7 +357,7 @@ print.ngeo_coregionalization <- function(x, ...) {
     "<ngeo_coregionalization>\n",
     "  status: experimental\n",
     "  backend: ", x$backend, "\n",
-    "  layers: ", length(x$maps), "\n",
+    "  layers: ", length(x$layers), "\n",
     "  sampled pairs: ", x$empirical$sampling$retained_pairs, "\n",
     "  co-kriging: FALSE\n",
     sep = ""

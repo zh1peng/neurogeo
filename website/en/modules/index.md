@@ -18,12 +18,12 @@ description: Technical documentation for neurogeo objects, I/O, spatial relation
 
 ## Spatial relations and support
 
-- [Neighbors and weights](/en/tutorials/neighbors-and-weights)
+- [Neighbors and spatial weights](/en/tutorials/neighbors-and-weights)
 - [Parcellation and aggregation](/en/tutorials/parcellation-and-aggregation)
-- [Change of support and cross-atlas analysis](/en/tutorials/change-of-support)
+- [Spatial aggregation and cross-atlas analysis](/en/tutorials/change-of-support)
 - [Real-world support mapping](/en/modules/real-world-support-mapping)
 - [Transform-aware resampling](/en/modules/transform-aware-resampling)
-- [Explicit spaces and transform paths](/en/modules/space-transform-graph)
+- [Coordinate spaces and transform paths](/en/modules/space-transform-graph)
 
 ## Inference and models
 

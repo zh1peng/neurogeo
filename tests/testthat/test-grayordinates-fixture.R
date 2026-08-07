@@ -1,5 +1,5 @@
 test_that("grayordinate fixture fixes ordered block semantics", {
-  fixture <- read_fixture("grayordinates-hybrid.json")
+  fixture <- read_fixture("grayordinate-hybrid.json")
 
   expect_identical(fixture$spec_version, "1.0")
   expect_equal(length(fixture$components), 3L)

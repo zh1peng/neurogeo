@@ -41,7 +41,7 @@ ngeo_cortical_map(
 
 \item{fill}{Whether face colors represent vertex values or atlas membership.}
 
-\item{mask}{Optional logical vertex mask. By default the domain mask is used.
+\item{mask}{Optional logical vertex mask. By default the base mask is used.
 A face is visible only when all three vertices are included.}
 
 \item{underlay}{Optional numeric vertex vector or map selector used as a

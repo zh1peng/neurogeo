@@ -32,7 +32,7 @@ reference_features <- ngeo_layer_coupling(
   null = list(
     randomized_layer = "receptor",
     fixed_layer = "thickness",
-    transformations = spin_mappings,
+    transformations = spin_layerpings,
     population_inference = FALSE
   )
 )

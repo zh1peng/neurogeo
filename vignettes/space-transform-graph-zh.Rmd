@@ -14,22 +14,22 @@ library(neurogeo)
 
 ## 基础背景
 
-坐标只有放在 coordinate reference space 中才有含义。两个文件都使用毫米，
+坐标只有放在 coordinate reference coordinate_space 中才有含义。两个文件都使用毫米，
 并不能证明它们属于同一 subject、template、orientation 或 surface
-registration。transform 是一个有方向、可审计的声明：某个 exact space 的坐标
-可以映射到另一个 exact space。
+registration。transform 是一个有方向、可审计的声明：某个 exact coordinate_space 的坐标
+可以映射到另一个 exact coordinate_space。
 
 ## 注册空间
 
 ```{r}
-native <- ngeo_space("native", template = "subject-01")
-intermediate <- ngeo_space("intermediate", template = "study-template")
-standard <- ngeo_space("standard", template = "public-template")
-registry <- ngeo_space_registry(
+native <- ngeo_coordinate_space("native", template = "subject-01")
+intermediate <- ngeo_coordinate_space("intermediate", template = "study-template")
+standard <- ngeo_coordinate_space("standard", template = "public-template")
+registry <- ngeo_coordinate_space_registry(
   list(native, intermediate, standard),
   aliases = c(subject = "native", reference = "standard")
 )
-ngeo_space_audit(native, standard)
+ngeo_coordinate_space_audit(native, standard)
 ```
 
 名称相同不是等价证明；registry 使用完整规范描述和 hash 解析 alias。
@@ -52,7 +52,7 @@ graph <- ngeo_transform_graph(
   edge_ids = c("native-study", "study-standard")
 )
 path <- ngeo_transform_path(graph, "subject", "reference")
-ngeo_transform_path_provenance(path)
+ngeo_transform_path_history(path)
 ```
 
 graph 只包含调用者提供的 transform；path resolution 不会估计缺失 registration。
@@ -60,13 +60,13 @@ graph 只包含调用者提供的 transform；path resolution 不会估计缺失
 ## 应用 path
 
 ```{r}
-x <- ngeo_points(
+x <- ngeo_point(
   cbind(x = c(0, 1), y = c(0, 1)),
   values = cbind(signal = c(1, 2)),
-  space = native
+  coordinate_space = native
 )
 changed <- ngeo_apply_transform_path(x, path, authorize = TRUE)
-changed$domain$coordinates
+changed$base$geometry$coordinates
 ```
 
 应用只改变 geometry 并需要显式授权；lossy 或不支持的 non-affine path 可以审计，

@@ -14,7 +14,7 @@ library(neurogeo)
 
 ## 基础背景
 
-大 spatial domain 上的 exact matrix factorization 可能不可承受。iterative
+大 spatial base 上的 exact matrix factorization 可能不可承受。iterative
 solver 和 stochastic log-determinant approximation 可以降低内存与计算量，
 但会引入 convergence tolerance、series truncation 和 Monte Carlo error。
 这些数值选择属于科学结果，不能隐藏在内部默认值中。
@@ -23,14 +23,14 @@ solver 和 stochastic log-determinant approximation 可以降低内存与计算�
 
 ```{r}
 coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
-data <- ngeo_points(
+data <- ngeo_point(
   coordinates,
   values = cbind(
     response = 2 + coordinates[,1] - 0.5 * coordinates[,2],
     x = coordinates[,1], y = coordinates[,2]
   )
 )
-weights <- ngeo_weights(
+spatial_weights <- ngeo_spatial_weights(
   data, method = "distance_band", threshold = 1.01, style = "W"
 )
 control <- ngeo_solver_control(
@@ -49,19 +49,19 @@ control <- ngeo_solver_control(
 ```{r}
 sar <- ngeo_spatial_regression_iterative(
   data, response = "response", predictors = c("x", "y"),
-  weights = weights, model = "sar",
+  spatial_weights = spatial_weights, model = "sar",
   control = control, logdet = "exact"
 )
 sar$solve$relative_residual
 ```
 
-小 domain 的 exact result 是 approximation calibration reference。
+小 base 的 exact result 是 approximation calibration reference。
 
 ## Approximate execution
 
 ```{r}
 ngeo_logdet_approx(
-  weights, parameter = 0.2,
+  spatial_weights, parameter = 0.2,
   control = ngeo_solver_control(
     trace_order = 30, trace_probes = 100,
     exact_threshold = 10, seed = 3402
@@ -71,4 +71,4 @@ ngeo_logdet_approx(
 ```
 
 报告结果时应包括 residual、iteration count、trace order、probe count 和 seed。
-CAR 还要求 symmetric weights 与明确 precision。
+CAR 还要求 symmetric spatial_weights 与明确 precision。

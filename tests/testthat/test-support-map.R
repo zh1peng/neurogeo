@@ -17,23 +17,23 @@ support_fixture <- function() {
       category = c(1, 1, 2, 2)
     ),
     measures = rbind(
-      ngeo_measure(spatial_semantics = "intensive"),
-      ngeo_measure(spatial_semantics = "extensive"),
+      ngeo_measure(support_behavior = "intensive"),
+      ngeo_measure(support_behavior = "extensive"),
       ngeo_measure(
         value_type = "integer",
-        spatial_semantics = "categorical"
+        support_behavior = "categorical"
       )
     )
   )
-  atlas_a <- ngeo_regions(
+  atlas_a <- ngeo_parcellation(
     data.frame(region_id = c("A", "B")),
     support_size = c(3, 3),
-    space = source$domain$space
+    coordinate_space = source$base$coordinate_space
   )
-  atlas_b <- ngeo_regions(
+  atlas_b <- ngeo_parcellation(
     data.frame(region_id = c("C", "D")),
     support_size = c(3, 3),
-    space = source$domain$space
+    coordinate_space = source$base$coordinate_space
   )
   support <- c(1, 2, 1, 2)
   map_a <- ngeo_support_map(
@@ -58,16 +58,16 @@ support_fixture <- function() {
   )
 }
 
-test_that("crisp support maps preserve intensive and extensive semantics", {
+test_that("crisp support layers preserve intensive and extensive semantics", {
   fixture <- support_fixture()
-  result <- ngeo_change_support(
+  result <- aggregate_to(
     fixture$source,
     fixture$atlas_a,
     fixture$map_a
   )
 
   expect_s3_class(fixture$map_a, "ngeo_support_map")
-  expect_s3_class(result, "ngeo_regions")
+  expect_s3_class(result, "ngeo_parcellation")
   expect_equal(
     result$values[, "intensity"],
     c(50 / 3, 110 / 3)
@@ -75,7 +75,7 @@ test_that("crisp support maps preserve intensive and extensive semantics", {
   expect_equal(result$values[, "mass"], c(3, 7))
   expect_equal(result$values[, "category"], c(1, 2))
   expect_equal(sum(result$values[, "mass"]), sum(fixture$source$values[, "mass"]))
-  expect_identical(result$provenance$spec_version, "2.0")
+  expect_identical(result$history$spec_version, "2.0")
 })
 
 test_that("probabilistic and overlapping operators enforce their invariants", {
@@ -84,10 +84,10 @@ test_that("probabilistic and overlapping operators enforce their invariants", {
     c(0.8, 0.2, 0, 0),
     c(0.2, 0.8, 1, 1)
   )
-  probabilistic_target <- ngeo_regions(
+  probabilistic_target <- ngeo_parcellation(
     data.frame(region_id = c("A", "B")),
     support_size = c(1.2, 4.8),
-    space = fixture$source$domain$space
+    coordinate_space = fixture$source$base$coordinate_space
   )
   probabilistic_map <- ngeo_support_map(
     fixture$source,
@@ -100,10 +100,10 @@ test_that("probabilistic and overlapping operators enforce their invariants", {
     c(1, 1, 1, 0),
     c(0, 1, 1, 1)
   )
-  overlapping_target <- ngeo_regions(
+  overlapping_target <- ngeo_parcellation(
     data.frame(region_id = c("A", "B")),
     support_size = c(4, 5),
-    space = fixture$source$domain$space
+    coordinate_space = fixture$source$base$coordinate_space
   )
   overlapping_map <- ngeo_support_map(
     fixture$source,
@@ -116,14 +116,14 @@ test_that("probabilistic and overlapping operators enforce their invariants", {
   expect_silent(ngeo_validate_support_map(probabilistic_map))
   expect_silent(ngeo_validate_support_map(overlapping_map))
   expect_error(
-    ngeo_change_support(
+    aggregate_to(
       fixture$source,
       overlapping_target,
       overlapping_map
     ),
     class = "ngeo_error_conservation"
   )
-  normalized <- ngeo_change_support(
+  normalized <- aggregate_to(
     fixture$source,
     overlapping_target,
     overlapping_map,
@@ -154,7 +154,7 @@ test_that("support uncertainty follows linear and ratio derivatives", {
     fixture$atlas_a,
     fixture$map_a,
     value_variance = matrix(1, nrow = 4L, ncol = 2L),
-    maps = c("intensity", "mass")
+    layers = c("intensity", "mass")
   )
 
   expect_equal(variance[, "intensity"], rep(5 / 9, 2L))
@@ -170,17 +170,17 @@ test_that("support uncertainty follows linear and ratio derivatives", {
     fixture$atlas_a,
     uncertain,
     value_variance = rep(1, 4L),
-    maps = "intensity"
+    layers = "intensity"
   )
   expect_true(all(propagated > variance[, "intensity"]))
 })
 
-test_that("support maps compose with explicit intermediate domains", {
+test_that("support layers compose with explicit intermediate domains", {
   fixture <- support_fixture()
-  whole <- ngeo_regions(
+  whole <- ngeo_parcellation(
     data.frame(region_id = "whole"),
     support_size = 6,
-    space = fixture$source$domain$space
+    coordinate_space = fixture$source$base$coordinate_space
   )
   second <- ngeo_support_map(
     fixture$atlas_a,
@@ -189,7 +189,7 @@ test_that("support maps compose with explicit intermediate domains", {
     source_support = c(3, 3)
   )
   composed <- ngeo_compose_support_map(fixture$map_a, second)
-  direct <- ngeo_change_support(
+  direct <- aggregate_to(
     fixture$source,
     whole,
     composed
@@ -260,14 +260,14 @@ test_that("global support inference is invariant to crisp parcellation", {
 test_that("support map hashes bind both source and target domains", {
   fixture <- support_fixture()
   changed <- fixture$atlas_a
-  changed$domain$elements$element_id[[1L]] <- "changed"
+  changed$base$elements$element_id[[1L]] <- "changed"
   expect_error(
-    ngeo_change_support(
+    aggregate_to(
       fixture$source,
       changed,
       fixture$map_a
     ),
-    class = "ngeo_error_domain_mismatch"
+    class = "ngeo_error_base_mismatch"
   )
   expect_identical(
     ngeo_support_map_hash(fixture$map_a),
@@ -284,18 +284,18 @@ test_that("NGCS 1.x crisp partitions migrate without changing aggregation", {
   old <- ngeo_aggregate(
     fixture$source,
     partition,
-    maps = c("intensity", "mass")
+    layers = c("intensity", "mass")
   )
   migrated <- ngeo_support_map_from_partition(
     fixture$source,
     partition,
     old
   )
-  new <- ngeo_change_support(
+  new <- aggregate_to(
     fixture$source,
     old,
     migrated,
-    maps = c("intensity", "mass")
+    layers = c("intensity", "mass")
   )
 
   expect_equal(new$values, old$values)

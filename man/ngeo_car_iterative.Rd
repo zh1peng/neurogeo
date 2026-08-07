@@ -7,7 +7,7 @@
 ngeo_car_iterative(
   x,
   response,
-  weights,
+  spatial_weights,
   type = c("proper", "intrinsic"),
   rho = 0.95,
   precision = 1,
@@ -20,7 +20,7 @@ ngeo_car_iterative(
 
 \item{response}{One finite numeric map.}
 
-\item{weights}{Matching symmetric sparse weights.}
+\item{spatial_weights}{Matching symmetric sparse spatial_weights.}
 
 \item{type}{Proper or intrinsic CAR.}
 

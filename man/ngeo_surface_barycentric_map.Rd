@@ -42,5 +42,5 @@ A sparse probabilistic `ngeo_support_map`.
 }
 \description{
 Each eligible source vertex is projected to the closest candidate target
-triangle. Non-negative barycentric weights form one operator column.
+triangle. Non-negative barycentric spatial_weights form one operator column.
 }

@@ -3,7 +3,7 @@
     support <- ngeo_support_size(x)
   }
   if (!is.numeric(support) ||
-      length(support) != nrow(x$domain$elements) ||
+      length(support) != nrow(x$base$elements) ||
       anyNA(support) || any(!is.finite(support)) ||
       any(support <= 0)) {
     .ngeo_abort(
@@ -18,8 +18,8 @@
 }
 
 .ngeo_support_operator <- function(source, target, operator) {
-  n_source <- nrow(source$domain$elements)
-  n_target <- nrow(target$domain$elements)
+  n_source <- nrow(source$base$elements)
+  n_target <- nrow(target$base$elements)
   if (is.atomic(operator) && is.null(dim(operator))) {
     if (length(operator) != n_source) {
       .ngeo_abort(
@@ -27,10 +27,10 @@
         "ngeo_error_alignment"
       )
     }
-    target_id <- if ("region_id" %in% names(target$domain$elements)) {
-      as.character(target$domain$elements$region_id)
+    target_id <- if ("region_id" %in% names(target$base$elements)) {
+      as.character(target$base$elements$region_id)
     } else {
-      target$domain$elements$element_id
+      target$base$elements$element_id
     }
     row <- match(as.character(operator), target_id)
     keep <- !is.na(operator)
@@ -71,21 +71,21 @@
                                         target_support,
                                         weight_variance,
                                         coverage,
-                                        provenance) {
+                                        history) {
   result <- structure(
     list(
       operator = .ngeo_as_dgCMatrix(operator),
       type = type,
       direction = "target_by_source",
-      source_domain_hash = source_hash,
-      target_domain_hash = target_hash,
+      source_base_hash = source_hash,
+      target_base_hash = target_hash,
       source_element_id = source_id,
       target_element_id = target_id,
       source_support = source_support,
       target_support = target_support,
       weight_variance = weight_variance,
       coverage = coverage,
-      provenance = provenance,
+      history = history,
       spec_version = "2.0"
     ),
     class = "ngeo_support_map"
@@ -107,7 +107,7 @@
 #' @param weight_variance Optional target-by-source independent weight
 #'   variances.
 #' @param coverage Require complete source coverage or allow partial coverage.
-#' @param provenance Optional mapping provenance.
+#' @param history Optional mapping history.
 #'
 #' @return An `ngeo_support_map`.
 #' @export
@@ -119,7 +119,7 @@ ngeo_support_map <- function(
     source_support = NULL,
     weight_variance = NULL,
     coverage = c("complete", "partial"),
-    provenance = list()) {
+    history = list()) {
   ngeo_validate(source, "strict")
   ngeo_validate(target, "strict")
   type <- match.arg(type)
@@ -158,8 +158,8 @@ ngeo_support_map <- function(
   } else {
     as.numeric(operator %*% source_support)
   }
-  provenance$operations <- c(
-    provenance$operations %||% list(),
+  history$operations <- c(
+    history$operations %||% list(),
     list(.ngeo_operation(
       "ngeo_support_map",
       list(type = type, coverage = coverage)
@@ -168,15 +168,15 @@ ngeo_support_map <- function(
   result <- .ngeo_support_map_structure(
     operator,
     type,
-    ngeo_domain_hash(source),
-    ngeo_domain_hash(target),
-    source$domain$elements$element_id,
-    target$domain$elements$element_id,
+    base_hash(source),
+    base_hash(target),
+    source$base$elements$element_id,
+    target$base$elements$element_id,
     source_support,
     target_support,
     weight_variance,
     coverage,
-    provenance
+    history
   )
   declared_target_support <- ngeo_support_size(target)
   if (!is.null(target_support) &&
@@ -190,7 +190,7 @@ ngeo_support_map <- function(
         check.attributes = FALSE
       ))) {
     .ngeo_abort(
-      "Target domain support sizes do not match mapped source support.",
+      "Target base support sizes do not match mapped source support.",
       "ngeo_error_support"
     )
   }
@@ -201,21 +201,21 @@ ngeo_support_map <- function(
 #'
 #' @param source Source `ngeo` dataset.
 #' @param partition Matching `ngeo_partition`.
-#' @param target Target regions template with the partition's region order.
+#' @param target Target parcellation template with the partition's region order.
 #'
 #' @return A crisp `ngeo_support_map`.
 #' @export
 ngeo_support_map_from_partition <- function(source, partition, target) {
   .ngeo_validate_partition(partition, source)
   ngeo_validate(target, "strict")
-  target_id <- if ("region_id" %in% names(target$domain$elements)) {
-    as.character(target$domain$elements$region_id)
+  target_id <- if ("region_id" %in% names(target$base$elements)) {
+    as.character(target$base$elements$region_id)
   } else {
-    target$domain$elements$element_id
+    target$base$elements$element_id
   }
   if (!identical(
     target_id,
-    as.character(partition$regions$region_id)
+    as.character(partition$parcellation$region_id)
   )) {
     .ngeo_abort(
       "Target region order must match the crisp partition.",
@@ -228,8 +228,8 @@ ngeo_support_map_from_partition <- function(source, partition, target) {
     partition$membership,
     type = "crisp",
     coverage = if (anyNA(partition$membership)) "partial" else "complete",
-    provenance = list(
-      partition = partition$provenance,
+    history = list(
+      partition = partition$history,
       migration = "NGCS 1.x ngeo_partition"
     )
   )
@@ -275,18 +275,18 @@ ngeo_validate_support_map <- function(x, tolerance = 1e-10) {
       "ngeo_error_support_map"
     )
   }
-  if (!is.character(x$source_domain_hash) ||
-      length(x$source_domain_hash) != 1L ||
-      is.na(x$source_domain_hash) ||
-      !nzchar(x$source_domain_hash) ||
-      !is.character(x$target_domain_hash) ||
-      length(x$target_domain_hash) != 1L ||
-      is.na(x$target_domain_hash) ||
-      !nzchar(x$target_domain_hash) ||
+  if (!is.character(x$source_base_hash) ||
+      length(x$source_base_hash) != 1L ||
+      is.na(x$source_base_hash) ||
+      !nzchar(x$source_base_hash) ||
+      !is.character(x$target_base_hash) ||
+      length(x$target_base_hash) != 1L ||
+      is.na(x$target_base_hash) ||
+      !nzchar(x$target_base_hash) ||
       !identical(x$direction, "target_by_source") ||
-      !is.list(x$provenance)) {
+      !is.list(x$history)) {
     .ngeo_abort(
-      "Support-map identity, direction, or provenance is invalid.",
+      "Support-map identity, direction, or history is invalid.",
       "ngeo_error_support_map"
     )
   }
@@ -329,7 +329,7 @@ ngeo_validate_support_map <- function(x, tolerance = 1e-10) {
     }
     if (!all(valid)) {
       .ngeo_abort(
-        "Complete support maps must cover every source element.",
+        "Complete support layers must cover every source element.",
         "ngeo_error_support_map"
       )
     }
@@ -395,8 +395,8 @@ ngeo_support_map_hash <- function(x) {
     list(
       operator = x$operator,
       type = x$type,
-      source = x$source_domain_hash,
-      target = x$target_domain_hash,
+      source = x$source_base_hash,
+      target = x$target_base_hash,
       coverage = x$coverage
     ),
     algo = "xxhash64",
@@ -409,15 +409,15 @@ ngeo_support_map_hash <- function(x) {
   ngeo_validate(target, "strict")
   ngeo_validate_support_map(support_map)
   if (!identical(
-    ngeo_domain_hash(x),
-    support_map$source_domain_hash
+    base_hash(x),
+    support_map$source_base_hash
   ) || !identical(
-    ngeo_domain_hash(target),
-    support_map$target_domain_hash
+    base_hash(target),
+    support_map$target_base_hash
   )) {
     .ngeo_abort(
-      "Support-map source or target domain hash does not match.",
-      "ngeo_error_domain_mismatch"
+      "Support-map source or target base hash does not match.",
+      "ngeo_error_base_mismatch"
     )
   }
   invisible(TRUE)
@@ -464,38 +464,38 @@ ngeo_support_map_hash <- function(x) {
 
 #' Change values from one explicit support to another
 #'
-#' Intensive maps use support-normalized weighted means. Extensive and count
-#' maps use conservative allocation; overlapping columns require explicit
-#' normalization. Categorical maps use support-weighted modes.
+#' Intensive layers use support-normalized weighted means. Extensive and count
+#' layers use conservative allocation; overlapping columns require explicit
+#' normalization. Categorical layers use support-weighted modes.
 #'
 #' @param x Source `ngeo` dataset.
-#' @param target Target-domain `ngeo` template.
+#' @param target Target-base `ngeo` template.
 #' @param support_map Matching `ngeo_support_map`.
-#' @param maps Optional source map selection.
+#' @param layers Optional source map selection.
 #' @param allocation Normalize non-unit columns or reject them.
 #' @param unmapped Reject or explicitly drop unmapped source support.
-#' @param unknown Interpretation for maps with unknown spatial semantics.
+#' @param unknown Interpretation for layers with unknown spatial semantics.
 #' @param budget Resource limits for materialized source and target values.
 #'
-#' @return A new `ngeo` dataset on the target domain.
+#' @return A new `ngeo` dataset on the target base.
 #' @examples
-#' source <- ngeo_points(
+#' source <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
 #'   values = cbind(amount = c(1, 2, 3, 4)),
-#'   measures = ngeo_measure(spatial_semantics = "extensive")
+#'   measures = ngeo_measure(support_behavior = "extensive")
 #' )
 #' atlas <- ngeo_atlas_map(
 #'   source, c("A", "A", "B", "B"), source_support = rep(1, 4)
 #' )
-#' result <- ngeo_change_support(source, atlas$target, atlas)
-#' ngeo_values(result)
-#' sum(ngeo_values(result))
+#' result <- aggregate_to(source, atlas$target, atlas)
+#' values(result)
+#' sum(values(result))
 #' @export
-ngeo_change_support <- function(
+aggregate_to <- function(
     x,
     target,
     support_map,
-    maps = NULL,
+    layers = NULL,
     allocation = c("error", "normalize"),
     unmapped = c("error", "drop"),
     unknown = c("error", "intensive", "extensive"),
@@ -510,18 +510,18 @@ ngeo_change_support <- function(
       "ngeo_error_values"
     )
   }
-  map_index <- .ngeo_map_selection(x, maps)
+  layer_index <- .ngeo_layer_selection(x, layers)
   .ngeo_budget_assert(
     budget,
     "materialized_elements",
-    nrow(target$domain$elements) * length(map_index)
+    nrow(target$base$elements) * length(layer_index)
   )
   .ngeo_budget_assert(
     budget,
     "memory_bytes",
     8 * (
-      nrow(x$domain$elements) +
-        nrow(target$domain$elements) * max(3L, length(map_index))
+      nrow(x$base$elements) +
+        nrow(target$base$elements) * max(3L, length(layer_index))
     )
   )
   source_support <- support_map$source_support %||%
@@ -529,10 +529,13 @@ ngeo_change_support <- function(
   operator <- support_map$operator
   target_support <- as.numeric(operator %*% source_support)
   allocation_operator <- NULL
-  output <- vector("list", length(map_index))
-  semantics_out <- x$measures$spatial_semantics[map_index]
-  for (i in seq_along(map_index)) {
-    map <- map_index[[i]]
+  output <- vector("list", length(layer_index))
+  semantics_out <- .ngeo_measures_for_layers(
+    x,
+    layer_index
+  )$support_behavior
+  for (i in seq_along(layer_index)) {
+    map <- layer_index[[i]]
     values <- as.numeric(x$values[, map])
     if (any(!is.finite(values))) {
       .ngeo_abort(
@@ -581,29 +584,29 @@ ngeo_change_support <- function(
     )
   }
   output <- do.call(cbind, output)
-  maps_out <- x$maps[map_index, , drop = FALSE]
-  measures_out <- x$measures[map_index, , drop = FALSE]
-  measures_out$spatial_semantics <- semantics_out
+  maps_out <- x$layers[layer_index, , drop = FALSE]
+  measures_out <- .ngeo_measures_for_layers(x, layer_index, unique = TRUE)
+  measures_out$support_behavior <- semantics_out
   colnames(output) <- maps_out$name
   result <- .new_ngeo(
-    domain = target$domain,
+    base = target$base,
     values = output,
-    maps = maps_out,
+    layers = maps_out,
     measures = measures_out,
-    labels = x$labels,
-    provenance = list(
+    labels = x$base$labels,
+    history = list(
       spec_version = "2.0",
       source_dataset = list(
-        domain_hash = ngeo_domain_hash(x),
-        provenance = x$provenance
+        base_hash = base_hash(x),
+        history = x$history
       ),
       target_template = list(
-        domain_hash = ngeo_domain_hash(target),
-        provenance = target$provenance
+        base_hash = base_hash(target),
+        history = target$history
       ),
       support_map_hash = ngeo_support_map_hash(support_map),
       operations = list(.ngeo_operation(
-        "ngeo_change_support",
+        "aggregate_to",
         list(
           allocation = allocation,
           unmapped = unmapped,
@@ -620,7 +623,7 @@ ngeo_change_support <- function(
 
 #' Propagate independent value and support-weight uncertainty
 #'
-#' @inheritParams ngeo_change_support
+#' @inheritParams aggregate_to
 #' @param value_variance Source element-by-map independent variances.
 #'
 #' @return A target element-by-map variance matrix.
@@ -630,7 +633,7 @@ ngeo_support_variance <- function(
     target,
     support_map,
     value_variance,
-    maps = NULL,
+    layers = NULL,
     allocation = c("error", "normalize"),
     unmapped = c("error", "drop"),
     unknown = c("error", "intensive", "extensive")) {
@@ -638,13 +641,13 @@ ngeo_support_variance <- function(
   allocation <- match.arg(allocation)
   unmapped <- match.arg(unmapped)
   unknown <- match.arg(unknown)
-  map_index <- .ngeo_map_selection(x, maps)
+  layer_index <- .ngeo_layer_selection(x, layers)
   if (is.atomic(value_variance) && is.null(dim(value_variance))) {
     value_variance <- matrix(value_variance, ncol = 1L)
   }
   if (!is.matrix(value_variance) ||
-      nrow(value_variance) != nrow(x$domain$elements) ||
-      !ncol(value_variance) %in% c(1L, length(map_index)) ||
+      nrow(value_variance) != nrow(x$base$elements) ||
+      !ncol(value_variance) %in% c(1L, length(layer_index)) ||
       anyNA(value_variance) || any(!is.finite(value_variance)) ||
       any(value_variance < 0)) {
     .ngeo_abort(
@@ -652,9 +655,9 @@ ngeo_support_variance <- function(
       "ngeo_error_uncertainty"
     )
   }
-  if (ncol(value_variance) == 1L && length(map_index) > 1L) {
+  if (ncol(value_variance) == 1L && length(layer_index) > 1L) {
     value_variance <- value_variance[
-      , rep.int(1L, length(map_index)),
+      , rep.int(1L, length(layer_index)),
       drop = FALSE
     ]
   }
@@ -665,11 +668,14 @@ ngeo_support_variance <- function(
   result <- matrix(
     NA_real_,
     nrow = nrow(operator),
-    ncol = length(map_index)
+    ncol = length(layer_index)
   )
-  for (i in seq_along(map_index)) {
-    map <- map_index[[i]]
-    semantics <- x$measures$spatial_semantics[[map]]
+  for (i in seq_along(layer_index)) {
+    map <- layer_index[[i]]
+    semantics <- .ngeo_measures_for_layers(
+      x,
+      map
+    )$support_behavior[[1L]]
     if (identical(semantics, "unknown")) {
       if (identical(unknown, "error")) {
         .ngeo_abort(
@@ -738,11 +744,11 @@ ngeo_support_variance <- function(
       result[, i] <- variance
     }
   }
-  colnames(result) <- x$maps$name[map_index]
+  colnames(result) <- x$layers$name[layer_index]
   result
 }
 
-#' Compose compatible sparse support maps
+#' Compose compatible sparse support layers
 #'
 #' @param first Source-to-intermediate support map.
 #' @param second Intermediate-to-target support map.
@@ -760,15 +766,15 @@ ngeo_compose_support_map <- function(first, second) {
     )
   }
   if (!identical(
-    first$target_domain_hash,
-    second$source_domain_hash
+    first$target_base_hash,
+    second$source_base_hash
   ) || !identical(
     first$target_element_id,
     second$source_element_id
   )) {
     .ngeo_abort(
       "Support-map composition requires identical intermediate domains.",
-      "ngeo_error_domain_mismatch"
+      "ngeo_error_base_mismatch"
     )
   }
   operator <- .ngeo_as_dgCMatrix(
@@ -789,8 +795,8 @@ ngeo_compose_support_map <- function(first, second) {
   .ngeo_support_map_structure(
     operator,
     type,
-    first$source_domain_hash,
-    second$target_domain_hash,
+    first$source_base_hash,
+    second$target_base_hash,
     first$source_element_id,
     second$target_element_id,
     first$source_support,

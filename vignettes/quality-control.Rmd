@@ -19,7 +19,7 @@ conditions that can be valid but require a scientific decision. QC does not
 repair data or infer missing metadata.
 
 ```{r basic}
-x <- ngeo_points(
+x <- ngeo_point(
   matrix(c(0, 0, 1, 0, 2, 0), ncol = 2, byrow = TRUE),
   values = cbind(signal = c(1, 2, 3), constant = c(5, 5, 5))
 )

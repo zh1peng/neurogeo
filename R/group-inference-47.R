@@ -1,15 +1,15 @@
 .ngeo_align_subject_design <- function(features, data, model, missing) {
   if (!inherits(features, "ngeo_subject_features") ||
       !is.matrix(features$values) || !is.numeric(features$values) ||
-      !is.data.frame(features$units) ||
-      !"unit_id" %in% names(features$units) ||
+      !is.data.frame(features$unit) ||
+      !"unit_id" %in% names(features$unit) ||
       !is.data.frame(features$endpoints) ||
-      nrow(features$units) != nrow(features$values) ||
+      nrow(features$unit) != nrow(features$values) ||
       nrow(features$endpoints) != ncol(features$values)) {
     .ngeo_abort("`features` must be one aligned `ngeo_subject_features` object.",
                 "ngeo_error_subject_features")
   }
-  unit_id <- as.character(features$units$unit_id)
+  unit_id <- as.character(features$unit$unit_id)
   if (anyNA(unit_id) || any(!nzchar(unit_id)) || anyDuplicated(unit_id)) {
     .ngeo_abort("Feature rows must have unique independent-unit identifiers.",
                 "ngeo_error_independent_unit")
@@ -68,12 +68,12 @@
   kept <- if (identical(missing, "complete_family")) which(finite) else
     seq_along(unit_id)
   if (length(kept) < 3L) {
-    .ngeo_abort("Too few complete independent units remain for inference.",
+    .ngeo_abort("Too few complete independent unit remain for inference.",
                 "ngeo_error_independent_unit")
   }
   list(
     values = features$values[kept, , drop = FALSE],
-    units = features$units[kept, , drop = FALSE],
+    unit = features$unit[kept, , drop = FALSE],
     endpoints = features$endpoints,
     data = data[kept, , drop = FALSE],
     unit_id = unit_id[kept],
@@ -244,7 +244,7 @@
       !identical(exchangeability$unit_id, unit_id) ||
       !identical(colnames(exchangeability$schedule), unit_id)) {
     .ngeo_abort(
-      "Exchangeability units must exactly equal the retained feature units.",
+      "Exchangeability unit must exactly equal the retained feature unit.",
       "ngeo_error_alignment"
     )
   }
@@ -654,10 +654,10 @@ ngeo_group_test <- function(
       endpoint_null_retained = retain_null,
       vertices_permuted = FALSE
     )),
-    provenance = list(
+    history = list(
       method = "freedman_lane",
       schedule_hash = exchangeability$schedule_hash,
-      feature_provenance = features$provenance,
+      feature_provenance = features$history,
       transform = stats::setNames(
         transformed$transform, aligned$endpoints$endpoint_id
       ),

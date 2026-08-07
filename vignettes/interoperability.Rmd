@@ -40,7 +40,7 @@ ngeo_bids_parse_name(name)
 
 ## Sparse support-map exchange
 
-Support maps can be exchanged as checksum-verified chunks. The bundle uses
+Support layers can be exchanged as checksum-verified chunks. The bundle uses
 JSON plus Matrix Market and preserves the complete logical map hash.
 
 ```{r eval=FALSE}

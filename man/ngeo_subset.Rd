@@ -4,14 +4,14 @@
 \alias{ngeo_subset}
 \title{Subset or reorder an NGCS dataset}
 \usage{
-ngeo_subset(x, elements = NULL, maps = NULL)
+ngeo_subset(x, elements = NULL, layers = NULL)
 }
 \arguments{
 \item{x}{An `ngeo` object.}
 
 \item{elements}{Element positions, stable element IDs, or a logical mask.}
 
-\item{maps}{Map positions, map IDs/names, or a logical mask.}
+\item{layers}{Map positions, map IDs/names, or a logical mask.}
 }
 \value{
 An object of the same `ngeo` subclass.
@@ -22,11 +22,11 @@ volume masks, grayordinate component mappings, and region metadata are
 rebuilt as required.
 }
 \examples{
-points <- ngeo_points(
+point <- ngeo_point(
   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
   values = cbind(first = 1:4, second = 5:8)
 )
-subset <- ngeo_subset(points, elements = c(1, 3), maps = "second")
-ngeo_elements(subset)
-ngeo_values(subset)
+subset <- ngeo_subset(point, elements = c(1, 3), layers = "second")
+base_elements(subset)
+values(subset)
 }

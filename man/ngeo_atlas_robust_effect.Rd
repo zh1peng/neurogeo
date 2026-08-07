@@ -19,7 +19,7 @@ ngeo_atlas_robust_effect(
 \arguments{
 \item{x}{Source `ngeo` dataset.}
 
-\item{support_maps}{Source-to-atlas support maps.}
+\item{support_maps}{Source-to-atlas support layers.}
 
 \item{targets}{Matching target templates.}
 
@@ -28,7 +28,7 @@ ngeo_atlas_robust_effect(
 \item{predictor}{Predictor map.}
 
 \item{allocation}{Extensive overlap policy passed through for API
-consistency; current maps must be intensive.}
+consistency; current layers must be intensive.}
 
 \item{confidence}{Atlas-specific and consensus confidence level.}
 
@@ -40,7 +40,7 @@ consistency; current maps must be intensive.}
 An `ngeo_atlas_robust_effect`.
 }
 \description{
-The same two source maps are changed to every declared support before a
+The same two source layers are changed to every declared support before a
 support-weighted target-level regression is fitted. Coefficients are
 compared, not claimed to be parcellation invariant.
 }

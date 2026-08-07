@@ -76,26 +76,26 @@
 
 .ngeo_coupling_index <- function(x, index) {
   if (!inherits(index, "ngeo_layer_index") ||
-      !identical(index$domain_hash, ngeo_domain_hash(x))) {
-    .ngeo_abort("The layer index does not match the coupling domain.",
-                "ngeo_error_domain_mismatch")
+      !identical(index$base_hash, base_hash(x))) {
+    .ngeo_abort("The layer index does not match the coupling base.",
+                "ngeo_error_base_mismatch")
   }
-  rows <- index$map_index$map_index
-  valid_rows <- length(rows) == nrow(index$map_index) &&
-    all(rows >= 1L & rows <= nrow(x$maps))
+  rows <- index$layer_index$layer_index
+  valid_rows <- length(rows) == nrow(index$layer_index) &&
+    all(rows >= 1L & rows <= nrow(x$layers))
   if (!valid_rows || !identical(
-      as.character(x$maps$map_id[rows]),
-      as.character(index$map_index$map_id))) {
+      as.character(x$layers$layer_id[rows]),
+      as.character(index$layer_index$source_layer_id))) {
     .ngeo_abort("The layer index is stale relative to the map table.",
                 "ngeo_error_alignment")
   }
   lookup <- matrix(
-    NA_integer_, nrow(index$units), length(index$layers),
-    dimnames = list(index$units$unit_id, index$layers)
+    NA_integer_, nrow(index$unit), length(index$layers),
+    dimnames = list(index$unit$unit_id, index$layers)
   )
   lookup[cbind(
-    match(index$map_index$unit_id, index$units$unit_id),
-    match(index$map_index$layer_id, index$layers)
+    match(index$layer_index$unit_id, index$unit$unit_id),
+    match(index$layer_index$layer_id, index$layers)
   )] <- rows
   lookup
 }
@@ -103,11 +103,11 @@
 .ngeo_coupling_support <- function(x, basis) {
   if (is.null(basis)) return(.ngeo_support_weights(x, "auto"))
   if (!inherits(basis, "ngeo_spatial_basis") ||
-      !identical(basis$domain_hash, ngeo_domain_hash(x))) {
-    .ngeo_abort("The spatial basis does not match the coupling domain.",
-                "ngeo_error_domain_mismatch")
+      !identical(basis$base_hash, base_hash(x))) {
+    .ngeo_abort("The spatial basis does not match the coupling base.",
+                "ngeo_error_base_mismatch")
   }
-  values <- numeric(nrow(x$domain$elements))
+  values <- numeric(nrow(x$base$elements))
   for (component in basis$components) {
     values[component$rows] <- component$support
   }
@@ -119,25 +119,25 @@
        hash = basis$support$hash)
 }
 
-.ngeo_coupling_measures <- function(x, maps) {
-  maps <- unique(maps[is.finite(maps)])
-  .ngeo_projection_measures(x, maps)
+.ngeo_coupling_measures <- function(x, layers) {
+  layers <- unique(layers[is.finite(layers)])
+  .ngeo_projection_measures(x, layers)
   invisible(TRUE)
 }
 
-.ngeo_coupling_weights <- function(x, weights) {
-  if (!inherits(weights, "ngeo_weights")) {
-    .ngeo_abort("Directional coupling requires `ngeo_weights`.",
+.ngeo_coupling_weights <- function(x, spatial_weights) {
+  if (!inherits(spatial_weights, "ngeo_spatial_weights")) {
+    .ngeo_abort("Directional coupling requires `ngeo_spatial_weights`.",
                 "ngeo_error_argument")
   }
-  if (!identical(weights$domain_hash, ngeo_domain_hash(x))) {
-    .ngeo_abort("Spatial weights do not match the coupling domain.",
-                "ngeo_error_domain_mismatch")
+  if (!identical(spatial_weights$base_hash, base_hash(x))) {
+    .ngeo_abort("Spatial spatial_weights do not match the coupling base.",
+                "ngeo_error_base_mismatch")
   }
-  matrix <- .ngeo_as_dgCMatrix(weights$matrix)
-  if (!identical(dim(matrix), rep(nrow(x$domain$elements), 2L)) ||
+  matrix <- .ngeo_as_dgCMatrix(spatial_weights$matrix)
+  if (!identical(dim(matrix), rep(nrow(x$base$elements), 2L)) ||
       any(!is.finite(matrix@x))) {
-    .ngeo_abort("Coupling weights are non-finite or misaligned.",
+    .ngeo_abort("Coupling spatial_weights are non-finite or misaligned.",
                 "ngeo_error_weights")
   }
   if (any(Matrix::rowSums(abs(matrix)) == 0)) {
@@ -147,34 +147,34 @@
     )
   }
   if (!is.finite(sum(matrix)) || sum(matrix) == 0) {
-    .ngeo_abort("Coupling weights have zero total weight.",
+    .ngeo_abort("Coupling spatial_weights have zero total weight.",
                 "ngeo_error_weights")
   }
   list(
     matrix = matrix,
-    normalization = weights$normalization,
+    normalization = spatial_weights$normalization,
     hash = .ngeo_layer_digest(list(
-      domain_hash = weights$domain_hash,
-      method = weights$method,
-      normalization = weights$normalization,
+      base_hash = spatial_weights$base_hash,
+      method = spatial_weights$method,
+      normalization = spatial_weights$normalization,
       matrix = matrix
     ))
   )
 }
 
-.ngeo_coupling_values <- function(x, maps) {
-  values <- as.matrix(x$values[, maps, drop = FALSE])
+.ngeo_coupling_values <- function(x, layers) {
+  values <- as.matrix(x$values[, layers, drop = FALSE])
   if (any(!is.finite(values))) {
-    .ngeo_abort("Layer coupling requires complete finite maps.",
+    .ngeo_abort("Layer coupling requires complete finite layers.",
                 "ngeo_error_missing")
   }
   values
 }
 
-.ngeo_directional_lag <- function(x, y, support, weights) {
+.ngeo_directional_lag <- function(x, y, support, spatial_weights) {
   x <- .ngeo_weighted_center(x, support)$values
   y <- .ngeo_weighted_center(y, support)$values
-  lag_y <- as.numeric(weights %*% y)
+  lag_y <- as.numeric(spatial_weights %*% y)
   denominator <- .ngeo_weighted_norm(x, support) *
     .ngeo_weighted_norm(lag_y, support)
   if (!is.finite(denominator) || denominator <= 1e-12) {
@@ -184,7 +184,7 @@
   .ngeo_weighted_inner(x, lag_y, support) / denominator
 }
 
-.ngeo_classic_cross_moran <- function(x, y, weights) {
+.ngeo_classic_cross_moran <- function(x, y, spatial_weights) {
   if (stats::sd(x) <= 0 || stats::sd(y) <= 0) {
     .ngeo_abort("Classic cross-Moran is undefined for a constant map.",
                 "ngeo_error_measure")
@@ -192,22 +192,22 @@
   x <- (x - mean(x)) / stats::sd(x)
   y <- (y - mean(y)) / stats::sd(y)
   n <- length(x)
-  s0 <- sum(weights)
-  (n / s0) * sum(x * as.numeric(weights %*% y)) / sum(x^2)
+  s0 <- sum(spatial_weights)
+  (n / s0) * sum(x * as.numeric(spatial_weights %*% y)) / sum(x^2)
 }
 
 .ngeo_coupling_layer_unit <- function(x, index, layer) {
-  row <- index$map_index$map_index[
-    match(layer, index$map_index$layer_id)
+  row <- index$layer_index$layer_index[
+    match(layer, index$layer_index$layer_id)
   ]
-  x$measures$units[[row]]
+  .ngeo_measures_for_layers(x, row)$unit[[1L]]
 }
 
 .ngeo_coupling_endpoint <- function(
     estimand, layer_x, layer_y = NA_character_, direction = "none",
     component = "whole_domain", band = "all", modes = integer(),
     eigenvalues = numeric(), basis = NULL, support_hash,
-    weights_info = NULL, energy_floor = NA_real_, units = "1",
+    weights_info = NULL, energy_floor = NA_real_, unit = "1",
     bounds = "unbounded", standardization = "none",
     recommended_transform = "none", null_target = "subject_or_spatial_map") {
   eigenvalue_min <- if (length(eigenvalues)) min(eigenvalues) else NA_real_
@@ -225,7 +225,7 @@
     direction = direction,
     component = component,
     band = band,
-    scale_type = if (identical(component, "whole_domain")) "domain" else
+    scale_type = if (identical(component, "whole_domain")) "base" else
       "rank_matched",
     centering = if (identical(estimand, "classic_cross_moran"))
       "arithmetic_mean" else "support_weighted_mean",
@@ -236,7 +236,7 @@
       weights_info$normalization,
     energy_floor = energy_floor,
     bounds = bounds,
-    units = units,
+    unit = unit,
     mode_count = length(modes),
     eigenvalue_min = eigenvalue_min,
     eigenvalue_max = eigenvalue_max,
@@ -251,24 +251,24 @@
   )
 }
 
-.ngeo_coupling_projection <- function(x, basis, selected_maps, chunk_maps) {
+.ngeo_coupling_projection <- function(x, basis, selected_layers, chunk_layers) {
   lapply(basis$components, function(component) {
     .ngeo_project_component(
-      x, component, selected_maps, center = TRUE, scale = FALSE,
+      x, component, selected_layers, center = TRUE, scale = FALSE,
       chunk_rows = min(8192L, length(component$rows)),
-      chunk_maps = chunk_maps
+      chunk_layers = chunk_layers
     )
   })
 }
 
 .ngeo_coupling_null <- function(
-    x, index, pairs, basis, bands, weights, estimands, lag_direction,
-    energy_floor, chunk_maps, specification, observed) {
+    x, index, pairs, basis, bands, spatial_weights, estimands, lag_direction,
+    energy_floor, chunk_layers, specification, observed) {
   if (!is.list(specification)) {
     .ngeo_abort("`null` must be an explicit reference-map null specification.",
                 "ngeo_error_null_target")
   }
-  if (nrow(index$units) != 1L) {
+  if (nrow(index$unit) != 1L) {
     .ngeo_abort("Reference-map nulls require exactly one map unit.",
                 "ngeo_error_null_target")
   }
@@ -294,10 +294,10 @@
     .ngeo_abort("A spatial-map null cannot request population inference.",
                 "ngeo_error_null_target")
   }
-  if (!is.null(group$domain_hash) &&
-      !identical(group$domain_hash, ngeo_domain_hash(x))) {
-    .ngeo_abort("The null transformation group does not match the domain.",
-                "ngeo_error_domain_mismatch")
+  if (!is.null(group$base_hash) &&
+      !identical(group$base_hash, base_hash(x))) {
+    .ngeo_abort("The null transformation group does not match the base.",
+                "ngeo_error_base_mismatch")
   }
   for (row in seq_len(nrow(pairs))) {
     membership <- c(pairs$x[[row]], pairs$y[[row]]) %in% randomized
@@ -312,7 +312,7 @@
 
   mappings <- group$mappings
   simulations <- group$simulations
-  n <- nrow(x$domain$elements)
+  n <- nrow(x$base$elements)
   if (!is.null(mappings)) {
     mappings <- as.matrix(mappings)
     if (nrow(mappings) != n || !is.numeric(mappings) ||
@@ -342,8 +342,8 @@
   }
 
   base_values <- as.matrix(x$values[, , drop = FALSE])
-  randomized_maps <- index$map_index$map_index[
-    index$map_index$layer_id %in% randomized
+  randomized_maps <- index$layer_index$layer_index[
+    index$layer_index$layer_id %in% randomized
   ]
   simulated_endpoints <- matrix(
     NA_real_, nsim, nrow(observed$endpoints),
@@ -361,9 +361,9 @@
     current$values <- current_values
     repeated <- ngeo_layer_coupling(
       current, index, pairs = pairs[c("x", "y")], basis = basis,
-      bands = bands, weights = weights, estimands = estimands,
+      bands = bands, spatial_weights = spatial_weights, estimands = estimands,
       lag_direction = lag_direction, energy_floor = energy_floor,
-      null = NULL, chunk_maps = chunk_maps
+      null = NULL, chunk_layers = chunk_layers
     )
     position <- match(observed$endpoints$endpoint_id,
                       repeated$endpoints$endpoint_id)
@@ -383,7 +383,7 @@
   }, numeric(1))
   identity <- list(
     algorithm = group$method %||% "declared_transformation_group",
-    domain_hash = ngeo_domain_hash(x), randomized_stack = randomized,
+    base_hash = base_hash(x), randomized_stack = randomized,
     fixed_stack = fixed, preserved_properties = preserved,
     mappings = mappings, simulations = if (is.null(mappings)) simulations else NULL
   )
@@ -413,12 +413,12 @@
 #' @param pairs Optional `x`/`y` layer table, or `"all"`.
 #' @param basis A fixed `ngeo_spatial_basis` for spectral endpoints.
 #' @param bands Named non-overlapping retained-mode groups.
-#' @param weights Matching `ngeo_weights` for directional endpoints.
+#' @param spatial_weights Matching `ngeo_spatial_weights` for directional endpoints.
 #' @param estimands Coupling or structure summaries.
 #' @param lag_direction Directional lag endpoints to retain.
 #' @param energy_floor Minimum band energy for normalized spectral coupling.
 #' @param null Optional explicit reference-map spatial-null specification.
-#' @param chunk_maps Maximum maps projected together.
+#' @param chunk_layers Maximum layers projected together.
 #'
 #' @return An `ngeo_subject_features` object.
 #' @export
@@ -428,12 +428,12 @@ ngeo_layer_coupling <- function(
     pairs = NULL,
     basis = NULL,
     bands = NULL,
-    weights = NULL,
+    spatial_weights = NULL,
     estimands = c("same_location", "spectral_coupling"),
     lag_direction = c("both", "x_to_y", "y_to_x"),
     energy_floor = 1e-10,
     null = NULL,
-    chunk_maps = 32L) {
+    chunk_layers = 32L) {
   ngeo_validate(x, "basic")
   lookup <- .ngeo_coupling_index(x, index)
   if (any(!index$measure_consistency$consistent)) {
@@ -454,9 +454,9 @@ ngeo_layer_coupling <- function(
     .ngeo_abort("`energy_floor` must be one non-negative finite number.",
                 "ngeo_error_argument")
   }
-  chunk_maps <- .ngeo_as_integer(chunk_maps, "chunk_maps")
-  if (length(chunk_maps) != 1L || chunk_maps < 1L) {
-    .ngeo_abort("`chunk_maps` must be one positive integer.",
+  chunk_layers <- .ngeo_as_integer(chunk_layers, "chunk_layers")
+  if (length(chunk_layers) != 1L || chunk_layers < 1L) {
+    .ngeo_abort("`chunk_layers` must be one positive integer.",
                 "ngeo_error_argument")
   }
   pair_estimands <- c(
@@ -479,7 +479,7 @@ ngeo_layer_coupling <- function(
   support <- .ngeo_coupling_support(x, basis)
   need_weights <- any(estimands %in%
     c("directional_lag", "classic_cross_moran"))
-  weights_info <- if (need_weights) .ngeo_coupling_weights(x, weights) else NULL
+  weights_info <- if (need_weights) .ngeo_coupling_weights(x, spatial_weights) else NULL
   used_layers <- if (any(estimands %in% c("band_energy", "roughness"))) {
     index$layers
   } else {
@@ -497,7 +497,7 @@ ngeo_layer_coupling <- function(
       matrix(values, ncol = 1L)
     if (!is.null(low) && any(low, na.rm = TRUE)) {
       low_energy[[length(low_energy) + 1L]] <<- data.frame(
-        unit_id = index$units$unit_id[which(low %in% TRUE)],
+        unit_id = index$unit$unit_id[which(low %in% TRUE)],
         endpoint_id = metadata$endpoint_id,
         low_energy = TRUE,
         stringsAsFactors = FALSE
@@ -507,11 +507,11 @@ ngeo_layer_coupling <- function(
 
   if ("same_location" %in% estimands) {
     for (pair in seq_len(nrow(pair_table))) {
-      values <- rep.int(NA_real_, nrow(index$units))
-      for (unit in seq_len(nrow(index$units))) {
-        maps <- lookup[unit, c(pair_table$x[[pair]], pair_table$y[[pair]])]
-        if (anyNA(maps)) next
-        current <- .ngeo_coupling_values(x, maps)
+      values <- rep.int(NA_real_, nrow(index$unit))
+      for (unit in seq_len(nrow(index$unit))) {
+        layers <- lookup[unit, c(pair_table$x[[pair]], pair_table$y[[pair]])]
+        if (anyNA(layers)) next
+        current <- .ngeo_coupling_values(x, layers)
         values[[unit]] <- .ngeo_weighted_correlation(
           current[, 1L], current[, 2L], support$values
         )
@@ -524,13 +524,13 @@ ngeo_layer_coupling <- function(
     }
   }
 
-  selected_maps <- sort(unique(used_maps[is.finite(used_maps)]))
+  selected_layers <- sort(unique(used_maps[is.finite(used_maps)]))
   if (need_basis) {
     projection <- .ngeo_coupling_projection(
-      x, basis, selected_maps, chunk_maps
+      x, basis, selected_layers, chunk_layers
     )
     position <- matrix(
-      match(as.integer(lookup), selected_maps),
+      match(as.integer(lookup), selected_layers),
       nrow = nrow(lookup), dimnames = dimnames(lookup)
     )
     for (component_index in seq_along(basis$components)) {
@@ -547,10 +547,10 @@ ngeo_layer_coupling <- function(
             modes <- component_bands[[band_name]]
             energy_x <- energy_y <- cross <- coupling <-
               retained_x <- retained_y <- rep.int(
-                NA_real_, nrow(index$units)
+                NA_real_, nrow(index$unit)
               )
-            low <- rep.int(FALSE, nrow(index$units))
-            for (unit in seq_len(nrow(index$units))) {
+            low <- rep.int(FALSE, nrow(index$unit))
+            for (unit in seq_len(nrow(index$unit))) {
               px <- position[unit, layer_x]
               py <- position[unit, layer_y]
               if (is.na(px) || is.na(py)) next
@@ -576,27 +576,27 @@ ngeo_layer_coupling <- function(
               energy_floor = energy_floor
             )
             add_endpoint(do.call(.ngeo_coupling_endpoint, c(list(
-              estimand = "band_energy_x", units = paste0(unit_x, "^2*support"),
+              estimand = "band_energy_x", unit = paste0(unit_x, "^2*support"),
               recommended_transform = "log1p"
             ), common)), energy_x)
             add_endpoint(do.call(.ngeo_coupling_endpoint, c(list(
-              estimand = "band_energy_y", units = paste0(unit_y, "^2*support"),
+              estimand = "band_energy_y", unit = paste0(unit_y, "^2*support"),
               recommended_transform = "log1p"
             ), common)), energy_y)
             add_endpoint(do.call(.ngeo_coupling_endpoint, c(list(
               estimand = "spectral_cross_energy",
-              units = paste(unit_x, unit_y, "support", sep = "*")
+              unit = paste(unit_x, unit_y, "support", sep = "*")
             ), common)), cross)
             add_endpoint(do.call(.ngeo_coupling_endpoint, c(list(
-              estimand = "spectral_coupling", units = "1", bounds = "[-1,1]",
+              estimand = "spectral_coupling", unit = "1", bounds = "[-1,1]",
               standardization = "band_energy_norm"
             ), common)), coupling, low)
             add_endpoint(do.call(.ngeo_coupling_endpoint, c(list(
-              estimand = "retained_variance_x", units = "1", bounds = "[0,1]",
+              estimand = "retained_variance_x", unit = "1", bounds = "[0,1]",
               recommended_transform = "logit"
             ), common)), retained_x)
             add_endpoint(do.call(.ngeo_coupling_endpoint, c(list(
-              estimand = "retained_variance_y", units = "1", bounds = "[0,1]",
+              estimand = "retained_variance_y", unit = "1", bounds = "[0,1]",
               recommended_transform = "logit"
             ), common)), retained_y)
           }
@@ -604,18 +604,18 @@ ngeo_layer_coupling <- function(
       }
       if (any(estimands %in% c("band_energy", "roughness"))) {
         for (layer in index$layers) {
-          maps <- position[, layer]
+          layers <- position[, layer]
           layer_units <- .ngeo_coupling_layer_unit(x, index, layer)
           if ("band_energy" %in% estimands) {
             for (band_name in names(component_bands)) {
               modes <- component_bands[[band_name]]
-              absolute <- relative <- rep.int(NA_real_, nrow(index$units))
-              complete <- which(!is.na(maps))
+              absolute <- relative <- rep.int(NA_real_, nrow(index$unit))
+              complete <- which(!is.na(layers))
               if (length(complete)) {
                 absolute[complete] <- colSums(
-                  projected$coefficients[modes, maps[complete], drop = FALSE]^2
+                  projected$coefficients[modes, layers[complete], drop = FALSE]^2
                 )
-                denominator <- projected$retained_energy[maps[complete]]
+                denominator <- projected$retained_energy[layers[complete]]
                 stable <- denominator > energy_floor
                 relative[complete[stable]] <-
                   absolute[complete[stable]] / denominator[stable]
@@ -627,23 +627,23 @@ ngeo_layer_coupling <- function(
                 support_hash = support$hash
               )
               add_endpoint(do.call(.ngeo_coupling_endpoint, c(list(
-                estimand = "absolute_energy", units =
+                estimand = "absolute_energy", unit =
                   paste0(layer_units, "^2*support"),
                 recommended_transform = "log1p"
               ), common)), absolute)
               add_endpoint(do.call(.ngeo_coupling_endpoint, c(list(
-                estimand = "relative_energy", units = "1", bounds = "[0,1]",
+                estimand = "relative_energy", unit = "1", bounds = "[0,1]",
                 recommended_transform = "logit"
               ), common)), relative)
             }
           }
-          complete <- which(!is.na(maps))
+          complete <- which(!is.na(layers))
           retained <- residual <- roughness_values <-
-            rep.int(NA_real_, nrow(index$units))
+            rep.int(NA_real_, nrow(index$unit))
           if (length(complete)) {
-            retained[complete] <- projected$retained_variance[maps[complete]]
-            residual[complete] <- projected$residual_energy[maps[complete]]
-            roughness_values[complete] <- projected$roughness[maps[complete]]
+            retained[complete] <- projected$retained_variance[layers[complete]]
+            residual[complete] <- projected$residual_energy[layers[complete]]
+            roughness_values[complete] <- projected$roughness[layers[complete]]
           }
           all_modes <- seq_along(component$eigenvalues)
           common <- list(
@@ -653,17 +653,17 @@ ngeo_layer_coupling <- function(
             support_hash = support$hash
           )
           add_endpoint(do.call(.ngeo_coupling_endpoint, c(list(
-            estimand = "retained_variance", units = "1", bounds = "[0,1]",
+            estimand = "retained_variance", unit = "1", bounds = "[0,1]",
             recommended_transform = "logit"
           ), common)), retained)
           add_endpoint(do.call(.ngeo_coupling_endpoint, c(list(
-            estimand = "residual_energy", units =
+            estimand = "residual_energy", unit =
               paste0(layer_units, "^2*support"),
             recommended_transform = "log1p"
           ), common)), residual)
           if ("roughness" %in% estimands) {
             add_endpoint(do.call(.ngeo_coupling_endpoint, c(list(
-              estimand = "roughness", units = "operator_eigenvalue",
+              estimand = "roughness", unit = "operator_eigenvalue",
               bounds = "[0,Inf)", recommended_transform = "log"
             ), common)), roughness_values)
           }
@@ -686,11 +686,11 @@ ngeo_layer_coupling <- function(
         second_layer <- if (direction == "x_to_y") pair_table$y[[pair]] else
           pair_table$x[[pair]]
         if ("directional_lag" %in% estimands) {
-          values <- rep.int(NA_real_, nrow(index$units))
-          for (unit in seq_len(nrow(index$units))) {
-            maps <- lookup[unit, c(first_layer, second_layer)]
-            if (anyNA(maps)) next
-            current <- .ngeo_coupling_values(x, maps)
+          values <- rep.int(NA_real_, nrow(index$unit))
+          for (unit in seq_len(nrow(index$unit))) {
+            layers <- lookup[unit, c(first_layer, second_layer)]
+            if (anyNA(layers)) next
+            current <- .ngeo_coupling_values(x, layers)
             values[[unit]] <- .ngeo_directional_lag(
               current[, 1L], current[, 2L], support$values,
               weights_info$matrix
@@ -704,11 +704,11 @@ ngeo_layer_coupling <- function(
           ), values)
         }
         if ("classic_cross_moran" %in% estimands) {
-          values <- rep.int(NA_real_, nrow(index$units))
-          for (unit in seq_len(nrow(index$units))) {
-            maps <- lookup[unit, c(first_layer, second_layer)]
-            if (anyNA(maps)) next
-            current <- .ngeo_coupling_values(x, maps)
+          values <- rep.int(NA_real_, nrow(index$unit))
+          for (unit in seq_len(nrow(index$unit))) {
+            layers <- lookup[unit, c(first_layer, second_layer)]
+            if (anyNA(layers)) next
+            current <- .ngeo_coupling_values(x, layers)
             values[[unit]] <- .ngeo_classic_cross_moran(
               current[, 1L], current[, 2L], weights_info$matrix
             )
@@ -728,33 +728,33 @@ ngeo_layer_coupling <- function(
   rownames(endpoints) <- NULL
   values <- do.call(cbind, endpoint_values)
   colnames(values) <- endpoints$endpoint_id
-  rownames(values) <- index$units$unit_id
+  rownames(values) <- index$unit$unit_id
   low_table <- if (length(low_energy)) do.call(rbind, low_energy) else
     data.frame(unit_id = character(), endpoint_id = character(),
                low_energy = logical(), stringsAsFactors = FALSE)
   result <- list(
     values = values,
-    units = index$units,
+    unit = index$unit,
     endpoints = endpoints,
     diagnostics = list(
-      units = nrow(index$units), endpoints = nrow(endpoints),
+      unit = nrow(index$unit), endpoints = nrow(endpoints),
       missing_endpoints = sum(!is.finite(values)),
       low_energy = low_table,
-      chunk_maps = chunk_maps,
+      chunk_layers = chunk_layers,
       elementwise_missingness = "fail",
       absent_unit_layer = "endpoint_NA",
       isolates = "error"
     ),
-    provenance = list(
+    history = list(
       method = "support_aware_layer_coupling",
-      domain_hash = ngeo_domain_hash(x), index_hash = index$index_hash,
+      base_hash = base_hash(x), index_hash = index$index_hash,
       basis_hash = if (is.null(basis)) NA_character_ else basis$basis_hash,
       operator_hash = if (is.null(basis)) NA_character_ else
         basis$operator_hash,
       support_hash = support$hash,
       weights_hash = if (is.null(weights_info)) NA_character_ else
         weights_info$hash,
-      source_map_id = x$maps$map_id[selected_maps],
+      source_layer_id = x$layers$layer_id[selected_layers],
       values_materialized = FALSE,
       inference_unit = "independent_unit"
     )
@@ -762,8 +762,8 @@ ngeo_layer_coupling <- function(
   class(result) <- "ngeo_subject_features"
   if (!is.null(null)) {
     result$null <- .ngeo_coupling_null(
-      x, index, pair_table, basis, bands, weights, estimands,
-      lag_direction, energy_floor, chunk_maps, null, result
+      x, index, pair_table, basis, bands, spatial_weights, estimands,
+      lag_direction, energy_floor, chunk_layers, null, result
     )
   }
   result

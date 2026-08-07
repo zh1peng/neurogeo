@@ -9,7 +9,7 @@ ngeo_validate(x, level = c("basic", "strict", "scientific"))
 \arguments{
 \item{x}{An `ngeo` object or another registered NGCS object.}
 
-\item{level}{Validation level: basic structural invariants, strict domain
+\item{level}{Validation level: basic structural invariants, strict base
 checks, or scientific semantic diagnostics.}
 }
 \value{
@@ -19,13 +19,13 @@ checks, or scientific semantic diagnostics.}
 Validate an NGCS object
 }
 \examples{
-points <- ngeo_points(
+point <- ngeo_point(
   matrix(c(0, 0, 1, 0, 1, 1), ncol = 2, byrow = TRUE),
   values = cbind(signal = c(1, 2, 3))
 )
-ngeo_validate(points, "basic")
-ngeo_validate(points, "strict")
+ngeo_validate(point, "basic")
+ngeo_validate(point, "strict")
 \dontshow{
-suppressWarnings(ngeo_validate(points, "scientific"))
+suppressWarnings(ngeo_validate(point, "scientific"))
 }
 }

@@ -1,25 +1,25 @@
-test_that("Euclidean distance coordinates are explicit for every domain", {
+test_that("Euclidean distance coordinates are explicit for every base", {
   volume <- ngeo_volume(
     dim = c(2, 1, 1),
     affine = diag(4),
     index_base = "zero"
   )
   expect_equal(
-    as.numeric(ngeo_distance(volume, 1, 2, metric = "world_euclidean")),
+    as.numeric(ngeo_distance(volume, 1, 2, distance_method = "world_euclidean")),
     1
   )
 
-  regions <- ngeo_regions(
+  parcellation <- ngeo_parcellation(
     data.frame(region_id = c("A", "B")),
     centroid = matrix(c(0, 0, 3, 4), ncol = 2, byrow = TRUE)
   )
   expect_equal(
-    as.numeric(ngeo_distance(regions, 1, 2, metric = "region_centroid")),
+    as.numeric(ngeo_distance(parcellation, 1, 2, distance_method = "region_centroid")),
     5
   )
 
   surface <- builder_surface()
-  grayordinates <- ngeo_grayordinates(list(
+  grayordinate <- ngeo_grayordinate(list(
     list(
       component_id = "surface",
       kind = "surface",
@@ -38,23 +38,23 @@ test_that("Euclidean distance coordinates are explicit for every domain", {
     )
   ))
   distance <- ngeo_distance(
-    grayordinates,
+    grayordinate,
     from = 1,
     to = 2,
-    metric = "edge_geodesic"
+    distance_method = "edge_geodesic"
   )
   expect_equal(as.numeric(distance), 1)
 })
 
-test_that("distance fails when the declared metric lacks coordinates", {
-  regions <- ngeo_regions(data.frame(region_id = c("A", "B")))
+test_that("distance fails when the declared distance_method lacks coordinates", {
+  parcellation <- ngeo_parcellation(data.frame(region_id = c("A", "B")))
   expect_error(
-    ngeo_distance(regions, 1, 2, metric = "region_centroid"),
+    ngeo_distance(parcellation, 1, 2, distance_method = "region_centroid"),
     class = "ngeo_error_capability"
   )
 
   surface <- builder_surface()
-  grayordinates <- ngeo_grayordinates(list(
+  grayordinate <- ngeo_grayordinate(list(
     list(
       component_id = "surface",
       kind = "surface",
@@ -64,19 +64,19 @@ test_that("distance fails when the declared metric lacks coordinates", {
       geometry = surface
     )
   ))
-  grayordinates$domain$components[[1L]]$geometry <- NULL
+  grayordinate$base$geometry$components[[1L]]$geometry <- NULL
   expect_error(
-    ngeo_distance(grayordinates, 1, 2, metric = "edge_geodesic"),
+    ngeo_distance(grayordinate, 1, 2, distance_method = "edge_geodesic"),
     class = "ngeo_error_capability"
   )
 
-  points <- ngeo_points(matrix(c(0, 0, 1, 0), ncol = 2, byrow = TRUE))
+  point <- ngeo_point(matrix(c(0, 0, 1, 0), ncol = 2, byrow = TRUE))
   expect_error(
-    ngeo_distance(points, from = NULL),
+    ngeo_distance(point, from = NULL),
     class = "ngeo_error_argument"
   )
   expect_error(
-    ngeo_distance(points, from = 1, metric = c("euclidean", "hops")),
+    ngeo_distance(point, from = 1, distance_method = c("euclidean", "hops")),
     class = "ngeo_error_metric"
   )
 })

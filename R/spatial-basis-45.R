@@ -1,12 +1,12 @@
 .ngeo_support_weights <- function(x, support = c("auto", "identity")) {
   support <- match.arg(support)
-  n <- nrow(x$domain$elements)
-  if (identical(support, "identity") || identical(x$domain$type, "points")) {
+  n <- nrow(x$base$elements)
+  if (identical(support, "identity") || identical(x$base$type, "point")) {
     values <- rep.int(1, n)
     type <- "identity"
   } else {
     values <- as.numeric(ngeo_support_size(x))
-    type <- "domain"
+    type <- "base"
   }
   if (length(values) != n || anyNA(values) || any(!is.finite(values)) ||
       any(values <= 0)) {
@@ -19,7 +19,7 @@
     values = values,
     type = type,
     hash = .ngeo_layer_digest(list(
-      domain_hash = ngeo_domain_hash(x),
+      base_hash = base_hash(x),
       type = type,
       values = values
     ))
@@ -51,25 +51,25 @@
   .ngeo_weighted_inner(x, y, support) / denominator
 }
 
-.ngeo_graph_stiffness <- function(x, weights, symmetrize, tolerance) {
-  if (!inherits(weights, "ngeo_weights")) {
-    .ngeo_abort("`weights` must be an `ngeo_weights` object.",
+.ngeo_graph_stiffness <- function(x, spatial_weights, symmetrize, tolerance) {
+  if (!inherits(spatial_weights, "ngeo_spatial_weights")) {
+    .ngeo_abort("`spatial_weights` must be an `ngeo_spatial_weights` object.",
                 "ngeo_error_argument")
   }
-  if (!identical(weights$domain_hash, ngeo_domain_hash(x))) {
-    .ngeo_abort("Spatial weights do not match the basis domain.",
-                "ngeo_error_domain_mismatch")
+  if (!identical(spatial_weights$base_hash, base_hash(x))) {
+    .ngeo_abort("Spatial spatial_weights do not match the basis base.",
+                "ngeo_error_base_mismatch")
   }
-  raw <- .ngeo_as_dgCMatrix(weights$raw_matrix)
+  raw <- .ngeo_as_dgCMatrix(spatial_weights$raw_matrix)
   if (any(!is.finite(raw@x)) || any(raw@x < -tolerance)) {
-    .ngeo_abort("Graph Laplacian weights must be finite and non-negative.",
+    .ngeo_abort("Graph Laplacian spatial_weights must be finite and non-negative.",
                 "ngeo_error_operator")
   }
   if (length(raw@x)) raw@x[raw@x < 0] <- 0
   symmetric <- isTRUE(Matrix::isSymmetric(raw, tol = tolerance))
   if (!symmetric && identical(symmetrize, "error")) {
     .ngeo_abort(
-      "Graph Laplacian construction requires symmetric raw weights.",
+      "Graph Laplacian construction requires symmetric raw spatial_weights.",
       "ngeo_error_operator"
     )
   }
@@ -118,7 +118,7 @@
   dense_threshold <- getOption("neurogeo.max_dense_basis_elements", 512L)
   if (requested >= n && n > dense_threshold) {
     .ngeo_abort(
-      "A full eigensystem is not permitted for this domain size.",
+      "A full eigensystem is not permitted for this base size.",
       "ngeo_error_resource"
     )
   }
@@ -176,8 +176,8 @@
 }
 
 .ngeo_basis_component_id <- function(x, rows, position) {
-  if ("component_id" %in% names(x$domain$elements)) {
-    value <- unique(as.character(x$domain$elements$component_id[rows]))
+  if ("component_id" %in% names(x$base$elements)) {
+    value <- unique(as.character(x$base$elements$component_id[rows]))
     if (length(value) == 1L && !is.na(value) && nzchar(value)) return(value)
   }
   sprintf("component_%03d", position)
@@ -204,19 +204,19 @@
 
 #' Construct a fixed support-weighted spatial basis
 #'
-#' The stable graph-Laplacian path uses symmetric non-negative raw weights and
+#' The stable graph-Laplacian path uses symmetric non-negative raw spatial_weights and
 #' solves a component-local generalized eigensystem. Map values, outcomes, and
 #' group labels are never used.
 #'
 #' @param x An `ngeo` object.
-#' @param weights Matching symmetric `ngeo_weights`.
+#' @param spatial_weights Matching symmetric `ngeo_spatial_weights`.
 #' @param operator Spatial operator. The cotangent option is reserved for its
 #'   validation gate and is not yet stable.
 #' @param coordinates Coordinate set for a future cotangent operator.
 #' @param support Domain support or identity mass.
 #' @param n_modes Number of non-constant modes per connected component.
 #' @param components Whether disconnected components are separated or rejected.
-#' @param symmetrize Whether directed raw weights fail or are explicitly
+#' @param symmetrize Whether directed raw spatial_weights fail or are explicitly
 #'   averaged with their transpose.
 #' @param tolerance Numerical tolerance.
 #' @param budget Hard execution resource limits.
@@ -225,7 +225,7 @@
 #' @export
 ngeo_spatial_basis <- function(
     x,
-    weights = NULL,
+    spatial_weights = NULL,
     operator = c("graph_laplacian", "cotangent"),
     coordinates = "active",
     support = c("auto", "identity"),
@@ -255,13 +255,13 @@ ngeo_spatial_basis <- function(
       "ngeo_error_capability"
     )
   }
-  if (is.null(weights)) {
-    .ngeo_abort("A graph-Laplacian basis requires explicit spatial weights.",
+  if (is.null(spatial_weights)) {
+    .ngeo_abort("A graph-Laplacian basis requires explicit spatial spatial_weights.",
                 "ngeo_error_argument")
   }
 
   mass <- .ngeo_support_weights(x, support)
-  graph <- .ngeo_graph_stiffness(x, weights, symmetrize, tolerance)
+  graph <- .ngeo_graph_stiffness(x, spatial_weights, symmetrize, tolerance)
   component_ids <- sort(unique(graph$component))
   if (identical(components, "error") && length(component_ids) > 1L) {
     .ngeo_abort(
@@ -304,7 +304,7 @@ ngeo_spatial_basis <- function(
     basis_components[[position]] <- list(
       component_id = .ngeo_basis_component_id(x, rows, position),
       rows = rows,
-      element_id = x$domain$elements$element_id[rows],
+      element_id = x$base$elements$element_id[rows],
       support = local_support,
       eigenvalues = decomposition$values,
       vectors = decomposition$vectors,
@@ -328,13 +328,13 @@ ngeo_spatial_basis <- function(
     numeric(1)
   )))
   operator_hash <- .ngeo_layer_digest(list(
-    domain_hash = ngeo_domain_hash(x),
+    base_hash = base_hash(x),
     adjacency = graph$adjacency,
     support_hash = mass$hash,
     symmetrized = graph$symmetrized
   ))
   identity <- list(
-    domain_hash = ngeo_domain_hash(x),
+    base_hash = base_hash(x),
     operator_hash = operator_hash,
     support_hash = mass$hash,
     n_modes = n_modes,
@@ -350,8 +350,8 @@ ngeo_spatial_basis <- function(
   result <- list(
     operator = operator,
     coordinates = coordinates,
-    domain_hash = ngeo_domain_hash(x),
-    space_hash = ngeo_space_hash(x$domain$space),
+    base_hash = base_hash(x),
+    space_hash = ngeo_coordinate_space_hash(x$base$coordinate_space),
     operator_hash = operator_hash,
     basis_hash = .ngeo_layer_digest(identity),
     support = mass,
@@ -368,12 +368,12 @@ ngeo_spatial_basis <- function(
       dense_full_domain_matrix = FALSE,
       estimated_memory_bytes = estimated_bytes
     ),
-    provenance = list(
+    history = list(
       method = "fixed_support_weighted_graph_laplacian",
       uses_map_values = FALSE,
       uses_group_labels = FALSE,
-      weights_method = weights$method,
-      weights_normalization_ignored = weights$normalization,
+      weights_method = spatial_weights$method,
+      weights_normalization_ignored = spatial_weights$normalization,
       raw_weights_used = TRUE,
       components = components,
       implicit_resampling = FALSE

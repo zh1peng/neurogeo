@@ -54,6 +54,6 @@ if (requireNamespace("gifti", quietly = TRUE)) {
     package = "neurogeo"
   )
   surface <- read_ngeo(geometry)
-  ngeo_domain_type(surface)
+  base_type(surface)
 }
 }

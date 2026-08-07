@@ -15,7 +15,7 @@ library(neurogeo)
 ## 基础背景
 
 高分辨率 surface、volume 和 dense grayordinate 数据可能超过内存。分块访问
-只改变 values 的读取方式，不能改变 element order、map metadata、domain
+只改变 values 的读取方式，不能改变 element order、map metadata、base
 identity 或 measurement semantics。
 
 ## 分块计算
@@ -23,12 +23,12 @@ identity 或 measurement semantics。
 ```{r}
 backing <- matrix(seq_len(30), nrow = 10, ncol = 3)
 colnames(backing) <- c("a", "b", "c")
-x <- ngeo_points(
+x <- ngeo_point(
   cbind(x = 1:10, y = 0),
   values = backing,
   measures = do.call(
     rbind,
-    replicate(3, ngeo_measure(spatial_semantics = "intensive"),
+    replicate(3, ngeo_measure(support_behavior = "intensive"),
               simplify = FALSE)
   )
 )
@@ -47,7 +47,7 @@ ngeo_value_chunks(
 atlas <- ngeo_atlas_map(
   x, rep(c("A", "B"), each = 5), source_support = rep(1, 10)
 )
-ngeo_change_support(
+aggregate_to(
   x, atlas$target, atlas,
   budget = ngeo_resource_budget(
     memory_bytes = 1024^2,

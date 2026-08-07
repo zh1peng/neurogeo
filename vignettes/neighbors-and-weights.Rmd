@@ -1,8 +1,8 @@
 ---
-title: "Neighbors and weights"
+title: "Neighbors and spatial_weights"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Neighbors and weights}
+  %\VignetteIndexEntry{Neighbors and spatial_weights}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -22,7 +22,7 @@ library(neurogeo)
 ## Background
 
 Spatial statistics require a declared answer to “which locations can
-influence one another?” A weights matrix \(W\) encodes that answer: row \(i\)
+influence one another?” A spatial_weights matrix \(W\) encodes that answer: row \(i\)
 contains the influence assigned to neighbors of element \(i\). Different
 construction rules imply different scientific neighborhoods and can change
 the result even when the observed values are unchanged.
@@ -31,16 +31,16 @@ Topology-derived relationships are sparse. Surface adjacency follows mesh
 edges, volume adjacency uses active-mask-limited 6/18/26 connectivity, and
 grayordinate adjacency remains block diagonal by default.
 
-## Construct and inspect weights
+## Construct and inspect spatial_weights
 
 ```{r}
 coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
-x <- ngeo_points(
+x <- ngeo_point(
   coordinates,
   values = cbind(signal = c(1, 2, 3, 2, 4, 7, 3, 7, 9)),
-  measures = ngeo_measure(spatial_semantics = "intensive")
+  measures = ngeo_measure(support_behavior = "intensive")
 )
-w <- ngeo_weights(
+w <- ngeo_spatial_weights(
   x,
   method = "distance_band",
   threshold = 1.01,
@@ -76,11 +76,11 @@ text(coordinates, labels = seq_len(nrow(coordinates)), font = 2)
 ## Weight styles and symmetry
 
 `style = "W"` row-standardizes the relation, `style = "B"` makes it binary,
-and `style = "none"` retains raw edge or kernel weights. KNN construction
+and `style = "none"` retains raw edge or kernel spatial_weights. KNN construction
 requires an explicit symmetry policy.
 
 ```{r}
-knn <- ngeo_weights(
+knn <- ngeo_spatial_weights(
   x,
   method = "knn",
   k = 2,
@@ -94,7 +94,7 @@ The degree distributions make the consequences of the two construction
 rules visible. Boundary nodes have fewer distance-band neighbors, whereas KNN
 starts from a requested neighbor count and then applies the symmetry policy.
 
-```{r compare-degrees, fig.width=8, fig.height=4.5, fig.alt="Side-by-side bar charts comparing node degree under distance-band and K nearest-neighbor weights", fig.cap="Neighbor count is a model choice, not a harmless implementation detail."}
+```{r compare-degrees, fig.width=8, fig.height=4.5, fig.alt="Side-by-side bar charts comparing node degree under distance-band and K nearest-neighbor spatial_weights", fig.cap="Neighbor count is a model choice, not a harmless implementation detail."}
 old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
 barplot(
   Matrix::rowSums(w$raw_matrix != 0),
@@ -123,10 +123,10 @@ Distances require explicit sources and targets; the API guards against
 accidental dense all-pairs allocation.
 
 ```{r}
-ngeo_distance(x, from = 1, to = c(2, 5, 9), metric = "euclidean")
+ngeo_distance(x, from = 1, to = c(2, 5, 9), distance_method = "euclidean")
 ```
 
-The same weights object can drive global and local statistics.
+The same spatial_weights object can drive global and local statistics.
 
 ```{r}
 moran <- ngeo_moran(x, w, "signal")
@@ -135,7 +135,7 @@ moran
 head(lisa)
 ```
 
-```{r association-plots, fig.width=8, fig.height=4.5, fig.alt="Side-by-side Moran and local Moran scatterplots", fig.cap="Global and local association diagnostics use the same declared weights object."}
+```{r association-plots, fig.width=8, fig.height=4.5, fig.alt="Side-by-side Moran and local Moran scatterplots", fig.cap="Global and local association diagnostics use the same declared spatial_weights object."}
 old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
 plot(moran, pch = 21, bg = "#26a69a", col = "white", cex = 1.4)
 plot(lisa, pch = 21, bg = "#e29b45", col = "white", cex = 1.4)

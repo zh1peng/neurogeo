@@ -5,21 +5,21 @@
 \title{Construct a validated support-map ensemble}
 \usage{
 ngeo_support_ensemble(
-  maps,
+  layers,
   kind = c("operator", "registration", "segmentation"),
-  weights = NULL,
-  provenance = list()
+  spatial_weights = NULL,
+  history = list()
 )
 }
 \arguments{
-\item{maps}{Two or more maps with identical ordered source and target
+\item{layers}{Two or more layers with identical ordered source and target
 domains.}
 
 \item{kind}{Operator, registration, or segmentation alternatives.}
 
-\item{weights}{Optional non-negative ensemble weights.}
+\item{spatial_weights}{Optional non-negative ensemble spatial_weights.}
 
-\item{provenance}{Optional ensemble provenance.}
+\item{history}{Optional ensemble history.}
 }
 \value{
 An `ngeo_support_ensemble`.

@@ -1,6 +1,6 @@
 test_that("portable manifests cover spaces, transforms, support, and time", {
-  source_space <- ngeo_space("source", kind = "unknown")
-  target_space <- ngeo_space("target", kind = "unknown")
+  source_space <- ngeo_coordinate_space("source", kind = "unknown")
+  target_space <- ngeo_coordinate_space("target", kind = "unknown")
   transform <- ngeo_transform(
     source_space,
     target_space,
@@ -11,11 +11,11 @@ test_that("portable manifests cover spaces, transforms, support, and time", {
   expect_identical(transform_manifest$object_schema, "ngcs/transform")
   expect_identical(
     transform_manifest$metadata$source_space_sha256,
-    ngeo_space_hash(source_space)
+    ngeo_coordinate_space_hash(source_space)
   )
   expect_identical(
     transform_manifest$metadata$target_space_sha256,
-    ngeo_space_hash(target_space)
+    ngeo_coordinate_space_hash(target_space)
   )
 
   space_manifest <- ngeo_object_manifest(source_space)
@@ -28,10 +28,10 @@ test_that("portable manifests cover spaces, transforms, support, and time", {
 
   axis <- ngeo_time_axis(time = c(0, 1, 2), unit = "second")
   temporal <- ngeo_temporal_weights(axis, method = "adjacent")
-  points <- ngeo_points(
+  point <- ngeo_point(
     matrix(c(0, 0, 1, 0), ncol = 2, byrow = TRUE)
   )
-  spatial <- ngeo_weights(points, method = "knn", k = 1)
+  spatial <- ngeo_spatial_weights(point, method = "knn", k = 1)
   joint <- ngeo_spatiotemporal_weights(spatial, temporal)
 
   expect_identical(ngeo_object_manifest(axis)$metadata$n_time, 3L)
@@ -45,11 +45,11 @@ test_that("portable manifests cover spaces, transforms, support, and time", {
 })
 
 test_that("manifest validation reports structure, schema, hash, and object mismatch", {
-  first <- ngeo_points(
+  first <- ngeo_point(
     matrix(c(0, 0, 1, 0), ncol = 2, byrow = TRUE),
     values = cbind(signal = c(1, 2))
   )
-  second <- ngeo_points(
+  second <- ngeo_point(
     matrix(c(0, 0, 2, 0), ncol = 2, byrow = TRUE),
     values = cbind(signal = c(1, 2))
   )

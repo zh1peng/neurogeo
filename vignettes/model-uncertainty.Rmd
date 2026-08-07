@@ -19,7 +19,7 @@ error in observed values, residual process variation, uncertainty in fitted
 covariance parameters, and sensitivity to support or tuning choices.
 Combining them without labels makes a total variance difficult to interpret.
 
-Every uncertainty object is therefore bound to one exact ordered domain so
+Every uncertainty object is therefore bound to one exact ordered base so
 that covariance rows and columns cannot drift away from the observations they
 describe.
 
@@ -28,15 +28,15 @@ describe.
 ```{r}
 coordinates <- as.matrix(expand.grid(x = 0:3, y = 0:3))
 predictor <- coordinates[, 1] + coordinates[, 2] / 4
-x <- ngeo_points(
+x <- ngeo_point(
   coordinates,
   values = cbind(
     response = 1 + 2 * predictor + sin(seq_along(predictor)) / 20,
     predictor = predictor
   ),
   measures = rbind(
-    ngeo_measure(spatial_semantics = "intensive"),
-    ngeo_measure(spatial_semantics = "intensive")
+    ngeo_measure(support_behavior = "intensive"),
+    ngeo_measure(support_behavior = "intensive")
   )
 )
 measurement <- ngeo_support_covariance(
@@ -90,6 +90,6 @@ prediction[
 
 For GWR, alternative-bandwidth minima and maxima are sensitivity ranges, not
 confidence intervals. `ngeo_spatial_regression_uncertainty()` and
-`ngeo_car_uncertainty()` require the same domain-bound covariance.
+`ngeo_car_uncertainty()` require the same base-bound covariance.
 `ngeo_support_model_ensemble()` applies the law of total variance only to the
 declared support family.

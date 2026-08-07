@@ -1,6 +1,6 @@
-test_that("one affine transform updates every supported domain geometry", {
-  source_space <- ngeo_space("source", kind = "unknown", units = "mm")
-  target_space <- ngeo_space("target", kind = "unknown", units = "mm")
+test_that("one affine transform updates every supported base geometry", {
+  source_space <- ngeo_coordinate_space("source", kind = "unknown", unit = "mm")
+  target_space <- ngeo_coordinate_space("target", kind = "unknown", unit = "mm")
   matrix <- diag(4)
   matrix[1:3, 4] <- c(10, 20, 30)
   transform <- ngeo_transform(
@@ -11,14 +11,14 @@ test_that("one affine transform updates every supported domain geometry", {
     parameters = list(matrix = matrix)
   )
 
-  points <- ngeo_points(
+  point <- ngeo_point(
     matrix(c(0, 0, 1, 2), ncol = 2, byrow = TRUE),
-    space = source_space
+    coordinate_space = source_space
   )
-  changed_points <- ngeo_apply_transform(points, transform)
+  changed_points <- ngeo_apply_transform(point, transform)
   expect_equal(
-    changed_points$domain$coordinates,
-    sweep(points$domain$coordinates, 2, c(10, 20), "+")
+    changed_points$base$geometry$coordinates,
+    sweep(point$base$geometry$coordinates, 2, c(10, 20), "+")
   )
 
   surface <- ngeo_surface(
@@ -28,36 +28,36 @@ test_that("one affine transform updates every supported domain geometry", {
       byrow = TRUE
     ),
     matrix(c(1, 2, 3, 1, 3, 4), ncol = 3, byrow = TRUE),
-    space = source_space
+    coordinate_space = source_space
   )
   changed_surface <- ngeo_apply_transform(surface, transform)
   expect_equal(
-    changed_surface$domain$coordinates$active,
-    sweep(surface$domain$coordinates$active, 2, c(10, 20, 30), "+")
+    changed_surface$base$geometry$coordinates$active,
+    sweep(surface$base$geometry$coordinates$active, 2, c(10, 20, 30), "+")
   )
 
   volume <- ngeo_volume(
     dim = c(2, 1, 1),
     affine = diag(4),
-    space = source_space
+    coordinate_space = source_space
   )
-  volume$domain$header_transforms <- list(qform = diag(4))
+  volume$base$geometry$header_transforms <- list(qform = diag(4))
   changed_volume <- ngeo_apply_transform(volume, transform)
-  expect_equal(changed_volume$domain$affine, matrix)
-  expect_null(changed_volume$domain$header_transforms)
+  expect_equal(changed_volume$base$geometry$affine, matrix)
+  expect_null(changed_volume$base$geometry$header_transforms)
 
-  regions <- ngeo_regions(
+  parcellation <- ngeo_parcellation(
     data.frame(region_id = c("A", "B")),
     centroid = matrix(c(0, 0, 1, 2), ncol = 2, byrow = TRUE),
-    space = source_space
+    coordinate_space = source_space
   )
-  changed_regions <- ngeo_apply_transform(regions, transform)
+  changed_regions <- ngeo_apply_transform(parcellation, transform)
   expect_equal(
-    changed_regions$domain$centroid,
-    sweep(regions$domain$centroid, 2, c(10, 20), "+")
+    changed_regions$base$geometry$centroid,
+    sweep(parcellation$base$geometry$centroid, 2, c(10, 20), "+")
   )
 
-  grayordinates <- ngeo_grayordinates(
+  grayordinate <- ngeo_grayordinate(
     list(
       list(
         component_id = "surface",
@@ -76,22 +76,22 @@ test_that("one affine transform updates every supported domain geometry", {
         volume_dim = c(2L, 2L, 2L)
       )
     ),
-    space = source_space
+    coordinate_space = source_space
   )
-  changed_grayordinates <- ngeo_apply_transform(grayordinates, transform)
+  changed_grayordinates <- ngeo_apply_transform(grayordinate, transform)
   expect_equal(
-    changed_grayordinates$domain$components[[1L]]$geometry$domain$coordinates$active,
-    changed_surface$domain$coordinates$active
+    changed_grayordinates$base$geometry$components[[1L]]$geometry$base$geometry$coordinates$active,
+    changed_surface$base$geometry$coordinates$active
   )
   expect_equal(
-    changed_grayordinates$domain$components[[2L]]$affine,
+    changed_grayordinates$base$geometry$components[[2L]]$affine,
     matrix
   )
 })
 
 test_that("affine application rejects geometry without an applicable representation", {
-  source_space <- ngeo_space("source", kind = "unknown")
-  target_space <- ngeo_space("target", kind = "unknown")
+  source_space <- ngeo_coordinate_space("source", kind = "unknown")
+  target_space <- ngeo_coordinate_space("target", kind = "unknown")
   transform <- ngeo_transform(
     source_space,
     target_space,
@@ -100,19 +100,19 @@ test_that("affine application rejects geometry without an applicable representat
   )
 
   surface <- builder_surface()
-  surface$domain$space <- source_space
-  surface$domain$coordinate_meta$metric_eligible <- FALSE
+  surface$base$coordinate_space <- source_space
+  surface$base$geometry$coordinate_meta$metric_eligible <- FALSE
   expect_error(
     ngeo_apply_transform(surface, transform),
     class = "ngeo_error_capability"
   )
 
-  regions <- ngeo_regions(
+  parcellation <- ngeo_parcellation(
     data.frame(region_id = c("A", "B")),
-    space = source_space
+    coordinate_space = source_space
   )
   expect_error(
-    ngeo_apply_transform(regions, transform),
+    ngeo_apply_transform(parcellation, transform),
     class = "ngeo_error_capability"
   )
 })

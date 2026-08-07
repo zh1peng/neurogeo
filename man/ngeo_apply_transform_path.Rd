@@ -7,7 +7,7 @@
 ngeo_apply_transform_path(x, path, authorize = FALSE)
 }
 \arguments{
-\item{x}{An `ngeo` dataset in the path source space.}
+\item{x}{An `ngeo` dataset in the path source coordinate_space.}
 
 \item{path}{An `ngeo_transform_path`.}
 

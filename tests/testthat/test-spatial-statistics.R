@@ -1,30 +1,30 @@
 statistics_grid <- function() {
   coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
   values <- cbind(signal = c(1, 2, 3, 2, 4, 7, 3, 7, 9))
-  x <- ngeo_points(
+  x <- ngeo_point(
     coordinates,
     values = values,
-    measures = ngeo_measure(spatial_semantics = "intensive")
+    measures = ngeo_measure(support_behavior = "intensive")
   )
-  weights <- ngeo_weights(
+  spatial_weights <- ngeo_spatial_weights(
     x,
     method = "distance_band",
     threshold = 1.01,
     style = "W"
   )
-  list(x = x, weights = weights)
+  list(x = x, spatial_weights = spatial_weights)
 }
 
 test_that("global Moran and Geary match spdep reference values", {
   skip_if_not_installed("spdep")
   fixture <- statistics_grid()
   values <- as.numeric(fixture$x$values[, 1L])
-  listw <- as_spdep_listw(fixture$weights)
+  listw <- as_spdep_listw(fixture$spatial_weights)
   n <- length(values)
   s0 <- spdep::Szero(listw)
 
-  moran <- ngeo_moran(fixture$x, fixture$weights)
-  geary <- ngeo_geary(fixture$x, fixture$weights)
+  moran <- ngeo_moran(fixture$x, fixture$spatial_weights)
+  geary <- ngeo_geary(fixture$x, fixture$spatial_weights)
   reference_moran <- spdep::moran(
     values,
     listw,
@@ -51,9 +51,9 @@ test_that("local Moran statistics match spdep and identify quadrants", {
   skip_if_not_installed("spdep")
   fixture <- statistics_grid()
   values <- as.numeric(fixture$x$values[, 1L])
-  listw <- as_spdep_listw(fixture$weights)
+  listw <- as_spdep_listw(fixture$spatial_weights)
 
-  result <- ngeo_local_moran(fixture$x, fixture$weights)
+  result <- ngeo_local_moran(fixture$x, fixture$spatial_weights)
   reference <- spdep::localmoran(
     values,
     listw,
@@ -83,26 +83,26 @@ test_that("permutation inference is reproducible and preserves caller RNG", {
   state <- .Random.seed
   first <- ngeo_moran(
     fixture$x,
-    fixture$weights,
+    fixture$spatial_weights,
     permutations = 99,
     seed = 2026
   )
   expect_identical(.Random.seed, state)
   second <- ngeo_moran(
     fixture$x,
-    fixture$weights,
+    fixture$spatial_weights,
     permutations = 99,
     seed = 2026
   )
   local_first <- ngeo_local_moran(
     fixture$x,
-    fixture$weights,
+    fixture$spatial_weights,
     permutations = 49,
     seed = 7
   )
   local_second <- ngeo_local_moran(
     fixture$x,
-    fixture$weights,
+    fixture$spatial_weights,
     permutations = 49,
     seed = 7
   )
@@ -118,12 +118,12 @@ test_that("permutation inference is reproducible and preserves caller RNG", {
 test_that("Local Moran declares conditional and total randomization nulls", {
   fixture <- statistics_grid()
   conditional <- ngeo_local_moran(
-    fixture$x, fixture$weights,
+    fixture$x, fixture$spatial_weights,
     permutations = 49, seed = 11,
     null_model = "conditional"
   )
   total <- ngeo_local_moran(
-    fixture$x, fixture$weights,
+    fixture$x, fixture$spatial_weights,
     permutations = 49, seed = 11,
     null_model = "total"
   )
@@ -136,7 +136,7 @@ test_that("Local Moran declares conditional and total randomization nulls", {
 })
 
 test_that("variogram boundaries must cover every retained pair", {
-  x <- ngeo_points(
+  x <- ngeo_point(
     cbind(0:3, 0),
     values = cbind(signal = c(1, 2, 4, 8))
   )
@@ -158,12 +158,12 @@ test_that("permutation control unifies tails and multiple testing", {
   )
   first <- ngeo_local_moran(
     fixture$x,
-    fixture$weights,
+    fixture$spatial_weights,
     control = control
   )
   second <- ngeo_local_moran(
     fixture$x,
-    fixture$weights,
+    fixture$spatial_weights,
     control = control
   )
 
@@ -182,7 +182,7 @@ test_that("Getis-Ord Gi and Gi-star match spdep reference z-scores", {
   skip_if_not_installed("spdep")
   fixture <- statistics_grid()
   values <- as.numeric(fixture$x$values[, 1L])
-  nb <- as_spdep_nb(fixture$weights)
+  nb <- as_spdep_nb(fixture$spatial_weights)
   listw <- spdep::nb2listw(nb, style = "W", zero.policy = TRUE)
   star_listw <- spdep::nb2listw(
     spdep::include.self(nb),
@@ -192,13 +192,13 @@ test_that("Getis-Ord Gi and Gi-star match spdep reference z-scores", {
 
   gi <- ngeo_getis_ord(
     fixture$x,
-    fixture$weights,
+    fixture$spatial_weights,
     star = FALSE,
     adjust = "BH"
   )
   gi_star <- ngeo_getis_ord(
     fixture$x,
-    fixture$weights,
+    fixture$spatial_weights,
     star = TRUE
   )
 
@@ -221,7 +221,7 @@ test_that("exact-order correlogram matches spdep graph lags", {
   fixture <- statistics_grid()
   values <- as.numeric(fixture$x$values[, 1L])
   lag_nb <- suppressWarnings(
-    spdep::nblag(as_spdep_nb(fixture$weights), maxlag = 3)
+    spdep::nblag(as_spdep_nb(fixture$spatial_weights), maxlag = 3)
   )
   reference <- vapply(lag_nb, function(nb) {
     listw <- spdep::nb2listw(nb, style = "W", zero.policy = TRUE)
@@ -236,7 +236,7 @@ test_that("exact-order correlogram matches spdep graph lags", {
 
   result <- ngeo_correlogram(
     fixture$x,
-    fixture$weights,
+    fixture$spatial_weights,
     lags = 1:3
   )
 
@@ -245,25 +245,25 @@ test_that("exact-order correlogram matches spdep graph lags", {
   expect_true(all(result$n_edges > 0))
 })
 
-test_that("statistics enforce domain, missing, and measurement invariants", {
+test_that("statistics enforce base, missing, and measurement invariants", {
   fixture <- statistics_grid()
   shifted <- statistics_grid()$x
-  shifted$domain$coordinates[1L, 1L] <- 0.1
+  shifted$base$geometry$coordinates[1L, 1L] <- 0.1
   expect_error(
-    ngeo_moran(shifted, fixture$weights),
-    class = "ngeo_error_domain_mismatch"
+    ngeo_moran(shifted, fixture$spatial_weights),
+    class = "ngeo_error_base_mismatch"
   )
 
   missing <- fixture$x
   missing$values[1L, 1L] <- NA_real_
   expect_error(
-    ngeo_moran(missing, fixture$weights),
+    ngeo_moran(missing, fixture$spatial_weights),
     class = "ngeo_error_missing"
   )
   expect_s3_class(
     ngeo_moran(
       missing,
-      fixture$weights,
+      fixture$spatial_weights,
       na_action = "omit",
       zero_policy = TRUE
     ),
@@ -271,23 +271,23 @@ test_that("statistics enforce domain, missing, and measurement invariants", {
   )
 
   categorical <- fixture$x
-  categorical$measures$spatial_semantics <- "categorical"
+  categorical$measures$support_behavior <- "categorical"
   expect_error(
-    ngeo_moran(categorical, fixture$weights),
+    ngeo_moran(categorical, fixture$spatial_weights),
     class = "ngeo_error_measure"
   )
 })
 
 test_that("empirical variogram bins pair semivariances explicitly", {
-  x <- ngeo_points(
+  x <- ngeo_point(
     cbind(x = 0:3, y = 0),
     values = cbind(signal = 0:3),
-    measures = ngeo_measure(spatial_semantics = "intensive")
+    measures = ngeo_measure(support_behavior = "intensive")
   )
   result <- ngeo_variogram(
     x,
     breaks = c(0, 1.1, 2.1, 3.1),
-    metric = "euclidean"
+    distance_method = "euclidean"
   )
 
   expect_s3_class(result, "ngeo_variogram")
@@ -299,12 +299,12 @@ test_that("empirical variogram bins pair semivariances explicitly", {
 
 test_that("spatial diagnostic plots render", {
   fixture <- statistics_grid()
-  moran <- ngeo_moran(fixture$x, fixture$weights)
-  lisa <- ngeo_local_moran(fixture$x, fixture$weights)
-  getis <- ngeo_getis_ord(fixture$x, fixture$weights)
+  moran <- ngeo_moran(fixture$x, fixture$spatial_weights)
+  lisa <- ngeo_local_moran(fixture$x, fixture$spatial_weights)
+  getis <- ngeo_getis_ord(fixture$x, fixture$spatial_weights)
   correlogram <- ngeo_correlogram(
     fixture$x,
-    fixture$weights,
+    fixture$spatial_weights,
     lags = 1:2
   )
   variogram <- ngeo_variogram(fixture$x, breaks = 4)

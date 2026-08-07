@@ -38,27 +38,27 @@ for (i in seq_len(n_subject)) {
   values[, 2L * i] <- coupling * base + noise_y
 }
 
-x <- ngeo_points(
+x <- ngeo_point(
   cbind(x = 1:n_element, y = 0),
   values = values,
-  maps = data.frame(
-    map_id = paste0("map-", seq_len(ncol(values))),
+  layers = data.frame(
+    layer_id = paste0("map-", seq_len(ncol(values))),
     name = paste(subject, layer, sep = "_"),
     subject_id = subject,
     feature = layer
   ),
   measures = do.call(rbind, replicate(
     ncol(values),
-    ngeo_measure(spatial_semantics = "intensive", units = "a.u."),
+    ngeo_measure(support_behavior = "intensive", unit = "a.u."),
     simplify = FALSE
   ))
 )
 index <- ngeo_validate_layers(x, complete = "error")
-weights <- ngeo_weights(
+spatial_weights <- ngeo_spatial_weights(
   x, method = "distance_band", threshold = 1.01, style = "B"
 )
 basis <- ngeo_spatial_basis(
-  x, weights, support = "identity", n_modes = n_element - 1L
+  x, spatial_weights, support = "identity", n_modes = n_element - 1L
 )
 features <- ngeo_layer_coupling(
   x,

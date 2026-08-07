@@ -8,17 +8,17 @@ test_that("surface fixture satisfies indexing and area invariants", {
     coordinates = coordinates,
     faces = faces,
     values = values,
-    space = ngeo_space("fixture_surface", kind = "surface"),
+    coordinate_space = ngeo_coordinate_space("fixture_surface", kind = "surface"),
     index_base = "zero"
   )
 
   expect_s3_class(x, "ngeo_surface")
   expect_silent(ngeo_validate(x, "strict"))
-  expect_identical(ngeo_domain_type(x), "surface")
-  expect_equal(nrow(x$domain$elements), fixture$expected$n_vertex)
-  expect_equal(nrow(x$domain$faces), fixture$expected$n_face)
-  expect_identical(x$domain$face_source_index_base, 0L)
-  expect_equal(x$domain$faces, faces + 1L)
+  expect_identical(base_type(x), "surface")
+  expect_equal(nrow(x$base$elements), fixture$expected$n_vertex)
+  expect_equal(nrow(x$base$geometry$faces), fixture$expected$n_face)
+  expect_identical(x$base$geometry$face_source_index_base, 0L)
+  expect_equal(x$base$geometry$faces, faces + 1L)
   expect_equal(as.vector(x$values), values)
   expect_equal(
     ngeo_vertex_area(x),

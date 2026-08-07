@@ -2,16 +2,16 @@
 % Please edit documentation in R/weights.R
 \name{as_spdep_nb}
 \alias{as_spdep_nb}
-\title{Convert weights to an spdep neighbour list}
+\title{Convert spatial_weights to an spdep neighbour list}
 \usage{
 as_spdep_nb(x)
 }
 \arguments{
-\item{x}{An `ngeo_weights`.}
+\item{x}{An `ngeo_spatial_weights`.}
 }
 \value{
 An `spdep` `nb` object.
 }
 \description{
-Convert weights to an spdep neighbour list
+Convert spatial_weights to an spdep neighbour list
 }

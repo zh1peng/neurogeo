@@ -10,12 +10,12 @@ ngeo_layer_coupling(
   pairs = NULL,
   basis = NULL,
   bands = NULL,
-  weights = NULL,
+  spatial_weights = NULL,
   estimands = c("same_location", "spectral_coupling"),
   lag_direction = c("both", "x_to_y", "y_to_x"),
   energy_floor = 1e-10,
   null = NULL,
-  chunk_maps = 32L
+  chunk_layers = 32L
 )
 }
 \arguments{
@@ -29,7 +29,7 @@ ngeo_layer_coupling(
 
 \item{bands}{Named non-overlapping retained-mode groups.}
 
-\item{weights}{Matching `ngeo_weights` for directional endpoints.}
+\item{spatial_weights}{Matching `ngeo_spatial_weights` for directional endpoints.}
 
 \item{estimands}{Coupling or structure summaries.}
 
@@ -39,7 +39,7 @@ ngeo_layer_coupling(
 
 \item{null}{Optional explicit reference-map spatial-null specification.}
 
-\item{chunk_maps}{Maximum maps projected together.}
+\item{chunk_layers}{Maximum layers projected together.}
 }
 \value{
 An `ngeo_subject_features` object.

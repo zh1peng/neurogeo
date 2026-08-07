@@ -6,7 +6,7 @@
 \usage{
 ngeo_temporal_moran(
   x,
-  weights,
+  spatial_weights,
   elements = NULL,
   budget = ngeo_resource_budget()
 )
@@ -14,7 +14,7 @@ ngeo_temporal_moran(
 \arguments{
 \item{x}{Time-aware `ngeo` data.}
 
-\item{weights}{Matching temporal weights.}
+\item{spatial_weights}{Matching temporal spatial_weights.}
 
 \item{elements}{Optional spatial element selection.}
 

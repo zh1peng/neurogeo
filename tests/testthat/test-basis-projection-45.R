@@ -11,15 +11,15 @@ projection_fixture <- function(delayed = FALSE) {
     stored <- neurogeo:::.ngeo_delayed_values(
       function(rows, columns) values[rows, columns, drop = FALSE],
       dim(values),
-      map_names = colnames(values),
+      layer_names = colnames(values),
       source = "projection-test-callback"
     )
   }
-  x <- ngeo_points(
+  x <- ngeo_point(
     cbind(x = seq_len(n), y = 0),
     values = stored,
-    maps = data.frame(
-      map_id = paste0("map_", seq_along(subjects)),
+    layers = data.frame(
+      layer_id = paste0("map_", seq_along(subjects)),
       name = colnames(values),
       subject_id = subjects,
       feature = features,
@@ -27,23 +27,23 @@ projection_fixture <- function(delayed = FALSE) {
     ),
     measures = do.call(rbind, lapply(features, function(feature) {
       ngeo_measure(
-        spatial_semantics = "intensive",
-        units = if (feature == "thickness") "mm" else "ratio"
+        support_behavior = "intensive",
+        unit = if (feature == "thickness") "mm" else "ratio"
       )
     }))
   )
-  weights <- ngeo_weights(
+  spatial_weights <- ngeo_spatial_weights(
     x, method = "distance_band", threshold = 1.01, style = "B"
   )
-  list(x = x, weights = weights, values = values)
+  list(x = x, spatial_weights = spatial_weights, values = values)
 }
 
-test_that("full nonconstant basis recovers centered maps", {
+test_that("full nonconstant basis recovers centered layers", {
   skip_if_not_installed("RSpectra")
   fixture <- projection_fixture()
   index <- ngeo_validate_layers(fixture$x, complete = "error")
   basis <- ngeo_spatial_basis(
-    fixture$x, fixture$weights, support = "identity", n_modes = 5L
+    fixture$x, fixture$spatial_weights, support = "identity", n_modes = 5L
   )
   projected <- ngeo_basis_project(
     fixture$x,
@@ -55,7 +55,7 @@ test_that("full nonconstant basis recovers centered maps", {
       "retained_variance", "residual_energy"
     ),
     chunk_rows = 2L,
-    chunk_maps = 2L
+    chunk_layers = 2L
   )
 
   expect_s3_class(projected, "ngeo_subject_features")
@@ -76,19 +76,19 @@ test_that("delayed and in-memory basis projection are identical", {
   dense_index <- ngeo_validate_layers(dense$x, complete = "error")
   delayed_index <- ngeo_validate_layers(delayed$x, complete = "error")
   basis <- ngeo_spatial_basis(
-    dense$x, dense$weights, support = "identity", n_modes = 4L
+    dense$x, dense$spatial_weights, support = "identity", n_modes = 4L
   )
   first <- ngeo_basis_project(
     dense$x, basis, dense_index,
     bands = list(low = 1:2, high = 3:4),
     summaries = c("coefficients", "absolute_energy", "roughness"),
-    chunk_rows = 2L, chunk_maps = 2L
+    chunk_rows = 2L, chunk_layers = 2L
   )
   second <- ngeo_basis_project(
     delayed$x, basis, delayed_index,
     bands = list(low = 1:2, high = 3:4),
     summaries = c("coefficients", "absolute_energy", "roughness"),
-    chunk_rows = 3L, chunk_maps = 1L
+    chunk_rows = 3L, chunk_layers = 1L
   )
   expect_identical(first$endpoints, second$endpoints)
   expect_equal(first$values, second$values, tolerance = 1e-10)
@@ -99,7 +99,7 @@ test_that("projection energy is invariant to basis-vector signs", {
   fixture <- projection_fixture()
   index <- ngeo_validate_layers(fixture$x, complete = "error")
   basis <- ngeo_spatial_basis(
-    fixture$x, fixture$weights, support = "identity", n_modes = 4L
+    fixture$x, fixture$spatial_weights, support = "identity", n_modes = 4L
   )
   flipped <- basis
   flipped$components[[1L]]$vectors[, c(1L, 3L)] <-
@@ -115,18 +115,18 @@ test_that("projection energy is invariant to basis-vector signs", {
   expect_equal(first$values, second$values, tolerance = 1e-12)
 })
 
-test_that("projection rejects domain changes and split eigenspaces", {
+test_that("projection rejects base changes and split eigenspaces", {
   skip_if_not_installed("RSpectra")
   fixture <- projection_fixture()
   index <- ngeo_validate_layers(fixture$x, complete = "error")
   basis <- ngeo_spatial_basis(
-    fixture$x, fixture$weights, support = "identity", n_modes = 4L
+    fixture$x, fixture$spatial_weights, support = "identity", n_modes = 4L
   )
   changed <- fixture$x
-  changed$domain$space <- ngeo_space("changed", kind = "surface")
+  changed$base$coordinate_space <- ngeo_coordinate_space("changed", kind = "surface")
   expect_error(
     ngeo_basis_project(changed, basis, index),
-    class = "ngeo_error_domain_mismatch"
+    class = "ngeo_error_base_mismatch"
   )
 
   split <- basis

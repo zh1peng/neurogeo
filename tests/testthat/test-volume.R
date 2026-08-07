@@ -16,15 +16,15 @@ test_that("volume fixture preserves mask, source indices, and affine volume", {
     dim = lattice_dim,
     affine = affine,
     mask = mask,
-    space = ngeo_space("fixture_volume", kind = "volume"),
+    coordinate_space = ngeo_coordinate_space("fixture_volume", kind = "volume"),
     index_base = "zero"
   )
 
   expect_s3_class(x, "ngeo_volume")
   expect_silent(ngeo_validate(x, "strict"))
-  expect_identical(ngeo_domain_type(x), "volume")
+  expect_identical(base_type(x), "volume")
   expect_equal(
-    x$domain$source_voxel_index,
+    x$base$geometry$source_voxel_index,
     rows_to_matrix(
       fixture$expected$active_voxel_ijk_zero_based,
       "integer"
@@ -51,7 +51,7 @@ test_that("volume does not infer a mask from zero values", {
     affine = diag(4)
   )
 
-  expect_equal(nrow(x$domain$elements), 8L)
+  expect_equal(nrow(x$base$elements), 8L)
   expect_equal(nrow(x$values), 8L)
 })
 

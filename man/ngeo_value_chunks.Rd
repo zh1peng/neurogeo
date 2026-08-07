@@ -4,14 +4,14 @@
 \alias{ngeo_value_chunks}
 \title{Iterate over aligned value chunks}
 \usage{
-ngeo_value_chunks(x, chunk_size = 65536L, maps = NULL, FUN = NULL)
+ngeo_value_chunks(x, chunk_size = 65536L, layers = NULL, FUN = NULL)
 }
 \arguments{
 \item{x}{An `ngeo` dataset or `ngeo_delayed_values`.}
 
 \item{chunk_size}{Positive row count.}
 
-\item{maps}{Optional map selection.}
+\item{layers}{Optional map selection.}
 
 \item{FUN}{Optional function called with `(block, rows)`. When omitted an
 iterator closure is returned.}

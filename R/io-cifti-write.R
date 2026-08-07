@@ -29,14 +29,14 @@
 }
 
 .ngeo_cifti_named_metadata <- function(x, metadata) {
-  if (is.null(metadata) && "metadata" %in% names(x$maps)) {
-    metadata <- x$maps$metadata
+  if (is.null(metadata) && "metadata" %in% names(x$layers)) {
+    metadata <- x$layers$metadata
   }
   if (is.null(metadata)) {
-    metadata <- rep(list(list()), nrow(x$maps))
+    metadata <- rep(list(list()), nrow(x$layers))
   }
-  if (!is.list(metadata) || length(metadata) != nrow(x$maps)) {
-    .ngeo_abort("NamedMap metadata must align with maps.",
+  if (!is.list(metadata) || length(metadata) != nrow(x$layers)) {
+    .ngeo_abort("NamedMap metadata must align with layers.",
                 "ngeo_error_alignment")
   }
   lapply(metadata, function(current) {
@@ -59,8 +59,8 @@
 }
 
 .ngeo_validate_cifti_labels <- function(x) {
-  for (i in seq_len(nrow(x$maps))) {
-    stored <- x$labels[[x$maps$name[[i]]]]$table %||% NULL
+  for (i in seq_len(nrow(x$layers))) {
+    stored <- x$base$labels[[x$layers$name[[i]]]]$table %||% NULL
     if (is.null(stored)) next
     required <- c("Key", "Red", "Green", "Blue", "Alpha", "Label")
     if (!is.data.frame(stored) || any(!required %in% names(stored)) ||
@@ -90,12 +90,12 @@
 
 #' Validate the supported CIFTI-2 output contract
 #'
-#' @param x An `ngeo_grayordinates`.
+#' @param x An `ngeo_grayordinate`.
 #' @param type Dense scalar, label, or time series.
 #' @param datatype Float32, float64, or int32; `NULL` selects the normative
 #'   default.
 #' @param named_map_metadata Optional metadata list aligned with scalar or
-#'   label maps.
+#'   label layers.
 #' @return A normalized CIFTI output contract.
 #' @export
 ngeo_validate_cifti_contract <- function(
@@ -105,7 +105,7 @@ ngeo_validate_cifti_contract <- function(
     named_map_metadata = NULL) {
   ngeo_validate(x, "strict")
   type <- match.arg(type)
-  if (!inherits(x, "ngeo_grayordinates") || is.null(x$values)) {
+  if (!inherits(x, "ngeo_grayordinate") || is.null(x$values)) {
     .ngeo_abort("CIFTI output requires loaded grayordinate values.",
                 "ngeo_error_argument")
   }
@@ -133,13 +133,13 @@ ngeo_validate_cifti_contract <- function(
       .ngeo_abort("dtseries uses a series axis, not NamedMap metadata.",
                   "ngeo_error_format")
     }
-    time <- x$maps$time %||% (seq_len(nrow(x$maps)) - 1L)
-    unit <- x$maps$time_unit %||% rep("SECOND", nrow(x$maps))
-    if (!is.numeric(time) || length(time) != nrow(x$maps) ||
+    time <- x$layers$time %||% (seq_len(nrow(x$layers)) - 1L)
+    unit <- x$layers$time_unit %||% rep("SECOND", nrow(x$layers))
+    if (!is.numeric(time) || length(time) != nrow(x$layers) ||
         any(!is.finite(time)) ||
         (length(time) > 2L &&
           max(abs(diff(time) - diff(time)[[1L]])) > 1e-10) ||
-        !is.character(unit) || length(unit) != nrow(x$maps) ||
+        !is.character(unit) || length(unit) != nrow(x$layers) ||
         length(unique(unit)) != 1L ||
         !unit[[1L]] %in% c("SECOND", "HERTZ", "METER", "RADIAN")) {
       .ngeo_abort("CIFTI series axis is invalid or not equally spaced.",
@@ -151,8 +151,8 @@ ngeo_validate_cifti_contract <- function(
     datatype = datatype,
     named_map_metadata = metadata,
     dimensions = dim(values),
-    brain_models = length(x$domain$components),
-    map_names = x$maps$name
+    brain_models = length(x$base$geometry$components),
+    layer_names = x$layers$name
   )
 }
 
@@ -160,9 +160,9 @@ ngeo_validate_cifti_contract <- function(
   offset <- 0L
   volume <- Filter(
     function(component) component$kind == "volume",
-    x$domain$components
+    x$base$geometry$components
   )
-  brain <- vapply(x$domain$components, function(component) {
+  brain <- vapply(x$base$geometry$components, function(component) {
     count <- component$n_element
     structure <- paste0("CIFTI_STRUCTURE_", toupper(component$structure))
     result <- if (component$kind == "surface") {
@@ -216,21 +216,21 @@ ngeo_validate_cifti_contract <- function(
 
 .ngeo_cifti_map_xml <- function(x, type, named_map_metadata) {
   if (type == "dtseries") {
-    time <- x$maps$time %||% (seq_len(nrow(x$maps)) - 1L)
+    time <- x$layers$time %||% (seq_len(nrow(x$layers)) - 1L)
     step <- if (length(time) > 1L) time[[2L]] - time[[1L]] else 1
-    unit <- x$maps$time_unit[[1L]] %||% "SECOND"
+    unit <- x$layers$time_unit[[1L]] %||% "SECOND"
     return(paste0(
       '<MatrixIndicesMap AppliesToMatrixDimension="0" ',
       'IndicesMapToDataType="CIFTI_INDEX_TYPE_SERIES" ',
-      'NumberOfSeriesPoints="', nrow(x$maps),
+      'NumberOfSeriesPoints="', nrow(x$layers),
       '" SeriesStart="', time[[1L]], '" SeriesStep="', step,
       '" SeriesUnit="', .ngeo_xml_escape(unit), '"/>'
     ))
   }
-  maps <- vapply(seq_len(nrow(x$maps)), function(i) {
+  layers <- vapply(seq_len(nrow(x$layers)), function(i) {
     label_xml <- ""
     if (type == "dlabel") {
-      stored <- x$labels[[x$maps$name[[i]]]]$table %||% NULL
+      stored <- x$base$labels[[x$layers$name[[i]]]]$table %||% NULL
       if (is.data.frame(stored) &&
           all(c("Key", "Red", "Green", "Blue", "Alpha", "Label") %in%
               names(stored))) {
@@ -261,7 +261,7 @@ ngeo_validate_cifti_contract <- function(
     paste0(
       "<NamedMap>",
       .ngeo_cifti_metadata_xml(named_map_metadata[[i]]),
-      "<MapName>", .ngeo_xml_escape(x$maps$name[[i]]),
+      "<MapName>", .ngeo_xml_escape(x$layers$name[[i]]),
       "</MapName>", label_xml, "</NamedMap>"
     )
   }, character(1))
@@ -274,7 +274,7 @@ ngeo_validate_cifti_contract <- function(
       "CIFTI_INDEX_TYPE_SCALARS"
     },
     '">',
-    paste0(maps, collapse = ""), "</MatrixIndicesMap>"
+    paste0(layers, collapse = ""), "</MatrixIndicesMap>"
   )
 }
 
@@ -297,12 +297,12 @@ ngeo_validate_cifti_contract <- function(
 
 #' Write CIFTI-2 dscalar, dlabel, or dtseries using pure R
 #'
-#' @param x An `ngeo_grayordinates` with loaded values.
+#' @param x An `ngeo_grayordinate` with loaded values.
 #' @param path Output path.
 #' @param type Dense scalar, label, or time series.
 #' @param overwrite Whether to replace an existing file.
 #' @param datatype Optional `float32`, `float64`, or `int32` datatype.
-#' @param named_map_metadata Optional metadata aligned with scalar/label maps.
+#' @param named_map_metadata Optional metadata aligned with scalar/label layers.
 #'
 #' @return `path`, invisibly.
 #' @export
@@ -416,17 +416,17 @@ write_ngeo_cifti <- function(
   if (length(match) < 2L) NULL else .ngeo_xml_unescape(match[[2L]])
 }
 
-.ngeo_cifti_read_named_metadata <- function(path, map_names) {
+.ngeo_cifti_read_named_metadata <- function(path, layer_names) {
   xml <- .ngeo_cifti_extension_xml(path)
-  if (is.null(xml)) return(rep(list(list()), length(map_names)))
+  if (is.null(xml)) return(rep(list(list()), length(layer_names)))
   position <- gregexpr(
     "(?s)<NamedMap>.*?</NamedMap>", xml, perl = TRUE
   )
   blocks <- regmatches(xml, position)[[1L]]
-  result <- stats::setNames(rep(list(list()), length(map_names)), map_names)
+  result <- stats::setNames(rep(list(list()), length(layer_names)), layer_names)
   for (block in blocks) {
-    map_name <- .ngeo_cifti_xml_value(block, "MapName")
-    if (is.null(map_name) || !map_name %in% map_names) next
+    layer_name <- .ngeo_cifti_xml_value(block, "MapName")
+    if (is.null(layer_name) || !layer_name %in% layer_names) next
     md_position <- gregexpr("(?s)<MD>.*?</MD>", block, perl = TRUE)
     entries <- regmatches(block, md_position)[[1L]]
     metadata <- list()
@@ -435,7 +435,7 @@ write_ngeo_cifti <- function(
       value <- .ngeo_cifti_xml_value(entry, "Value")
       if (!is.null(name) && !is.null(value)) metadata[[name]] <- value
     }
-    result[[map_name]] <- metadata
+    result[[layer_name]] <- metadata
   }
   unname(result)
 }

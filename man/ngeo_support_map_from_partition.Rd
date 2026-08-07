@@ -11,7 +11,7 @@ ngeo_support_map_from_partition(source, partition, target)
 
 \item{partition}{Matching `ngeo_partition`.}
 
-\item{target}{Target regions template with the partition's region order.}
+\item{target}{Target parcellation template with the partition's region order.}
 }
 \value{
 A crisp `ngeo_support_map`.

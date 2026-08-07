@@ -9,10 +9,10 @@ ngeo_gwr(
   response,
   predictors,
   bandwidth,
-  metric = NULL,
+  distance_method = NULL,
   kernel = c("gaussian", "bisquare"),
   targets = NULL,
-  support = c("none", "domain"),
+  support = c("none", "base"),
   singular = c("na", "error")
 )
 }
@@ -21,17 +21,17 @@ ngeo_gwr(
 
 \item{response}{One response map.}
 
-\item{predictors}{Predictor maps.}
+\item{predictors}{Predictor layers.}
 
 \item{bandwidth}{Positive bandwidth or `ngeo_gwr_bandwidth`.}
 
-\item{metric}{Explicit NGCS metric.}
+\item{distance_method}{Explicit NGCS distance_method.}
 
 \item{kernel}{Gaussian or compact bisquare kernel.}
 
 \item{targets}{Optional target elements.}
 
-\item{support}{Multiply kernel weights by explicit element support.}
+\item{support}{Multiply kernel spatial_weights by explicit element support.}
 
 \item{singular}{Whether singular local designs return `NA` or fail.}
 }
@@ -44,7 +44,7 @@ Fit geographically weighted regression with conditioning diagnostics
 \examples{
 coordinates <- as.matrix(expand.grid(x = 0:3, y = 0:3))
 predictor <- coordinates[, 1] - coordinates[, 2]
-points <- ngeo_points(
+point <- ngeo_point(
   coordinates,
   values = cbind(
     response = 1 + 2 * predictor + 0.05 * coordinates[, 1],
@@ -52,7 +52,7 @@ points <- ngeo_points(
   )
 )
 head(ngeo_gwr(
-  points, "response", "predictor",
+  point, "response", "predictor",
   bandwidth = 2.5, singular = "error"
 ))
 }

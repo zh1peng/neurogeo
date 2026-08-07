@@ -22,7 +22,7 @@ cartography_disk <- function(values = cbind(signal = c(1, 2, 4, 3, 2.5))) {
       byrow = TRUE
     ),
     values = values,
-    measures = ngeo_measure(spatial_semantics = "intensive")
+    measures = ngeo_measure(support_behavior = "intensive")
   )
 }
 
@@ -34,8 +34,8 @@ test_that("harmonic cartography enforces disk topology and boundary order", {
     boundary = 1:4,
     name = "disk"
   )
-  chart <- flat$domain$coordinates$disk
-  metadata <- flat$domain$charts$disk
+  chart <- flat$base$geometry$coordinates$disk
+  metadata <- flat$base$charts$disk
 
   expect_equal(chart[5L, ], c(0, 0), tolerance = 1e-12)
   expect_identical(metadata$kind, "parameterization")
@@ -44,12 +44,12 @@ test_that("harmonic cartography enforces disk topology and boundary order", {
   expect_identical(metadata$invariants$euler_characteristic, 1L)
   expect_identical(metadata$invariants$connected_components, 1L)
   expect_true(metadata$invariants$disk)
-  expect_equal(nrow(metadata$distortion), nrow(x$domain$faces))
+  expect_equal(nrow(metadata$distortion), nrow(x$base$geometry$faces))
   expect_identical(
     metadata$source_vertex_id,
-    x$domain$elements$element_id
+    x$base$elements$element_id
   )
-  expect_identical(metadata$source_face, seq_len(nrow(x$domain$faces)))
+  expect_identical(metadata$source_face, seq_len(nrow(x$base$geometry$faces)))
   expect_silent(ngeo_validate(flat, "strict"))
 
   expect_error(
@@ -99,9 +99,9 @@ test_that("imported charts preserve coordinates and report folds", {
     name = "caller"
   )
 
-  expect_identical(result$domain$coordinates$caller, imported)
-  expect_identical(result$domain$charts$caller$method, "imported")
-  expect_false(result$domain$charts$caller$invariants$topology_assumed)
+  expect_identical(result$base$geometry$coordinates$caller, imported)
+  expect_identical(result$base$charts$caller$method, "imported")
+  expect_false(result$base$charts$caller$invariants$topology_assumed)
   expect_s3_class(ngeo_chart_distortion(result, "caller"), "data.frame")
   expect_error(
     ngeo_flatten_surface(
@@ -113,7 +113,7 @@ test_that("imported charts preserve coordinates and report folds", {
   )
 })
 
-test_that("view projections are explicit and never metric flattening", {
+test_that("view projections are explicit and never distance_method flattening", {
   x <- cartography_disk()
   orthographic <- ngeo_project_surface(
     x,
@@ -125,39 +125,39 @@ test_that("view projections are explicit and never metric flattening", {
   pca_second <- ngeo_project_surface(x, "pca", name = "pca")
 
   expect_identical(
-    orthographic$domain$charts$ortho$kind,
+    orthographic$base$charts$ortho$kind,
     "view_projection"
   )
   expect_false(
-    orthographic$domain$charts$ortho$is_metric_flattening
+    orthographic$base$charts$ortho$is_metric_flattening
   )
   expect_identical(
-    orthographic$domain$charts$ortho$invariants$view,
+    orthographic$base$charts$ortho$invariants$view,
     "xz"
   )
   expect_equal(
-    pca_first$domain$coordinates$pca,
-    pca_second$domain$coordinates$pca
+    pca_first$base$geometry$coordinates$pca,
+    pca_second$base$geometry$coordinates$pca
   )
   expect_equal(
-    pca_first$domain$charts$pca$invariants$center,
-    colMeans(x$domain$coordinates$active)
+    pca_first$base$charts$pca$invariants$center,
+    colMeans(x$base$geometry$coordinates$active)
   )
-  expect_identical(pca_first$domain$charts$pca$tolerance, 1e-12)
+  expect_identical(pca_first$base$charts$pca$tolerance, 1e-12)
   expect_error(
     ngeo_project_surface(x, "spherical"),
     class = "ngeo_error_chart"
   )
 
   sphere <- x
-  sphere$domain$coordinates$active <- sweep(
-    sphere$domain$coordinates$active,
+  sphere$base$geometry$coordinates$active <- sweep(
+    sphere$base$geometry$coordinates$active,
     2L,
-    colMeans(sphere$domain$coordinates$active),
+    colMeans(sphere$base$geometry$coordinates$active),
     "-"
   )
-  sphere$domain$coordinates$active[, 3L] <-
-    sphere$domain$coordinates$active[, 3L] + 1
+  sphere$base$geometry$coordinates$active[, 3L] <-
+    sphere$base$geometry$coordinates$active[, 3L] + 1
   spherical <- ngeo_project_surface(
     sphere,
     "spherical",
@@ -165,19 +165,19 @@ test_that("view projections are explicit and never metric flattening", {
     name = "sphere_view"
   )
   expect_identical(
-    spherical$domain$charts$sphere_view$seam,
+    spherical$base$charts$sphere_view$seam,
     pi / 2
   )
   expect_true(all(
-    spherical$domain$coordinates$sphere_view[, 1L] >= -pi &
-      spherical$domain$coordinates$sphere_view[, 1L] < pi
+    spherical$base$geometry$coordinates$sphere_view[, 1L] >= -pi &
+      spherical$base$geometry$coordinates$sphere_view[, 1L] < pi
   ))
   expect_s3_class(
-    spherical$domain$charts$sphere_view$invariants$seam_edges,
+    spherical$base$charts$sphere_view$invariants$seam_edges,
     "data.frame"
   )
   expect_type(
-    spherical$domain$charts$sphere_view$invariants$seam_faces,
+    spherical$base$charts$sphere_view$invariants$seam_faces,
     "integer"
   )
   expect_error(
@@ -211,11 +211,11 @@ test_that("spherical seam faces and boundaries render as wrapped copies", {
     seam = 0,
     name = "sphere"
   )
-  metadata <- sphere$domain$charts$sphere
+  metadata <- sphere$base$charts$sphere
   expect_gt(length(metadata$invariants$seam_faces), 0L)
   expect_gt(nrow(metadata$invariants$seam_edges), 0L)
   expect_equal(metadata$invariants$center, colMeans(
-    closed$domain$coordinates$active
+    closed$base$geometry$coordinates$active
   ))
 
   map <- ngeo_cortical_map(
@@ -224,7 +224,7 @@ test_that("spherical seam faces and boundaries render as wrapped copies", {
     atlas = c("A", "B", "A", "B")
   )
   expect_identical(
-    map$provenance$seam_faces,
+    map$history$seam_faces,
     metadata$invariants$seam_faces
   )
   output <- tempfile(fileext = ".pdf")
@@ -234,7 +234,7 @@ test_that("spherical seam faces and boundaries render as wrapped copies", {
   expect_gt(file.info(output)$size, 1000)
 })
 
-test_that("cortical maps support vertex data, atlas boundaries, and exchange", {
+test_that("cortical layers support vertex data, atlas boundaries, and exchange", {
   flat <- ngeo_flatten_surface(
     cartography_disk(),
     "harmonic",
@@ -260,8 +260,8 @@ test_that("cortical maps support vertex data, atlas boundaries, and exchange", {
   expect_identical(data$faces$source_face, 1:4)
   expect_identical(data$vertices$source_vertex, 1:5)
   expect_identical(
-    data$metadata$provenance$source_domain_hash,
-    ngeo_domain_hash(flat)
+    data$metadata$history$source_base_hash,
+    base_hash(flat)
   )
   expect_identical(data$metadata$palette, "viridis")
   expect_identical(data$metadata$na_color, "grey85")
@@ -314,7 +314,7 @@ test_that("imported flat surfaces verify and retain source-face subsets", {
       ncol = 2L,
       byrow = TRUE
     ),
-    faces = source$domain$faces[1:3, , drop = FALSE],
+    faces = source$base$geometry$faces[1:3, , drop = FALSE],
     coordinate_roles = "chart",
     index_base = "one"
   )
@@ -323,7 +323,7 @@ test_that("imported flat surfaces verify and retain source-face subsets", {
     "imported",
     coordinates = flat_surface
   )
-  metadata <- flat$domain$charts$flat
+  metadata <- flat$base$charts$flat
   map <- ngeo_cortical_map(flat, chart = "flat")
 
   expect_true(metadata$invariants$topology_verified)
@@ -336,7 +336,7 @@ test_that("imported flat surfaces verify and retain source-face subsets", {
   expect_identical(sum(map$face_data$included), 3L)
   expect_gt(nrow(map$outline), 0L)
 
-  flat_surface$domain$faces[1L, ] <- c(1L, 2L, 4L)
+  flat_surface$base$geometry$faces[1L, ] <- c(1L, 2L, 4L)
   expect_error(
     ngeo_flatten_surface(
       source,
@@ -353,11 +353,11 @@ test_that("imported flat surfaces verify and retain source-face subsets", {
       ncol = 2L,
       byrow = TRUE
     ),
-    faces = source$domain$faces[1:3, , drop = FALSE],
+    faces = source$base$geometry$faces[1:3, , drop = FALSE],
     coordinate_roles = "chart",
     index_base = "one"
   )
-  flat_surface$domain$elements$element_id[[1L]] <- "different"
+  flat_surface$base$elements$element_id[[1L]] <- "different"
   expect_error(
     ngeo_flatten_surface(
       source,
@@ -371,7 +371,7 @@ test_that("imported flat surfaces verify and retain source-face subsets", {
 
 test_that("flatmaps combine masks, underlays, label atlases, and source colors", {
   source <- cartography_disk()
-  source$labels$atlas <- list(
+  source$base$labels$atlas <- list(
     values = c(1L, 1L, 2L, 2L, 2L),
     table = data.frame(
       label = c("anterior", "posterior"),
@@ -401,7 +401,7 @@ test_that("flatmaps combine masks, underlays, label atlases, and source colors",
   data <- ngeo_cortical_map_data(map)
 
   expect_identical(map$fill, "atlas")
-  expect_identical(map$map_name, "atlas")
+  expect_identical(map$layer_name, "atlas")
   expect_setequal(map$legend$value, c("anterior", "posterior"))
   expect_true(all(grepl("^#[0-9A-F]{8}$", map$legend$color)))
   expect_identical(sum(map$vertices$included), 4L)
@@ -414,7 +414,7 @@ test_that("flatmaps combine masks, underlays, label atlases, and source colors",
   expect_identical(data$metadata$underlay_name, "signal")
   expect_identical(data$metadata$overlay_alpha, 0.6)
   expect_identical(
-    data$metadata$provenance$atlas_source,
+    data$metadata$history$atlas_source,
     "labels"
   )
 
@@ -454,15 +454,15 @@ test_that("cortical map alignment and chart selection fail explicitly", {
     class = "ngeo_error_alignment"
   )
   unrelated <- cartography_disk()
-  unrelated$domain$coordinates$active[, 1L] <-
-    unrelated$domain$coordinates$active[, 1L] + 10
+  unrelated$base$geometry$coordinates$active[, 1L] <-
+    unrelated$base$geometry$coordinates$active[, 1L] + 10
   unrelated_atlas <- ngeo_partition(
     unrelated,
     c("A", "A", "B", "B", "C")
   )
   expect_error(
     ngeo_cortical_map(flat, atlas = unrelated_atlas),
-    class = "ngeo_error_domain_mismatch"
+    class = "ngeo_error_base_mismatch"
   )
   expect_error(
     ngeo_cortical_map(flat, na_color = "not-a-real-color"),

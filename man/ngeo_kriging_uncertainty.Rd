@@ -12,7 +12,7 @@ ngeo_kriging_uncertainty(
   predictors = character(),
   target_predictors = NULL,
   neighbors = 50L,
-  metric = NULL,
+  distance_method = NULL,
   value_covariance = NULL,
   variogram_uncertainty = NULL,
   support_variance = NULL,
@@ -28,13 +28,13 @@ ngeo_kriging_uncertainty(
 
 \item{targets}{Target element selection or coordinate matrix.}
 
-\item{predictors}{Optional trend predictor maps for universal kriging.}
+\item{predictors}{Optional trend predictor layers for universal kriging.}
 
 \item{target_predictors}{Predictor matrix for external target coordinates.}
 
 \item{neighbors}{Maximum local observations.}
 
-\item{metric}{Declared metric; current prediction coordinates must be
+\item{distance_method}{Declared distance_method; current prediction coordinates must be
 Euclidean-eligible.}
 
 \item{value_covariance}{Optional matching measurement covariance.}

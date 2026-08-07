@@ -167,11 +167,11 @@ ngeo_validate_bids_sidecar <- function(sidecar, x = NULL, path = NULL) {
   }
   if (!is.null(x)) {
     ngeo_validate(x, "basic")
-    if (!identical(sidecar$DomainHash, ngeo_domain_hash(x)) ||
-        !identical(sidecar$DomainType, x$domain$type) ||
-        length(sidecar$MeasurementSemantics) != nrow(x$maps)) {
+    if (!identical(sidecar$DomainHash, base_hash(x)) ||
+        !identical(sidecar$DomainType, x$base$type) ||
+        length(sidecar$MeasurementSemantics) != nrow(x$layers)) {
       .ngeo_abort("BIDS sidecar does not match the dataset.",
-                  "ngeo_error_domain_mismatch")
+                  "ngeo_error_base_mismatch")
     }
   }
   if (!is.null(path)) {

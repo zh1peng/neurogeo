@@ -14,12 +14,12 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ## Background
 
 Repeated spatial measurements have two distinct axes: spatial elements and
-time-indexed maps. Duplicating geometry at every time point wastes memory and
-can obscure whether a transformation affected space, time, or both. Temporal
+time-indexed layers. Duplicating geometry at every time point wastes memory and
+can obscure whether a transformation affected coordinate_space, time, or both. Temporal
 semantics also matter: an instantaneous value, an interval total, and a rate
 cannot be contrasted in the same way.
 
-Time is aligned to maps while the object retains one spatial domain and one
+Time is aligned to layers while the object retains one spatial base and one
 element-by-map values block. Point, vertex, voxel, region, or grayordinate
 geometry is not expanded through time.
 
@@ -42,7 +42,7 @@ values <- matrix(
   ),
   nrow = 3
 )
-x <- ngeo_points(coordinates, values = values)
+x <- ngeo_point(coordinates, values = values)
 axis <- ngeo_time_axis(
   time = c(0, 1, 3, 6),
   unit = "second"
@@ -58,18 +58,18 @@ Time slicing changes only the aligned map dimension.
 
 ```{r}
 slice <- ngeo_time_slice(x, index = c(1, 3))
-identical(ngeo_domain_hash(slice), ngeo_domain_hash(x))
+identical(base_hash(slice), base_hash(x))
 ngeo_get_time_axis(slice)$time
 ```
 
-## Space-time weights
+## Space-time spatial_weights
 
 Spatial and temporal operators remain independent sparse components. The
 combined operator records a Kronecker-sum contract but does not store the
-space-by-time matrix.
+coordinate_space-by-time matrix.
 
 ```{r}
-spatial <- ngeo_weights(
+spatial <- ngeo_spatial_weights(
   x, method = "distance_band", threshold = 1.1, style = "W"
 )
 temporal <- ngeo_temporal_weights(axis, style = "W")
@@ -87,7 +87,7 @@ moran
 ## Change and trend
 
 Variograms require a hard pair budget. Longitudinal helpers derive ordinary
-spatial maps with source domain and axis identities in provenance.
+spatial layers with source base and axis identities in history.
 
 ```{r}
 ngeo_temporal_variogram(x, breaks = 3, max_pairs = 100)
@@ -107,7 +107,7 @@ interval_axis <- ngeo_time_axis(
   interval_start = c(0, 1),
   interval_end = c(1, 3)
 )
-interval_data <- ngeo_points(
+interval_data <- ngeo_point(
   coordinates,
   values = matrix(1:6, nrow = 3)
 )

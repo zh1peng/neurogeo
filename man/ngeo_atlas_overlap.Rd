@@ -8,7 +8,7 @@ ngeo_atlas_overlap(
   first,
   second,
   source_support = NULL,
-  metric = c("intersection", "jaccard", "dice")
+  distance_method = c("intersection", "jaccard", "dice")
 )
 }
 \arguments{
@@ -18,7 +18,7 @@ ngeo_atlas_overlap(
 
 \item{source_support}{Optional common base support.}
 
-\item{metric}{Intersection, Jaccard, or Dice support.}
+\item{distance_method}{Intersection, Jaccard, or Dice support.}
 }
 \value{
 A sparse first-atlas by second-atlas matrix.

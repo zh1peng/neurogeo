@@ -2,7 +2,7 @@
 % Please edit documentation in R/support-map.R
 \name{ngeo_compose_support_map}
 \alias{ngeo_compose_support_map}
-\title{Compose compatible sparse support maps}
+\title{Compose compatible sparse support layers}
 \usage{
 ngeo_compose_support_map(first, second)
 }
@@ -15,5 +15,5 @@ ngeo_compose_support_map(first, second)
 A composed `ngeo_support_map`.
 }
 \description{
-Compose compatible sparse support maps
+Compose compatible sparse support layers
 }

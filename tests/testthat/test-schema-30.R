@@ -6,12 +6,12 @@ test_that("retained schema definitions cover core object families", {
   expect_true(all(c(
     "ngcs/ngeo-surface",
     "ngcs/ngeo-volume",
-    "ngcs/ngeo-points",
-    "ngcs/ngeo-grayordinates",
-    "ngcs/ngeo-regions",
-    "ngcs/space",
+    "ngcs/ngeo-point",
+    "ngcs/ngeo-grayordinate",
+    "ngcs/ngeo-parcellation",
+    "ngcs/coordinate_space",
     "ngcs/transform",
-    "ngcs/weights",
+    "ngcs/spatial_weights",
     "ngcs/partition",
     "ngcs/support-map",
     "ngcs/support-covariance",
@@ -19,8 +19,8 @@ test_that("retained schema definitions cover core object families", {
     "ngcs/resampling-plan",
     "ngcs/resampling-result",
     "ngcs/time-axis",
-    "ngcs/temporal-weights",
-    "ngcs/spatiotemporal-weights",
+    "ngcs/temporal-spatial_weights",
+    "ngcs/spatiotemporal-spatial_weights",
     "ngcs/solver-control",
     "ngcs/iterative-solution"
   ) %in% schema_ids))
@@ -36,13 +36,13 @@ test_that("retained schema definitions cover core object families", {
 test_that("generic validation delegates to authoritative validators", {
   source <- builder_surface(
     values = cbind(signal = c(1, 2, 3, 4)),
-    measures = ngeo_measure(spatial_semantics = "intensive")
+    measures = ngeo_measure(support_behavior = "intensive")
   )
   fixture <- diagnostic_fixture()
   objects <- list(
     source,
-    source$domain$space,
-    ngeo_weights(source, method = "mesh_contiguity"),
+    source$base$coordinate_space,
+    ngeo_spatial_weights(source, method = "mesh_contiguity"),
     ngeo_partition(source, c("A", "A", "B", "B")),
     ngeo_support_covariance(source, variance = rep(0.1, 4L)),
     fixture$soft
@@ -69,7 +69,7 @@ test_that("portable object manifests are deterministic and atomic", {
   skip_if_not_installed("jsonlite")
   x <- builder_surface(
     values = cbind(signal = c(1, 2, 3, 4)),
-    measures = ngeo_measure(spatial_semantics = "intensive")
+    measures = ngeo_measure(support_behavior = "intensive")
   )
   first <- ngeo_object_manifest(x)
   second <- ngeo_object_manifest(x)

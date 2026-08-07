@@ -20,7 +20,7 @@ ngeo_flatten_surface(
 
 \item{coordinates}{For imported charts, either a finite vertex-by-two
 coordinate matrix or an aligned `ngeo_surface` carrying a flat chart.
-A surface input verifies ordered source vertices and maps every imported
+A surface input verifies ordered source vertices and layers every imported
 face to the source topology; a registered flat surface may contain a
 verified subset of source faces around its cut or medial wall.}
 

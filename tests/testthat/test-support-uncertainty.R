@@ -1,4 +1,4 @@
-test_that("domain-bound diagonal covariance propagates analytically", {
+test_that("base-bound diagonal covariance propagates analytically", {
   fixture <- diagnostic_fixture()
   covariance <- ngeo_support_covariance(
     fixture$source,
@@ -9,7 +9,7 @@ test_that("domain-bound diagonal covariance propagates analytically", {
     fixture$target,
     fixture$hard,
     covariance,
-    maps = "outcome",
+    layers = "outcome",
     method = "analytic",
     output = "covariance"
   )
@@ -39,7 +39,7 @@ test_that("low-rank covariance retains shared target dependence", {
     fixture$target,
     fixture$hard,
     covariance,
-    maps = "outcome",
+    layers = "outcome",
     output = "covariance"
   )
 
@@ -62,14 +62,14 @@ test_that("analytic and Monte Carlo normalized covariance agree", {
     fixture$target,
     fixture$soft,
     covariance,
-    maps = "outcome"
+    layers = "outcome"
   )
   monte_carlo <- ngeo_support_uncertainty(
     fixture$source,
     fixture$target,
     fixture$soft,
     covariance,
-    maps = "outcome",
+    layers = "outcome",
     method = "monte_carlo",
     nsim = 3000,
     seed = 22
@@ -87,19 +87,19 @@ test_that("operator ensembles enforce common ordered domains", {
   fixture <- diagnostic_fixture()
   ensemble <- ngeo_registration_ensemble(
     list(hard = fixture$hard, soft = fixture$soft),
-    weights = c(0.25, 0.75)
+    spatial_weights = c(0.25, 0.75)
   )
 
   expect_s3_class(ensemble, "ngeo_support_ensemble")
   expect_identical(ensemble$kind, "registration")
-  expect_equal(ensemble$weights, c(0.25, 0.75))
+  expect_equal(ensemble$spatial_weights, c(0.25, 0.75))
   expect_silent(ngeo_validate_support_ensemble(ensemble))
 
   changed <- fixture$soft
   changed$target_element_id <- rev(changed$target_element_id)
   expect_error(
     ngeo_segmentation_ensemble(list(fixture$hard, changed)),
-    class = "ngeo_error_domain_mismatch"
+    class = "ngeo_error_base_mismatch"
   )
 })
 
@@ -117,7 +117,7 @@ test_that("Monte Carlo uncertainty cycles a declared operator ensemble", {
     fixture$target,
     fixture$hard,
     covariance,
-    maps = "outcome",
+    layers = "outcome",
     method = "monte_carlo",
     operator_ensemble = ensemble,
     nsim = 100,
@@ -167,7 +167,7 @@ test_that("enhanced diagnostics summarize structures and conditioning", {
     "entropy_q95",
     "mean_effective_target_count",
     "operator_variance_total"
-  ) %in% diagnostics$summary$metric))
+  ) %in% diagnostics$summary$distance_method))
 })
 
 test_that("ensemble sensitivity decomposes between-operator variance", {
@@ -187,7 +187,7 @@ test_that("ensemble sensitivity decomposes between-operator variance", {
   expect_true(all(result$distribution$total_variance >= 0))
 })
 
-test_that("covariance validation rejects domain and PSD violations", {
+test_that("covariance validation rejects base and PSD violations", {
   fixture <- diagnostic_fixture()
   invalid <- diag(4)
   invalid[1L, 2L] <- 2
@@ -205,16 +205,16 @@ test_that("covariance validation rejects domain and PSD violations", {
     variance = rep(1, 4)
   )
   other <- fixture$source
-  other$domain$elements$element_id[[1L]] <- "changed"
+  other$base$elements$element_id[[1L]] <- "changed"
   expect_error(
     neurogeo::ngeo_support_uncertainty(
       other,
       fixture$target,
       fixture$hard,
       covariance,
-      maps = "outcome"
+      layers = "outcome"
     ),
-    class = "ngeo_error_domain_mismatch"
+    class = "ngeo_error_base_mismatch"
   )
 })
 
@@ -223,11 +223,11 @@ test_that("random normalized covariance matches direct Jacobians", {
   for (iteration in seq_len(15L)) {
     n_source <- sample(8:20, 1L)
     n_target <- sample(2:5, 1L)
-    source <- ngeo_points(
+    source <- ngeo_point(
       cbind(seq_len(n_source), 0),
       values = stats::rnorm(n_source),
-      measures = ngeo_measure(spatial_semantics = "intensive"),
-      space = ngeo_space("covariance-property")
+      measures = ngeo_measure(support_behavior = "intensive"),
+      coordinate_space = ngeo_coordinate_space("covariance-property")
     )
     probability <- matrix(
       stats::rexp(n_source * n_target),
@@ -266,7 +266,7 @@ test_that("ensemble integrity hashes detect mutation", {
   ensemble <- ngeo_support_ensemble(
     list(fixture$hard, fixture$soft)
   )
-  ensemble$weights <- c(0.9, 0.1)
+  ensemble$spatial_weights <- c(0.9, 0.1)
 
   expect_error(
     ngeo_validate_support_ensemble(ensemble),

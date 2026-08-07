@@ -13,9 +13,9 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 ## 科学问题
 
-同一空间 domain 上的多位受试者、多种 feature 如何进入 neurogeo，而不
+同一空间 base 上的多位受试者、多种 feature 如何进入 neurogeo，而不
 引入新的 cohort 或 tensor 容器？答案仍然是一个 element × map values
-block；`maps` 表只负责恢复逻辑上的 `subject × feature` 索引。
+block；`layers` 表只负责恢复逻辑上的 `subject × feature` 索引。
 
 ```{r construct}
 library(neurogeo)
@@ -25,19 +25,19 @@ subjects <- rep(c("sub-01", "sub-02"), each = 2)
 features <- rep(c("thickness", "myelin"), 2)
 values <- outer(1:6, 1:4, function(i, j) sin(i / 2) + j / 5)
 
-x <- ngeo_points(
+x <- ngeo_point(
   coordinates,
   values = values,
-  maps = data.frame(
-    map_id = paste0("map-", 1:4),
+  layers = data.frame(
+    layer_id = paste0("map-", 1:4),
     name = paste(subjects, features, sep = "_"),
     subject_id = subjects,
     feature = features
   ),
   measures = do.call(rbind, lapply(features, function(feature) {
     ngeo_measure(
-      spatial_semantics = "intensive",
-      units = if (feature == "thickness") "mm" else "ratio"
+      support_behavior = "intensive",
+      unit = if (feature == "thickness") "mm" else "ratio"
     )
   }))
 )
@@ -60,14 +60,14 @@ layer 时，可以先用 `complete = "report"` 查看 availability，再由研�
 
 ## 精确绑定
 
-`ngeo_bind_maps()` 只拼接已经具有完全相同 ordered domain 的列：
+`ngeo_bind_layers()` 只拼接已经具有完全相同 ordered base 的列：
 
 ```{r bind}
-first <- ngeo_subset(x, 1:6, maps = 1:2)
-second <- ngeo_subset(x, 1:6, maps = 3:4)
-bound <- ngeo_bind_maps(first = first, second = second)
-dim(ngeo_values(bound))
-ngeo_maps(bound)[, c("subject_id", "feature")]
+first <- ngeo_subset(x, 1:6, layers = 1:2)
+second <- ngeo_subset(x, 1:6, layers = 3:4)
+bound <- ngeo_bind_layers(first = first, second = second)
+dim(values(bound))
+layers(bound)[, c("subject_id", "feature")]
 ```
 
 它不会估计 registration、重采样、按名称猜测对应关系，也不会把 metadata
@@ -81,4 +81,4 @@ region 不是独立受试者。
 ## Claim 与 non-claim
 
 可以声称 map columns 已按明确 unit/layer contract 对齐；不能因此声称已经
-完成组间检验，也不能把 domain 相同解释为不同原始数据已经自动配准。
+完成组间检验，也不能把 base 相同解释为不同原始数据已经自动配准。

@@ -16,5 +16,5 @@ A transformed copy of `x`.
 }
 \description{
 The operation changes geometry only. Element order, topology, values,
-maps, and measurement semantics are preserved exactly.
+layers, and measurement semantics are preserved exactly.
 }

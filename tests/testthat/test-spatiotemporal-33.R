@@ -10,7 +10,7 @@ time_points_fixture <- function(
     ),
     time = c(0, 1, 3, 6),
     semantics = "instantaneous") {
-  x <- ngeo_points(
+  x <- ngeo_point(
     matrix(c(0, 0, 1, 0, 2, 0), ncol = 2L, byrow = TRUE),
     values = values
   )
@@ -76,21 +76,22 @@ test_that("time axes are explicit, deterministic, and mutation-safe", {
   )
 })
 
-test_that("time binding and slicing preserve one spatial domain", {
+test_that("time binding and slicing preserve one spatial base", {
   x <- time_points_fixture()
   axis <- ngeo_get_time_axis(x)
-  domain_hash <- ngeo_domain_hash(x)
+  base_hash <- base_hash(x)
 
-  expect_identical(x$maps$time, axis$time)
+  expect_identical(x$layers$time, axis$time)
   expect_identical(
     x$measures$temporal_semantics,
-    rep("instantaneous", 4L)
+    "instantaneous"
   )
-  expect_identical(nrow(x$domain$elements), 3L)
+  expect_identical(x$layers$measure_id, rep("measure_unknown", 4L))
+  expect_identical(nrow(x$base$elements), 3L)
 
   sliced <- ngeo_time_slice(x, index = c(1L, 3L))
   ranged <- ngeo_time_slice(x, range = c(1, 3))
-  expect_identical(ngeo_domain_hash(sliced), domain_hash)
+  expect_identical(base_hash(sliced), base_hash)
   expect_identical(dim(sliced$values), c(3L, 2L))
   expect_identical(ngeo_get_time_axis(sliced)$time, c(0, 3))
   expect_identical(ngeo_get_time_axis(ranged)$time, c(1, 3))
@@ -116,7 +117,7 @@ test_that("time binding and slicing preserve one spatial domain", {
   )
 
   changed <- x
-  changed$maps$time[[1L]] <- -1
+  changed$layers$time[[1L]] <- -1
   expect_error(
     ngeo_get_time_axis(changed),
     class = "ngeo_error_time_axis_mutation"
@@ -124,7 +125,7 @@ test_that("time binding and slicing preserve one spatial domain", {
 })
 
 test_that("temporal semantics require matching support", {
-  x <- ngeo_points(
+  x <- ngeo_point(
     matrix(c(0, 0, 1, 0), ncol = 2L, byrow = TRUE),
     values = matrix(1:4, nrow = 2L)
   )
@@ -145,11 +146,11 @@ test_that("temporal semantics require matching support", {
   )
   expect_s3_class(
     ngeo_set_time_axis(x, interval, "interval_mean"),
-    "ngeo_points"
+    "ngeo_point"
   )
 })
 
-test_that("temporal weights are sparse, exact, and axis-bound", {
+test_that("temporal spatial_weights are sparse, exact, and axis-bound", {
   axis <- ngeo_time_axis(time = c(0, 1, 3, 6))
   adjacent <- ngeo_temporal_weights(axis, style = "B")
   lag_two <- ngeo_temporal_weights(
@@ -203,7 +204,7 @@ test_that("temporal weights are sparse, exact, and axis-bound", {
 
 test_that("matrix-free spatiotemporal lag matches Kronecker references", {
   x <- time_points_fixture()
-  spatial <- ngeo_weights(
+  spatial <- ngeo_spatial_weights(
     x, method = "distance_band", threshold = 1.1, style = "B"
   )
   temporal <- ngeo_temporal_weights(
@@ -211,37 +212,37 @@ test_that("matrix-free spatiotemporal lag matches Kronecker references", {
   )
 
   for (combination in c("sum", "product")) {
-    weights <- ngeo_spatiotemporal_weights(
+    spatial_weights <- ngeo_spatiotemporal_weights(
       spatial, temporal, combination = combination,
       spatial_scale = 0.25
     )
-    expect_silent(ngeo_validate_spatiotemporal_weights(weights))
-    reference <- ngeo_materialize_spatiotemporal_weights(weights)
-    observed <- ngeo_spatiotemporal_lag(x, weights)
+    expect_silent(ngeo_validate_spatiotemporal_weights(spatial_weights))
+    reference <- ngeo_materialize_spatiotemporal_weights(spatial_weights)
+    observed <- ngeo_spatiotemporal_lag(x, spatial_weights)
     expected <- matrix(
       as.numeric(reference %*% as.numeric(x$values)),
       nrow = nrow(x$values)
     )
 
     expect_equal(unname(observed), expected, tolerance = 1e-12)
-    expect_false(weights$matrix_materialized)
-    expect_false("matrix" %in% names(weights))
-    expect_identical(weights$domain_hash, ngeo_domain_hash(x))
+    expect_false(spatial_weights$matrix_materialized)
+    expect_false("matrix" %in% names(spatial_weights))
+    expect_identical(spatial_weights$base_hash, base_hash(x))
     expect_identical(
-      weights$axis_hash, ngeo_get_time_axis(x)$axis_hash
+      spatial_weights$axis_hash, ngeo_get_time_axis(x)$axis_hash
     )
   }
 
-  weights <- ngeo_spatiotemporal_weights(spatial, temporal)
+  spatial_weights <- ngeo_spatiotemporal_weights(spatial, temporal)
   expect_error(
     ngeo_materialize_spatiotemporal_weights(
-      weights, max_observations = 5
+      spatial_weights, max_observations = 5
     ),
     class = "ngeo_error_resource"
   )
   expect_error(
     ngeo_spatiotemporal_lag(
-      x, weights,
+      x, spatial_weights,
       budget = ngeo_resource_budget(materialized_elements = 5)
     ),
     class = "ngeo_error_resource"
@@ -253,10 +254,10 @@ test_that("temporal and spatiotemporal Moran agree with references", {
   temporal <- ngeo_temporal_weights(
     ngeo_get_time_axis(x), style = "B"
   )
-  spatial <- ngeo_weights(
+  spatial <- ngeo_spatial_weights(
     x, method = "distance_band", threshold = 1.1, style = "B"
   )
-  weights <- ngeo_spatiotemporal_weights(
+  spatial_weights <- ngeo_spatiotemporal_weights(
     spatial, temporal, spatial_scale = 0.4
   )
 
@@ -270,9 +271,9 @@ test_that("temporal and spatiotemporal Moran agree with references", {
   )
 
   result <- ngeo_spatiotemporal_moran(
-    x, weights, permutations = 19, seed = 33
+    x, spatial_weights, permutations = 19, seed = 33
   )
-  reference <- ngeo_materialize_spatiotemporal_weights(weights)
+  reference <- ngeo_materialize_spatiotemporal_weights(spatial_weights)
   expect_s3_class(result, "ngeo_spatiotemporal_moran")
   expect_equal(
     result$estimate,
@@ -286,7 +287,7 @@ test_that("temporal and spatiotemporal Moran agree with references", {
   expect_equal(
     result$simulated,
     ngeo_spatiotemporal_moran(
-      x, weights, permutations = 19, seed = 33
+      x, spatial_weights, permutations = 19, seed = 33
     )$simulated
   )
 })
@@ -333,21 +334,21 @@ test_that("longitudinal helpers obey temporal measurement support", {
   change <- ngeo_longitudinal_change(
     instant, from = 1, to = 4, scale = "rate"
   )
-  mean_map <- ngeo_temporal_contrast(instant, operation = "mean")
+  mean_layer <- ngeo_temporal_contrast(instant, operation = "mean")
 
   expect_equal(trend$values[, "intercept"], c(2, 5, 4))
   expect_equal(trend$values[, "slope"], c(3, -2, 0))
   expect_equal(as.numeric(change$values), c(3, -2, 0))
-  expect_equal(as.numeric(mean_map$values), rowMeans(values))
-  expect_identical(ngeo_domain_hash(trend), ngeo_domain_hash(instant))
-  expect_identical(nrow(trend$domain$elements), nrow(values))
+  expect_equal(as.numeric(mean_layer$values), rowMeans(values))
+  expect_identical(base_hash(trend), base_hash(instant))
+  expect_identical(nrow(trend$base$elements), nrow(values))
 
   interval_axis <- ngeo_time_axis(
     time = c(0.5, 2),
     interval_start = c(0, 1),
     interval_end = c(1, 3)
   )
-  base <- ngeo_points(
+  base <- ngeo_point(
     matrix(c(0, 0, 1, 0), ncol = 2L, byrow = TRUE),
     values = matrix(c(2, 4, 6, 8), nrow = 2L)
   )
@@ -383,7 +384,7 @@ test_that("3.3 schemas cover temporal objects", {
     time = c(0, 1, 2)
   )
   temporal <- ngeo_temporal_weights(axis)
-  spatial <- ngeo_weights(
+  spatial <- ngeo_spatial_weights(
     x, method = "distance_band", threshold = 1.1
   )
   joint <- ngeo_spatiotemporal_weights(spatial, temporal)
@@ -402,15 +403,15 @@ test_that("3.3 schemas cover temporal objects", {
   )
 })
 
-test_that("temporal arithmetic enforces and transforms measurement units", {
+test_that("temporal arithmetic enforces and transforms measurement unit", {
   coordinates <- matrix(c(0, 0), ncol = 2)
-  incompatible <- ngeo_points(
+  incompatible <- ngeo_point(
     coordinates,
     values = matrix(c(-2, -1), nrow = 1),
-    maps = data.frame(name = c("t1", "t2")),
+    layers = data.frame(name = c("t1", "t2")),
     measures = rbind(
-      ngeo_measure(spatial_semantics = "intensive", units = "mm"),
-      ngeo_measure(spatial_semantics = "intensive", units = "second")
+      ngeo_measure(support_behavior = "intensive", unit = "mm"),
+      ngeo_measure(support_behavior = "intensive", unit = "second")
     )
   )
   axis <- ngeo_time_axis(time = c(0, 1), unit = "second")
@@ -420,7 +421,7 @@ test_that("temporal arithmetic enforces and transforms measurement units", {
   )
 
   compatible <- incompatible
-  compatible$measures$units <- "mm"
+  compatible$measures$unit <- "mm"
   compatible <- ngeo_set_time_axis(compatible, axis)
   percent <- ngeo_longitudinal_change(
     compatible, scale = "percent"
@@ -429,7 +430,7 @@ test_that("temporal arithmetic enforces and transforms measurement units", {
   trend <- ngeo_temporal_trend(compatible)
 
   expect_equal(as.numeric(percent$values), -50)
-  expect_identical(percent$measures$units, "percent")
-  expect_identical(rate$measures$units, "mm/second")
-  expect_identical(trend$measures$units, c("mm", "mm/second"))
+  expect_identical(percent$measures$unit, "percent")
+  expect_identical(rate$measures$unit, "mm/second")
+  expect_identical(trend$measures$unit, c("mm", "mm/second"))
 })

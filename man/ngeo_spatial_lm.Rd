@@ -8,7 +8,7 @@ ngeo_spatial_lm(
   x,
   response,
   predictors = character(),
-  weights = NULL,
+  spatial_weights = NULL,
   model = c("ols", "slx"),
   na_action = c("fail", "omit"),
   zero_policy = FALSE
@@ -19,9 +19,9 @@ ngeo_spatial_lm(
 
 \item{response}{One response map.}
 
-\item{predictors}{Predictor maps.}
+\item{predictors}{Predictor layers.}
 
-\item{weights}{Optional matching `ngeo_weights`.}
+\item{spatial_weights}{Optional matching `ngeo_spatial_weights`.}
 
 \item{model}{`"ols"` or spatial-lag-of-X `"slx"`.}
 
@@ -35,22 +35,22 @@ An `ngeo_spatial_lm` object.
 \description{
 This foundational adapter fits OLS or SLX (spatial lags of predictors).
 It does not estimate SAR lag/error parameters. Residual Moran's I is
-reported when weights are supplied.
+reported when spatial_weights are supplied.
 }
 \examples{
 coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
 predictor <- coordinates[, 1] + coordinates[, 2]
-data <- ngeo_points(
+data <- ngeo_point(
   coordinates,
   values = cbind(
     response = 1 + 2 * predictor + rep(c(-0.1, 0, 0.1), 3),
     predictor = predictor
   )
 )
-weights <- ngeo_weights(
+spatial_weights <- ngeo_spatial_weights(
   data, method = "knn", k = 4, symmetry = "union"
 )
 ngeo_spatial_lm(
-  data, "response", "predictor", weights, model = "slx"
+  data, "response", "predictor", spatial_weights, model = "slx"
 )
 }

@@ -29,7 +29,7 @@ An `ngeo_support_diagnostics` object with sparse summaries and
 Diagnose a sparse support map
 }
 \examples{
-source <- ngeo_points(
+source <- ngeo_point(
   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE)
 )
 atlas <- ngeo_atlas_map(

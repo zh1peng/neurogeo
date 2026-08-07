@@ -1,17 +1,20 @@
 .ngeo_support_model_maps <- function(x, outcome, predictor) {
-  outcome <- .ngeo_map_selection(x, outcome)
-  predictor <- .ngeo_map_selection(x, predictor)
+  outcome <- .ngeo_layer_selection(x, outcome)
+  predictor <- .ngeo_layer_selection(x, predictor)
   if (length(outcome) != 1L || length(predictor) != 1L ||
       identical(outcome, predictor)) {
     .ngeo_abort(
-      "`outcome` and `predictor` must select two different maps.",
+      "`outcome` and `predictor` must select two different layers.",
       "ngeo_error_argument"
     )
   }
-  semantics <- x$measures$spatial_semantics[c(outcome, predictor)]
+  semantics <- .ngeo_measures_for_layers(
+    x,
+    c(outcome, predictor)
+  )$support_behavior
   if (any(semantics != "intensive")) {
     .ngeo_abort(
-      "Support-aware regression currently requires two intensive maps.",
+      "Support-aware regression currently requires two intensive layers.",
       "ngeo_error_measure"
     )
   }
@@ -34,7 +37,7 @@
     predictor = values[keep, 2L],
     support = support[keep]
   )
-  fit <- stats::lm(outcome ~ predictor, data = frame, weights = support)
+  fit <- stats::lm(outcome ~ predictor, data = frame, spatial_weights = support)
   coefficients <- summary(fit)$coefficients
   c(
     estimate = coefficients["predictor", "Estimate"],
@@ -47,17 +50,17 @@
 
 #' Estimate an effect across declared atlases
 #'
-#' The same two source maps are changed to every declared support before a
+#' The same two source layers are changed to every declared support before a
 #' support-weighted target-level regression is fitted. Coefficients are
 #' compared, not claimed to be parcellation invariant.
 #'
 #' @param x Source `ngeo` dataset.
-#' @param support_maps Source-to-atlas support maps.
+#' @param support_maps Source-to-atlas support layers.
 #' @param targets Matching target templates.
 #' @param outcome Outcome map.
 #' @param predictor Predictor map.
 #' @param allocation Extensive overlap policy passed through for API
-#'   consistency; current maps must be intensive.
+#'   consistency; current layers must be intensive.
 #' @param confidence Atlas-specific and consensus confidence level.
 #' @param bootstrap Optional common-source paired-value bootstrap replicates.
 #' @param seed Reproducible bootstrap seed.
@@ -106,7 +109,7 @@ ngeo_atlas_robust_effect <- function(
       "ngeo_error_alignment"
     )
   }
-  source_hash <- ngeo_domain_hash(x)
+  source_hash <- base_hash(x)
   estimates <- lapply(seq_along(support_maps), function(i) {
     map <- support_maps[[i]]
     target <- targets[[i]]
@@ -117,11 +120,11 @@ ngeo_atlas_robust_effect <- function(
         "ngeo_error_coverage"
       )
     }
-    changed <- ngeo_change_support(
+    changed <- aggregate_to(
       x,
       target,
       map,
-      maps = unname(selected),
+      layers = unname(selected),
       allocation = allocation
     )
     support <- map$target_support %||%
@@ -216,9 +219,9 @@ ngeo_atlas_robust_effect <- function(
       range = diff(range(estimates$estimate)),
       mad = stats::mad(estimates$estimate)
     ),
-    outcome = x$maps$name[selected[["outcome"]]],
-    predictor = x$maps$name[selected[["predictor"]]],
-    source_domain_hash = source_hash,
+    outcome = x$layers$name[selected[["outcome"]]],
+    predictor = x$layers$name[selected[["predictor"]]],
+    source_base_hash = source_hash,
     meta_analysis = meta_analysis,
     leave_one_out = if (is.null(meta_analysis)) {
       NULL
@@ -249,9 +252,9 @@ print.ngeo_atlas_robust_effect <- function(x, ...) {
   invisible(x)
 }
 
-#' Common-source permutation test across support maps
+#' Common-source permutation test across support layers
 #'
-#' One source-domain permutation is reused across every atlas in a replicate,
+#' One source-base permutation is reused across every atlas in a replicate,
 #' preserving comparability among atlas-specific null statistics.
 #'
 #' @inheritParams ngeo_atlas_robust_effect
@@ -293,18 +296,18 @@ ngeo_support_test <- function(
     )
     if (!identical(support_maps[[i]]$coverage, "complete")) {
       .ngeo_abort(
-        "Permutation comparison requires complete support maps.",
+        "Permutation comparison requires complete support layers.",
         "ngeo_error_coverage"
       )
     }
   }
   compute <- function(dataset) {
     vapply(seq_along(support_maps), function(i) {
-      changed <- ngeo_change_support(
+      changed <- aggregate_to(
         dataset,
         targets[[i]],
         support_maps[[i]],
-        maps = unname(selected)
+        layers = unname(selected)
       )
       values <- changed$values
       if (identical(statistic, "correlation")) {
@@ -362,7 +365,7 @@ ngeo_support_test <- function(
     nsim = nsim,
     seed = .ngeo_seed(seed),
     adjustment = adjustment,
-    source_domain_hash = ngeo_domain_hash(x),
+    source_base_hash = base_hash(x),
     permutation_domain = "common_source",
     claim = "common-source atlas comparison; not a spatially constrained null"
   )
@@ -377,7 +380,7 @@ print.ngeo_support_test <- function(x, ...) {
     "  statistic: ", x$statistic, "\n",
     "  atlases: ", nrow(x$estimates), "\n",
     "  permutations: ", x$nsim, "\n",
-    "  permutation domain: ", x$permutation_domain, "\n",
+    "  permutation base: ", x$permutation_domain, "\n",
     sep = ""
   )
   invisible(x)
@@ -398,9 +401,9 @@ print.ngeo_support_test <- function(x, ...) {
   result
 }
 
-#' Summarize boundary and assignment sensitivity among support maps
+#' Summarize boundary and assignment sensitivity among support layers
 #'
-#' @param support_maps Two or more maps on one ordered source domain.
+#' @param support_maps Two or more layers on one ordered source base.
 #' @param reference Reference map index.
 #' @param source_support Optional common source support.
 #'
@@ -412,14 +415,14 @@ ngeo_boundary_sensitivity <- function(
     source_support = NULL) {
   if (!is.list(support_maps) || length(support_maps) < 2L) {
     .ngeo_abort(
-      "`support_maps` must contain at least two maps.",
+      "`support_maps` must contain at least two layers.",
       "ngeo_error_argument"
     )
   }
   lapply(support_maps, ngeo_validate_support_map)
   source_hash <- vapply(
     support_maps,
-    function(map) map$source_domain_hash,
+    function(map) map$source_base_hash,
     character(1)
   )
   if (length(unique(source_hash)) != 1L ||
@@ -432,8 +435,8 @@ ngeo_boundary_sensitivity <- function(
         logical(1)
       ))) {
     .ngeo_abort(
-      "Boundary sensitivity requires one ordered source domain.",
-      "ngeo_error_domain_mismatch"
+      "Boundary sensitivity requires one ordered source base.",
+      "ngeo_error_base_mismatch"
     )
   }
   reference <- .ngeo_as_integer(reference, "reference")

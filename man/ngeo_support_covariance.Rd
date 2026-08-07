@@ -2,7 +2,7 @@
 % Please edit documentation in R/support-uncertainty.R
 \name{ngeo_support_covariance}
 \alias{ngeo_support_covariance}
-\title{Construct domain-bound value covariance}
+\title{Construct base-bound value covariance}
 \usage{
 ngeo_support_covariance(
   x,
@@ -10,7 +10,7 @@ ngeo_support_covariance(
   covariance = NULL,
   factor = NULL,
   tolerance = 1e-10,
-  provenance = list()
+  history = list()
 )
 }
 \arguments{
@@ -25,7 +25,7 @@ matrix product with its transpose.}
 
 \item{tolerance}{Symmetry and positive-semidefinite tolerance.}
 
-\item{provenance}{Optional covariance provenance.}
+\item{history}{Optional covariance history.}
 }
 \value{
 An `ngeo_support_covariance`.

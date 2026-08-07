@@ -20,7 +20,7 @@ support sensitivity with different random null draws and inflates the number
 of opportunities for a false positive. A common-support test treats the
 declared atlases as one inferential family.
 
-One source-domain null realization is generated per replicate and applied to
+One source-base null realization is generated per replicate and applied to
 every support map. The resulting joint null distribution supports family-wise
 adjustments such as maxT while preserving the dependence among atlas results.
 
@@ -43,10 +43,10 @@ source <- ngeo_surface(
     predictor = c(0, 1, 2, 1, 3, 5)
   ),
   measures = rbind(
-    ngeo_measure(spatial_semantics = "intensive"),
-    ngeo_measure(spatial_semantics = "intensive")
+    ngeo_measure(support_behavior = "intensive"),
+    ngeo_measure(support_behavior = "intensive")
   ),
-  space = ngeo_space("support-inference-example", kind = "surface")
+  coordinate_space = ngeo_coordinate_space("support-inference-example", kind = "surface")
 )
 first <- ngeo_atlas_map(source, c("A", "A", "B", "B", "C", "C"))
 second <- ngeo_atlas_map(
@@ -54,20 +54,20 @@ second <- ngeo_atlas_map(
   c("A", "B", "B", "C", "C", "A"),
   target = first$target
 )
-maps <- list(first = first, second = second)
+layers <- list(first = first, second = second)
 targets <- rep(list(first$target), 2)
 ```
 
 ## Choose a null model
 
 An unconstrained permutation is explicitly marked as non-spatial. Use a
-Moran spectral null with matching weights or a surface spin with valid
+Moran spectral null with matching spatial_weights or a surface spin with valid
 spherical registration coordinates when spatial preservation is required.
 
 ```{r}
 family_test <- ngeo_common_support_test(
   source,
-  maps,
+  layers,
   targets,
   outcome = "outcome",
   predictor = "predictor",
@@ -87,7 +87,7 @@ and leave-one-atlas-out influence.
 ```{r}
 effect <- ngeo_atlas_robust_effect(
   source,
-  maps,
+  layers,
   targets,
   outcome = "outcome",
   predictor = "predictor"
@@ -103,7 +103,7 @@ Scale order is never inferred. It must be declared by the caller.
 ```{r}
 multiscale <- ngeo_multiscale_inference(
   source,
-  maps,
+  layers,
   targets,
   scales = c("coarse", "fine"),
   outcome = "outcome",

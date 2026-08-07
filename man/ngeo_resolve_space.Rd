@@ -2,18 +2,18 @@
 % Please edit documentation in R/space-graph.R
 \name{ngeo_resolve_space}
 \alias{ngeo_resolve_space}
-\title{Resolve a space, exact hash, unique space ID, or alias}
+\title{Resolve a coordinate_space, exact hash, unique coordinate_space ID, or alias}
 \usage{
-ngeo_resolve_space(registry, space)
+ngeo_resolve_space(registry, coordinate_space)
 }
 \arguments{
-\item{registry}{An `ngeo_space_registry`.}
+\item{registry}{An `ngeo_coordinate_space_registry`.}
 
-\item{space}{An `ngeo_space` or one character identifier.}
+\item{coordinate_space}{An `ngeo_coordinate_space` or one character identifier.}
 }
 \value{
-The registered `ngeo_space`.
+The registered `ngeo_coordinate_space`.
 }
 \description{
-Resolve a space, exact hash, unique space ID, or alias
+Resolve a coordinate_space, exact hash, unique coordinate_space ID, or alias
 }

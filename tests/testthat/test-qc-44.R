@@ -1,5 +1,5 @@
 test_that("QC reports bounded value and semantic risks", {
-  x <- ngeo_points(
+  x <- ngeo_point(
     matrix(c(0, 0, 1, 0, 2, 0), ncol = 2, byrow = TRUE),
     values = cbind(
       constant = c(1, 1, 1),
@@ -34,10 +34,10 @@ test_that("QC reports bounded value and semantic risks", {
 })
 
 test_that("QC respects the values scan budget", {
-  x <- ngeo_points(
+  x <- ngeo_point(
     cbind(seq_len(10), 0),
     values = cbind(signal = seq_len(10)),
-    measures = ngeo_measure(spatial_semantics = "intensive", units = "a.u.")
+    measures = ngeo_measure(support_behavior = "intensive", unit = "a.u.")
   )
   qc <- ngeo_qc(x, max_value_cells = 5)
 
@@ -48,15 +48,15 @@ test_that("QC respects the values scan budget", {
   expect_null(qc$map_summary)
 })
 
-test_that("QC covers every domain without inventing topology", {
+test_that("QC covers every base without inventing topology", {
   surface <- qc_cartography_disk()
   volume <- ngeo_volume(
     c(2, 2, 1),
     affine = diag(4),
     values = array(1:4, dim = c(2, 2, 1))
   )
-  points <- ngeo_points(matrix(c(0, 0, 1, 0), ncol = 2, byrow = TRUE))
-  gray <- ngeo_grayordinates(list(
+  point <- ngeo_point(matrix(c(0, 0, 1, 0), ncol = 2, byrow = TRUE))
+  gray <- ngeo_grayordinate(list(
     list(
       component_id = "left",
       kind = "surface",
@@ -67,18 +67,18 @@ test_that("QC covers every domain without inventing topology", {
       geometry = surface
     )
   ))
-  regions <- ngeo_regions(
+  parcellation <- ngeo_parcellation(
     data.frame(region_id = c("A", "B")),
     adjacency = Matrix::Matrix(matrix(c(0, 1, 1, 0), 2), sparse = TRUE)
   )
 
   reports <- lapply(
-    list(surface, volume, points, gray, regions),
+    list(surface, volume, point, gray, parcellation),
     ngeo_qc
   )
   expect_identical(
     vapply(reports, `[[`, character(1), "domain_type"),
-    c("surface", "volume", "points", "grayordinates", "regions")
+    c("surface", "volume", "point", "grayordinate", "parcellation")
   )
   point_topology <- reports[[3L]]$checks[
     reports[[3L]]$checks$check == "topology",
@@ -116,8 +116,8 @@ test_that("QC summarizes charts and sparse support diagnostics", {
 })
 
 test_that("QC validates arguments and support alignment", {
-  x <- ngeo_points(matrix(c(0, 0, 1, 0), ncol = 2, byrow = TRUE))
-  other <- ngeo_points(matrix(c(0, 0, 2, 0), ncol = 2, byrow = TRUE))
+  x <- ngeo_point(matrix(c(0, 0, 1, 0), ncol = 2, byrow = TRUE))
+  other <- ngeo_point(matrix(c(0, 0, 2, 0), ncol = 2, byrow = TRUE))
   map <- ngeo_atlas_map(other, c("A", "B"), source_support = c(1, 1))
 
   expect_error(ngeo_qc(x, tolerance = 0), class = "ngeo_error_argument")

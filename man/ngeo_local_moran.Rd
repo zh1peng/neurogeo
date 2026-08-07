@@ -6,7 +6,7 @@
 \usage{
 ngeo_local_moran(
   x,
-  weights,
+  spatial_weights,
   map = 1L,
   permutations = 0L,
   alternative = c("two.sided", "greater", "less"),
@@ -21,7 +21,7 @@ ngeo_local_moran(
 \arguments{
 \item{x}{An `ngeo` dataset.}
 
-\item{weights}{Matching `ngeo_weights`.}
+\item{spatial_weights}{Matching `ngeo_spatial_weights`.}
 
 \item{map}{One map name, ID, or index.}
 
@@ -51,10 +51,10 @@ An `ngeo_lisa` data frame aligned to the analysed elements.
 Local Moran statistics (LISA)
 }
 \examples{
-points <- ngeo_points(
+point <- ngeo_point(
   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
   values = cbind(signal = c(1, 2, 4, 3))
 )
-weights <- ngeo_weights(points, method = "knn", k = 2)
-ngeo_local_moran(points, weights, "signal", permutations = 19, seed = 7)
+spatial_weights <- ngeo_spatial_weights(point, method = "knn", k = 2)
+ngeo_local_moran(point, spatial_weights, "signal", permutations = 19, seed = 7)
 }

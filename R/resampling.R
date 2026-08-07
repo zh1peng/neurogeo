@@ -31,8 +31,8 @@
 .ngeo_resampling_identity <- function(x) {
   list(
     schema = "NGCS-resampling-plan-1",
-    source_domain_hash = x$source_domain_hash,
-    target_domain_hash = x$target_domain_hash,
+    source_base_hash = x$source_base_hash,
+    target_base_hash = x$target_base_hash,
     path_hash = x$path$path_hash,
     composed_transform_hash = if (is.null(x$path$composed)) {
       NULL
@@ -56,15 +56,15 @@
     )
   }
   if (!identical(
-    ngeo_space_hash(source$domain$space),
-    ngeo_space_hash(path$from)
+    ngeo_coordinate_space_hash(source$base$coordinate_space),
+    ngeo_coordinate_space_hash(path$from)
   ) || !identical(
-    ngeo_space_hash(target$domain$space),
-    ngeo_space_hash(path$to)
+    ngeo_coordinate_space_hash(target$base$coordinate_space),
+    ngeo_coordinate_space_hash(path$to)
   )) {
     .ngeo_abort(
       "Transform-path endpoints do not match the exact source and target spaces.",
-      "ngeo_error_space_mismatch"
+      "ngeo_error_coordinate_space_mismatch"
     )
   }
   if (any(path$lossy) || !isTRUE(path$applicable) ||
@@ -128,14 +128,14 @@
 #' registration, resolves path ambiguity, or resamples until a later call
 #' explicitly sets `authorize = TRUE`.
 #'
-#' @param source,target Source data and target-domain template.
+#' @param source,target Source data and target-base template.
 #' @param path An explicitly selected `ngeo_transform_path` from the exact
-#' source space to the exact target space.
+#' source coordinate_space to the exact target coordinate_space.
 #' @param method Nearest, linear/trilinear, barycentric, or exact
 #' axis-aligned overlap mapping.
 #' @param coverage Geometric coverage policy: reject, retain partial
 #' contributions, or normalize covered contributions.
-#' @param conservation For extensive/count maps, reject non-unit allocation
+#' @param conservation For extensive/count layers, reject non-unit allocation
 #' or explicitly normalize it.
 #' @param missing Reject or explicitly drop wholly unmapped source support.
 #' @param unknown Interpretation of unknown measurement semantics.
@@ -232,8 +232,8 @@ ngeo_resampling_plan <- function(
         !identical(
           dim(weight_variance),
           c(
-            nrow(target$domain$elements),
-            nrow(source$domain$elements)
+            nrow(target$base$elements),
+            nrow(source$base$elements)
           )
         )) {
       .ngeo_abort(
@@ -269,8 +269,8 @@ ngeo_resampling_plan <- function(
     list(
       source = source,
       target = target,
-      source_domain_hash = ngeo_domain_hash(source),
-      target_domain_hash = ngeo_domain_hash(target),
+      source_base_hash = base_hash(source),
+      target_base_hash = base_hash(target),
       path = path,
       method = method,
       policies = list(
@@ -328,8 +328,8 @@ ngeo_validate_resampling_plan <- function(x) {
       c("none", "value", "value_and_mapping")
   if (!x$method %in% methods || !valid_policies ||
       !inherits(x$budget, "ngeo_resource_budget") ||
-      !identical(ngeo_domain_hash(x$source), x$source_domain_hash) ||
-      !identical(ngeo_domain_hash(x$target), x$target_domain_hash)) {
+      !identical(base_hash(x$source), x$source_base_hash) ||
+      !identical(base_hash(x$target), x$target_base_hash)) {
     .ngeo_abort(
       "Resampling plan domains, method, policies, or budget changed.",
       "ngeo_error_resampling_plan_mutation"
@@ -348,7 +348,7 @@ ngeo_validate_resampling_plan <- function(x) {
 }
 
 .ngeo_resampling_budget_map <- function(plan) {
-  n_source <- nrow(plan$source$domain$elements)
+  n_source <- nrow(plan$source$base$elements)
   multiplier <- switch(
     plan$method,
     nearest = 1,
@@ -464,15 +464,15 @@ ngeo_validate_resampling_plan <- function(x) {
   if (!is.null(plan$weight_variance)) {
     map$weight_variance <- plan$weight_variance
   }
-  map$provenance$resampling <- list(
+  map$history$resampling <- list(
     schema = "NGCS-resampling-support-1",
     plan_hash = plan$plan_hash,
-    path = ngeo_transform_path_provenance(plan$path),
+    path = ngeo_transform_path_history(plan$path),
     method = plan$method,
     policies = plan$policies,
-    transformed_source_domain_hash = ngeo_domain_hash(transformed),
-    original_source_domain_hash = plan$source_domain_hash,
-    target_domain_hash = plan$target_domain_hash,
+    transformed_source_base_hash = base_hash(transformed),
+    original_source_base_hash = plan$source_base_hash,
+    target_base_hash = plan$target_base_hash,
     registration_estimated = FALSE,
     implicit_resampling = FALSE
   )
@@ -484,7 +484,7 @@ ngeo_validate_resampling_plan <- function(x) {
 #'
 #' @param plan A validated `ngeo_resampling_plan`.
 #' @param authorize Must be explicitly `TRUE`.
-#' @return An `ngeo_support_map` carrying joint path/plan provenance.
+#' @return An `ngeo_support_map` carrying joint path/plan history.
 #' @export
 ngeo_build_resampling_map <- function(plan, authorize = FALSE) {
   .ngeo_resampling_build(plan, authorize)$map
@@ -501,12 +501,12 @@ ngeo_resampling_diagnostics <- function(
     plan, support_map, tolerance = 1e-10) {
   ngeo_validate_resampling_plan(plan)
   ngeo_validate_support_map(support_map, tolerance)
-  provenance <- support_map$provenance$resampling
-  if (!is.list(provenance) ||
-      !identical(provenance$plan_hash, plan$plan_hash) ||
+  history <- support_map$history$resampling
+  if (!is.list(history) ||
+      !identical(history$plan_hash, plan$plan_hash) ||
       !identical(
-        support_map$target_domain_hash,
-        plan$target_domain_hash
+        support_map$target_base_hash,
+        plan$target_base_hash
       )) {
     .ngeo_abort(
       "Support map was not built from this resampling plan.",
@@ -610,9 +610,9 @@ ngeo_resampling_diagnostics <- function(
       !inherits(x$data, "ngeo") ||
       !inherits(x$support_map, "ngeo_support_map") ||
       !inherits(x$diagnostics, "ngeo_resampling_diagnostics") ||
-      !is.list(x$provenance) ||
+      !is.list(x$history) ||
       !identical(
-        x$provenance$joint_hash,
+        x$history$joint_hash,
         x$diagnostics$joint_hash
       )) {
     .ngeo_abort(
@@ -628,7 +628,7 @@ ngeo_resampling_diagnostics <- function(
 #' Execute one explicitly authorized resampling plan
 #'
 #' @param plan A validated `ngeo_resampling_plan`.
-#' @param maps Optional source map selection.
+#' @param layers Optional source map selection.
 #' @param value_variance Optional source-by-selected-map independent variance.
 #' @param authorize Must be explicitly `TRUE`.
 #' @param output_path Optional one-artifact output path.
@@ -636,22 +636,22 @@ ngeo_resampling_diagnostics <- function(
 #' temporary output path. It must create exactly that one file.
 #' @param overwrite Whether an atomic output may replace an existing file.
 #' @return An `ngeo_resampling_result` with data, map, optional variance,
-#' diagnostics, provenance, and optional atomic output metadata.
+#' diagnostics, history, and optional atomic output metadata.
 #' @export
 ngeo_resample <- function(
     plan,
-    maps = NULL,
+    layers = NULL,
     value_variance = NULL,
     authorize = FALSE,
     output_path = NULL,
     writer = NULL,
     overwrite = FALSE) {
   built <- .ngeo_resampling_build(plan, authorize)
-  map_index <- .ngeo_map_selection(built$source, maps)
+  layer_index <- .ngeo_layer_selection(built$source, layers)
   materialized <- (
-    nrow(built$source$domain$elements) +
-      nrow(plan$target$domain$elements)
-  ) * length(map_index)
+    nrow(built$source$base$elements) +
+      nrow(plan$target$base$elements)
+  ) * length(layer_index)
   .ngeo_budget_assert(
     plan$budget, "materialized_elements", materialized
   )
@@ -660,11 +660,11 @@ ngeo_resample <- function(
     8 * materialized +
       as.numeric(utils::object.size(built$map$operator))
   )
-  data <- ngeo_change_support(
+  data <- aggregate_to(
     built$source,
     plan$target,
     built$map,
-    maps = maps,
+    layers = layers,
     allocation = if (
       identical(plan$policies$conservation, "normalize")
     ) "normalize" else "error",
@@ -694,7 +694,7 @@ ngeo_resample <- function(
       plan$target,
       built$map,
       value_variance = value_variance,
-      maps = maps,
+      layers = layers,
       allocation = if (
         identical(plan$policies$conservation, "normalize")
       ) "normalize" else "error",
@@ -703,18 +703,18 @@ ngeo_resample <- function(
     )
   }
   diagnostics <- ngeo_resampling_diagnostics(plan, built$map)
-  provenance <- list(
+  history <- list(
     schema = "NGCS-resampling-result-1",
     specification = "NGCS 3.2",
     plan_hash = plan$plan_hash,
-    path = ngeo_transform_path_provenance(plan$path),
+    path = ngeo_transform_path_history(plan$path),
     support_map_hash = diagnostics$support_map_hash,
     joint_hash = diagnostics$joint_hash,
     policies = plan$policies,
     registration_estimated = FALSE,
     implicit_resampling = FALSE
   )
-  data$provenance$resampling <- provenance
+  data$history$resampling <- history
   output <- NULL
   if (xor(is.null(output_path), is.null(writer))) {
     .ngeo_abort(
@@ -739,7 +739,7 @@ ngeo_resample <- function(
       support_map = built$map,
       variance = variance,
       diagnostics = diagnostics,
-      provenance = provenance,
+      history = history,
       output = output
     ),
     class = "ngeo_resampling_result"
@@ -774,11 +774,11 @@ print.ngeo_resampling_diagnostics <- function(x, ...) {
 #' @export
 print.ngeo_resampling_result <- function(x, ...) {
   cat(
-    "<ngeo_resampling_result>\n  domain: ",
-    x$data$domain$type,
-    "\n  maps: ", nrow(x$data$maps),
+    "<ngeo_resampling_result>\n  base: ",
+    x$data$base$type,
+    "\n  layers: ", nrow(x$data$layers),
     "\n  variance: ", !is.null(x$variance),
-    "\n  joint hash: ", x$provenance$joint_hash, "\n",
+    "\n  joint hash: ", x$history$joint_hash, "\n",
     sep = ""
   )
   invisible(x)

@@ -2,7 +2,7 @@
 % Please edit documentation in R/space-graph.R
 \name{ngeo_transform_graph_diagnostics}
 \alias{ngeo_transform_graph_diagnostics}
-\title{Diagnose cycles, ambiguity, and edge space mismatches}
+\title{Diagnose cycles, ambiguity, and edge coordinate_space mismatches}
 \usage{
 ngeo_transform_graph_diagnostics(graph)
 }
@@ -13,5 +13,5 @@ ngeo_transform_graph_diagnostics(graph)
 An `ngeo_transform_graph_diagnostics`.
 }
 \description{
-Diagnose cycles, ambiguity, and edge space mismatches
+Diagnose cycles, ambiguity, and edge coordinate_space mismatches
 }

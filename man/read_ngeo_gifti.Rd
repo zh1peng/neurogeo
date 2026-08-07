@@ -2,15 +2,15 @@
 % Please edit documentation in R/io-gifti.R
 \name{read_ngeo_gifti}
 \alias{read_ngeo_gifti}
-\title{Read GIFTI geometry, metric, and labels}
+\title{Read GIFTI geometry, distance_method, and labels}
 \usage{
 read_ngeo_gifti(
   geometry,
   data = NULL,
   labels = NULL,
-  maps = NULL,
+  layers = NULL,
   measures = NULL,
-  space = NULL,
+  coordinate_space = NULL,
   coordinate_roles = NULL,
   strict = TRUE,
   checksum = TRUE
@@ -19,15 +19,15 @@ read_ngeo_gifti(
 \arguments{
 \item{geometry}{One or more GIFTI surface paths.}
 
-\item{data}{Optional metric/shape/functional GIFTI paths.}
+\item{data}{Optional distance_method/shape/functional GIFTI paths.}
 
 \item{labels}{Optional label GIFTI paths.}
 
-\item{maps}{Optional map metadata overriding generated names.}
+\item{layers}{Optional map metadata overriding generated names.}
 
 \item{measures}{Optional measurement semantics.}
 
-\item{space}{Optional `ngeo_space`.}
+\item{coordinate_space}{Optional `ngeo_coordinate_space`.}
 
 \item{coordinate_roles}{Optional roles for coordinate files.}
 
@@ -39,5 +39,5 @@ read_ngeo_gifti(
 An `ngeo_surface` object.
 }
 \description{
-Read GIFTI geometry, metric, and labels
+Read GIFTI geometry, distance_method, and labels
 }

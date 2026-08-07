@@ -6,57 +6,57 @@
       "ngeo_error_values"
     )
   }
-  response_index <- .ngeo_map_selection(x, response)
+  response_index <- .ngeo_layer_selection(x, response)
   predictor_index <- if (length(predictors)) {
-    .ngeo_map_selection(x, predictors)
+    .ngeo_layer_selection(x, predictors)
   } else {
     integer()
   }
   if (length(response_index) != 1L ||
       anyDuplicated(c(response_index, predictor_index))) {
     .ngeo_abort(
-      "Select one response and distinct predictor maps.",
+      "Select one response and distinct predictor layers.",
       "ngeo_error_argument"
     )
   }
   selected <- c(response_index, predictor_index)
   if (any(
-    x$measures$spatial_semantics[selected] == "categorical"
+    .ngeo_measures_for_layers(x, selected)$support_behavior == "categorical"
   )) {
     .ngeo_abort(
-      "Categorical maps cannot enter a numeric spatial model.",
+      "Categorical layers cannot enter a numeric spatial model.",
       "ngeo_error_measure"
     )
   }
   list(
     response = response_index,
     predictors = predictor_index,
-    response_name = x$maps$name[[response_index]],
-    predictor_names = x$maps$name[predictor_index]
+    response_name = x$layers$name[[response_index]],
+    predictor_names = x$layers$name[predictor_index]
   )
 }
 
-.ngeo_model_weights <- function(x, weights, index, zero_policy) {
-  if (is.null(weights)) {
+.ngeo_model_weights <- function(x, spatial_weights, index, zero_policy) {
+  if (is.null(spatial_weights)) {
     return(NULL)
   }
-  if (!inherits(weights, "ngeo_weights")) {
+  if (!inherits(spatial_weights, "ngeo_spatial_weights")) {
     .ngeo_abort(
-      "`weights` must be an `ngeo_weights` object.",
+      "`spatial_weights` must be an `ngeo_spatial_weights` object.",
       "ngeo_error_argument"
     )
   }
-  if (!identical(weights$domain_hash, ngeo_domain_hash(x))) {
+  if (!identical(spatial_weights$base_hash, base_hash(x))) {
     .ngeo_abort(
-      "Weights domain hash does not match the dataset.",
-      "ngeo_error_domain_mismatch"
+      "Weights base hash does not match the dataset.",
+      "ngeo_error_base_mismatch"
     )
   }
   raw <- .ngeo_as_dgCMatrix(
-    weights$raw_matrix[index, index, drop = FALSE]
+    spatial_weights$raw_matrix[index, index, drop = FALSE]
   )
   matrix <- switch(
-    weights$normalization,
+    spatial_weights$normalization,
     W = .ngeo_row_standardize(raw),
     B = .ngeo_binary(raw),
     none = raw
@@ -64,7 +64,7 @@
   isolated <- Matrix::rowSums(abs(matrix)) == 0
   if (any(isolated) && !isTRUE(zero_policy)) {
     .ngeo_abort(
-      "Model weights contain isolates; set `zero_policy = TRUE` to retain them.",
+      "Model spatial_weights contain isolates; set `zero_policy = TRUE` to retain them.",
       "ngeo_error_zero_policy"
     )
   }
@@ -75,12 +75,12 @@
 #'
 #' This foundational adapter fits OLS or SLX (spatial lags of predictors).
 #' It does not estimate SAR lag/error parameters. Residual Moran's I is
-#' reported when weights are supplied.
+#' reported when spatial_weights are supplied.
 #'
 #' @param x An `ngeo` dataset.
 #' @param response One response map.
-#' @param predictors Predictor maps.
-#' @param weights Optional matching `ngeo_weights`.
+#' @param predictors Predictor layers.
+#' @param spatial_weights Optional matching `ngeo_spatial_weights`.
 #' @param model `"ols"` or spatial-lag-of-X `"slx"`.
 #' @param na_action Whether to fail or omit incomplete rows.
 #' @param zero_policy Whether to retain isolates.
@@ -89,36 +89,36 @@
 #' @examples
 #' coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
 #' predictor <- coordinates[, 1] + coordinates[, 2]
-#' data <- ngeo_points(
+#' data <- ngeo_point(
 #'   coordinates,
 #'   values = cbind(
 #'     response = 1 + 2 * predictor + rep(c(-0.1, 0, 0.1), 3),
 #'     predictor = predictor
 #'   )
 #' )
-#' weights <- ngeo_weights(
+#' spatial_weights <- ngeo_spatial_weights(
 #'   data, method = "knn", k = 4, symmetry = "union"
 #' )
 #' ngeo_spatial_lm(
-#'   data, "response", "predictor", weights, model = "slx"
+#'   data, "response", "predictor", spatial_weights, model = "slx"
 #' )
 #' @export
 ngeo_spatial_lm <- function(
     x,
     response,
     predictors = character(),
-    weights = NULL,
+    spatial_weights = NULL,
     model = c("ols", "slx"),
     na_action = c("fail", "omit"),
     zero_policy = FALSE) {
   model <- match.arg(model)
   na_action <- match.arg(na_action)
-  maps <- .ngeo_model_maps(x, response, predictors)
-  response_values <- as.numeric(x$values[, maps$response])
-  predictor_values <- if (length(maps$predictors)) {
-    x$values[, maps$predictors, drop = FALSE]
+  layers <- .ngeo_model_maps(x, response, predictors)
+  response_values <- as.numeric(x$values[, layers$response])
+  predictor_values <- if (length(layers$predictors)) {
+    x$values[, layers$predictors, drop = FALSE]
   } else {
-    matrix(numeric(), nrow = nrow(x$domain$elements), ncol = 0L)
+    matrix(numeric(), nrow = nrow(x$base$elements), ncol = 0L)
   }
   finite <- is.finite(response_values)
   if (ncol(predictor_values)) {
@@ -126,7 +126,7 @@ ngeo_spatial_lm <- function(
   }
   if (identical(na_action, "fail") && !all(finite)) {
     .ngeo_abort(
-      "Model maps contain missing or non-finite values.",
+      "Model layers contain missing or non-finite values.",
       "ngeo_error_missing"
     )
   }
@@ -137,10 +137,10 @@ ngeo_spatial_lm <- function(
       "ngeo_error_model"
     )
   }
-  matrix <- .ngeo_model_weights(x, weights, index, zero_policy)
+  matrix <- .ngeo_model_weights(x, spatial_weights, index, zero_policy)
   if (identical(model, "slx") && is.null(matrix)) {
     .ngeo_abort(
-      "An SLX model requires matching spatial weights.",
+      "An SLX model requires matching spatial spatial_weights.",
       "ngeo_error_weights"
     )
   }
@@ -148,10 +148,10 @@ ngeo_spatial_lm <- function(
     `(Intercept)` = 1,
     predictor_values[index, , drop = FALSE]
   )
-  colnames(design) <- c("(Intercept)", maps$predictor_names)
-  if (identical(model, "slx") && length(maps$predictors)) {
+  colnames(design) <- c("(Intercept)", layers$predictor_names)
+  if (identical(model, "slx") && length(layers$predictors)) {
     lagged <- as.matrix(matrix %*% predictor_values[index, , drop = FALSE])
-    colnames(lagged) <- paste0("lag_", maps$predictor_names)
+    colnames(lagged) <- paste0("lag_", layers$predictor_names)
     design <- cbind(design, lagged)
   }
   if (nrow(design) <= ncol(design)) {
@@ -204,16 +204,16 @@ ngeo_spatial_lm <- function(
     coefficients = coefficients,
     fitted = as.numeric(fit$fitted.values),
     residuals = as.numeric(fit$residuals),
-    element_id = x$domain$elements$element_id[index],
+    element_id = x$base$elements$element_id[index],
     complete_index = index,
-    response = maps$response_name,
-    predictors = maps$predictor_names,
+    response = layers$response_name,
+    predictors = layers$predictor_names,
     r.squared = 1 - sum(fit$residuals^2) / total,
     sigma = sqrt(sigma2),
     df.residual = residual_df,
     residual_moran = residual_moran,
-    domain_hash = ngeo_domain_hash(x),
-    weights_method = if (is.null(weights)) NULL else weights$method,
+    base_hash = base_hash(x),
+    weights_method = if (is.null(spatial_weights)) NULL else spatial_weights$method,
     zero_policy = isTRUE(zero_policy),
     omitted = length(finite) - length(index),
     covariance = covariance
@@ -241,18 +241,18 @@ ngeo_spatial_lm <- function(
 
 #' Fit explicit-bandwidth spatial kernel regressions
 #'
-#' Local weighted least squares uses the selected NGCS metric. Surface
+#' Local weighted least squares uses the selected NGCS distance_method. Surface
 #' defaults to edge geodesic distance. Gaussian kernels are explicitly
 #' truncated at `cutoff * bandwidth`; bisquare support is one bandwidth.
 #'
 #' @param x An `ngeo` dataset.
 #' @param response One response map.
-#' @param predictors Predictor maps.
+#' @param predictors Predictor layers.
 #' @param bandwidth Positive distance bandwidth.
-#' @param metric Explicit NGCS metric.
+#' @param distance_method Explicit NGCS distance_method.
 #' @param kernel Gaussian or compact bisquare kernel.
 #' @param targets Optional target elements.
-#' @param support Multiply kernel weights by explicit element support.
+#' @param support Multiply kernel spatial_weights by explicit element support.
 #' @param cutoff Gaussian truncation multiplier.
 #' @param na_action Whether to fail or omit incomplete training rows.
 #' @param singular Whether singular local designs return `NA` or fail.
@@ -264,10 +264,10 @@ ngeo_kernel_regression <- function(
     response,
     predictors = character(),
     bandwidth,
-    metric = NULL,
+    distance_method = NULL,
     kernel = c("gaussian", "bisquare"),
     targets = NULL,
-    support = c("none", "domain"),
+    support = c("none", "base"),
     cutoff = 3,
     na_action = c("fail", "omit"),
     singular = c("na", "error")) {
@@ -289,12 +289,12 @@ ngeo_kernel_regression <- function(
       "ngeo_error_argument"
     )
   }
-  maps <- .ngeo_model_maps(x, response, predictors)
-  response_values <- as.numeric(x$values[, maps$response])
-  predictor_values <- if (length(maps$predictors)) {
-    x$values[, maps$predictors, drop = FALSE]
+  layers <- .ngeo_model_maps(x, response, predictors)
+  response_values <- as.numeric(x$values[, layers$response])
+  predictor_values <- if (length(layers$predictors)) {
+    x$values[, layers$predictors, drop = FALSE]
   } else {
-    matrix(numeric(), nrow = nrow(x$domain$elements), ncol = 0L)
+    matrix(numeric(), nrow = nrow(x$base$elements), ncol = 0L)
   }
   finite <- is.finite(response_values)
   if (ncol(predictor_values)) {
@@ -302,13 +302,13 @@ ngeo_kernel_regression <- function(
   }
   if (identical(na_action, "fail") && !all(finite)) {
     .ngeo_abort(
-      "Model maps contain missing or non-finite values.",
+      "Model layers contain missing or non-finite values.",
       "ngeo_error_missing"
     )
   }
   training <- which(finite)
   targets <- if (is.null(targets)) {
-    seq_len(nrow(x$domain$elements))
+    seq_len(nrow(x$base$elements))
   } else {
     .ngeo_element_selection(x, targets)
   }
@@ -328,7 +328,7 @@ ngeo_kernel_regression <- function(
     )
   }
   support_weight <- rep.int(1, length(training))
-  if (identical(support, "domain")) {
+  if (identical(support, "base")) {
     all_support <- ngeo_support_size(x)
     support_weight <- all_support[training]
     if (any(!is.finite(support_weight)) ||
@@ -343,7 +343,7 @@ ngeo_kernel_regression <- function(
     `(Intercept)` = 1,
     predictor_values[training, , drop = FALSE]
   )
-  colnames(design) <- c("(Intercept)", maps$predictor_names)
+  colnames(design) <- c("(Intercept)", layers$predictor_names)
   coefficient <- matrix(
     NA_real_,
     nrow = length(targets),
@@ -358,7 +358,7 @@ ngeo_kernel_regression <- function(
       x,
       from = targets[[i]],
       to = training,
-      metric = metric,
+      distance_method = distance_method,
       max_distance = maximum_distance
     ))
     local_weight <- .ngeo_kernel_weights(
@@ -378,7 +378,7 @@ ngeo_kernel_regression <- function(
         .ngeo_abort(
           sprintf(
             "Target `%s` has insufficient local observations.",
-            x$domain$elements$element_id[targets[[i]]]
+            x$base$elements$element_id[targets[[i]]]
           ),
           "ngeo_error_model"
         )
@@ -405,7 +405,7 @@ ngeo_kernel_regression <- function(
     fitted[[i]] <- sum(target_design * fit$coefficients)
   }
   result <- data.frame(
-    element_id = x$domain$elements$element_id[targets],
+    element_id = x$base$elements$element_id[targets],
     target_index = targets,
     fitted = fitted,
     effective_n = effective_n,
@@ -414,21 +414,21 @@ ngeo_kernel_regression <- function(
     check.names = FALSE,
     stringsAsFactors = FALSE
   )
-  attr(result, "response") <- maps$response_name
-  attr(result, "predictors") <- maps$predictor_names
+  attr(result, "response") <- layers$response_name
+  attr(result, "predictors") <- layers$predictor_names
   attr(result, "bandwidth") <- bandwidth
-  attr(result, "metric") <- .ngeo_metric_name(metric %||% switch(
-    x$domain$type,
+  attr(result, "distance_method") <- .ngeo_metric_name(distance_method %||% switch(
+    x$base$type,
     surface = "edge_geodesic",
     volume = "world_euclidean",
-    points = "euclidean",
-    regions = "region_centroid",
-    grayordinates = "edge_geodesic"
+    point = "euclidean",
+    parcellation = "region_centroid",
+    grayordinate = "edge_geodesic"
   ))
   attr(result, "kernel") <- kernel
   attr(result, "cutoff") <- cutoff
   attr(result, "support") <- support
-  attr(result, "domain_hash") <- ngeo_domain_hash(x)
+  attr(result, "base_hash") <- base_hash(x)
   class(result) <- c("ngeo_kernel_regression", "data.frame")
   result
 }
@@ -452,7 +452,7 @@ print.ngeo_kernel_regression <- function(x, ...) {
     "<ngeo_kernel_regression>\n",
     "  targets: ", nrow(x), "\n",
     "  response: ", attr(x, "response"), "\n",
-    "  metric: ", attr(x, "metric"), "\n",
+    "  distance_method: ", attr(x, "distance_method"), "\n",
     "  bandwidth: ", attr(x, "bandwidth"), "\n",
     sep = ""
   )

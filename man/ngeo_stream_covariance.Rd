@@ -4,12 +4,12 @@
 \alias{ngeo_stream_covariance}
 \title{Compute a delayed-native covariance matrix}
 \usage{
-ngeo_stream_covariance(x, maps = NULL, chunk_size = 65536L)
+ngeo_stream_covariance(x, layers = NULL, chunk_size = 65536L)
 }
 \arguments{
 \item{x}{An `ngeo` dataset or values block.}
 
-\item{maps}{Optional map selection.}
+\item{layers}{Optional map selection.}
 
 \item{chunk_size}{Row chunk size.}
 }
