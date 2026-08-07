@@ -19,95 +19,97 @@ knitr::opts_chunk$set(
 library(neurogeo)
 ```
 
-## 1. 工作流范围
+## 1. 本教程回答什么问题
 
-本工作流使用 $3 \times 3$ 点网格验证以下接口：
+本教程使用一个 $3 \times 3$ 点网格完成最小空间分析工作流：
 
-- `ngeo_point()` 对象构造与 element/value alignment；
-- distance-band 空间权重与空间滞后；
-- global Moran's I、permutation test 和 local Moran；
-- 元素到区域的 change of support；
-- measurement semantics 和 history 检查。
+1. 把坐标和数值放入同一个空间对象；
+2. 验证每一行数值与空间元素严格对齐；
+3. 明确本次分析如何定义邻居和空间权重；
+4. 计算 global Moran's I 和 local Moran；
+5. 把点聚合到区域，并检查变量在聚合时应求均值还是求和；
+6. 查看分析对象自动保存的 history。
 
-对象约束为：
+neurogeo 的核心对象可以先理解为：
 
 ```text
-一个空间 base
-+ 一个严格对齐的 values block
-+ 显式 coordinate_space、topology、distance_method、measurement semantics 和 history
+一个 spatial base
++ 一个与其逐元素对齐的 values block
++ 描述每列 values 的 metadata
 ```
 
-该接口不执行配准、分割、表面重建或预处理，也不在不兼容空间之间隐式
+这里：
+
+- **base** 回答“数值定义在哪里”；
+- **values** 回答“在那里测量了什么”；
+- **alignment** 保证 values 第 $i$ 行始终属于 base 第 $i$ 个元素。
+
+拓扑、距离、权重、support 转换和空间变换并不是每次构造对象时都必须填写的
+“字段”。它们是在相应分析真正需要时才显式创建的分析对象。
+
+该接口不执行配准、分割、表面重建或预处理，也不会在不兼容空间之间隐式
 重采样。
 
-## 2. 数据模型
+## 2. 先区分四类概念
 
-空间分析不仅需要一列数值，还需要回答“数值在哪里、相互如何关联、聚合时
-代表什么”。neurogeo 将这些问题拆成显式组件：
+为了避免把不同层级的概念混在一起，可以把 neurogeo 中的信息分成四类。
 
-| 字段 | 定义 | 本工作流中的值 |
+### 2.1 数据对象本身
+
+| 组件 | 回答的问题 | 本教程中的内容 |
 |---|---|---|
-| base | 观测值所依附的一组空间元素 | 九个点 |
-| element indexing | base 元素与 values 行之间的稳定对应 | 第 1 个点对应 values 第 1 行 |
-| values block | $n$ 个元素上的 $p$ 个变量，形状为 $n \times p$ | 九行、一列 signal |
-| support | 每个值代表的空间范围或数量基础 | 每个点的 support 先设为 1 |
-| coordinate_space | 坐标属于哪个参考空间以及使用什么单位 | tutorial-grid，单位 mm |
-| topology | 哪些元素在结构上连接 | 表面 mesh 的边，或体素邻接 |
-| distance_method | “距离”如何定义 | 点坐标上的欧氏距离 |
-| spatial_weights | 邻居对当前元素的影响强度 | 行标准化邻接矩阵 $W$ |
-| measurement semantics | 数值在 support 改变时应该求均值、求和还是取众数 | signal 是 intensive |
-| transform | 已知的空间间坐标映射 | 本教程不需要 transform |
-| history | 数据和操作从哪里来 | 构造参数、reader 和 checksum |
+| spatial elements | 数值依附于什么元素？ | 九个点 |
+| geometry and coordinate space | 元素位于什么坐标系统？ | 二维教学网格，单位 mm |
+| values | 每个元素测量了什么？ | 一列 `signal` |
+| layer metadata | 每列 values 表示什么 map？ | 连续型 signal |
+| measurement metadata | 数值单位和聚合含义是什么？ | a.u.，intensive |
 
-五种基础 base 分别对应不同的空间元素：
+### 2.2 必须保持的不变量
 
-- `points`：没有天然连接关系的点；
-- `surface`：顶点和三角面组成的表面；
-- `volume`：规则或仿射网格中的体素；
-- `grayordinates`：CIFTI 中按 brain model 排列的皮层顶点和体素；
-- `regions`：脑区或其他聚合区域。
-
-最重要的不变量可以写成：
+最重要的不变量是：
 
 $$
 n_\text{base elements} = n_\text{rows of values}.
 $$
 
-而且“行数相同”仍不够，顺序也必须相同。neurogeo 不会根据相似坐标或名称
-偷偷重排 values。
+行数相同仍然不够，元素顺序也必须一致。neurogeo 不会根据相似坐标、名称
+或标签偷偷重排 values。
 
-## 3. 安装和加载
+### 2.3 分析时构造的空间关系
 
-从公开 GitHub 仓库安装：
+同一个 base 可以支持不同分析定义。例如，点数据可以使用：
 
-```{r install-github, eval=FALSE}
-install.packages("remotes")
-remotes::install_github(
-  "zh1peng/neurogeo"
-)
-```
+- 距离阈值邻居；
+- $k$ nearest neighbours；
+- 反距离权重；
+- 用户提供的图结构。
 
-也可以安装本地构建的源包：
+因此 distance_method、neighbors 和 weights 属于**分析选择**，而不是原始数据唯一且
+固定的属性。本教程稍后使用欧氏距离阈值构造一个 `ngeo_spatial_weights` 对象。
 
-```{r install-local, eval=FALSE}
-install.packages(
-  "path/to/neurogeo.tar.gz",
-  repos = NULL,
-  type = "source"
-)
-```
+### 2.4 只在特定任务中需要的对象
 
-加载后确认版本：
+- `ngeo_support_map`：描述 source elements 如何映射到 target regions；
+- `ngeo_transform`：描述一个 reference space 到另一个 space 的坐标变换；
+- history/manifest：由软件记录数据和操作来源，用于审计和复现。
 
-```{r version}
-library(neurogeo)
-packageVersion("neurogeo")
-```
+本教程只在聚合章节引入 support map；不需要 transform；history 则由构造
+和分析函数自动记录。
+
+## 3. 五种基础类型
+
+neurogeo 的基础 base 对应不同空间元素：
+
+- `point`：没有天然连接关系的点；
+- `surface`：顶点和三角面组成的表面；
+- `volume`：规则或仿射网格中的体素；
+- `grayordinate`：CIFTI brain model 中排列的皮层顶点和体素；
+- `parcellation`：脑区或其他聚合区域。
+
+本教程从最简单的 `point` 开始。点本身只有位置，没有默认邻居；邻居关系将在
+分析时显式构造。
 
 ## 4. 构造点数据对象
-
-下面构造一个 $3 \times 3$ 点网格。每一行坐标对应 values 中同一行
-的观测值，这种顺序对齐是规范的一部分。
 
 ```{r construct}
 coordinates <- as.matrix(expand.grid(
@@ -116,6 +118,7 @@ coordinates <- as.matrix(expand.grid(
 ))
 
 signal <- c(1, 2, 3, 2, 4, 7, 3, 7, 9)
+
 teaching_data <- data.frame(
   element = seq_len(nrow(coordinates)),
   x = coordinates[, "x"],
@@ -126,13 +129,14 @@ teaching_data <- data.frame(
 knitr::kable(teaching_data)
 ```
 
-先画出这些观测。数字是 signal；位置相近的右上区域有相近的较大值，
-因此在计算前可以提出一个待检验的猜想：“signal 可能具有正空间自相关”。
+先观察数值的位置。右上区域的值整体较高，因此可以提出一个待检验的猜想：
+`signal` 可能具有正空间自相关。
 
-```{r teaching-plot, fig.alt="九个点组成的三乘三网格，颜色和数字共同表示 signal 数值", fig.cap="先画数据再计算：颜色越深、圆点越大，signal 越高。"}
+```{r teaching-plot, fig.alt="九个点组成的三乘三网格，颜色和数字表示 signal 数值"}
 signal_colors <- grDevices::hcl.colors(9, "YlOrRd", rev = TRUE)[
   cut(signal, breaks = 9, labels = FALSE, include.lowest = TRUE)
 ]
+
 plot(
   coordinates,
   asp = 1,
@@ -147,11 +151,9 @@ plot(
 text(coordinates, labels = signal, font = 2, cex = 0.9)
 ```
 
-现在把同一组坐标和数值放入 neurogeo。`cbind()` 很重要：即使只有一个
-变量，values 仍然是“九行、一列”的矩阵，而不是失去维度的一维向量。
+把坐标和数值放入 neurogeo：
 
 ```{r construct-object}
-
 x <- ngeo_point(
   coordinates = coordinates,
   values = cbind(signal = signal),
@@ -171,25 +173,15 @@ x <- ngeo_point(
 x
 ```
 
-这里有三个不能省略的科学声明：
+这里需要区分三件事：
 
-- `coordinate_space` 表示坐标属于哪个空间以及坐标单位；
-- values 第 $i$ 行严格对应 coordinates 第 $i$ 行；
-- `support_behavior = "intensive"` 表示区域聚合时应计算
-  support-weighted mean，而不是求和。
+1. `coordinate_space` 描述坐标属于哪个参考空间以及坐标单位；
+2. values 第 $i$ 行必须对应 coordinates 第 $i$ 行；
+3. `support_behavior = "intensive"` 只在后续 change of support 时决定默认
+   聚合方式，对 Moran's I 本身不是必需条件。
 
-`intensive`、`extensive` 和 `count` 的区别不是软件实现细节，而是变量的
-科学含义：
-
-| semantics | 典型例子 | 合并三个等 support 元素 |
-|---|---|---|
-| intensive | 厚度、温度、浓度、平均信号 | 加权平均 |
-| extensive | 质量、总体积、总负荷 | 守恒求和或分配 |
-| count | 事件数、细胞数 | 守恒求和 |
-| categorical | 分区标签、组织类别 | support 加权众数 |
-| unknown | 尚未判断 | change of support 默认拒绝 |
-
-检查 base、元素索引、values 和测量语义：
+也就是说，基础对象可以暂时保留未知 measurement metadata；但一旦执行依赖
+这些信息的操作，例如区域聚合，就必须先作出科学上可辩护的声明。
 
 ```{r inspect}
 base_type(x)
@@ -198,29 +190,19 @@ values(x)
 measures(x)
 ```
 
-把最重要的对齐关系直接核对一次：
+## 5. 验证 element--value alignment
 
 ```{r alignment-check}
 c(
   base_elements = nrow(base_elements(x)),
   value_rows = nrow(values(x)),
-  value_maps = ncol(values(x))
+  value_layers = ncol(values(x))
 )
-```
 
-## 5. 对象验证
-
-`ngeo_validate()` 是 4.0 中注册 NGCS 对象的统一验证入口。
-
-```{r validate}
 ngeo_validate(x, level = "strict")
 ```
 
-严格验证会检查 base 结构、唯一元素索引、values 行数、map 元数据
-和空间信息是否一致。验证成功时函数不可见地返回对象，因此控制台
-没有输出是正常现象。
-
-下面展示一个常见错误，但不让教程中断：
+下面故意破坏 alignment：
 
 ```{r alignment-error}
 misaligned <- x
@@ -228,41 +210,26 @@ misaligned$values <- misaligned$values[-1, , drop = FALSE]
 
 tryCatch(
   ngeo_validate(misaligned),
-  error = function(condition) {
-    conditionMessage(condition)
-  }
+  error = function(condition) conditionMessage(condition)
 )
 ```
 
-不要通过删除 base 元素或补任意数值来“修好”这种错误；应回到数据
-读取或筛选步骤，保证 base 与 values 使用完全相同的元素顺序。
+验证失败是在保护分析。若跳过这一步，后续公式仍可能产生一个数字，但该数字
+可能已经把 A 点的信号错误地赋给 B 点。
 
-> **这一节的操作原则**
->
-> 验证失败是在保护分析，而不是妨碍分析。若跳过对齐检查，后续公式仍会
-> 产生一个数字，但这个数字可能把 A 点的信号配给 B 点的位置。
+## 6. 为本次分析定义邻居和权重
 
-## 6. 稀疏空间权重
-
-点数据没有天然的 mesh topology，因此这里明确使用欧氏距离带。
-两点 $i$ 和 $j$ 的二维欧氏距离是：
+点数据没有天然 mesh topology，因此需要明确说明“哪些点算邻居”。本教程采用
+欧氏距离带：
 
 $$
 d_{ij} = \sqrt{(x_i-x_j)^2 + (y_i-y_j)^2}.
 $$
 
-本例横向或纵向相邻点的距离为 1，对角点的距离为 $\sqrt{2}$。因此阈值
-设为 1.01 时，只连接上下左右，不连接对角线。未标准化的二元邻接为：
+横向或纵向相邻点距离为 1，对角点距离为 $\sqrt{2}$。阈值设为 1.01 时，
+只连接上下左右。
 
-$$
-a_{ij} =
-\begin{cases}
-1, & 0 < d_{ij} \leq 1.01,\\
-0, & \text{其他情况}.
-\end{cases}
-$$
-
-```{r spatial_weights}
+```{r weights}
 w <- ngeo_spatial_weights(
   x,
   method = "distance_band",
@@ -274,17 +241,21 @@ w <- ngeo_spatial_weights(
 w
 ```
 
-`style = "W"` 表示对每一行做标准化。权重对象保存 base identity，
-不能无声地复用于另一个元素顺序不同的数据集。
+`w` 是独立于原始数据对象的分析对象。它记录：
 
-行标准化公式是：
+- 使用哪个 base；
+- 怎样定义 neighbors；
+- 使用哪个 distance_method；
+- 如何标准化权重。
+
+同一个 `x` 可以构造多个不同的权重对象，用于敏感性分析。权重对象保存 base
+identity，因此不能无声地复用于元素顺序不同的对象。
+
+行标准化为：
 
 $$
 w_{ij} = \frac{a_{ij}}{\sum_k a_{ik}}.
 $$
-
-因此角点 1 有两个邻居，每个权重为 $1/2$；中心点 5 有四个邻居，每个
-权重为 $1/4$。下面用实际矩阵核对：
 
 ```{r neighbors}
 W <- as.matrix(w$matrix)
@@ -292,53 +263,10 @@ W[c(1, 5), , drop = FALSE]
 rowSums(W)
 ```
 
-除 isolate 外，行标准化矩阵每行之和应为 1。真实神经影像可能有数万到
-数十万个元素；这里转成普通矩阵只是为了教学，正式分析不要执行
-`as.matrix(w$matrix)`。
+真实神经影像可能包含数万到数十万个元素。这里转成普通矩阵只用于教学，正式
+分析不要对大型稀疏权重执行 `as.matrix()`。
 
-矩阵适合核对数值，网络图更适合发现连接是否符合预期。下面只画一次每条无向边；
-节点颜色仍然表示 signal。
-
-```{r spatial_weights-network, fig.width=7, fig.height=5, fig.alt="三乘三网格上的空间邻接网络，横纵相邻点由线段连接", fig.cap="距离阈值 1.01 形成的空间邻接网络。对角线没有连边。"}
-edge_index <- which(
-  upper.tri(W) & ((W > 0) | (t(W) > 0)),
-  arr.ind = TRUE
-)
-plot(
-  coordinates,
-  type = "n",
-  asp = 1,
-  xlab = "x（mm）",
-  ylab = "y（mm）",
-  main = "先检查邻接，再进行空间统计"
-)
-segments(
-  coordinates[edge_index[, 1], 1],
-  coordinates[edge_index[, 1], 2],
-  coordinates[edge_index[, 2], 1],
-  coordinates[edge_index[, 2], 2],
-  col = "#8aa6a3",
-  lwd = 2
-)
-points(
-  coordinates,
-  pch = 21,
-  bg = signal_colors,
-  col = "white",
-  cex = 2.6,
-  lwd = 1.5
-)
-text(coordinates, labels = seq_along(signal), font = 2, cex = 0.85)
-legend(
-  "topleft",
-  legend = "节点编号；颜色表示 signal",
-  pch = 21,
-  pt.bg = "#e85d3f",
-  bty = "n"
-)
-```
-
-### 6.1 空间滞后
+## 7. 空间滞后与 Moran 散点图
 
 先中心化信号：
 
@@ -346,36 +274,25 @@ $$
 z_i = y_i - \bar y.
 $$
 
-再用权重计算中心化信号的空间滞后：
+空间滞后为：
 
 $$
 (Wz)_i = \sum_j w_{ij}z_j.
 $$
 
-它可以理解为“元素 $i$ 周围的加权平均偏离程度”。角点 1 的邻居是元素
-2 和 4，所以它的空间滞后应等于两者中心化值的平均：
-
 ```{r spatial-lag}
 z <- signal - mean(signal)
 lag_z <- as.numeric(W %*% z)
 
-first_lag_by_hand <- mean(z[c(2, 4)])
 data.frame(
   element = seq_along(signal),
   signal = signal,
   centered = round(z, 3),
   spatial_lag = round(lag_z, 3)
 )
-c(by_hand = first_lag_by_hand, matrix_result = lag_z[1])
 ```
 
-负值旁边仍是负值、正值旁边仍是正值时，$z_i(Wz)_i$ 往往为正，这正是
-Moran's I 捕捉正空间自相关的基础。
-
-把横轴设为中心化信号、纵轴设为空间滞后，就得到 Moran 散点图。右上和左下
-象限表示“相似值相邻”，另外两个象限表示潜在空间离群。
-
-```{r lag-scatter, fig.width=6.5, fig.height=5, fig.alt="中心化信号与空间滞后的散点图，带有四象限参考线", fig.cap="Moran 散点图把每个位置的偏离与其邻域平均偏离放在同一坐标系中。"}
+```{r lag-scatter, fig.alt="中心化信号与空间滞后的 Moran 散点图"}
 plot(
   z,
   lag_z,
@@ -387,14 +304,14 @@ plot(
   ylab = expression(sum(j, w[ij] * z[j])),
   main = "信号与空间滞后的关系"
 )
-abline(h = 0, v = 0, col = "#8aa6a3", lty = 2)
-abline(stats::lm(lag_z ~ z), col = "#b33f2e", lwd = 2)
+abline(h = 0, v = 0, lty = 2)
+abline(stats::lm(lag_z ~ z), lwd = 2)
 text(z, lag_z, labels = seq_along(signal), pos = 3, cex = 0.8)
 ```
 
-## 7. Global Moran's I
+右上和左下象限表示相似偏离方向相邻；另外两个象限提示潜在空间离群。
 
-全局 Moran's I 的公式是：
+## 8. Global Moran's I
 
 $$
 I =
@@ -405,14 +322,7 @@ I =
 S_0 = \sum_i\sum_j w_{ij}.
 $$
 
-其中：
-
-- $n$ 是参与分析的元素数；
-- $z_i$ 是中心化后的值；
-- $w_{ij}$ 是空间权重；
-- $S_0$ 是所有权重之和。
-
-先不调用统计函数，把每个中间量直接算出来：
+先手算：
 
 ```{r moran-manual}
 n <- length(signal)
@@ -421,22 +331,10 @@ cross_neighbor <- as.numeric(crossprod(z, W %*% z))
 total_variation <- sum(z^2)
 manual_I <- n / S0 * cross_neighbor / total_variation
 
-data.frame(
-  n = n,
-  S0 = S0,
-  neighbor_cross_product = cross_neighbor,
-  total_variation = total_variation,
-  moran_I = manual_I
-)
+manual_I
 ```
 
-对于行标准化且没有 isolate 的权重，$S_0=n$，但不要把这个关系当作一般
-定律；二元权重、非标准化权重或 isolate 会改变 $S_0$。
-
-现在调用 neurogeo，并核对软件结果与手算结果：
-
-置换检验必须记录随机种子。教程使用 99 次置换以缩短运行时间；
-正式分析通常应根据推断精度要求增加次数。
+再调用 neurogeo：
 
 ```{r moran}
 moran <- ngeo_moran(
@@ -449,65 +347,15 @@ moran <- ngeo_moran(
 
 moran
 all.equal(moran$estimate, manual_I, tolerance = 1e-12)
-c(
-  observed_I = moran$estimate,
-  null_expectation = moran$expectation,
-  permutation_p = moran$p.value
-)
 ```
 
-`plot()` 会直接使用统计对象中保存的标准化值和空间滞后，因此既是结果图，也是
-对输入 map 和 spatial_weights 的快速诊断。
+99 次置换仅用于缩短教程运行时间，其最小 p 值步长为 $1/100=0.01$。正式研究
+应根据所需推断精度增加置换次数，并记录随机种子。
 
-```{r moran-object-plot, fig.width=6.5, fig.height=5, fig.alt="neurogeo 全局 Moran 统计对象的标准化值与空间滞后图", fig.cap="由 `plot.ngeo_global_stat()` 生成的 Moran 诊断图。回归线斜率反映全局空间关联方向。"}
-plot(moran, pch = 21, bg = "#26a69a", col = "white", cex = 1.7)
-```
+Moran's I 必须与权重定义一起解释。它不是普通相关系数，也不能脱离 distance_method、
+邻居规则、标准化方式和 isolate policy 单独报告。
 
-在随机置换假设下，Moran's I 的常用期望为：
-
-$$
-E[I] = -\frac{1}{n-1}.
-$$
-
-本例 $n=9$，所以期望是 $-0.125$。观察值约为 $0.532$，说明邻近元素
-倾向于具有相似偏离方向。它不是相关系数，不要求落在 $[-1,1]$，也不能
-脱离权重矩阵解释。
-
-### 7.1 置换检验
-
-置换检验保持空间位置和 $W$ 不变，随机打乱 values，重复计算 Moran's I。
-若执行 $B$ 次置换，neurogeo 使用加一校正：
-
-$$
-p = \frac{1 + \#\{\text{与观察值同样或更极端的置换结果}\}}{B+1}.
-$$
-
-99 次置换时 p 值最小步长是 $1/100=0.01$，适合教学，不适合要求高精度的
-最终推断。增加置换次数会增加精度和计算成本；无论使用多少次，都必须保存
-`seed`。
-
-审阅结果时至少确认：
-
-- 使用的是哪一个 map；
-- 权重构造方法、distance_method 和标准化方式；
-- 是否存在 isolate，以及 `zero_policy` 如何设置；
-- 置换次数、随机种子和 alternative hypothesis；
-- p 值来自解析近似还是置换分布。
-
-Moran's I 说明全局空间自相关，不等于局部热点定位，也不能证明因果
-关系。局部分析可以继续使用 `ngeo_local_moran()` 或
-`ngeo_getis_ord()`。
-
-## 8. Local Moran
-
-全局 Moran's I 回答“整个 base 是否存在空间模式”，局部 Moran 则为每个
-元素计算：
-
-$$
-I_i = \frac{z_i\sum_j w_{ij}z_j}{m_2},
-\qquad
-m_2 = \frac{1}{n}\sum_i z_i^2.
-$$
+## 9. Local Moran
 
 ```{r local-moran}
 lisa <- ngeo_local_moran(
@@ -526,70 +374,18 @@ lisa_view <- as.data.frame(lisa)[, c(
 knitr::kable(lisa_view, digits = 3)
 ```
 
-`cluster` 是由中心化值和空间滞后的正负号得到的描述：
+`high-high`、`low-low`、`high-low` 和 `low-high` 是由中心化值与空间滞后的
+符号得到的描述性分类。标签本身不等于显著热点；局部分析涉及多重检验，
+应优先解释校正后的 `p.adjusted`。
 
-- `high-high`：高值周围也是高值；
-- `low-low`：低值周围也是低值；
-- `high-low` 或 `low-high`：与邻居方向相反，可能是空间离群点。
+## 10. Change of support：只在需要聚合时引入 support
 
-标签本身不等于显著热点。局部分析同时检验多个元素，因此教程使用
-Benjamini--Hochberg（`adjust = "BH"`）校正，并应优先解释
-`p.adjusted`。99 次置换仍然只用于演示。
+前面的 Moran 分析不需要给每个点声明有限面积或体积。点只是离散观测位置，
+不能简单把“support = 1”解释为真实空间范围。
 
-表格用于读取精确数值；空间图用于判断这些结果究竟落在哪里。下面的颜色表示
-局部象限类型，粗黑边框表示经过 BH 校正后达到 0.05 的元素。
-
-```{r lisa-map, fig.width=7, fig.height=5, fig.alt="三乘三网格上的局部 Moran 聚类类型空间图", fig.cap="LISA 象限类型的空间位置。颜色是描述性分类，显著性由边框单独表示。"}
-cluster_palette <- c(
-  "high-high" = "#d73027",
-  "low-low" = "#4575b4",
-  "high-low" = "#fdae61",
-  "low-high" = "#74add1"
-)
-cluster_color <- unname(cluster_palette[lisa_view$cluster])
-cluster_color[is.na(cluster_color)] <- "#b9c3c1"
-significant <- is.finite(lisa_view$p.adjusted) &
-  lisa_view$p.adjusted <= 0.05
-
-plot(
-  coordinates,
-  type = "n",
-  asp = 1,
-  xlab = "x（mm）",
-  ylab = "y（mm）",
-  main = "局部 Moran 聚类位于哪里？"
-)
-segments(
-  coordinates[edge_index[, 1], 1],
-  coordinates[edge_index[, 1], 2],
-  coordinates[edge_index[, 2], 1],
-  coordinates[edge_index[, 2], 2],
-  col = "#d8dfde"
-)
-points(
-  coordinates,
-  pch = 21,
-  bg = cluster_color,
-  col = ifelse(significant, "#172624", "white"),
-  lwd = ifelse(significant, 2.5, 1),
-  cex = 2.8
-)
-text(coordinates, labels = seq_along(signal), cex = 0.82, font = 2)
-legend(
-  "topleft",
-  legend = names(cluster_palette),
-  pch = 21,
-  pt.bg = unname(cluster_palette),
-  pt.cex = 1.4,
-  bty = "n",
-  cex = 0.82
-)
-```
-
-## 9. Change of support
-
-假设九个点属于三个区域。`ngeo_atlas_map()` 根据已知标签构造稀疏
-target-by-source support map；它不会估计配准关系。
+现在要把九个点聚合到三个区域，因此才需要构造 source-to-target support map。
+本例没有已知点面积，暂时把每个点视为**等权离散观测**；这里的 1 是聚合权重，
+不是点所占据的物理面积。
 
 ```{r support-map}
 labels <- c("left", "middle", "right")[
@@ -605,111 +401,51 @@ atlas <- ngeo_atlas_map(
 ngeo_support_diagnostics(atlas)
 ```
 
-令 $A_{rj}$ 表示源元素 $j$ 有多少比例属于目标区域 $r$。本例是硬标签，
-所以 $A_{rj}$ 只有 0 或 1，并形成一个“3 个目标区域 × 9 个源点”的
-target-by-source 矩阵：
+`atlas$operator` 是 target-by-source 映射矩阵。硬标签条件下，每个源点完整映射到
+一个目标区域。
 
 ```{r support-operator}
 as.matrix(atlas$operator)
 ```
 
-矩阵的列对应源元素，行对应目标区域。每一列之和为 1，表示每个源元素都
-完整映射到一个区域。若列和为 0，则该源元素未映射；若列和大于 1，则需要
-判断是否存在重叠 support。
-
-执行 change of support：
+执行聚合：
 
 ```{r change-support}
 regional <- aggregate_to(
   x,
   target = atlas$target,
-  support_map = atlas,
-  budget = ngeo_resource_budget(
-    memory_bytes = 1024^2,
-    materialized_elements = 3
-  )
+  support_map = atlas
 )
 
 values(regional)
 measures(regional)
 ```
 
-下面把 source 元素、区域标签和聚合后的区域均值放在同一幅图中。它可以立即揭示
-“哪些元素进入了哪个 target support”，这是只看 operator 矩阵时不容易发现的。
-
-```{r support-map-visual, fig.width=8, fig.height=4.5, fig.alt="左侧为按三个区域着色的九个源点，右侧为三个目标区域的聚合 signal", fig.cap="从元素 support 到区域 support：颜色保持区域身份，柱高显示聚合后的 intensive 值。"}
-region_palette <- c(
-  "left" = "#3b82a0",
-  "middle" = "#26a69a",
-  "right" = "#e29b45"
-)
-old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
-plot(
-  coordinates,
-  type = "n",
-  asp = 1,
-  xlab = "x（mm）",
-  ylab = "y（mm）",
-  main = "source 元素与区域标签"
-)
-points(
-  coordinates,
-  pch = 21,
-  bg = unname(region_palette[labels]),
-  col = "white",
-  cex = 2.8
-)
-text(coordinates, labels = signal, font = 2, cex = 0.85)
-regional_signal <- as.numeric(values(regional)[, "signal"])
-barplot(
-  regional_signal,
-  names.arg = unique(labels),
-  col = unname(region_palette[unique(labels)]),
-  border = NA,
-  ylab = "区域 signal 均值",
-  main = "target 区域"
-)
-par(old_par)
-```
-
-因为 `signal` 被声明为 intensive，目标区域 $r$ 的值按下面的公式计算：
+因为 `signal` 被声明为 intensive，默认聚合为 support-weighted mean：
 
 $$
 \bar y_r =
 \frac{\sum_j A_{rj}s_jy_j}
-     {\sum_j A_{rj}s_j},
+     {\sum_j A_{rj}s_j}.
 $$
 
-其中 $s_j$ 是源元素的 support。本例所有 $s_j=1$，所以公式退化为普通
-区域均值。手算并核对：
+本例所有聚合权重 $s_j=1$，因此退化为普通区域均值。
 
-```{r intensive-by-hand}
-region_order <- unique(labels)
-manual_region_mean <- vapply(
-  region_order,
-  function(region) mean(signal[labels == region]),
-  numeric(1)
-)
+### 10.1 measurement semantics 与 aggregation rule
 
-cbind(
-  by_hand = manual_region_mean,
-  neurogeo = as.numeric(values(regional))
-)
-```
+| semantics | 常见例子 | 默认聚合倾向 |
+|---|---|---|
+| intensive | 厚度、温度、浓度、平均信号 | support-weighted mean |
+| extensive | 总体积、总质量、总负荷 | sum |
+| count | 事件数、细胞数 | sum |
+| categorical | 分区标签、组织类别 | mode |
+| unknown | 尚未判断 | 拒绝隐式聚合 |
 
-### 9.1 计数变量的守恒聚合
+这些默认值不是普适定律。例如 $t$、$z$、$p$、相关系数或 effect-size map 的
+跨 support 聚合需要根据 estimand 单独论证，不能仅因为它们是连续变量就自动
+视为 intensive。必要时应使用明确的自定义聚合规则，或者拒绝该转换。
 
-假设同一九个点上的值是事件数。计数从小 support 合并到大 support 时应
-守恒：
-
-$$
-c_r = \sum_j A_{rj}c_j,
-\qquad
-\sum_r c_r = \sum_j c_j.
-$$
-
-下面只改变 values 和 measurement semantics，base 保持不变，因此可以
-使用同一个 support map：
+下面展示 count 的守恒聚合：
 
 ```{r count-change-support}
 event_count <- c(4, 2, 1, 3, 5, 2, 1, 4, 6)
@@ -728,57 +464,30 @@ count_data <- ngeo_point(
 regional_count <- aggregate_to(
   count_data,
   target = atlas$target,
-  support_map = atlas,
-  budget = ngeo_resource_budget(
-    memory_bytes = 1024^2,
-    materialized_elements = 3
-  )
+  support_map = atlas
 )
 
 c(
   source_total = sum(values(count_data)),
   target_total = sum(values(regional_count))
 )
-values(regional_count)
 ```
 
-如果把事件数错误声明为 `intensive`，总量会在聚合时改变；如果把厚度错误
-声明为 `count`，结果会随区域内顶点数增长。软件无法从数值本身推断哪一种
-科学含义正确，所以 measurement semantics 必须由研究者声明。
+## 11. Coordinate space 与 transform 不应混为一谈
 
-## 10. 标准格式输入
+`coordinate_space` 是单个对象的参考空间声明；`transform` 是两个空间之间的映射关系。
+本教程所有点都在 `tutorial-grid` 中，因此不需要 transform。
 
-neurogeo 使用纯 R 后端读取标准格式，不依赖 FreeSurfer、FSL 或
-Connectome Workbench 可执行程序。
-
-初学时先记住每种格式主要回答什么问题：
-
-| 格式 | 主要内容 | 读取后首先检查 |
-|---|---|---|
-| NIfTI | 体素数组和 voxel-to-world affine | 维度、affine、单位、map |
-| GIFTI | 表面坐标、三角面、distance_method 或 label | 顶点数、faces、structure |
-| CIFTI | grayordinate 与 brain model 排列 | structure、vertex/voxel index、map |
-| FreeSurfer | surface、annot、curv、MGH/MGZ | 几何/数据对齐和有效 transform |
-
-以体数据为例，数组索引 $(i,j,k)$ 只有通过 affine $A$ 才能变成世界坐标：
-
-$$
-\begin{bmatrix}x\\y\\z\\1\end{bmatrix}
-=
-A
-\begin{bmatrix}i\\j\\k\\1\end{bmatrix}.
-$$
-
-因此“数组形状相同”不代表两个影像在同一空间。neurogeo 不会把缺失 affine
-自动解释成 identity，也不会自动执行 registration。
+在真实数据中，即使两个 NIfTI 数组形状相同，也不能证明它们位于同一空间；
+即使两个表面具有相同顶点数，也不能证明顶点顺序或 registration 相容。
+neurogeo 不会自动推断或执行 registration。
 
 ```{r real-readers, eval=FALSE}
 volume <- read_ngeo_nifti("sub-01_T1w.nii.gz")
 
 surface <- read_ngeo_gifti(
   geometry = "sub-01.L.midthickness.surf.gii",
-  data = c(thickness = "sub-01.L.thickness.shape.gii"),
-  labels = c(aparc = "sub-01.L.aparc.label.gii")
+  data = c(thickness = "sub-01.L.thickness.shape.gii")
 )
 
 dense <- read_ngeo_cifti(
@@ -788,158 +497,59 @@ dense <- read_ngeo_cifti(
     CORTEX_RIGHT = "sub-01.R.midthickness.surf.gii"
   )
 )
-
-freesurfer <- read_ngeo_freesurfer(
-  geometry = "lh.white",
-  data = c(thickness = "lh.thickness"),
-  labels = "lh.aparc.annot"
-)
 ```
 
-大型 NIfTI、CIFTI、MGH 或 MGZ 可以保持 file-backed，并按块处理：
+## 12. Provenance 由软件记录
 
-```{r file-backed, eval=FALSE}
-dense <- read_ngeo_cifti_filebacked(
-  "sub-01_task-rest.dtseries.nii",
-  frames = 1:100,
-  budget = ngeo_resource_budget(
-    memory_bytes = 64 * 1024^2,
-    materialized_elements = 8e6
-  )
-)
+history 不是要求初学者手工填写的分析参数。构造、子集、聚合和其他受支持
+操作会自动追加记录。
 
-summary_chunks <- ngeo_value_chunks(
-  dense,
-  chunk_size = 4096,
-  FUN = function(block, rows) colMeans(block)
-)
+```{r history}
+history(x)$operations
+history(regional)$operations
 ```
 
-读取后应先验证对象，再检查源文件没有提供的测量语义：
-
-```{r post-read, eval=FALSE}
-ngeo_validate(surface, level = "strict")
-surface$layers
-surface$measures
-surface$base$coordinate_space
-```
-
-不要因为文件名看起来熟悉就假定 unit、surface density、template
-或 measurement semantics。
-
-完整的真实文件 walkthrough，包括内置样例、图形和 write/read round-trip，
-见 `vignette("format-workflows-zh", package = "neurogeo")`。round-trip 的目的
-不是证明数据在科学上正确，而是检查 values、几何、索引和 metadata 在
-“读入—写出—再读入”后是否按约定保真。
-
-## 11. Provenance 与 manifest
-
-对象 manifest 记录 canonical metadata 和哈希，不会复制完整 values
-block。
+需要生成可移植审计信息时，可以创建 manifest：
 
 ```{r manifest}
 manifest <- ngeo_object_manifest(x)
 manifest
 ```
 
-写入和恢复 JSON：
+manifest 用于记录 canonical metadata 和哈希，不复制完整 values block。
 
-```{r manifest-io, eval=FALSE}
-output <- write_ngeo_manifest(
-  manifest,
-  "tutorial-object.ngcs-manifest.json"
-)
-restored <- read_ngeo_manifest(output$path)
-ngeo_validate_manifest(restored, x)
-```
+## 13. 推荐执行顺序
 
-需要重放受支持的分析流程时，应使用 `ngeo_record_replay()` 和
-`ngeo_replay()`，而不是保存任意 R 代码供以后执行。
+遇到新数据时，可以按以下顺序工作：
 
-## 12. 常见错误
+1. **研究问题**：要描述、检验、预测还是进行 support 转换？
+2. **base**：数值定义在 vertex、voxel、point、grayordinate 还是 parcellation？
+3. **alignment**：values 每一行对应哪个 element？
+4. **coordinate space**：坐标或索引属于哪个参考空间？
+5. **分析关系**：本次问题需要什么 topology、distance_method、neighbors 和 weights？
+6. **统计量**：所选公式回答的问题是否与研究问题一致？
+7. **推断**：null model、置换次数、多重检验和随机种子是什么？
+8. **support 转换**：只有在聚合或重采样时，才声明 support map 和 aggregation rule；
+9. **敏感性**：改变邻居、阈值、distance_method 或 support 后结论是否稳定？
+10. **审计**：history 和 manifest 是否足以重建关键步骤？
 
-### base 与 values 不对齐
+这条顺序比“先选择一个统计函数，再设法填满所有字段”更可靠。
 
-任何筛选都必须同步作用于 base、values、layers 和 labels。优先使用
-`ngeo_subset()`，不要分别修改内部字段。
+## 14. 最小审阅清单
 
-### measurement semantics 为 unknown
+- [ ] base elements 与 values 行严格对齐；
+- [ ] coordinate space、unit、template、surface density 或 structure 没有被隐式猜测；
+- [ ] weights 是针对当前 base 和研究问题显式构造的；
+- [ ] distance_method 与 topology 没有混为一谈；
+- [ ] 只有在 change of support 时才声明可辩护的 aggregation rule；
+- [ ] point 的等权重没有被误称为真实面积或体积 support；
+- [ ] permutation 次数、seed、alternative 和多重检验方法已记录；
+- [ ] history 由受支持操作自动维护；
+- [ ] 没有把 registration、segmentation 或 preprocessing 误认为 neurogeo 自动完成。
 
-聚合或 change of support 前应根据变量的科学含义声明 intensive、
-extensive、count 或 categorical。不要为了让代码通过而随意指定。
+接下来可以阅读：
 
-### coordinate_space 不兼容
-
-neurogeo 不会自动 registration 或 resampling。只有已经提供并授权的
-transform path 才能用于 `ngeo_resample()`。
-
-### 大对象超出预算
-
-使用 file-backed reader、`ngeo_value_chunks()` 和显式
-`ngeo_resource_budget()`。不要默认计算全脑稠密距离矩阵。
-
-### 把统计关联解释为因果关系
-
-Moran's I、LISA、GWR、SAR/SEM 和 kriging 都依赖明确假设。结果必须
-与权重、support、distance_method、缺失值策略和不确定性声明一起解释。
-
-## 13. 分析执行顺序
-
-遇到新数据时，可以按这条顺序工作：
-
-1. **研究问题**：要描述、检验、预测还是做 support 转换？
-2. **base**：值依附于顶点、体素、点、grayordinate 还是区域？
-3. **对齐**：values 每一行究竟对应哪个 element？
-4. **coordinate_space 与 distance_method**：坐标在哪个空间，距离应使用欧氏、测地线还是 hops？
-5. **measurement semantics**：变量聚合时应加权平均、守恒求和还是取众数？
-6. **spatial_weights/support map**：空间关系怎样构造，诊断是否存在 isolate 或缺失覆盖？
-7. **统计量**：公式回答的问题是否与研究问题一致？
-8. **推断**：null model、置换次数、多重检验和随机种子是什么？
-9. **敏感性**：改变阈值、权重标准化或 support 定义后结论是否稳定？
-10. **审计**：能否从 history、manifest 和代码重建结果？
-
-这条顺序比“先选择一个统计函数，再设法填参数”更可靠。
-
-## 14. 参数敏感性检查
-
-建议修改代码亲自回答：
-
-1. 把距离阈值从 `1.01` 改为 `1.5`。哪些对角线邻居被加入？Moran's I
-   为什么变化？
-2. 把 `style = "W"` 改为 `"B"`。比较 $S_0$，并确认手算公式仍与
-   `ngeo_moran()` 一致。
-3. 把右上角的 signal 从 9 改成 1。全局 Moran's I 和该点的局部 cluster
-   怎样变化？
-4. 把一个 atlas label 设为 `NA`。support diagnostics 如何报告 coverage？
-   在什么科学条件下允许丢弃未映射 support？
-5. 故意把 count 声明为 intensive，比较 source total 和 target total，
-   并解释为什么错误。
-
-每个练习都应先写下预测，再运行代码。重点不是得到某个固定数字，而是能用
-base、spatial_weights、公式和 measurement semantics 解释数字为什么变化。
-
-## 15. 分析审阅清单
-
-提交或复核一次 neurogeo 分析时，逐项确认：
-
-- [ ] 每个对象只有一个 base 和一个严格对齐的 values block；
-- [ ] element indexing 稳定且唯一；
-- [ ] coordinate_space、unit、structure、template 或 density 没有被隐式猜测；
-- [ ] topology 和 distance_method 与研究问题一致；
-- [ ] 每个 map 的 measurement semantics 已明确；
-- [ ] spatial_weights 与当前 base identity 匹配；
-- [ ] change of support 的覆盖率、守恒和 unmapped policy 已检查；
-- [ ] permutation 或 simulation 的 seed 与次数已记录；
-- [ ] 大规模运算有资源预算，没有稠密全脑回退；
-- [ ] history、manifest 或 replay 信息足以审计结果；
-- [ ] 没有把 preprocessing、registration 或 segmentation 误认为
-      neurogeo 自动完成的步骤。
-
-接下来可以阅读以下专题教程：
-
-- `vignette("reading-data", package = "neurogeo")`
-- `vignette("neighbors-and-spatial_weights", package = "neurogeo")`
-- `vignette("change-of-support", package = "neurogeo")`
-- `vignette("spatial-modelling", package = "neurogeo")`
-- `vignette("spatiotemporal-analysis", package = "neurogeo")`
-- `vignette("reproducible-replay", package = "neurogeo")`
+- `vignette("core-concepts-zh", package = "neurogeo")`
+- `vignette("neighbors-and-weights-zh", package = "neurogeo")`
+- `vignette("change-of-support-zh", package = "neurogeo")`
+- `vignette("format-workflows-zh", package = "neurogeo")`
