@@ -273,7 +273,7 @@ if (utils::compareVersion(package_version, "4.3.0") >= 0L) {
       "MUST NOT invent a cut",
       "is_metric_flattening = FALSE",
       "seam-crossing",
-      "source base hash",
+      "source domain hash",
       "does not perform surface reconstruction"
     ),
     grepl,
