@@ -30,18 +30,18 @@ results <- lapply(paths, function(path) {
   }
   operator <- as.matrix(fixture$operator)
   source_support <- as.numeric(fixture$source_support)
-  source <- ngeo_points(
+  source <- ngeo_point(
     cbind(x = seq_along(source_support), y = 0),
     values = cbind(
       intensive = as.numeric(fixture$values$intensive),
       extensive = as.numeric(fixture$values$extensive)
     ),
     measures = rbind(
-      ngeo_measure(spatial_semantics = "intensive"),
-      ngeo_measure(spatial_semantics = "extensive")
+      ngeo_measure(support_behavior = "intensive"),
+      ngeo_measure(support_behavior = "extensive")
     )
   )
-  target <- ngeo_regions(
+  target <- ngeo_parcellation(
     data.frame(region_id = paste0("target_", seq_len(nrow(operator)))),
     support_size = as.numeric(fixture$expected$target_support)
   )
@@ -53,7 +53,7 @@ results <- lapply(paths, function(path) {
     source_support = source_support,
     coverage = fixture$coverage
   )
-  changed <- ngeo_change_support(
+  changed <- aggregate_to(
     source,
     target,
     support_map,

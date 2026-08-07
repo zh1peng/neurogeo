@@ -21,14 +21,14 @@ if (!exists("ngeo_support_test", mode = "function")) {
 
 make_case <- function(outcome, predictor) {
   n <- length(outcome)
-  source <- ngeo_points(
+  source <- ngeo_point(
     cbind(x = seq_len(n), y = sin(seq_len(n) / 8)),
     values = cbind(outcome = outcome, predictor = predictor),
     measures = rbind(
-      ngeo_measure(spatial_semantics = "intensive"),
-      ngeo_measure(spatial_semantics = "intensive")
+      ngeo_measure(support_behavior = "intensive"),
+      ngeo_measure(support_behavior = "intensive")
     ),
-    space = ngeo_space("support-simulation")
+    coordinate_space = ngeo_coordinate_space("support-simulation")
   )
   first_labels <- rep(paste0("R", seq_len(12L)), each = n / 12L)
   second_labels <- rep(
@@ -47,7 +47,7 @@ make_case <- function(outcome, predictor) {
   )
   list(
     source = source,
-    maps = list(block = first, interleaved = second),
+    layers = list(block = first, interleaved = second),
     targets = list(first$target, second$target)
   )
 }
@@ -61,7 +61,7 @@ for (case in seq_len(n_case)) {
   fixture <- make_case(stats::rnorm(120L), stats::rnorm(120L))
   test <- ngeo_support_test(
     fixture$source,
-    fixture$maps,
+    fixture$layers,
     fixture$targets,
     outcome = "outcome",
     predictor = "predictor",
@@ -88,7 +88,7 @@ for (case in seq_len(n_effect)) {
   )
   fit <- ngeo_atlas_robust_effect(
     fixture$source,
-    fixture$maps,
+    fixture$layers,
     fixture$targets,
     outcome = "outcome",
     predictor = "predictor"

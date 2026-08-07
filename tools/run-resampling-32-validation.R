@@ -33,10 +33,10 @@ make_path <- function(
     type = "affine",
     lossy = FALSE) {
   same <- identical(
-    ngeo_space_hash(source_space),
-    ngeo_space_hash(target_space)
+    ngeo_coordinate_space_hash(source_space),
+    ngeo_coordinate_space_hash(target_space)
   )
-  registry <- ngeo_space_registry(
+  registry <- ngeo_coordinate_space_registry(
     if (same) list(source_space) else
       list(source_space, target_space)
   )
@@ -64,8 +64,8 @@ make_path <- function(
   }
   ngeo_transform_path(
     graph,
-    ngeo_space_hash(source_space),
-    ngeo_space_hash(target_space)
+    ngeo_coordinate_space_hash(source_space),
+    ngeo_coordinate_space_hash(target_space)
   )
 }
 volume <- function(
@@ -79,8 +79,8 @@ volume <- function(
     dim = dimensions,
     affine = affine,
     measures = if (is.null(values)) NULL else
-      ngeo_measure(spatial_semantics = semantics),
-    space = space,
+      ngeo_measure(support_behavior = semantics),
+    coordinate_space = space,
     index_base = "zero"
   )
 }
@@ -101,7 +101,7 @@ surface <- function(space, shift = 0, values = NULL) {
     matrix(c(1, 2, 3, 1, 3, 4), ncol = 3L, byrow = TRUE),
     values = values,
     measures = if (is.null(values)) NULL else
-      ngeo_measure(spatial_semantics = "intensive"),
+      ngeo_measure(support_behavior = "intensive"),
     space = space
   )
 }
@@ -109,8 +109,8 @@ mib <- function(x) as.numeric(x) / 1024^2
 
 started <- Sys.time()
 
-native <- ngeo_space("native", kind = "volume")
-standard <- ngeo_space("standard", kind = "volume")
+native <- ngeo_coordinate_space("native", kind = "volume")
+standard <- ngeo_coordinate_space("standard", kind = "volume")
 translation <- diag(4)
 translation[1L, 4L] <- 1
 source <- volume(
@@ -133,9 +133,9 @@ for (method in c("nearest", "linear", "overlap")) {
   assert(
     identical(
       result$diagnostics$joint_hash,
-      result$data$provenance$resampling$joint_hash
+      result$data$history$resampling$joint_hash
     ),
-    paste(method, "joint provenance differs.")
+    paste(method, "joint history differs.")
   )
   method_results[[method]] <- list(
     passed = TRUE,
@@ -144,11 +144,11 @@ for (method in c("nearest", "linear", "overlap")) {
   )
 }
 
-surface_native <- ngeo_space(
+surface_native <- ngeo_coordinate_space(
   "native-surface", kind = "surface",
   structure = "CORTEX_LEFT"
 )
-surface_standard <- ngeo_space(
+surface_standard <- ngeo_coordinate_space(
   "standard-surface", kind = "surface",
   structure = "CORTEX_LEFT"
 )
@@ -184,7 +184,7 @@ for (method in c("nearest", "barycentric")) {
   )
 }
 
-same_space <- ngeo_space("coverage-grid", kind = "volume")
+same_space <- ngeo_coordinate_space("coverage-grid", kind = "volume")
 extensive_source <- volume(
   same_space,
   values = array(rep(1, 8), dim = c(2, 2, 2)),
@@ -347,7 +347,7 @@ assert(
   "Atomic resampling output did not verify."
 )
 
-large_space <- ngeo_space("large-grid", kind = "volume")
+large_space <- ngeo_coordinate_space("large-grid", kind = "volume")
 large_dimensions <- c(50L, 50L, 40L)
 large_n <- prod(large_dimensions)
 large_source <- volume(
@@ -374,7 +374,7 @@ large_timing <- system.time(
   )
 )
 large_result_mib <- mib(object.size(large_result))
-large_gate <- nrow(large_result$data$domain$elements) == large_n &&
+large_gate <- nrow(large_result$data$base$elements) == large_n &&
   length(large_result$support_map$operator@x) == large_n &&
   isTRUE(all.equal(
     large_result$data$values[

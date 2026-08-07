@@ -31,7 +31,7 @@ make_features <- function(values, ids, bounds = "unbounded") {
     units = data.frame(unit_id = ids, stringsAsFactors = FALSE),
     endpoints = endpoints,
     diagnostics = list(),
-    provenance = list(source = "calibrated_simulation")
+    history = list(source = "calibrated_simulation")
   ), class = "ngeo_subject_features")
 }
 

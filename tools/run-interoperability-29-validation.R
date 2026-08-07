@@ -63,7 +63,7 @@ scalar64 <- read_ngeo_cifti(scalar64_path, checksum = FALSE)
 scalar32_error <- max(abs(scalar32$values - scalar$values))
 scalar64_error <- max(abs(scalar64$values - scalar$values))
 metadata_preserved <- identical(
-  scalar64$maps$metadata, named_metadata
+  scalar64$layers$metadata, named_metadata
 )
 
 label <- read_ngeo_cifti(
@@ -73,11 +73,11 @@ label_path <- tempfile(fileext = ".dlabel.nii")
 write_ngeo_cifti(label, label_path, type = "dlabel")
 label_restored <- read_ngeo_cifti(label_path, checksum = FALSE)
 labels_preserved <- identical(
-  label_restored$labels$atlas$table$Label,
-  label$labels$atlas$table$Label
+  label_restored$base$labels$atlas$table$Label,
+  label$base$labels$atlas$table$Label
 )
 label_int32 <- identical(
-  label_restored$provenance$cifti$datatype, "int32"
+  label_restored$history$cifti$datatype, "int32"
 )
 
 series <- read_ngeo_cifti(
@@ -89,12 +89,12 @@ write_ngeo_cifti(
 )
 series_restored <- read_ngeo_cifti(series_path, checksum = FALSE)
 time_preserved <- identical(
-  series_restored$maps$time, series$maps$time
+  series_restored$layers$time, series$layers$time
 ) && identical(
-  series_restored$provenance$cifti$datatype, "float64"
+  series_restored$history$cifti$datatype, "float64"
 )
 bad_series <- series
-bad_series$maps$time <- c(0, 1, 3)
+bad_series$layers$time <- c(0, 1, 3)
 irregular_time_rejected <- rejected_as(
   ngeo_validate_cifti_contract(bad_series, "dtseries"),
   "ngeo_error_format"
@@ -168,7 +168,7 @@ bad_derivative <- file.path(
   derivative_directory,
   "sub-02_desc-invalid_dscalar.dscalar.nii"
 )
-points <- ngeo_points(
+points <- ngeo_point(
   cbind(x = 1:3, y = 0),
   values = cbind(signal = 1:3)
 )
@@ -184,10 +184,10 @@ failed_pair_rejected <- inherits(tryCatch({
   !file.exists(bad_derivative) &&
   !file.exists(sub("\\.dscalar\\.nii$", ".json", bad_derivative))
 
-source <- ngeo_points(
+source <- ngeo_point(
   cbind(x = 1:4, y = 0),
   values = cbind(signal = c(1, 2, 4, 8)),
-  measures = ngeo_measure(spatial_semantics = "intensive")
+  measures = ngeo_measure(support_behavior = "intensive")
 )
 probabilities <- matrix(
   c(1, 0, 1, 0, 0, 1, 0, 1),

@@ -19,16 +19,16 @@ if (!exists("ngeo_support_uncertainty", mode = "function")) {
   }
 }
 
-source <- ngeo_points(
+source <- ngeo_point(
   cbind(x = 1:6, y = 0),
   values = cbind(signal = c(2, 4, 3, 8, 6, 10)),
-  measures = ngeo_measure(spatial_semantics = "intensive"),
-  space = ngeo_space("uncertainty-validation")
+  measures = ngeo_measure(support_behavior = "intensive"),
+  coordinate_space = ngeo_coordinate_space("uncertainty-validation")
 )
-target <- ngeo_regions(
+target <- ngeo_parcellation(
   data.frame(region_id = c("A", "B", "C")),
   support_size = rep(NA_real_, 3),
-  space = source$domain$space
+  coordinate_space = source$base$coordinate_space
 )
 first <- ngeo_support_map(
   source,
@@ -80,7 +80,7 @@ if (relative_error > relative_error_limit) {
 
 ensemble <- ngeo_registration_ensemble(
   list(crisp = first, probabilistic = second),
-  weights = c(0.4, 0.6)
+  spatial_weights = c(0.4, 0.6)
 )
 sensitivity <- ngeo_support_sensitivity(
   source,
@@ -114,7 +114,7 @@ result <- list(
   ),
   ensemble = list(
     kind = ensemble$kind,
-    maps = length(ensemble$maps),
+    layers = length(ensemble$layers),
     hash = ensemble$ensemble_hash,
     positive_between_operator_variance = any(
       sensitivity$distribution$between_operator_variance > 0

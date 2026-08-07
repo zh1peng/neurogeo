@@ -37,7 +37,7 @@ make_grid <- function(nrow, ncol, unit_count = 3L, delayed = TRUE) {
   }
   values <- if (delayed) {
     neurogeo:::.ngeo_delayed_values(
-      reader, c(n, map_count), map_names = map_names,
+      reader, c(n, map_count), layer_names = map_names,
       source = "deterministic-coupling-grid"
     )
   } else {
@@ -45,22 +45,22 @@ make_grid <- function(nrow, ncol, unit_count = 3L, delayed = TRUE) {
   }
   layers <- rep(c("x", "y"), unit_count)
   units <- rep(paste0("unit_", seq_len(unit_count)), each = 2L)
-  x <- ngeo_regions(
+  x <- ngeo_parcellation(
     data.frame(region_id = seq_len(n)),
     values = values,
     support_size = rep.int(1, n),
     adjacency = grid_adjacency(nrow, ncol),
-    maps = data.frame(
-      map_id = map_names, name = paste(units, layers, sep = "_"),
+    layers = data.frame(
+      layer_id = map_names, name = paste(units, layers, sep = "_"),
       subject_id = units, feature = layers
     ),
     measures = do.call(rbind, replicate(
       map_count,
-      ngeo_measure(spatial_semantics = "intensive", units = "a.u."),
+      ngeo_measure(support_behavior = "intensive", unit = "a.u."),
       simplify = FALSE
     ))
   )
-  list(x = x, weights = ngeo_weights(
+  list(x = x, spatial_weights = ngeo_spatial_weights(
     x, method = "region_contiguity", style = "B"
   ))
 }
@@ -69,19 +69,19 @@ checks <- list()
 
 # Fixed-basis spectral identities and energy separation.
 n <- 8L
-path <- ngeo_points(
+path <- ngeo_point(
   cbind(x = seq_len(n), y = 0),
   values = cbind(x = sin(seq_len(n)), y = sin(seq_len(n))),
-  maps = data.frame(
-    map_id = c("x", "y"), name = c("x", "y"),
+  layers = data.frame(
+    layer_id = c("x", "y"), name = c("x", "y"),
     subject_id = "reference", feature = c("x", "y")
   ),
   measures = rbind(
-    ngeo_measure(spatial_semantics = "intensive", units = "a.u."),
-    ngeo_measure(spatial_semantics = "intensive", units = "a.u.")
+    ngeo_measure(support_behavior = "intensive", unit = "a.u."),
+    ngeo_measure(support_behavior = "intensive", unit = "a.u.")
   )
 )
-path_weights <- ngeo_weights(
+path_weights <- ngeo_spatial_weights(
   path, method = "distance_band", threshold = 1.01, style = "W"
 )
 path_basis <- ngeo_spatial_basis(
@@ -107,7 +107,7 @@ checks$spectral_identity <- list(
 # Classic cross-Moran numerical compatibility.
 path$values[, 2L] <- c(2, -1, 4, 0, 3, 5, -2, 1)
 moran <- ngeo_layer_coupling(
-  path, ngeo_validate_layers(path), weights = path_weights,
+  path, ngeo_validate_layers(path), spatial_weights = path_weights,
   estimands = "classic_cross_moran", lag_direction = "x_to_y"
 )
 listw <- spdep::mat2listw(as.matrix(path_weights$matrix), style = "W")
@@ -122,11 +122,11 @@ checks$classic_cross_moran <- list(
   pass = abs(as.numeric(moran$values) - as.numeric(reference)) <= 1e-12
 )
 
-# Reference-map null provenance and regime separation.
+# Reference-map null history and regime separation.
 mappings <- cbind(c(2:n, 1L), rev(seq_len(n)))
 group <- structure(list(
   method = "declared_permutation_group", mappings = mappings,
-  domain_hash = ngeo_domain_hash(path), nsim = ncol(mappings)
+  base_hash = base_hash(path), nsim = ncol(mappings)
 ), class = "ngeo_null")
 null_result <- ngeo_layer_coupling(
   path, ngeo_validate_layers(path), estimands = "same_location",
@@ -150,7 +150,7 @@ run_scale <- function(nrow, ncol) {
   fixture <- make_grid(nrow, ncol, unit_count = 3L, delayed = TRUE)
   timing <- system.time({
     basis <- ngeo_spatial_basis(
-      fixture$x, fixture$weights, n_modes = 64L,
+      fixture$x, fixture$spatial_weights, n_modes = 64L,
       budget = ngeo_resource_budget(
         memory_bytes = 3e9, materialized_elements = 2e8
       )
@@ -158,12 +158,12 @@ run_scale <- function(nrow, ncol) {
     features <- ngeo_layer_coupling(
       fixture$x, ngeo_validate_layers(fixture$x), basis = basis,
       estimands = c("same_location", "spectral_coupling"),
-      chunk_maps = 2L
+      chunk_layers = 2L
     )
   })
   list(
     elements = nrow * ncol,
-    maps = 6L,
+    layers = 6L,
     modes = 64L,
     elapsed_seconds = unname(timing[["elapsed"]]),
     basis_bytes = as.numeric(object.size(basis)),
@@ -173,12 +173,12 @@ run_scale <- function(nrow, ncol) {
       basis$diagnostics$max_orthogonality_error,
     dense_full_domain_matrix = basis$diagnostics$dense_full_domain_matrix,
     finite_features = all(is.finite(features$values)),
-    chunk_maps = features$diagnostics$chunk_maps,
+    chunk_layers = features$diagnostics$chunk_layers,
     pass = identical(basis$diagnostics$dense_full_domain_matrix, FALSE) &&
       basis$diagnostics$max_residual <= 1e-6 &&
       basis$diagnostics$max_orthogonality_error <= 1e-6 &&
       all(is.finite(features$values)) &&
-      identical(features$diagnostics$chunk_maps, 2L)
+      identical(features$diagnostics$chunk_layers, 2L)
   )
 }
 

@@ -76,7 +76,7 @@ nonconvergence_visible <- !nonconverged$converged &&
 assert(nonconvergence_visible, "Non-convergence policy gate failed.")
 
 coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
-base <- ngeo_points(
+base <- ngeo_point(
   coordinates,
   values = cbind(
     response = seq_len(nrow(coordinates)),
@@ -84,13 +84,13 @@ base <- ngeo_points(
     y = coordinates[, 2L]
   )
 )
-weights <- ngeo_weights(
+spatial_weights <- ngeo_spatial_weights(
   base,
   method = "distance_band",
   threshold = 1.01,
   style = "W"
 )
-binary <- ngeo_weights(
+binary <- ngeo_spatial_weights(
   base,
   method = "distance_band",
   threshold = 1.01,
@@ -100,14 +100,14 @@ design <- cbind(1, coordinates[, 1L], coordinates[, 2L])
 set.seed(34)
 noise <- stats::rnorm(25, sd = 0.2)
 sar_y <- as.numeric(solve(
-  Matrix::Diagonal(25) - 0.25 * weights$matrix,
+  Matrix::Diagonal(25) - 0.25 * spatial_weights$matrix,
   design %*% c(2, 1, -0.5) + noise
 ))
 sem_error <- as.numeric(solve(
-  Matrix::Diagonal(25) - 0.3 * weights$matrix,
+  Matrix::Diagonal(25) - 0.3 * spatial_weights$matrix,
   noise
 ))
-data <- ngeo_points(
+data <- ngeo_point(
   coordinates,
   values = cbind(
     sar = sar_y,
@@ -118,13 +118,13 @@ data <- ngeo_points(
 )
 
 exact_logdet <- ngeo_logdet_approx(
-  weights,
+  spatial_weights,
   0.2,
   control = ngeo_solver_control(exact_threshold = 100),
   exact = TRUE
 )
 serial_logdet <- ngeo_logdet_approx(
-  weights,
+  spatial_weights,
   0.2,
   control = ngeo_solver_control(
     trace_order = 30,
@@ -136,7 +136,7 @@ serial_logdet <- ngeo_logdet_approx(
   exact = FALSE
 )
 parallel_logdet <- ngeo_logdet_approx(
-  weights,
+  spatial_weights,
   0.2,
   control = ngeo_solver_control(
     trace_order = 30,
@@ -161,13 +161,13 @@ model_control <- ngeo_solver_control(
 model_reference <- list()
 for (model in c("sar", "sem")) {
   exact <- ngeo_spatial_regression(
-    data, model, c("x", "y"), weights, model = model
+    data, model, c("x", "y"), spatial_weights, model = model
   )
   iterative <- ngeo_spatial_regression_iterative(
     data,
     model,
     c("x", "y"),
-    weights,
+    spatial_weights,
     model = model,
     control = model_control,
     logdet = "exact"
@@ -230,7 +230,7 @@ kriging <- ngeo_kriging(
   data, "sar", variogram, targets = targets, neighbors = 8
 )
 target_reference <- identical(gwr$target_index, targets) &&
-  identical(kriging$target, data$domain$elements$element_id[targets]) &&
+  identical(kriging$target, data$base$elements$element_id[targets]) &&
   all(is.finite(gwr$fitted)) &&
   all(is.finite(kriging$prediction))
 assert(target_reference, "Local-model target execution failed.")
@@ -243,12 +243,12 @@ adversarial <- list(
     "ngeo_error_solver_control"
   ),
   logdet_bound = rejected_as(
-    ngeo_logdet_approx(weights, 1.1),
+    ngeo_logdet_approx(spatial_weights, 1.1),
     "ngeo_error_logdet_bound"
   ),
   exact_threshold = rejected_as(
     ngeo_logdet_approx(
-      weights,
+      spatial_weights,
       0.2,
       control = ngeo_solver_control(exact_threshold = 10),
       exact = TRUE
@@ -266,11 +266,11 @@ large_coordinates <- cbind(
   x = seq_len(large_n),
   y = rep.int(0, large_n)
 )
-large <- ngeo_points(
+large <- ngeo_point(
   large_coordinates,
   values = cbind(signal = sin(seq_len(large_n) / 101))
 )
-large_weights <- ngeo_weights(
+large_weights <- ngeo_spatial_weights(
   large,
   method = "distance_band",
   threshold = 1.01,
@@ -319,7 +319,7 @@ objects <- list(
     data,
     "sar",
     c("x", "y"),
-    weights,
+    spatial_weights,
     control = model_control,
     logdet = "exact"
   ),

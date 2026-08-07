@@ -68,7 +68,7 @@ assert(
 
 mgh_path <- golden("tiny.mgh")
 mgh_eager <- read_ngeo_freesurfer(
-  mgh_path, domain = "volume", checksum = FALSE
+  mgh_path, base = "volume", checksum = FALSE
 )
 mgh_backed <- read_ngeo_mgh_filebacked(
   mgh_path, checksum = FALSE
@@ -83,7 +83,7 @@ mgz_path <- tempfile(fileext = ".mgz")
 freesurferformats::write.fs.mgh(
   mgz_path,
   freesurferformats::read.fs.mgh(mgh_path),
-  vox2ras_matrix = mgh_eager$domain$affine
+  vox2ras_matrix = mgh_eager$base$geometry$affine
 )
 mgz_backed <- read_ngeo_mgh_filebacked(
   mgz_path, checksum = FALSE
@@ -239,7 +239,7 @@ large_values <- cbind(
   map_2 = seq_len(n_grayordinate) + 100000,
   map_3 = seq_len(n_grayordinate) + 200000
 )
-large_grayordinates <- ngeo_grayordinates(
+large_grayordinates <- ngeo_grayordinate(
   list(
     list(
       component_id = "left",
@@ -257,7 +257,7 @@ large_grayordinates <- ngeo_grayordinates(
     )
   ),
   values = large_values,
-  maps = data.frame(
+  layers = data.frame(
     name = paste0("frame_", 1:3),
     time = 0:2,
     time_unit = rep("SECOND", 3),
@@ -335,14 +335,14 @@ report <- list(
     oversized_block_rejected = resource_rejected,
     large_volume = list(
       elements = 1000000L,
-      maps = 2L,
+      layers = 2L,
       resident_object_mib = large_volume_object_mib,
       limit_mib = 256,
       full_values_materialized_by_reader = FALSE
     ),
     large_cifti = list(
       grayordinates = n_grayordinate,
-      maps = 3L,
+      layers = 3L,
       resident_object_mib = large_cifti_object_mib,
       limit_mib = 128,
       full_values_materialized_by_reader = FALSE

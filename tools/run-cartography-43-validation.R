@@ -63,7 +63,7 @@ disk <- ngeo_surface(
   coordinates,
   faces,
   values = cbind(signal = coordinates[, 3L]),
-  measures = ngeo_measure(spatial_semantics = "intensive")
+  measures = ngeo_measure(support_behavior = "intensive")
 )
 harmonic <- ngeo_flatten_surface(
   disk,
@@ -71,12 +71,12 @@ harmonic <- ngeo_flatten_surface(
   boundary = boundary,
   name = "harmonic"
 )
-harmonic_metadata <- harmonic$domain$charts$harmonic
+harmonic_metadata <- harmonic$base$charts$harmonic
 harmonic_valid <- harmonic_metadata$invariants$disk &&
   harmonic_metadata$invariants$euler_characteristic == 1L &&
   harmonic_metadata$invariants$connected_components == 1L &&
   harmonic_metadata$distortion_summary$folded_faces == 0L &&
-  all(is.finite(harmonic$domain$coordinates$harmonic))
+  all(is.finite(harmonic$base$geometry$coordinates$harmonic))
 assert(harmonic_valid, "Harmonic disk validation failed.")
 
 # A 164k-class mesh validates bounded chart/map exchange without producing a
@@ -105,7 +105,7 @@ large <- ngeo_surface(
   large_coordinates,
   large_faces,
   values = cbind(signal = sin(large_coordinates[, 1L] * pi)),
-  measures = ngeo_measure(spatial_semantics = "intensive")
+  measures = ngeo_measure(support_behavior = "intensive")
 )
 large <- ngeo_flatten_surface(
   large,
@@ -119,7 +119,7 @@ large_elapsed <- proc.time()[["elapsed"]] - scale_started
 large_bytes <- as.numeric(utils::object.size(large_map))
 large_valid <- nrow(large_exchange$vertices) == 164025L &&
   nrow(large_exchange$faces) == 326432L &&
-  large$domain$charts$flat$distortion_summary$folded_faces == 0L &&
+  large$base$charts$flat$distortion_summary$folded_faces == 0L &&
   identical(
     large_exchange$vertices$source_vertex,
     seq_len(164025L)
@@ -162,21 +162,21 @@ assert(
 dtseries <- read_ngeo_cifti(dtseries_path, checksum = TRUE)
 make_hcp <- function(path, component_name) {
   geometry <- read_ngeo_gifti(path, checksum = TRUE)
-  component <- dtseries$domain$components[[component_name]]
-  metric <- rep.int(NA_real_, component$surface_vertex_count)
-  metric[component$internal_vertex_index] <-
+  component <- dtseries$base$geometry$components[[component_name]]
+  distance_method <- rep.int(NA_real_, component$surface_vertex_count)
+  distance_method[component$internal_vertex_index] <-
     dtseries$values[component$global_rows, 1L]
   result <- ngeo_surface(
-    geometry$domain$coordinates,
-    geometry$domain$faces,
-    values = cbind(cifti_vertex_value = metric),
-    maps = data.frame(name = "cifti_vertex_value"),
+    geometry$base$geometry$coordinates,
+    geometry$base$geometry$faces,
+    values = cbind(cifti_vertex_value = distance_method),
+    layers = data.frame(name = "cifti_vertex_value"),
     measures = ngeo_measure(
       value_type = "continuous",
-      spatial_semantics = "intensive"
+      support_behavior = "intensive"
     ),
-    space = geometry$domain$space,
-    coordinate_roles = geometry$domain$coordinate_meta$role,
+    coordinate_space = geometry$base$coordinate_space,
+    coordinate_roles = geometry$base$geometry$coordinate_meta$role,
     index_base = "one",
     source_index_base = 0L
   )
@@ -185,9 +185,9 @@ make_hcp <- function(path, component_name) {
 hcp <- make_hcp(hcp_left_path, "cortex_left")
 hcp_right <- make_hcp(hcp_right_path, "cortex_right")
 centered <- sweep(
-  hcp$domain$coordinates$pca_view,
+  hcp$base$geometry$coordinates$pca_view,
   2L,
-  colMeans(hcp$domain$coordinates$pca_view),
+  colMeans(hcp$base$geometry$coordinates$pca_view),
   "-"
 )
 angle <- atan2(centered[, 2L], centered[, 1L])
@@ -221,8 +221,8 @@ layout <- ngeo_cortical_layout(
   categorical,
   ncol = 3L,
   labels = c(
-    "left real CIFTI vertex metric",
-    "right real CIFTI vertex metric",
+    "left real CIFTI vertex distance_method",
+    "right real CIFTI vertex distance_method",
     "left arbitrary aligned atlas"
   )
 )
@@ -236,16 +236,16 @@ hcp_valid <- nrow(exchange$vertices) == 32492L &&
   nrow(right_exchange$vertices) == 32492L &&
   nrow(right_exchange$faces) == 64980L &&
   nrow(exchange$boundaries) > 0L &&
-  hcp$domain$charts$pca_view$kind == "view_projection" &&
-  !hcp$domain$charts$pca_view$is_metric_flattening &&
+  hcp$base$charts$pca_view$kind == "view_projection" &&
+  !hcp$base$charts$pca_view$is_metric_flattening &&
   identical(
     exchange$vertices$element_id,
-    hcp$domain$elements$element_id
+    hcp$base$elements$element_id
   ) &&
   identical(exchange$faces$source_face, seq_len(64980L)) &&
   identical(
     right_exchange$vertices$element_id,
-    hcp_right$domain$elements$element_id
+    hcp_right$base$elements$element_id
   ) &&
   sum(is.finite(hcp$values[, 1L])) == 30424L &&
   sum(is.finite(hcp_right$values[, 1L])) == 30527L &&
@@ -289,8 +289,8 @@ sphere <- ngeo_project_surface(
   seam = 0,
   name = "sphere_view"
 )
-seam_valid <- identical(sphere$domain$charts$sphere_view$seam, 0) &&
-  sphere$domain$charts$sphere_view$kind == "view_projection"
+seam_valid <- identical(sphere$base$charts$sphere_view$seam, 0) &&
+  sphere$base$charts$sphere_view$kind == "view_projection"
 assert(
   closed_rejected && missing_seam_rejected &&
     atlas_alignment_rejected && seam_valid,
@@ -309,8 +309,8 @@ result <- list(
   package_version = as.character(utils::packageVersion("neurogeo")),
   validation = "passed",
   harmonic = list(
-    vertices = nrow(harmonic$domain$elements),
-    faces = nrow(harmonic$domain$faces),
+    vertices = nrow(harmonic$base$elements),
+    faces = nrow(harmonic$base$geometry$faces),
     boundary_vertices = length(boundary),
     euler_characteristic =
       harmonic_metadata$invariants$euler_characteristic,
@@ -366,7 +366,7 @@ result <- list(
   r_version = R.version.string,
   claim_boundary = paste(
     "Rendering and chart validation only; PCA, orthographic, and spherical",
-    "outputs are viewing projections, not metric flattening or anatomical",
+    "outputs are viewing projections, not distance_method flattening or anatomical",
     "registration. Harmonic flattening applies only to an explicit disk."
   )
 )

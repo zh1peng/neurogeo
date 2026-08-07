@@ -20,14 +20,14 @@ if (!exists("ngeo_common_support_test", mode = "function")) {
 }
 
 coordinates <- as.matrix(expand.grid(x = 0:3, y = 0:2))
-source <- ngeo_points(
+source <- ngeo_point(
   coordinates,
   values = cbind(outcome = seq_len(12), predictor = seq_len(12)),
   measures = rbind(
-    ngeo_measure(spatial_semantics = "intensive"),
-    ngeo_measure(spatial_semantics = "intensive")
+    ngeo_measure(support_behavior = "intensive"),
+    ngeo_measure(support_behavior = "intensive")
   ),
-  space = ngeo_space("inference-23-validation")
+  coordinate_space = ngeo_coordinate_space("inference-23-validation")
 )
 labels <- list(
   rows = rep(c("A", "B", "C", "D"), each = 3),
@@ -41,7 +41,7 @@ first <- ngeo_atlas_map(
   source_support = rep.int(1, 12)
 )
 target <- first$target
-maps <- c(
+layers <- c(
   list(rows = first),
   lapply(labels[-1L], function(value) {
     ngeo_atlas_map(
@@ -52,7 +52,7 @@ maps <- c(
     )
   })
 )
-targets <- rep(list(target), length(maps))
+targets <- rep(list(target), length(layers))
 
 observed <- c(2, -1, 0.5)
 simulated <- rbind(
@@ -80,7 +80,7 @@ source$values[, "predictor"] <- predictor
 source$values[, "outcome"] <- outcome
 effect <- ngeo_atlas_robust_effect(
   source,
-  maps,
+  layers,
   targets,
   outcome = "outcome",
   predictor = "predictor"
@@ -97,7 +97,7 @@ if (effect_bias > effect_bias_limit || !coverage) {
 
 first_test <- ngeo_common_support_test(
   source,
-  maps,
+  layers,
   targets,
   outcome = "outcome",
   predictor = "predictor",
@@ -106,7 +106,7 @@ first_test <- ngeo_common_support_test(
 )
 second_test <- ngeo_common_support_test(
   source,
-  maps,
+  layers,
   targets,
   outcome = "outcome",
   predictor = "predictor",
@@ -126,7 +126,7 @@ for (i in seq_len(experiments)) {
   source$values[, "predictor"] <- stats::rnorm(12)
   current <- ngeo_common_support_test(
     source,
-    maps,
+    layers,
     targets,
     outcome = "outcome",
     predictor = "predictor",

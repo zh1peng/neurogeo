@@ -28,7 +28,7 @@ rejected_as <- function(expression, class) {
 }
 
 started <- proc.time()[["elapsed"]]
-data <- ngeo_points(
+data <- ngeo_point(
   cbind(x = 1:100, y = rep(0, 100), z = rep(0, 100)),
   values = cbind(
     t0 = 1:100,
@@ -62,7 +62,7 @@ replay_identical <- replayed$verified &&
 assert(replay_identical, "Reference workflow replay differs.")
 
 timestamp_copy <- data
-timestamp_copy$provenance$operations[[1L]]$timestamp_utc <-
+timestamp_copy$history$operations[[1L]]$timestamp_utc <-
   "2099-01-01T00:00:00Z"
 timestamp_invariant <- identical(
   ngeo_logical_hash(data),
@@ -94,7 +94,7 @@ nodes <- list(
   list(id = "b", type = "operation:test", logical_hash = hash)
 )
 cycle_detected <- rejected_as(
-  ngeo_provenance_dag(
+  ngeo_history_dag(
     nodes,
     list(
       list(from = "a", to = "b", role = "x"),
@@ -104,7 +104,7 @@ cycle_detected <- rejected_as(
   "ngeo_error_provenance_cycle"
 )
 parent_detected <- rejected_as(
-  ngeo_provenance_dag(
+  ngeo_history_dag(
     nodes,
     list(list(from = "missing", to = "b", role = "x"))
   ),
@@ -160,7 +160,7 @@ batch <- ngeo_write_artifact_batch(
     function(path) writeLines("1\t2", path),
     function(path) writeLines('{"Units":"z"}', path)
   ),
-  roles = c("metric", "sidecar"),
+  roles = c("distance_method", "sidecar"),
   entities = list(subject = "01", datatype = "anat")
 )
 on.exit(unlink(batch_directory, recursive = TRUE), add = TRUE)
@@ -172,7 +172,7 @@ derivative_only <- identical(batch$scope, "derivative_only") &&
   )$valid
 assert(derivative_only, "Derivative-only batch verification failed.")
 
-large <- ngeo_points(
+large <- ngeo_point(
   cbind(
     x = seq_len(100000),
     y = rep(0, 100000),
@@ -211,7 +211,7 @@ assert(corpus_valid, "NGCS 3.5 conformance corpus differs.")
 
 definitions <- neurogeo:::.ngeo_schema_definitions()
 schemas <- c(
-  "ngcs/provenance-dag", "ngcs/replay-manifest",
+  "ngcs/history-dag", "ngcs/replay-manifest",
   "ngcs/artifact-manifest", "ngcs/batch-manifest"
 )
 schema_definitions_valid <- all(
@@ -232,7 +232,7 @@ report <- list(
     mutation_detected = mutation_detected,
     environment_drift_detected = environment_detected
   ),
-  provenance = list(
+  history = list(
     cycle_detected = cycle_detected,
     missing_parent_detected = parent_detected
   ),

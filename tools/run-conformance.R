@@ -35,7 +35,7 @@ testthat::test_dir(
   "tests/testthat",
   filter = paste(
     "surface|volume|grayordinates|partition|",
-    "topology-distance-weights",
+    "topology-distance-spatial_weights",
     sep = ""
   ),
   reporter = "summary",

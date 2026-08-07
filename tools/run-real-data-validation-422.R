@@ -70,15 +70,15 @@ dir.create(root)
 on.exit(unlink(root, recursive = TRUE), add = TRUE)
 
 # NIfTI: real values, explicit active mask, sparse topology/statistics, and
-# write/read identity. The output sidecar retains the source domain hash even
+# write/read identity. The output sidecar retains the source base hash even
 # though the rewritten NIfTI header has normalized transform metadata.
 nifti_path <- ngeo_example_data("rnifti-example")$path[[1L]]
 nifti <- suppressWarnings(
   read_ngeo_nifti(nifti_path, mask = "nonzero", checksum = TRUE)
 )
 nifti <- ngeo_subset(nifti, elements = seq_len(6000L))
-nifti$measures$spatial_semantics <- "intensive"
-nifti_weights <- ngeo_weights(
+nifti$measures$support_behavior <- "intensive"
+nifti_weights <- ngeo_spatial_weights(
   nifti,
   method = "voxel_contiguity",
   style = "W",
@@ -98,33 +98,33 @@ nifti_written <- write_ngeo_nifti(
 nifti_restored <- read_ngeo_nifti(
   nifti_written$data,
   mask = nifti_written$mask,
-  maps = nifti$maps,
+  layers = nifti$layers,
   measures = nifti$measures,
-  space = nifti$domain$space,
+  coordinate_space = nifti$base$coordinate_space,
   checksum = FALSE
 )
 nifti_sidecar <- jsonlite::read_json(nifti_written$sidecar)
 nifti_valid <- identical(
-  nifti$domain$elements$element_id,
-  nifti_restored$domain$elements$element_id
+  nifti$base$elements$element_id,
+  nifti_restored$base$elements$element_id
 ) && identical(
-  nifti$domain$source_voxel_index,
-  nifti_restored$domain$source_voxel_index
+  nifti$base$geometry$source_voxel_index,
+  nifti_restored$base$geometry$source_voxel_index
 ) && isTRUE(all.equal(
-  nifti$domain$affine,
-  nifti_restored$domain$affine,
+  nifti$base$geometry$affine,
+  nifti_restored$base$geometry$affine,
   tolerance = 1e-6
 )) && isTRUE(all.equal(
   nifti$values,
   nifti_restored$values
 )) && identical(
-  nifti_sidecar$Neurogeo$domain_hash,
-  ngeo_domain_hash(nifti)
+  nifti_sidecar$Neurogeo$base_hash,
+  base_hash(nifti)
 ) && is.finite(nifti_moran$estimate)
 assert(nifti_valid, "NIfTI real-data workflow failed.")
 
 # Surface: both 32k hemispheres are checked, and the left surface carries a
-# vertex-aligned derived metric through GIFTI and FreeSurfer round-trips.
+# vertex-aligned derived distance_method through GIFTI and FreeSurfer round-trips.
 left_geometry <- read_ngeo_gifti(
   fixture("hcp-s1200-left-inflated-32k"),
   checksum = TRUE
@@ -133,23 +133,23 @@ right_geometry <- read_ngeo_gifti(
   fixture("hcp-s1200-right-inflated-32k"),
   checksum = TRUE
 )
-left_coordinates <- left_geometry$domain$coordinates[[
-  left_geometry$domain$active_coordinates
+left_coordinates <- left_geometry$base$geometry$coordinates[[
+  left_geometry$base$geometry$active_coordinates
 ]]
 left_surface <- ngeo_surface(
-  coordinates = left_geometry$domain$coordinates,
-  faces = left_geometry$domain$faces,
+  coordinates = left_geometry$base$geometry$coordinates,
+  faces = left_geometry$base$geometry$faces,
   values = cbind(
     vertex_signal = as.numeric(scale(left_coordinates[, 1L]))
   ),
-  maps = data.frame(name = "vertex_signal"),
+  layers = data.frame(name = "vertex_signal"),
   measures = ngeo_measure(
     value_type = "continuous",
-    spatial_semantics = "intensive",
-    units = "a.u."
+    support_behavior = "intensive",
+    unit = "a.u."
   ),
-  space = left_geometry$domain$space,
-  coordinate_roles = left_geometry$domain$coordinate_meta$role,
+  coordinate_space = left_geometry$base$coordinate_space,
+  coordinate_roles = left_geometry$base$geometry$coordinate_meta$role,
   index_base = "one",
   source_index_base = 0L
 )
@@ -162,7 +162,7 @@ chart_surface <- ngeo_set_chart(
   ),
   source = "4.2.2 validation viewing projection"
 )
-surface_weights <- ngeo_weights(
+surface_weights <- ngeo_spatial_weights(
   left_surface,
   method = "mesh_contiguity",
   style = "W"
@@ -193,20 +193,20 @@ fs_restored <- read_ngeo_freesurfer(
   measures = left_surface$measures,
   checksum = FALSE
 )
-surface_valid <- nrow(left_surface$domain$elements) == 32492L &&
-  nrow(right_geometry$domain$elements) == 32492L &&
-  nrow(left_surface$domain$faces) == 64980L &&
-  nrow(right_geometry$domain$faces) == 64980L &&
-  chart_surface$domain$coordinate_meta$role[
-    chart_surface$domain$coordinate_meta$name == "validation_view"
+surface_valid <- nrow(left_surface$base$elements) == 32492L &&
+  nrow(right_geometry$base$elements) == 32492L &&
+  nrow(left_surface$base$geometry$faces) == 64980L &&
+  nrow(right_geometry$base$geometry$faces) == 64980L &&
+  chart_surface$base$geometry$coordinate_meta$role[
+    chart_surface$base$geometry$coordinate_meta$name == "validation_view"
   ] == "chart" &&
-  !chart_surface$domain$coordinate_meta$metric_eligible[
-    chart_surface$domain$coordinate_meta$name == "validation_view"
+  !chart_surface$base$geometry$coordinate_meta$metric_eligible[
+    chart_surface$base$geometry$coordinate_meta$name == "validation_view"
   ] &&
   surface_weights$diagnostics$n_component == 1L &&
   is.finite(surface_moran$estimate) &&
-  identical(gifti_restored$domain$faces, left_surface$domain$faces) &&
-  identical(fs_restored$domain$faces, left_surface$domain$faces) &&
+  identical(gifti_restored$base$geometry$faces, left_surface$base$geometry$faces) &&
+  identical(fs_restored$base$geometry$faces, left_surface$base$geometry$faces) &&
   isTRUE(all.equal(
     gifti_restored$values,
     left_surface$values,
@@ -235,9 +235,9 @@ mgz <- read_ngeo_mgh_filebacked(
 mgz_values <- as.matrix(mgz$values)
 mgz_valid <- inherits(mgz$values, "ngeo_file_values") &&
   identical(dim(mgz$values), c(4096L, 1L)) &&
-  identical(mgz$domain$dim, c(256L, 256L, 256L)) &&
+  identical(mgz$base$geometry$dim, c(256L, 256L, 256L)) &&
   all(is.finite(mgz_values)) &&
-  identical(mgz$provenance$file_backed$materialized, FALSE)
+  identical(mgz$history$file_backed$materialized, FALSE)
 assert(mgz_valid, "File-backed MGZ workflow failed.")
 
 # CIFTI: all three dense axis types, exact brain-model order, label tables,
@@ -293,18 +293,18 @@ cifti_valid <- identical(dim(dscalar$values), c(10846L, 2L)) &&
   identical(dim(dlabel$values), c(11524L, 3L)) &&
   identical(dim(dtseries_backed$values), c(4096L, 2L)) &&
   inherits(dtseries_backed$values, "ngeo_file_values") &&
-  length(dlabel$labels) == 3L &&
+  length(dlabel$base$labels) == 3L &&
   identical(
-    cifti_restored$dscalar$domain$elements$structure,
-    dscalar$domain$elements$structure
+    cifti_restored$dscalar$base$elements$structure,
+    dscalar$base$elements$structure
   ) &&
   identical(
-    cifti_restored$dlabel$domain$elements$structure,
-    dlabel$domain$elements$structure
+    cifti_restored$dlabel$base$elements$structure,
+    dlabel$base$elements$structure
   ) &&
   identical(
-    cifti_restored$dtseries$domain$elements$structure,
-    dtseries_selected$domain$elements$structure
+    cifti_restored$dtseries$base$elements$structure,
+    dtseries_selected$base$elements$structure
   )
 # Check numeric identity separately to keep the structure-order test simple.
 cifti_valid <- cifti_valid &&
@@ -324,21 +324,21 @@ cifti_valid <- cifti_valid &&
   ))
 assert(cifti_valid, "CIFTI real-data workflow failed.")
 
-# Atlas and change of support use a real Conte69 dense-label domain. Both hard
+# Atlas and change of support use a real Conte69 dense-label base. Both hard
 # and sparse probabilistic memberships are explicit and source aligned.
 atlas_label <- as.integer(dlabel$values[, 1L])
-source <- ngeo_grayordinates(
-  dlabel$domain$components,
+source <- ngeo_grayordinate(
+  dlabel$base$geometry$components,
   values = cbind(
     intensive = sin(seq_along(atlas_label) / 100),
     extensive = seq_along(atlas_label) %% 7L + 1
   ),
-  maps = data.frame(name = c("intensive", "extensive")),
+  layers = data.frame(name = c("intensive", "extensive")),
   measures = rbind(
-    ngeo_measure(spatial_semantics = "intensive"),
-    ngeo_measure(spatial_semantics = "extensive")
+    ngeo_measure(support_behavior = "intensive"),
+    ngeo_measure(support_behavior = "extensive")
   ),
-  space = dlabel$domain$space
+  coordinate_space = dlabel$base$coordinate_space
 )
 support_size <- 1 + (seq_along(atlas_label) %% 5L) / 10
 hard_label <- paste0("label_", atlas_label)
@@ -371,7 +371,7 @@ probabilistic <- ngeo_probabilistic_atlas_map(
   probability,
   source_support = support_size
 )
-regional <- ngeo_change_support(source, crisp$target, crisp)
+regional <- aggregate_to(source, crisp$target, crisp)
 regional_variance <- ngeo_support_variance(
   source,
   probabilistic$target,
@@ -384,7 +384,7 @@ regional_variance <- ngeo_support_variance(
 )
 diagnostics <- ngeo_support_diagnostics(
   probabilistic,
-  source_structure = source$domain$elements$structure
+  source_structure = source$base$elements$structure
 )
 partial_diagnostics <- ngeo_support_diagnostics(partial)
 bundle <- write_ngeo_support_bundle(
@@ -431,8 +431,8 @@ source_mutation_rejected <- error_class(
   "ngeo_error_file_mutation"
 )
 invalid_labels <- dlabel
-invalid_labels$labels[[1L]]$table$Key[[2L]] <-
-  invalid_labels$labels[[1L]]$table$Key[[1L]]
+invalid_labels$base$labels[[1L]]$table$Key[[2L]] <-
+  invalid_labels$base$labels[[1L]]$table$Key[[1L]]
 invalid_label_table_rejected <- error_class(
   write_ngeo_cifti(
     invalid_labels,
@@ -530,7 +530,7 @@ result <- list(
       dlabel_dimensions = dim(dlabel$values),
       dtseries_source_dimensions = c(60951L, 2L),
       dtseries_selected_dimensions = dim(dtseries_backed$values),
-      label_tables = length(dlabel$labels),
+      label_tables = length(dlabel$base$labels),
       file_backed = TRUE,
       pure_r_roundtrip = TRUE
     ),

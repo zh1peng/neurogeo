@@ -42,7 +42,7 @@ surface_fixture <- read_fixture("surface-nearest-identity.json")
 surface_source <- ngeo_surface(
   surface_fixture$source$coordinates,
   surface_fixture$source$faces,
-  space = ngeo_space(
+  coordinate_space = ngeo_coordinate_space(
     surface_fixture$space_id,
     kind = "surface"
   )
@@ -50,7 +50,7 @@ surface_source <- ngeo_surface(
 surface_target <- ngeo_surface(
   surface_fixture$target$coordinates,
   surface_fixture$target$faces,
-  space = ngeo_space(
+  coordinate_space = ngeo_coordinate_space(
     surface_fixture$space_id,
     kind = "surface"
   )
@@ -70,13 +70,13 @@ volume_fixture <- read_fixture("volume-trilinear-half.json")
 volume_source <- ngeo_volume(
   dim = volume_fixture$source$dim,
   affine = volume_fixture$source$affine,
-  space = ngeo_space(volume_fixture$space_id, kind = "volume"),
+  coordinate_space = ngeo_coordinate_space(volume_fixture$space_id, kind = "volume"),
   index_base = volume_fixture$source$index_base
 )
 volume_target <- ngeo_volume(
   dim = volume_fixture$target$dim,
   affine = volume_fixture$target$affine,
-  space = ngeo_space(volume_fixture$space_id, kind = "volume"),
+  coordinate_space = ngeo_coordinate_space(volume_fixture$space_id, kind = "volume"),
   index_base = volume_fixture$target$index_base
 )
 volume_map <- ngeo_affine_grid_map(
@@ -92,9 +92,9 @@ assert_close(
 )
 
 atlas_fixture <- read_fixture("atlas-probabilistic.json")
-atlas_source <- ngeo_points(
+atlas_source <- ngeo_point(
   atlas_fixture$source$coordinates,
-  space = ngeo_space("atlas-fixture")
+  coordinate_space = ngeo_coordinate_space("atlas-fixture")
 )
 atlas_map <- ngeo_probabilistic_atlas_map(
   atlas_source,

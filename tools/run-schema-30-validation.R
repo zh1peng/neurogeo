@@ -14,7 +14,7 @@ definitions <- neurogeo:::.ngeo_schema_definitions()
 required_schema_ids <- c(
   "ngcs/ngeo-surface", "ngcs/ngeo-volume", "ngcs/ngeo-points",
   "ngcs/ngeo-grayordinates", "ngcs/ngeo-regions", "ngcs/space",
-  "ngcs/transform", "ngcs/weights", "ngcs/partition",
+  "ngcs/transform", "ngcs/spatial_weights", "ngcs/partition",
   "ngcs/support-map", "ngcs/support-covariance",
   "ngcs/support-ensemble", "ngcs/space-registry",
   "ngcs/transform-graph", "ngcs/resource-budget"
@@ -28,13 +28,13 @@ obsolete_schemas_absent <- !any(c(
   "ngcs/execution-plan"
 ) %in% definitions$schema_id)
 
-space <- ngeo_space(
+space <- ngeo_coordinate_space(
   "reference-points", source_metadata = list(dimension = 2L)
 )
-x <- ngeo_points(
+x <- ngeo_point(
   cbind(x = c(0, 1, 0), y = c(0, 0, 1)),
   values = cbind(signal = c(1, 2, 3)),
-  measures = ngeo_measure(spatial_semantics = "intensive"),
+  measures = ngeo_measure(support_behavior = "intensive"),
   space = space
 )
 ngeo_validate(x)
@@ -91,7 +91,7 @@ removed_api <- c(
 )
 api_contracted <- !any(removed_api %in% exports)
 core_api_retained <- all(c(
-  "ngeo_surface", "ngeo_volume", "ngeo_points",
+  "ngeo_surface", "ngeo_volume", "ngeo_point",
   "ngeo_support_map", "ngeo_transform_graph",
   "read_ngeo_cifti", "write_ngeo_cifti"
 ) %in% exports)

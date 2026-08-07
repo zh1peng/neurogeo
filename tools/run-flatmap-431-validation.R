@@ -29,8 +29,8 @@ assert <- function(condition, message) {
 
 vertex_curvature <- function(surface) {
   coordinates <-
-    surface$domain$coordinates[[surface$domain$active_coordinates]]
-  faces <- surface$domain$faces
+    surface$base$geometry$coordinates[[surface$base$geometry$active_coordinates]]
+  faces <- surface$base$geometry$faces
   first <- coordinates[faces[, 1L], , drop = FALSE]
   second <- coordinates[faces[, 2L], , drop = FALSE]
   third <- coordinates[faces[, 3L], , drop = FALSE]
@@ -111,27 +111,27 @@ make_hemisphere <- function(hemisphere, component_name) {
     checksum = TRUE
   )
   flat <- read_ngeo_gifti(flat_path, checksum = TRUE)
-  component <- dtseries$domain$components[[component_name]]
-  metric <- rep.int(NA_real_, component$surface_vertex_count)
-  metric[component$internal_vertex_index] <-
+  component <- dtseries$base$geometry$components[[component_name]]
+  distance_method <- rep.int(NA_real_, component$surface_vertex_count)
+  distance_method[component$internal_vertex_index] <-
     dtseries$values[component$global_rows, 1L]
   curvature <- vertex_curvature(source)
   included <- source$values[, "atlasroi"] > 0
 
   result <- ngeo_surface(
-    coordinates = source$domain$coordinates,
-    faces = source$domain$faces,
+    coordinates = source$base$geometry$coordinates,
+    faces = source$base$geometry$faces,
     values = cbind(
-      vertex_metric = metric,
+      vertex_metric = distance_method,
       curvature = curvature
     ),
-    maps = data.frame(
+    layers = data.frame(
       name = c("vertex_metric", "curvature"),
       stringsAsFactors = FALSE
     ),
-    labels = source$labels,
-    space = source$domain$space,
-    coordinate_roles = source$domain$coordinate_meta$role,
+    labels = source$base$labels,
+    coordinate_space = source$base$coordinate_space,
+    coordinate_roles = source$base$geometry$coordinate_meta$role,
     mask = included,
     index_base = "one",
     source_index_base = 0L
@@ -179,7 +179,7 @@ left_continuous <- ngeo_cortical_map(
   map = "vertex_metric",
   chart = "flat",
   atlas = "schaefer100",
-  mask = left$domain$mask,
+  mask = left$base$geometry$mask,
   underlay = "curvature",
   underlay_palette = "Grays",
   underlay_limits = underlay_limits,
@@ -193,7 +193,7 @@ right_continuous <- ngeo_cortical_map(
   map = "vertex_metric",
   chart = "flat",
   atlas = "schaefer100",
-  mask = right$domain$mask,
+  mask = right$base$geometry$mask,
   underlay = "curvature",
   underlay_palette = "Grays",
   underlay_limits = underlay_limits,
@@ -219,7 +219,7 @@ left_atlas <- ngeo_cortical_map(
   chart = "flat",
   atlas = left_network,
   fill = "atlas",
-  mask = left$domain$mask,
+  mask = left$base$geometry$mask,
   underlay = "curvature",
   underlay_palette = "Grays",
   underlay_limits = underlay_limits,
@@ -232,7 +232,7 @@ right_atlas <- ngeo_cortical_map(
   chart = "flat",
   atlas = right_network,
   fill = "atlas",
-  mask = right$domain$mask,
+  mask = right$base$geometry$mask,
   underlay = "curvature",
   underlay_palette = "Grays",
   underlay_limits = underlay_limits,
@@ -253,7 +253,7 @@ grDevices::png(
 graphics::par(mfrow = c(1, 2), mar = c(1, 1, 3, 1))
 plot(
   left_continuous,
-  main = "Left hemisphere: vertex metric",
+  main = "Left hemisphere: vertex distance_method",
   boundary_lwd = 0.18,
   boundary_color = grDevices::adjustcolor("white", 0.38),
   outline_lwd = 1.4,
@@ -261,7 +261,7 @@ plot(
 )
 plot(
   right_continuous,
-  main = "Right hemisphere: vertex metric",
+  main = "Right hemisphere: vertex distance_method",
   boundary_lwd = 0.18,
   boundary_color = grDevices::adjustcolor("white", 0.38),
   outline_lwd = 1.4,
@@ -300,8 +300,8 @@ grDevices::dev.off()
 
 left_data <- ngeo_cortical_map_data(left_continuous)
 right_data <- ngeo_cortical_map_data(right_continuous)
-left_chart <- left$domain$charts$flat$invariants
-right_chart <- right$domain$charts$flat$invariants
+left_chart <- left$base$charts$flat$invariants
+right_chart <- right$base$charts$flat$invariants
 elapsed <- proc.time()[["elapsed"]] - started
 valid <- nrow(left_data$vertices) == 32492L &&
   nrow(right_data$vertices) == 32492L &&

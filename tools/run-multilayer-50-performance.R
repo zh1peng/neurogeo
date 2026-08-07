@@ -44,19 +44,19 @@ grid_adjacency <- function(nrow, ncol) {
 }
 make_grid <- function(nrow, ncol) {
   n <- nrow * ncol
-  x <- ngeo_regions(
+  x <- ngeo_parcellation(
     data.frame(region_id = seq_len(n)),
     support_size = rep.int(1, n),
     adjacency = grid_adjacency(nrow, ncol)
   )
-  list(x = x, weights = ngeo_weights(
+  list(x = x, spatial_weights = ngeo_spatial_weights(
     x, method = "region_contiguity", style = "B"
   ))
 }
 run_basis_case <- function(label, nrow, ncol, modes) {
   fixture <- make_grid(nrow, ncol)
   measured <- profile_case(ngeo_spatial_basis(
-    fixture$x, fixture$weights, n_modes = modes,
+    fixture$x, fixture$spatial_weights, n_modes = modes,
     budget = ngeo_resource_budget(
       memory_bytes = 5e9, materialized_elements = 2e8
     )
@@ -96,7 +96,7 @@ make_file_stack <- function(subjects, layers) {
     path, c(elements, maps_n), map_names, "raw-performance",
     selection = list(
       layout = "volume", element_index = 0:(elements - 1L),
-      map_index = 0:(maps_n - 1L), full_element_count = elements
+      layer_index = 0:(maps_n - 1L), full_element_count = elements
     ),
     binary = list(
       what = "numeric", bytes = 4L, signed = TRUE, endian = "little",
@@ -108,17 +108,17 @@ make_file_stack <- function(subjects, layers) {
     )
   )
   map_table <- data.frame(
-    map_id = map_names, name = map_names,
+    layer_id = map_names, name = map_names,
     subject_id = rep(sprintf("s%04d", seq_len(subjects)), each = layers),
     feature = rep(sprintf("layer_%02d", seq_len(layers)), subjects),
     stringsAsFactors = FALSE
   )
-  measure <- ngeo_measure(spatial_semantics = "intensive", units = "a.u.")
+  measure <- ngeo_measure(support_behavior = "intensive", unit = "a.u.")
   measures <- measure[rep.int(1L, maps_n), , drop = FALSE]
-  x <- ngeo_regions(
+  x <- ngeo_parcellation(
     data.frame(region_id = seq_len(elements)), values = values,
     support_size = rep.int(1, elements),
-    adjacency = grid_adjacency(16L, 8L), maps = map_table,
+    adjacency = grid_adjacency(16L, 8L), layers = map_table,
     measures = measures
   )
   list(x = x, path = path)
@@ -131,15 +131,15 @@ run_layer_case <- function(subjects, layers) {
       fixture$x, required_layers = sprintf("layer_%02d", seq_len(layers)),
       complete = "error"
     )
-    weights <- ngeo_weights(
+    spatial_weights <- ngeo_spatial_weights(
       fixture$x, method = "region_contiguity", style = "B"
     )
-    basis <- ngeo_spatial_basis(fixture$x, weights, n_modes = 8L)
+    basis <- ngeo_spatial_basis(fixture$x, spatial_weights, n_modes = 8L)
     features <- ngeo_basis_project(
       fixture$x, basis, index = index,
       bands = list(retained = 1:8),
       summaries = c("absolute_energy", "roughness"),
-      chunk_rows = 64L, chunk_maps = 10L
+      chunk_rows = 64L, chunk_layers = 10L
     )
     list(index = index, features = features)
   })
@@ -173,7 +173,7 @@ make_features <- function(values, ids, support) {
     values = values,
     units = data.frame(unit_id = ids, stringsAsFactors = FALSE),
     endpoints = endpoints, diagnostics = list(),
-    provenance = list(support_hash = support)
+    history = list(support_hash = support)
   ), class = "ngeo_subject_features")
 }
 run_group_case <- function(subjects, endpoints, permutations, supports = 1L) {

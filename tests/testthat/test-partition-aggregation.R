@@ -105,6 +105,38 @@ test_that("aggregation follows measurement semantics and conserves support", {
   expect_true(inherits(result$base$topology$adjacency, "Matrix"))
 })
 
+test_that("aggregation records every layer when measures are shared", {
+  source <- partition_surface()
+  measure_table <- rbind(
+    ngeo_measure(support_behavior = "intensive"),
+    ngeo_measure(support_behavior = "extensive")
+  )
+  measure_table$measure_id <- c("intensive", "extensive")
+  layer_table <- data.frame(
+    layer_id = paste0("layer_", 1:4),
+    name = c("intensity_1", "mass_1", "intensity_2", "mass_2"),
+    measure_id = rep(c("intensive", "extensive"), 2L),
+    stringsAsFactors = FALSE
+  )
+  x <- ngeo_surface(
+    source$base$geometry$coordinates,
+    source$base$geometry$faces,
+    values = source$values[, c("intensity", "mass", "intensity", "mass")],
+    layers = layer_table,
+    measures = measure_table,
+    coordinate_space = source$base$coordinate_space
+  )
+  partition <- ngeo_partition(x, c("A", "A", "B", "B"))
+
+  result <- ngeo_aggregate(x, partition)
+  operation <- tail(result$history$operations, 1L)[[1L]]
+
+  expect_equal(nrow(result$layers), 4L)
+  expect_equal(nrow(result$measures), 2L)
+  expect_named(operation$parameters$aggregation_rules, result$layers$layer_id)
+  expect_named(operation$parameters$missing_policy, result$layers$layer_id)
+})
+
 test_that("unknown semantics require an explicit aggregation function", {
   x <- partition_surface()
   partition <- ngeo_partition(x, c("A", "A", "B", "B"))

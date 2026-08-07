@@ -433,7 +433,10 @@ ngeo_aggregate <- function(x,
   }
   values <- do.call(cbind, values)
   maps_out <- x$layers[layer_index, , drop = FALSE]
-  measures_out <- .ngeo_measures_for_layers(x, layer_index, unique = TRUE)
+  layer_measures <- .ngeo_measures_for_layers(x, layer_index)
+  measures_out <- layer_measures[
+    !duplicated(layer_measures$measure_id), , drop = FALSE
+  ]
   rownames(maps_out) <- NULL
   rownames(measures_out) <- NULL
   if (!is.null(fun)) {
@@ -484,7 +487,7 @@ ngeo_aggregate <- function(x,
         layers = maps_out$layer_id,
         aggregation_rules = stats::setNames(
           if (is.null(fun)) {
-            measures_out$aggregation
+            layer_measures$aggregation
           } else {
             rep.int("custom", nrow(maps_out))
           },
@@ -493,7 +496,7 @@ ngeo_aggregate <- function(x,
         custom_function = !is.null(fun),
         na_rm = na.rm,
         missing_policy = stats::setNames(
-          measures_out$missing_policy,
+          layer_measures$missing_policy,
           maps_out$layer_id
         ),
         output_support_size = region_support
