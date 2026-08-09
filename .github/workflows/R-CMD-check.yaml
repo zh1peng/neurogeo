@@ -43,7 +43,7 @@ jobs:
       - name: Install and run Imports-only smoke
         run: |
           R CMD INSTALL .
-          Rscript tools/run-contract-60-audit.R check-output/imports-only-60.json
+          Rscript tools/run-imports-only-smoke-60.R
 
   R-CMD-check:
     name: ${{ matrix.config.os }} (R ${{ matrix.config.r }})
