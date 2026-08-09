@@ -24,9 +24,11 @@ canonical machine-readable state is `inst/spec/audit-task-status-6.0.csv`.
    candidate. Complete UX-301 with 8--15 non-developer users using
    `inst/validation/ux301-protocol-6.0.md`; preserve every attempted row and
    run `Rscript tools/check-ux301-60.R --require-complete`.
-6. Enable protected `main`, obtain independent reviews, then create the signed
-   prerelease, GitHub Release, and Zenodo record from the identical attested
-   source archive. Source files must not assert those external states early.
+6. Recheck protected `main` with
+   `Rscript tools/check-github-governance-60.R`, obtain independent reviews,
+   then create the signed prerelease, GitHub Release, and Zenodo record from
+   the identical attested source archive. Source files must not assert those
+   release states early.
 7. Start PUB-401--PUB-407 only after their machine dependencies close. Use
    `inst/validation/phase4-external-study-protocol-6.0.md`, copy the bundled
    evidence template to `release/phase4-evidence-6.0.json`, and retain the

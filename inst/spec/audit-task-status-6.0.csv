@@ -11,7 +11,7 @@ SCI-FIX-003,Phase0,EVID-001;TERM-001,false,implemented-internal-with-restriction
 SCI-FIX-004,Phase0,EVID-001;TERM-001,false,implemented-internal,inst/spec/ADR-6.0-metric-kriging.md
 SCI-FIX-005,Phase0,EVID-001;SCI-FIX-004,false,implemented-internal,inst/spec/ADR-6.0-metric-kriging.md
 REL-001,Phase0,GOV-000,false,implemented-internal,tools/aggregate-p0-evidence-60.R
-REL-002,Phase0,DOC-001;TERM-001;API-001;ENG-001;SCI-FIX-001;SCI-FIX-002;SCI-FIX-003;SCI-FIX-004;SCI-FIX-005;REL-001,true,external-evidence-pending,inst/spec/release-process-6.0.md
+REL-002,Phase0,DOC-001;TERM-001;API-001;ENG-001;SCI-FIX-001;SCI-FIX-002;SCI-FIX-003;SCI-FIX-004;SCI-FIX-005;REL-001,false,implemented-internal,tools/run-p0-evidence-60.R
 PAPER-001,Phase0,GOV-000,false,implemented-internal,paper/paper.md
 API-101,Phase1,REL-002,false,implemented-internal,inst/spec/api-lifecycle-6.0.csv
 ADR-101,Phase1,API-101,false,implemented-internal,inst/spec/ADR-6.0-lifecycle-distribution-migration.md
@@ -38,7 +38,7 @@ ENG-204,Phase2,API-101;ERROR-101,false,implemented-internal,inst/spec/condition-
 ENG-205,Phase2,API-101;ENG-201,false,implemented-internal,inst/validation/function-complexity-ceilings-6.0.csv
 ENG-206,Phase2,DOC-101;ENG-201,false,implemented-internal,inst/spec/package-size-baseline-6.0.csv
 ENG-207,Phase2,API-105;REL-001,false,implemented-internal,inst/spec/source-identity-6.0.md
-SEC-201,Phase2,none,true,external-evidence-pending,SECURITY.md
+SEC-201,Phase2,none,true,external-validated,SECURITY.md|tools/check-supply-chain-60.R|tools/check-github-governance-60.R
 REL-201,Phase2,REL-002;ADR-101;ENG-201;ENG-203;ENG-206;ENG-207;SEC-201;DOC-201;LOC-201,true,external-evidence-pending,inst/spec/release-process-6.0.md
 PUB-301,Phase3,SCI-102;REL-002,false,implemented-internal,inst/validation/analysis-plan-6.0.md
 VAL-301,Phase3,PUB-301;SCI-FIX-002;SCI-FIX-003,false,design-amendment-required,inst/validation/val301-design-audit-6.0.md
