@@ -92,6 +92,7 @@ jobs:
         run: |
           Rscript tools/check-validation-registry-60.R
           Rscript tools/check-supply-chain-60.R
+          Rscript tools/check-package-boundary-60.R
 
       - name: Public API lifecycle registry
         run: Rscript tools/check-feature-freeze-60.R

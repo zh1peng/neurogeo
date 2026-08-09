@@ -39,7 +39,6 @@ Suggests:
     jsonlite,
     knitr,
     permuco,
-    permute,
     RNifti,
     RSpectra,
     rmarkdown,

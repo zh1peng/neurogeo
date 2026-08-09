@@ -85,8 +85,8 @@ utils::sessionInfo()
 | 实验 MGWR | `GWmodel` + `sf` | 2.4.1 + 1.1.0 | 使用 stable 单带宽 GWR，或明确安装实验后端 |
 | 实验 spatial ordination | `ade4` + `adespatial` + `spdep` | 本环境未安装 | 不提供自动替代；方法不可用 |
 
-`spatialreg`、`permuco`、`permute` 是当前 Suggests，但 6.0 公共运行路径不要求它们；
-保留它们不应被理解为用户必须安装。Phase 2 会收敛这些声明。
+`spatialreg` 和 `permuco` 仅用于独立科学 reference validation，不是公共运行路径
+的依赖；用户无需为了普通分析安装它们。未使用的 `permute` Suggests 已移除。
 
 ## 失败时怎么看错误
 
