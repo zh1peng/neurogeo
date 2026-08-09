@@ -102,7 +102,9 @@ jobs:
         run: Rscript tools/check-api-contracts-60.R
 
       - name: Stable scientific inference contracts
-        run: Rscript tools/check-inference-contracts-60.R
+        run: |
+          Rscript tools/check-inference-contracts-60.R
+          Rscript tools/check-claim-evidence-60.R
 
       - name: User-visible condition contracts
         run: |
