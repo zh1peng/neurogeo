@@ -535,6 +535,14 @@
 #' @param budget Hard execution resource limits.
 #'
 #' @return An `ngeo_group_result`.
+#' @examples
+#' \dontrun{
+#' ngeo_group_test(
+#'   subject_features, subject_data, outcome ~ age + group, test = "group",
+#'   exchangeability = subject_exchangeability
+#' )
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_group_test <- function(
     features,

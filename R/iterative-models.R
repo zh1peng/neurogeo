@@ -619,6 +619,13 @@ ngeo_logdet_approx <- function(
 #' @param na_action Fail or omit incomplete rows.
 #' @param zero_policy Whether isolates are retained.
 #' @return An `ngeo_iterative_spatial_regression`.
+#' @examples
+#' \dontrun{
+#' ngeo_spatial_regression_iterative(
+#'   x, "response", "predictor", spatial_weights, model = "sar"
+#' )
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_spatial_regression_iterative <- function(
     x,
@@ -793,6 +800,13 @@ ngeo_spatial_regression_iterative <- function(
 #' @param control Iterative solver controls.
 #' @param zero_policy Whether isolates are retained.
 #' @return An `ngeo_iterative_car`.
+#' @examples
+#' \dontrun{
+#' ngeo_car_iterative(
+#'   x, "response", spatial_weights, type = "proper", precision = 1
+#' )
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_car_iterative <- function(
     x,

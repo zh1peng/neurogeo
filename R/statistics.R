@@ -437,6 +437,7 @@ ngeo_moran <- function(x,
 #' )
 #' spatial_weights <- ngeo_spatial_weights(point, method = "knn", k = 2)
 #' ngeo_geary(point, spatial_weights, "signal")
+#' @template stable-statistical-method
 #' @export
 ngeo_geary <- function(x,
                        spatial_weights,
@@ -637,6 +638,7 @@ ngeo_local_moran <- function(x,
 #'   values = cbind(signal = c(1, 2, 2.5, 4, 5))
 #' )
 #' ngeo_variogram(point, "signal", breaks = c(0, 1.5, 3, 5))
+#' @template stable-statistical-method
 #' @export
 ngeo_variogram <- function(x,
                            layer = 1L,

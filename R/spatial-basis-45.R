@@ -222,6 +222,14 @@
 #' @param budget Hard execution resource limits.
 #'
 #' @return An `ngeo_spatial_basis` with component-local dense mode blocks.
+#' @examples
+#' \dontrun{
+#' basis <- ngeo_spatial_basis(
+#'   surface_data, surface_weights, operator = "graph_laplacian",
+#'   n_modes = 32
+#' )
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_spatial_basis <- function(
     x,

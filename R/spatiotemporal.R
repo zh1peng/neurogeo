@@ -1014,6 +1014,11 @@ ngeo_spatiotemporal_lag <- function(
 #' @param elements Optional spatial element selection.
 #' @param budget Resource limits for materializing selected values.
 #' @return An `ngeo_temporal_moran` data frame.
+#' @examples
+#' \dontrun{
+#' ngeo_temporal_moran(time_data, temporal_weights)
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_temporal_moran <- function(
     x,
@@ -1069,6 +1074,13 @@ ngeo_temporal_moran <- function(
 #' @param alternative Permutation-test alternative.
 #' @param budget Resource limits for materializing the aligned values block.
 #' @return An `ngeo_spatiotemporal_moran`.
+#' @examples
+#' \dontrun{
+#' ngeo_spatiotemporal_moran(
+#'   time_data, spatial_weights, permutations = 199, seed = 2026
+#' )
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_spatiotemporal_moran <- function(
     x,
@@ -1177,6 +1189,11 @@ ngeo_spatiotemporal_moran <- function(
 #' @param breaks Temporal lag bins or boundaries.
 #' @param max_pairs Hard pair budget.
 #' @return An `ngeo_temporal_variogram`.
+#' @examples
+#' \dontrun{
+#' ngeo_temporal_variogram(time_data, breaks = 5, max_pairs = 10000)
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_temporal_variogram <- function(
     x,
@@ -1256,6 +1273,14 @@ ngeo_temporal_variogram <- function(
 #' @param spatial_breaks,temporal_breaks Bin counts or boundaries.
 #' @param max_pairs Hard coordinate_space-time observation-pair budget.
 #' @return An `ngeo_spatiotemporal_variogram`.
+#' @examples
+#' \dontrun{
+#' ngeo_spatiotemporal_variogram(
+#'   time_data, spatial_breaks = 5, temporal_breaks = 5,
+#'   max_pairs = 10000
+#' )
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_spatiotemporal_variogram <- function(
     x,

@@ -102,6 +102,7 @@
 #' ngeo_spatial_lm(
 #'   data, "response", "predictor", spatial_weights, model = "slx"
 #' )
+#' @template stable-statistical-method
 #' @export
 ngeo_spatial_lm <- function(
     x,

@@ -46,6 +46,31 @@ An `ngeo_global_stat` result.
 \description{
 Global Geary's C
 }
+\section{When to use and limitations}{
+
+Use this method only after declaring the spatial support, coordinate space,
+distance or weights definition, and independent sampling unit. Do not treat
+vertices, voxels, or parcels as independent subjects, and do not interpret a
+spatial-map null as population inference.
+}
+
+\section{Units and assumptions}{
+
+Measurement units are inherited from the selected measure. Distance units
+come from the declared coordinate space; a graph metric is unitless unless
+its edge costs carry a documented unit. Inference requires the assumptions
+stated by the selected model or null, finite observations, aligned geometry,
+and an analysis support that matches the spatial weights.
+}
+
+\section{Validation evidence}{
+
+The validation target and evidence status for stable statistical methods are
+recorded in `inst/validation/claim-evidence-matrix-6.0.csv`; executable
+simulation and conformance suites are declared in
+`inst/spec/validation-registry-6.0.csv`.
+}
+
 \examples{
 point <- ngeo_point(
   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
@@ -53,4 +78,11 @@ point <- ngeo_point(
 )
 spatial_weights <- ngeo_spatial_weights(point, method = "knn", k = 2)
 ngeo_geary(point, spatial_weights, "signal")
+}
+\references{
+Waller, L. A. and Gotway, C. A. (2004). *Applied Spatial Statistics for
+Public Health Data*. Wiley.
+}
+\seealso{
+[ngeo_spatial_weights()], [ngeo_validate()]
 }

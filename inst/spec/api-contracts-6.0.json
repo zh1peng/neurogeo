@@ -414,7 +414,7 @@
         "zero_policy": "FALSE"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_missing", "ngeo_error_zero_policy"],
-      "documentation_sha256": "61c0e3eade932f6db80071831612c2667dc600d759566c4f6df98dab26fd8d26"
+      "documentation_sha256": "9be082201d8e698b9347c2e45df67c034be37ef65a386a7d5ebbc3bb4fa09736"
     },
     "ngeo_car_iterative": {
       "symbol": "ngeo_car_iterative",
@@ -430,7 +430,7 @@
         "zero_policy": "FALSE"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_missing", "ngeo_error_weights", "ngeo_error_zero_policy"],
-      "documentation_sha256": "d18b70c3242ef1b8f962dedb95280cc455b6cc31230703bd51461b4bd8d56d25"
+      "documentation_sha256": "7a094c52ddf1e99ebcd1fdfaab2a1658e69752e107bffb931f3bc9a7849c23ff"
     },
     "ngeo_car_uncertainty": {
       "symbol": "ngeo_car_uncertainty",
@@ -447,7 +447,7 @@
         "level": "0.95"
       },
       "condition_classes": "ngeo_error_uncertainty",
-      "documentation_sha256": "c14d4c992d3da74511888935375685523c5fe873c1137586aa354ef97755ee3a"
+      "documentation_sha256": "748d4ba52763060645c1ab85d02b0304e5315861f915806fac869e7e76f0cb67"
     },
     "ngeo_chart_distortion": {
       "symbol": "ngeo_chart_distortion",
@@ -745,7 +745,7 @@
         "start": "NULL"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_model"],
-      "documentation_sha256": "65e9ac60851599800ff9a6b485d9bb32e5b9099bdb394808d0fca40ca11021a0"
+      "documentation_sha256": "1fc7737ecb9c1ae097e4741df4ac2ea7d23f46e2c2e1b7f3a53cf9c0c351416e"
     },
     "ngeo_flatten_surface": {
       "symbol": "ngeo_flatten_surface",
@@ -777,7 +777,7 @@
         "control": "NULL"
       },
       "condition_classes": [],
-      "documentation_sha256": "aa539cb42c45d53b7b7f4090d4f28a4922cb36d5c5bfb451b86d02ec8dc28040"
+      "documentation_sha256": "2f6335ddb4ac9eff8af2cf1858129ca77175a1844be9ec95307afa14d7393213"
     },
     "ngeo_get_time_axis": {
       "symbol": "ngeo_get_time_axis",
@@ -840,7 +840,7 @@
         "budget": "ngeo_resource_budget()"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_statistic"],
-      "documentation_sha256": "3b31e1db86cb1b936c8957554624b21eacf06c23c8dd8184bf399b2155142f3f"
+      "documentation_sha256": "238506b65f8e7358cc9fd839cabe961c720637f68cf9eecc4d94ae1f99fdceb7"
     },
     "ngeo_gwr": {
       "symbol": "ngeo_gwr",
@@ -857,7 +857,7 @@
         "singular": "c(\"na\", \"error\")"
       },
       "condition_classes": [],
-      "documentation_sha256": "89195b6085031f16c6f43190d97daeb2af6f3177529238726e3091967b7c2ee6"
+      "documentation_sha256": "9b46b0eeed651dcb44dcb56c942f3c8e37a78dd4de220b474eb1547d9ca1ab86"
     },
     "ngeo_gwr_bandwidth": {
       "symbol": "ngeo_gwr_bandwidth",
@@ -873,7 +873,7 @@
         "folds": "5L"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_model"],
-      "documentation_sha256": "5857ac4bae9fb0a3ebca07d030dbfaefa6052d98bf6d3dc2a52c87f105dc9e66"
+      "documentation_sha256": "673b9d1f3dcfbd029a9224f5142663b7d6e5a930d97c12db43cd77fa0bc08c8f"
     },
     "ngeo_gwr_uncertainty": {
       "symbol": "ngeo_gwr_uncertainty",
@@ -893,7 +893,7 @@
         "level": "0.95"
       },
       "condition_classes": "ngeo_error_argument",
-      "documentation_sha256": "e485bf40ec2dcb27b3066533fbb58b6227b83d6ba29b35fbf29733d655ba0d09"
+      "documentation_sha256": "04424566f20508174fb5400af1abacb557d4dd927688f2ca69a8be9638e36b65"
     },
     "ngeo_history": {
       "symbol": "ngeo_history",
@@ -979,7 +979,7 @@
         "distance_method": "NULL"
       },
       "condition_classes": ["ngeo_error_alignment", "ngeo_error_argument", "ngeo_error_covariance_metric", "ngeo_error_metric", "ngeo_error_model"],
-      "documentation_sha256": "f3112a6bed91cc5968d70a30d24d13dcd4a489d968e23e98343779225319c5cf"
+      "documentation_sha256": "82a1632c760defe0bb476440b67fb7a9391af2659d577e488ceb65a95aa32b60"
     },
     "ngeo_kriging_uncertainty": {
       "symbol": "ngeo_kriging_uncertainty",
@@ -999,7 +999,7 @@
         "level": "0.95"
       },
       "condition_classes": ["ngeo_error_base_mismatch", "ngeo_error_uncertainty"],
-      "documentation_sha256": "996a37aaaeeb1483bd0439bad00aa1e0094f1ce8eebfa9eb85dc9b3ffbede28b"
+      "documentation_sha256": "690b99a798859a1d2a6fcff0c24ae1ee2666fda7b93e9fee3f2090ec107dec29"
     },
     "ngeo_label_overlap_map": {
       "symbol": "ngeo_label_overlap_map",
@@ -1188,7 +1188,7 @@
         "residual_moran": "NULL"
       },
       "condition_classes": "ngeo_error_argument",
-      "documentation_sha256": "03ba9f36de656b64ba256cfd8287cd08f524f6a28d1f60db35dff8e180a0ef69"
+      "documentation_sha256": "635faf8c729239820bc4cd6b2ecceb995f47aeb463e0d469f398f563a1014f52"
     },
     "ngeo_moran": {
       "symbol": "ngeo_moran",
@@ -1600,7 +1600,7 @@
         "budget": "ngeo_resource_budget()"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_capability", "ngeo_error_operator", "ngeo_error_topology"],
-      "documentation_sha256": "f14f2a98f7745679800d253ac33f12485e7351cf99e5db29a4fbcb5856379af5"
+      "documentation_sha256": "e6e51da30e170f5ee817310658c26bdbce5b6af21eb0a9dc7704ca1db282c647"
     },
     "ngeo_spatial_lm": {
       "symbol": "ngeo_spatial_lm",
@@ -1615,7 +1615,7 @@
         "zero_policy": "FALSE"
       },
       "condition_classes": ["ngeo_error_missing", "ngeo_error_model", "ngeo_error_weights"],
-      "documentation_sha256": "acdce71daafb6ec1350d55c30839376d73d64b3ea45aac76a3fb52c53d32847e"
+      "documentation_sha256": "e4ab71370823d01ac25ee6dd0df3da70c1eb69ddc1175dfbd1021ce5b2cb63fe"
     },
     "ngeo_spatial_regression": {
       "symbol": "ngeo_spatial_regression",
@@ -1630,7 +1630,7 @@
         "zero_policy": "FALSE"
       },
       "condition_classes": ["ngeo_error_missing", "ngeo_error_model", "ngeo_error_weights"],
-      "documentation_sha256": "02a939fecaec2826cc411c001d796e415323503c0623fbff1ba22f39b33973d8"
+      "documentation_sha256": "fb3697d028af9c8faa7a5ead1597178b649559ff0343cdb21ee09beed1a319bc"
     },
     "ngeo_spatial_regression_iterative": {
       "symbol": "ngeo_spatial_regression_iterative",
@@ -1648,7 +1648,7 @@
         "zero_policy": "FALSE"
       },
       "condition_classes": ["ngeo_error_logdet_bound", "ngeo_error_nonconvergence"],
-      "documentation_sha256": "8965535423594293ff4aa59f89c30b20b41062d64fcd68454e2cbacad4ab4c51"
+      "documentation_sha256": "87e480466b107cced88e630c559067f6bb145d8b87e5408a2a4fd66dd0eb246e"
     },
     "ngeo_spatial_regression_uncertainty": {
       "symbol": "ngeo_spatial_regression_uncertainty",
@@ -1667,7 +1667,7 @@
         "zero_policy": "FALSE"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_model", "ngeo_error_resource"],
-      "documentation_sha256": "28dcbf300cc3aad785023c90052e8c680db56753e33e8c9143eb40f3719773ae"
+      "documentation_sha256": "9a74986fe6b3f20a062ca9ee2bf350a1c580e27f98056422382d7c14217f48d0"
     },
     "ngeo_spatial_weights": {
       "symbol": "ngeo_spatial_weights",
@@ -1711,7 +1711,7 @@
         "budget": "ngeo_resource_budget()"
       },
       "condition_classes": "ngeo_error_argument",
-      "documentation_sha256": "1d55f08405b30ac74aa8689e6b6d982ab9643834fb0fc7369377f38be26f4167"
+      "documentation_sha256": "f3b67f085b3ab718aa2636e19e5973bc60932e9247da3e2ac81beae4644126aa"
     },
     "ngeo_spatiotemporal_variogram": {
       "symbol": "ngeo_spatiotemporal_variogram",
@@ -1725,7 +1725,7 @@
         "max_pairs": "getOption(\"neurogeo.max_spatiotemporal_pairs\", 1e+06)"
       },
       "condition_classes": ["ngeo_error_dense_distance", "ngeo_error_distance", "ngeo_error_resource", "ngeo_error_statistic", "ngeo_error_temporal_measure"],
-      "documentation_sha256": "a5a905568e5f5cd3375ed99f9339a00a97b94771322620d88e2d5b2967f18f9d"
+      "documentation_sha256": "1f42895b6167b80ad58a4f676bd21db1eb0d76846ec65568a753d0f827e2fbda"
     },
     "ngeo_spatiotemporal_weights": {
       "symbol": "ngeo_spatiotemporal_weights",
@@ -1772,7 +1772,7 @@
         "chunk_size": "65536L"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_base_mismatch"],
-      "documentation_sha256": "28a760e061b7e67e2eac8a2f2477b1e2080d1f81e8eb262fe44c704cb4ca3b9f"
+      "documentation_sha256": "e3d1c3d2a2fba3cc358c86c85ca64a9690713f6789429730621ef13b329ea88b"
     },
     "ngeo_stream_summary": {
       "symbol": "ngeo_stream_summary",
@@ -2116,7 +2116,7 @@
         "budget": "ngeo_resource_budget()"
       },
       "condition_classes": ["ngeo_error_alignment", "ngeo_error_temporal_measure"],
-      "documentation_sha256": "fca56923cad82f78079ad81582c3660018f76b2ece9780a60eb9b1dfc1213f06"
+      "documentation_sha256": "c132be2ef6be12d6dcc21981b2206de499d6be0b2de4c2caabadcb214ccef078"
     },
     "ngeo_temporal_neighbors": {
       "symbol": "ngeo_temporal_neighbors",
@@ -2151,7 +2151,7 @@
         "max_pairs": "getOption(\"neurogeo.max_temporal_pairs\", 1e+06)"
       },
       "condition_classes": ["ngeo_error_missing", "ngeo_error_resource", "ngeo_error_statistic", "ngeo_error_temporal_measure"],
-      "documentation_sha256": "e4d7def32c2dc199e7d525c5873db956697365e5ad1537c1e3e353fd125422af"
+      "documentation_sha256": "ce6a08270d3db1944d0386532651e50699b680aaa027b7e59a1f2d36718d808e"
     },
     "ngeo_temporal_weights": {
       "symbol": "ngeo_temporal_weights",
@@ -2541,7 +2541,7 @@
         "na_action": "c(\"fail\", \"omit\")"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_dense_distance", "ngeo_error_measure", "ngeo_error_missing", "ngeo_error_statistic", "ngeo_error_values"],
-      "documentation_sha256": "c0ee99cc1e1b64640c7b200ef44b3a5b7a4edcb3229a06d61cd795986a1454c4"
+      "documentation_sha256": "a90640223a96315cf2befab36ceaf737a807cf7d73c864e6931e216d7a271975"
     },
     "ngeo_variogram_uncertainty": {
       "symbol": "ngeo_variogram_uncertainty",
@@ -2560,7 +2560,7 @@
         "level": "0.95"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_model"],
-      "documentation_sha256": "f19332659be11e8210e495d0d31aa98ffd8eed32ac62191f3e3663b2c0b3950a"
+      "documentation_sha256": "c59d46ae037a987ba6f068a7f10fc1908e61a8a771a01dd0a0fe7ae6e5677f3d"
     },
     "ngeo_vertex_area": {
       "symbol": "ngeo_vertex_area",

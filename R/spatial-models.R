@@ -31,6 +31,7 @@
 #'   model = "spherical"
 #' )
 #' fit
+#' @template stable-statistical-method
 #' @export
 ngeo_fit_variogram <- function(
     x,
@@ -255,6 +256,7 @@ print.ngeo_variogram_fit <- function(x, ...) {
 #'   ),
 #'   neighbors = 12
 #' )
+#' @template stable-statistical-method
 #' @export
 ngeo_kriging <- function(
     x,
@@ -483,6 +485,13 @@ ngeo_kriging <- function(
 #' @inheritParams ngeo_kernel_regression
 #'
 #' @return An `ngeo_gwr_bandwidth`.
+#' @examples
+#' \dontrun{
+#' ngeo_gwr_bandwidth(
+#'   x, "response", "predictor", candidates = c(5, 10, 20)
+#' )
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_gwr_bandwidth <- function(
     x,
@@ -578,6 +587,7 @@ ngeo_gwr_bandwidth <- function(
 #'   point, "response", "predictor",
 #'   bandwidth = 2.5, singular = "error"
 #' ))
+#' @template stable-statistical-method
 #' @export
 ngeo_gwr <- function(
     x,
@@ -748,6 +758,7 @@ print.ngeo_gwr <- function(x, ...) {
 #' ngeo_spatial_regression(
 #'   data, "response", "predictor", spatial_weights, model = "sar"
 #' )
+#' @template stable-statistical-method
 #' @export
 ngeo_spatial_regression <- function(
     x,
@@ -855,6 +866,11 @@ print.ngeo_spatial_regression <- function(x, ...) {
 #' @param zero_policy Whether isolates are retained.
 #'
 #' @return An `ngeo_car`.
+#' @examples
+#' \dontrun{
+#' ngeo_car(x, "response", spatial_weights, type = "proper", precision = 1)
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_car <- function(
     x,
