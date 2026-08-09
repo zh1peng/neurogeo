@@ -8,6 +8,8 @@
 #'   `Inf` is unlimited.
 #'
 #' @return An `ngeo_resource_budget`.
+#' @templateVar example_call ngeo_resource_budget(memory_bytes = 1e9, elapsed_seconds = 60)
+#' @template stable-reproducibility
 #' @export
 ngeo_resource_budget <- function(
     memory_bytes = Inf,
