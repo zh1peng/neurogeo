@@ -50,10 +50,10 @@ VAL-306,Phase3,PUB-301;SCI-FIX-004;SCI-FIX-005,false,implemented-internal-with-r
 VAL-307,Phase3,PUB-301;VAL-302,false,implemented-internal,tools/run-val307-support-builder-60.R
 VAL-308,Phase3,PUB-301;ENG-203;VAL-301;VAL-302;VAL-303;VAL-304;VAL-305;VAL-306;VAL-307,false,partial-internal,inst/validation/val308-coverage-audit-6.0.md
 UX-301,Phase3,LOC-201;REL-201,true,external-evidence-pending,inst/validation/ux301-protocol-6.0.md
-PUB-401,Phase4,VAL-302;VAL-307,true,blocked-by-prerequisite,inst/validation/external-gates-handoff-6.0.md
-PUB-402,Phase4,PUB-301;VAL-301;VAL-302;VAL-303;VAL-304;VAL-305;VAL-306;VAL-307;VAL-308,true,blocked-by-prerequisite,inst/validation/external-gates-handoff-6.0.md
-PUB-403,Phase4,PUB-402,true,blocked-by-prerequisite,inst/validation/external-gates-handoff-6.0.md
-PUB-404,Phase4,REL-201;PUB-402;PUB-403,true,blocked-by-prerequisite,inst/validation/external-gates-handoff-6.0.md
-PUB-405,Phase4,REL-201;PUB-401;PUB-402;PUB-403;PUB-404,true,blocked-by-prerequisite,inst/validation/external-gates-handoff-6.0.md
-PUB-406,Phase4,PUB-301;PUB-402;PUB-403;PUB-404;PUB-405,true,blocked-by-prerequisite,inst/validation/external-gates-handoff-6.0.md
-PUB-407,Phase4,PUB-406,true,blocked-by-prerequisite,inst/validation/external-gates-handoff-6.0.md
+PUB-401,Phase4,VAL-302;VAL-307,true,blocked-by-prerequisite,inst/validation/phase4-external-study-protocol-6.0.md
+PUB-402,Phase4,PUB-301;VAL-301;VAL-302;VAL-303;VAL-304;VAL-305;VAL-306;VAL-307;VAL-308,true,blocked-by-prerequisite,inst/validation/phase4-external-study-protocol-6.0.md
+PUB-403,Phase4,PUB-402,true,blocked-by-prerequisite,inst/validation/phase4-external-study-protocol-6.0.md
+PUB-404,Phase4,REL-201;PUB-402;PUB-403,true,blocked-by-prerequisite,inst/validation/phase4-external-study-protocol-6.0.md
+PUB-405,Phase4,REL-201;PUB-401;PUB-402;PUB-403;PUB-404,true,blocked-by-prerequisite,inst/validation/phase4-external-study-protocol-6.0.md
+PUB-406,Phase4,PUB-301;PUB-402;PUB-403;PUB-404;PUB-405,true,blocked-by-prerequisite,inst/validation/phase4-external-study-protocol-6.0.md
+PUB-407,Phase4,PUB-406,true,blocked-by-prerequisite,inst/validation/phase4-external-study-protocol-6.0.md

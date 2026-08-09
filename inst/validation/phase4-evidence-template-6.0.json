@@ -1,0 +1,43 @@
+{
+  "schema": "neurogeo/phase4-external-evidence/1",
+  "status": "awaiting-external-evidence",
+  "package_version": "6.0.0",
+  "candidate": {
+    "release_tag": null,
+    "source_commit": null,
+    "p0_attestation_sha256": null
+  },
+  "operators": [],
+  "cohorts": [],
+  "benchmarks": [],
+  "external_reproductions": [],
+  "open_release": {
+    "code_doi": null,
+    "data_doi": null,
+    "operators_doi": null,
+    "source_data_doi": null,
+    "environment_uri": null,
+    "environment_sha256": null,
+    "rebuild_command": null,
+    "rebuild_log_uri": null,
+    "all_figures_rebuilt": false,
+    "licenses_complete": false,
+    "orcids_complete": false,
+    "contributions_complete": false,
+    "reviewer": null,
+    "review_record": null
+  },
+  "manuscript": {
+    "artifact_uri": null,
+    "sha256": null,
+    "claims_consistent": false,
+    "equations_and_statistics_checked": false,
+    "limitations_complete": false,
+    "api_status_consistent": false,
+    "availability_statements_complete": false,
+    "references_and_source_data_complete": false,
+    "reviewer": null,
+    "review_record": null
+  },
+  "external_reviews": []
+}
