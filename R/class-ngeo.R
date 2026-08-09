@@ -465,6 +465,8 @@ base_hash <- function(x) {
 #'
 #' @param x An `ngeo` object.
 #' @return A named logical vector.
+#' @templateVar example_call ngeo_capabilities(data)
+#' @template stable-computation-core
 #' @export
 ngeo_capabilities <- function(x) {
   ngeo_validate(x, "basic")

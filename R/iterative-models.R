@@ -28,6 +28,8 @@
 #' @param on_nonconvergence Raise a classed error or return diagnostics.
 #' @param budget Hard execution resource limits.
 #' @return An immutable `ngeo_solver_control`.
+#' @templateVar example_call ngeo_solver_control(tolerance = 1e-8, max_iterations = 1000)
+#' @template stable-computation-core
 #' @export
 ngeo_solver_control <- function(
     tolerance = 1e-8,
@@ -86,6 +88,8 @@ ngeo_solver_control <- function(
 #'
 #' @param x An `ngeo_solver_control`.
 #' @return `x`, invisibly.
+#' @templateVar example_call ngeo_validate_solver_control(solver_control)
+#' @template stable-computation-core
 #' @export
 ngeo_validate_solver_control <- function(x) {
   integer_field <- if (inherits(x, "ngeo_solver_control")) {
@@ -349,6 +353,8 @@ ngeo_validate_solver_control <- function(x) {
 #' @param n Required dimension for a function operator.
 #' @param initial Optional finite starting vector.
 #' @return An `ngeo_iterative_solution` with convergence evidence.
+#' @templateVar example_call ngeo_iterative_solve(operator, rhs, control = solver_control)
+#' @template stable-computation-core
 #' @export
 ngeo_iterative_solve <- function(
     operator,
@@ -530,6 +536,8 @@ ngeo_iterative_solve <- function(
 #' larger than `exact_threshold` are exact.
 #' @return An `ngeo_logdet_estimate` with Monte Carlo and truncation
 #' diagnostics.
+#' @templateVar example_call ngeo_logdet_approx(operator, seed = 2026)
+#' @template stable-computation-core
 #' @export
 ngeo_logdet_approx <- function(
     spatial_weights,
