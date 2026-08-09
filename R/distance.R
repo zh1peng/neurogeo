@@ -73,7 +73,45 @@
   coordinates
 }
 
+.ngeo_assert_metric_eligible <- function(x, distance_method) {
+  if (identical(distance_method, "hops")) {
+    return(invisible(TRUE))
+  }
+  assert_surface <- function(surface, label = "surface") {
+    active <- surface$base$geometry$active_coordinates
+    metadata <- surface$base$geometry$coordinate_meta
+    row <- match(active, metadata$name)
+    if (is.na(row) || !isTRUE(metadata$metric_eligible[[row]])) {
+      .ngeo_abort(
+        sprintf(
+          paste(
+            "Active coordinates `%s` for %s are not metric-eligible;",
+            "select anatomical coordinates before using `%s`."
+          ),
+          active, label, distance_method
+        ),
+        "ngeo_error_metric"
+      )
+    }
+  }
+  if (inherits(x, "ngeo_surface")) {
+    assert_surface(x)
+  } else if (inherits(x, "ngeo_grayordinate")) {
+    for (component in x$base$geometry$components) {
+      if (identical(component$kind, "surface") &&
+          inherits(component$geometry, "ngeo_surface")) {
+        assert_surface(
+          component$geometry,
+          sprintf("grayordinate component `%s`", component$component_id)
+        )
+      }
+    }
+  }
+  invisible(TRUE)
+}
+
 .ngeo_edge_weight_matrix <- function(x, adjacency) {
+  .ngeo_assert_metric_eligible(x, "edge_geodesic")
   coordinates <- .ngeo_element_coordinates(x)
   if (anyNA(coordinates)) {
     .ngeo_abort(
@@ -90,6 +128,15 @@
   difference <- coordinates[entries$i, , drop = FALSE] -
     coordinates[entries$j, , drop = FALSE]
   spatial_weights <- sqrt(rowSums(difference^2))
+  if (any(!is.finite(spatial_weights) | spatial_weights <= 0)) {
+    .ngeo_abort(
+      paste(
+        "Edge-geodesic distance requires finite positive edge lengths;",
+        "duplicate or invalid metric coordinates were found."
+      ),
+      "ngeo_error_metric"
+    )
+  }
   .ngeo_sparse_edges(
     nrow(adjacency),
     cbind(entries$i, entries$j),
@@ -239,6 +286,7 @@ ngeo_distance <- function(x,
     grayordinate = "edge_geodesic"
   )
   distance_method <- .ngeo_metric_name(distance_method)
+  .ngeo_assert_metric_eligible(x, distance_method)
   from <- .ngeo_distance_selection(x, from)
   to <- .ngeo_distance_selection(x, to, default_all = TRUE)
   pair_count <- length(from) * length(to)

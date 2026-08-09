@@ -149,6 +149,84 @@ print.ngeo_variogram_fit <- function(x, ...) {
   covariance
 }
 
+.ngeo_kriging_covariance_gate <- function(covariance) {
+  if (any(!is.finite(covariance)) ||
+      !isTRUE(all.equal(covariance, t(covariance), tolerance = 1e-12))) {
+    .ngeo_abort(
+      "The local kriging covariance matrix is not finite and symmetric.",
+      "ngeo_error_covariance"
+    )
+  }
+  eigenvalues <- eigen(
+    covariance,
+    symmetric = TRUE,
+    only.values = TRUE
+  )$values
+  scale <- max(1, max(abs(eigenvalues)))
+  tolerance <- getOption("neurogeo.kriging_psd_relative_tolerance", 1e-10) *
+    scale
+  if (min(eigenvalues) < -tolerance) {
+    .ngeo_abort(
+      sprintf(
+        paste(
+          "The declared metric/kernel produced a non-PSD covariance",
+          "matrix (minimum eigenvalue %.6g; tolerance %.6g)."
+        ),
+        min(eigenvalues), tolerance
+      ),
+      "ngeo_error_covariance"
+    )
+  }
+  positive <- eigenvalues[eigenvalues > tolerance]
+  condition <- if (length(positive) != length(eigenvalues)) {
+    Inf
+  } else {
+    max(positive) / min(positive)
+  }
+  maximum <- getOption("neurogeo.max_kriging_condition", 1e12)
+  if (!is.finite(condition) || condition > maximum) {
+    .ngeo_abort(
+      sprintf(
+        "The local kriging covariance condition number exceeds %s.",
+        format(maximum, scientific = TRUE)
+      ),
+      "ngeo_error_covariance_condition"
+    )
+  }
+  list(
+    minimum_eigenvalue = min(eigenvalues),
+    relative_tolerance = tolerance / scale,
+    condition_number = condition,
+    jitter = 0
+  )
+}
+
+.ngeo_kriging_variance_gate <- function(value, scale) {
+  if (!is.finite(value)) {
+    .ngeo_abort(
+      "Kriging produced a non-finite prediction variance.",
+      "ngeo_error_variance"
+    )
+  }
+  tolerance <- getOption(
+    "neurogeo.kriging_variance_relative_tolerance",
+    1e-10
+  ) * max(1, scale)
+  if (value < -tolerance) {
+    .ngeo_abort(
+      sprintf(
+        paste(
+          "Kriging produced a materially negative prediction variance",
+          "(%.6g; tolerance %.6g)."
+        ),
+        value, tolerance
+      ),
+      "ngeo_error_variance"
+    )
+  }
+  if (value < 0) 0 else value
+}
+
 #' Bounded local ordinary or universal kriging
 #'
 #' @param x An `ngeo` dataset.
@@ -191,15 +269,36 @@ ngeo_kriging <- function(
   if (!inherits(variogram, "ngeo_variogram_fit")) {
     .ngeo_abort("`variogram` must be fitted.", "ngeo_error_argument")
   }
+  if (is.null(distance_method) && is.null(variogram$distance_method) &&
+      identical(x$base$type, "grayordinate")) {
+    .ngeo_abort(
+      "Grayordinate kriging requires an explicit Euclidean-like metric.",
+      "ngeo_error_metric"
+    )
+  }
   distance_method <- distance_method %||% variogram$distance_method %||% switch(
     x$base$type,
-    surface = "edge_geodesic",
+    surface = "euclidean",
     volume = "world_euclidean",
     point = "euclidean",
     parcellation = "region_centroid",
-    grayordinate = "edge_geodesic"
+    grayordinate = "euclidean"
   )
   metric_name <- .ngeo_metric_name(distance_method)
+  allowed_metrics <- c("euclidean", "world_euclidean", "region_centroid")
+  allowed_models <- c("spherical", "exponential", "gaussian")
+  if (!metric_name %in% allowed_metrics ||
+      !variogram$model %in% allowed_models) {
+    .ngeo_abort(
+      paste(
+        "Kriging covariance is supported only for spherical, exponential,",
+        "or Gaussian kernels with Euclidean-like metrics; arbitrary graph",
+        "shortest-path metrics are not covariance-safe."
+      ),
+      c("ngeo_error_covariance_metric", "ngeo_error_metric")
+    )
+  }
+  .ngeo_assert_metric_eligible(x, metric_name)
   if (!is.null(variogram$distance_method) &&
       !identical(.ngeo_metric_name(variogram$distance_method), metric_name)) {
     .ngeo_abort(
@@ -268,6 +367,7 @@ ngeo_kriging <- function(
     sparse = TRUE
   )
   used <- integer(nrow(target_coordinates))
+  covariance_diagnostics <- vector("list", nrow(target_coordinates))
   for (i in seq_len(nrow(target_coordinates))) {
     distance <- if (!is.null(target_index)) {
       as.numeric(ngeo_distance(
@@ -308,6 +408,7 @@ ngeo_kriging <- function(
     covariance <- .ngeo_variogram_covariance(
       local_distance, variogram, diagonal = TRUE
     )
+    covariance_diagnostics[[i]] <- .ngeo_kriging_covariance_gate(covariance)
     cross_distance <- if (!is.null(target_index)) {
       unname(ngeo_distance(
         x,
@@ -341,11 +442,13 @@ ngeo_kriging <- function(
     linear_weights[i, local] <- lambda
     multiplier <- solution[-seq_along(local)]
     prediction[[i]] <- sum(lambda * values[local])
-    variance[[i]] <- max(
-      0,
-        variogram$parameters[["partial_sill"]] +
-        variogram$parameters[["nugget"]] -
-        sum(lambda * cross) - sum(multiplier * target_design[i, ])
+    total_sill <- variogram$parameters[["partial_sill"]] +
+      variogram$parameters[["nugget"]]
+    raw_variance <- total_sill - sum(lambda * cross) -
+      sum(multiplier * target_design[i, ])
+    variance[[i]] <- .ngeo_kriging_variance_gate(
+      raw_variance,
+      max(abs(c(total_sill, lambda * cross, multiplier)))
     )
     used[[i]] <- length(local)
   }
@@ -363,6 +466,10 @@ ngeo_kriging <- function(
   attr(result, "base_hash") <- base_hash(x)
   attr(result, "linear_weights") <- .ngeo_as_dgCMatrix(
     linear_weights
+  )
+  attr(result, "covariance_diagnostics") <- do.call(
+    rbind,
+    lapply(covariance_diagnostics, as.data.frame)
   )
   class(result) <- c("ngeo_kriging", "data.frame")
   result

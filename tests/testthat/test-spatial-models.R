@@ -87,15 +87,27 @@ test_that("explicit-bandwidth kernel regression recovers a linear field", {
   expect_identical(attr(result, "distance_method"), "euclidean")
 })
 
-test_that("Moran spectral nulls preserve variance and autocorrelation", {
+test_that("Moran eigen-sign surrogates are explicit and reproducible", {
   fixture <- model_grid()
+  expect_error(
+    ngeo_moran_null(
+      fixture$x,
+      fixture$spatial_weights,
+      layer = "response",
+      nsim = 2,
+      seed = 99,
+      zero_policy = TRUE
+    ),
+    class = "ngeo_error_experimental"
+  )
   first <- ngeo_moran_null(
     fixture$x,
     fixture$spatial_weights,
     layer = "response",
     nsim = 8,
     seed = 99,
-    zero_policy = TRUE
+    zero_policy = TRUE,
+    experimental = TRUE
   )
   second <- ngeo_moran_null(
     fixture$x,
@@ -103,28 +115,14 @@ test_that("Moran spectral nulls preserve variance and autocorrelation", {
     layer = "response",
     nsim = 8,
     seed = 99,
-    zero_policy = TRUE
+    zero_policy = TRUE,
+    experimental = TRUE
   )
-  observed <- fixture$x$values[, "response"]
-  simulated_moran <- apply(
-    first$simulations,
-    2L,
-    neurogeo:::.ngeo_moran_value,
-    matrix = fixture$spatial_weights$matrix
-  )
-
   expect_s3_class(first, "ngeo_null")
   expect_identical(first$simulations, second$simulations)
-  expect_equal(
-    apply(first$simulations, 2L, stats::var),
-    rep(stats::var(observed), 8L),
-    tolerance = 1e-6
-  )
-  expect_equal(
-    simulated_moran,
-    rep(first$observed_moran, 8L),
-    tolerance = 1e-6
-  )
+  expect_identical(first$method, "eigen_sign_surrogate")
+  expect_identical(first$status, "experimental_uncalibrated")
+  expect_false(first$preserves_spatial_autocorrelation)
 })
 
 test_that("simulation streams are reproducible across worker counts", {
@@ -137,7 +135,8 @@ test_that("simulation streams are reproducible across worker counts", {
     nsim = 3,
     seed = 123,
     zero_policy = TRUE,
-    workers = 1
+    workers = 1,
+    experimental = TRUE
   )
   parallel <- ngeo_moran_null(
     fixture$x,
@@ -146,7 +145,8 @@ test_that("simulation streams are reproducible across worker counts", {
     nsim = 3,
     seed = 123,
     zero_policy = TRUE,
-    workers = 2
+    workers = 2,
+    experimental = TRUE
   )
 
   expect_identical(parallel$simulations, serial$simulations)
@@ -174,17 +174,21 @@ test_that("surface spins require and respect spherical registration geometry", {
     x,
     nsim = 6,
     seed = 7,
-    coordinates = "sphere"
+    coordinates = "sphere",
+    experimental = TRUE
   )
   second <- ngeo_spin_null(
     x,
     nsim = 6,
     seed = 7,
-    coordinates = "sphere"
+    coordinates = "sphere",
+    experimental = TRUE
   )
 
   expect_s3_class(first, "ngeo_null")
   expect_identical(first$simulations, second$simulations)
   expect_true(all(first$mappings >= 1L & first$mappings <= 4L))
   expect_identical(first$base_hash, base_hash(x))
+  expect_identical(first$status, "experimental_uncalibrated")
+  expect_true(all(first$mapping_diagnostics$cross_stratum == 0L))
 })

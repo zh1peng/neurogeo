@@ -329,6 +329,8 @@ print.ngeo_cross_atlas_consensus <- function(x, ...) {
 #' @param adjustment BH, BY, Holm, or max-T.
 #'
 #' @return An `ngeo_common_support_test`.
+#' @param experimental_null Must be `TRUE` when `null` is `"moran"` or
+#'   `"spin"`. These spatial surrogates remain uncalibrated.
 #' @export
 ngeo_common_support_test <- function(
     x,
@@ -344,6 +346,7 @@ ngeo_common_support_test <- function(
     nsim = 999L,
     seed = NULL,
     workers = 1L,
+    experimental_null = FALSE,
     adjustment = c("maxT", "BH", "BY", "holm")) {
   ngeo_validate(x, "strict")
   statistic <- match.arg(statistic)
@@ -396,7 +399,8 @@ ngeo_common_support_test <- function(
         layer = selected[["predictor"]],
         nsim = nsim,
         seed = seed,
-        workers = workers
+        workers = workers,
+        experimental = experimental_null
       )$simulations
     },
     spin = ngeo_spin_null(
@@ -406,7 +410,8 @@ ngeo_common_support_test <- function(
       nsim = nsim,
       seed = seed,
       strata = strata,
-      workers = workers
+      workers = workers,
+      experimental = experimental_null
     )$simulations
   )
   if (!identical(dim(null_values), c(nrow(x$values), nsim))) {
@@ -460,7 +465,12 @@ ngeo_common_support_test <- function(
     simulated = simulated,
     statistic = statistic,
     null = null,
-    preserves_spatial_autocorrelation = null %in% c("moran", "spin"),
+    null_status = if (null %in% c("moran", "spin")) {
+      "experimental_uncalibrated"
+    } else {
+      "stable"
+    },
+    preserves_spatial_autocorrelation = FALSE,
     adjustment = adjustment,
     nsim = nsim,
     seed = .ngeo_seed(seed),
@@ -516,6 +526,7 @@ ngeo_multiscale_inference <- function(
     nsim = 999L,
     seed = NULL,
     workers = 1L,
+    experimental_null = FALSE,
     adjustment = c("maxT", "BH", "BY", "holm")) {
   if (length(scales) != length(support_maps) ||
       anyNA(scales) || anyDuplicated(scales)) {
@@ -538,6 +549,7 @@ ngeo_multiscale_inference <- function(
     nsim = nsim,
     seed = seed,
     workers = workers,
+    experimental_null = experimental_null,
     adjustment = match.arg(adjustment)
   )
   estimates <- test$estimates

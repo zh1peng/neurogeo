@@ -59,18 +59,30 @@
     )
   }
   if (is.character(layers)) {
-    id_match <- match(layers, x$layers$layer_id)
-    name_match <- match(layers, x$layers$name)
-    index <- ifelse(!is.na(id_match), id_match, name_match)
-    if (anyNA(index)) {
-      .ngeo_abort(
-        sprintf(
-          "Unknown layers: %s.",
-          paste(unique(layers[is.na(index)]), collapse = ", ")
-        ),
-        "ngeo_error_index"
-      )
-    }
+    index <- vapply(layers, function(layer) {
+      id_match <- match(layer, x$layers$layer_id)
+      if (!is.na(id_match)) {
+        return(id_match)
+      }
+      name_match <- which(x$layers$name == layer)
+      if (!length(name_match)) {
+        .ngeo_abort(
+          sprintf("Unknown layer: %s.", layer),
+          "ngeo_error_index"
+        )
+      }
+      if (length(name_match) > 1L) {
+        .ngeo_abort(
+          sprintf(
+            "Layer name `%s` is ambiguous; use one of these layer IDs: %s.",
+            layer,
+            paste(x$layers$layer_id[name_match], collapse = ", ")
+          ),
+          "ngeo_error_layer_ambiguous"
+        )
+      }
+      name_match[[1L]]
+    }, integer(1))
   } else if (is.logical(layers)) {
     if (length(layers) != n || anyNA(layers)) {
       .ngeo_abort(
@@ -90,7 +102,7 @@
   }
   if (anyDuplicated(index)) {
     .ngeo_abort(
-      "Map selection must not contain duplicates.",
+      "Layer selection must not contain duplicates.",
       "ngeo_error_index"
     )
   }

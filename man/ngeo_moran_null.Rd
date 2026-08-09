@@ -12,7 +12,8 @@ ngeo_moran_null(
   seed = NULL,
   na_action = c("fail", "omit"),
   zero_policy = FALSE,
-  workers = 1L
+  workers = 1L,
+  experimental = FALSE
 )
 }
 \arguments{
@@ -32,13 +33,18 @@ rebuilds the declared normalization on the retained raw-weight subgraph.}
 \item{zero_policy}{Whether to retain observations with no neighbours.}
 
 \item{workers}{Number of R worker processes.}
+
+\item{experimental}{Must be `TRUE`. This surrogate remains uncalibrated and
+must not be treated as stable null inference.}
 }
 \value{
 An `ngeo_null` object.
 }
 \description{
-Random sign changes in the eigenbasis of the symmetric graph operator
-preserve the centered sum of squares and Moran quadratic form, subject to
-numerical tolerance. A dense eigendecomposition is guarded by
+Random sign changes in the eigenbasis of a symmetrized graph operator.
+This surrogate does not generally preserve the sample mean, variance, or
+Moran statistic for irregular or row-standardized graphs. It is therefore
+available only for explicit experimental method evaluation. A dense
+eigendecomposition is guarded by
 `options(neurogeo.max_spectral_null_elements)`.
 }
