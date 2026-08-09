@@ -1,0 +1,143 @@
+{
+  "schema": "neurogeo/phase3-design/1",
+  "status": "frozen-before-primary-results",
+  "package_version": "6.0.0",
+  "common": {
+    "alpha": 0.05,
+    "replicates_per_calibration_cell": 5000,
+    "interval": "wilson-95",
+    "null_gate": "upper_ci<=0.065",
+    "coverage_gate": "lower_ci>=0.93 && upper_ci<=0.97",
+    "maximum_failed_fit_rate": 0.01,
+    "stop_failed_fit_rate": 0.05,
+    "attempted_replicates_are_denominator": true,
+    "primary_results_are_evaluated_once": true
+  },
+  "validations": [
+    {
+      "id": "VAL-301",
+      "simulation_id": "SIM-null-factorial",
+      "seed_base": 301000,
+      "expand_grid": true,
+      "factors": {
+        "spatial_autocorrelation": [-0.5, 0.0, 0.5],
+        "trend": ["absent", "linear"],
+        "geometry": ["volume-regular", "point-irregular", "surface-bilateral-medial-wall", "parcellation-disconnected"],
+        "missingness": ["none", "mcar-0.05", "spatial-mar-0.10"],
+        "null": ["conditional", "total"]
+      },
+      "multiplicity_family": "all endpoints within one generated map",
+      "comparators": ["spdep-global-local", "exact-enumeration-when-smaller"],
+      "metrics": ["type1", "familywise-error", "failed-fit-rate"],
+      "gates": ["upper-ci<=0.065", "failed-fit-rate<=0.01"],
+      "stop_rule": "stop only for corrupt input or failed-fit-rate>0.05; demote a failing null method"
+    },
+    {
+      "id": "VAL-302",
+      "simulation_id": "SIM-resampling-phantom",
+      "seed_base": 302000,
+      "expand_grid": true,
+      "factors": {
+        "geometry": ["volume", "surface", "cifti"],
+        "operation": ["gather-nearest", "gather-linear-or-barycentric", "conservative-remap"],
+        "phantom": ["constant", "linear", "smooth-sinusoid", "compact-mass"],
+        "coverage": ["complete", "partial-mask", "disconnected"]
+      },
+      "comparators": ["Connectome-Workbench", "FreeSurfer", "analytic-phantom"],
+      "metrics": ["rmse", "maximum-error", "relative-mass-error", "coverage", "candidate-miss-rate"],
+      "gates": ["constant-maximum-error<=1e-10", "linear-rmse<=1e-6", "relative-mass-error<=1e-8", "declared-coverage-error<=1e-10", "candidate-miss-rate<=1e-4"],
+      "stop_rule": "gate any geometry/operation pair that fails its analytic or external reference"
+    },
+    {
+      "id": "VAL-303",
+      "simulation_id": "SIM-sampling-unit",
+      "seed_base": 303000,
+      "expand_grid": true,
+      "factors": {
+        "declared_unit": ["subject", "site", "spatial-block", "map-null"],
+        "design": ["balanced", "unbalanced", "site-confounded"],
+        "schedule": ["free", "blocked", "user-supplied"]
+      },
+      "comparators": ["PALM-compatible-user-schedule", "exact-enumeration-when-smaller"],
+      "metrics": ["coverage", "type1", "wrong-unit-rejection", "schedule-order-invariance"],
+      "gates": ["coverage-wilson-within-0.93-0.97", "type1-upper-ci<=0.065", "wrong-unit-rejection==1", "order-difference<=1e-12"],
+      "stop_rule": "restrict stable inference to schedules that pass calibration and reject mismatched units"
+    },
+    {
+      "id": "VAL-304",
+      "simulation_id": "SIM-cross-atlas",
+      "seed_base": 304000,
+      "expand_grid": true,
+      "factors": {
+        "atlas_correlation": [0.50, 0.75, 0.90, 0.95],
+        "subjects": [40, 100],
+        "effect": [0.0, 0.3],
+        "mode": ["covariance-aware", "explicit-independence-ablation"]
+      },
+      "comparators": ["generalized-least-squares-reference", "independence-ablation"],
+      "metrics": ["type1", "coverage", "bias", "independence-opt-in"],
+      "gates": ["type1-upper-ci<=0.065", "coverage-wilson-within-0.93-0.97", "absolute-bias<=0.02", "independence-requires-explicit-opt-in==1"],
+      "stop_rule": "make inference descriptive or experimental if covariance-aware calibration fails"
+    },
+    {
+      "id": "VAL-305",
+      "simulation_id": "SIM-operator-simplex",
+      "seed_base": 305000,
+      "expand_grid": true,
+      "factors": {
+        "operator_distribution": ["empirical-weighted", "dirichlet", "logistic-normal", "independent-gaussian-ablation"],
+        "ensemble_size": [10, 50],
+        "concentration": [2, 20]
+      },
+      "comparators": ["analytic-mixture-moments", "independent-gaussian-ablation"],
+      "metrics": ["simplex-error", "bias", "rmse", "coverage"],
+      "gates": ["simplex-error<=1e-12", "absolute-bias<=0.02", "rmse<=independent-gaussian-rmse", "coverage-wilson-within-0.93-0.97"],
+      "stop_rule": "limit stable claims to empirical weighted ensembles if parametric operator families fail"
+    },
+    {
+      "id": "VAL-306",
+      "simulation_id": "SIM-spatial-regression",
+      "seed_base": 306000,
+      "expand_grid": true,
+      "factors": {
+        "method": ["kriging", "gwr", "sar", "sem", "car"],
+        "geometry": ["regular-grid", "irregular-points", "parcellation"],
+        "spatial_parameter": [0.0, 0.3, 0.6]
+      },
+      "comparators": ["gstat", "spatialreg", "spdep", "analytic-car-precision"],
+      "metrics": ["point-estimate-error", "standard-error-error", "type1", "coverage", "row-order-cv-difference"],
+      "gates": ["relative-reference-error<=1e-6", "type1-upper-ci<=0.065", "coverage-wilson-within-0.93-0.97", "row-order-cv-difference<=1e-12", "failed-fit-rate<=0.01"],
+      "stop_rule": "rename, demote, or remove any method whose estimand or uncertainty does not match its reference"
+    },
+    {
+      "id": "VAL-307",
+      "simulation_id": "SIM-support-builder-exactness",
+      "seed_base": 307000,
+      "expand_grid": true,
+      "factors": {
+        "geometry": ["surface-regular", "surface-skinny-faces", "surface-disconnected", "surface-medial-wall", "volume-partial-mask"],
+        "size": [1000, 32000, 91000],
+        "candidate_faces": [16, 64, "exact"]
+      },
+      "comparators": ["exhaustive-face-search", "analytic-voxel-overlap"],
+      "metrics": ["candidate-miss-rate", "weight-error", "coverage-error", "simplex-error"],
+      "gates": ["candidate-miss-rate<=1e-4", "maximum-weight-error<=1e-10", "coverage-error<=1e-10", "simplex-error<=1e-12"],
+      "stop_rule": "replace bounded candidate search with an exact spatial index when the miss-rate gate fails"
+    },
+    {
+      "id": "VAL-308",
+      "simulation_id": "SIM-scale-benchmark",
+      "seed_base": 308000,
+      "expand_grid": true,
+      "factors": {
+        "elements": [32000, 91000, 164000],
+        "subjects_or_supports": [100, 1000, 100000],
+        "path": ["exact", "iterative", "file-backed", "support-family"]
+      },
+      "comparators": ["registered-small-exact-result", "phase0-performance-baseline"],
+      "metrics": ["relative-error", "convergence", "peak-memory", "elapsed-time", "failed-fit-rate"],
+      "gates": ["relative-error<=1e-8", "converged==1", "within-declared-memory-budget==1", "within-declared-time-budget==1", "failed-fit-rate<=0.01"],
+      "stop_rule": "block release on a scale, accuracy, convergence, memory, or time regression"
+    }
+  ]
+}
