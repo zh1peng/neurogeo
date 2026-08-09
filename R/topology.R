@@ -155,6 +155,8 @@
 #' @param include_masked Whether masked surface vertices retain edges.
 #'
 #' @return A sparse symmetric `Matrix`.
+#' @templateVar example_call ngeo_adjacency(surface_data)
+#' @template stable-spatial-relation-core
 #' @export
 ngeo_adjacency <- function(x,
                            method = c(
@@ -222,6 +224,8 @@ ngeo_adjacency <- function(x,
 #' @param adjacency Optional precomputed adjacency.
 #'
 #' @return An integer component identifier per element.
+#' @templateVar example_call ngeo_components(surface_data)
+#' @template stable-spatial-relation-core
 #' @export
 ngeo_components <- function(x, adjacency = NULL) {
   if (inherits(x, "ngeo")) {

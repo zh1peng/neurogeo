@@ -269,6 +269,8 @@
 #' @param connectivity Voxel connectivity for graph metrics.
 #'
 #' @return A source by target numeric matrix.
+#' @templateVar example_call ngeo_distance(surface_data, method = "geodesic")
+#' @template stable-spatial-relation-core
 #' @export
 ngeo_distance <- function(x,
                           from,

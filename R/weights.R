@@ -469,6 +469,8 @@ ngeo_spatial_weights <- function(x,
 #' @param ... Additional `ngeo_spatial_weights()` arguments.
 #'
 #' @return An `ngeo_spatial_weights` object.
+#' @templateVar example_call ngeo_neighbors(surface_data, method = "contiguity")
+#' @template stable-spatial-relation-core
 #' @export
 ngeo_neighbors <- function(x,
                            method = c("contiguity", "knn", "distance_band"),
@@ -521,6 +523,8 @@ print.ngeo_spatial_weights <- function(x, ...) {
 #'
 #' @param x An `ngeo_spatial_weights`.
 #' @return An igraph object.
+#' @templateVar example_call as_igraph(spatial_weights)
+#' @template stable-spatial-relation-core
 #' @export
 as_igraph <- function(x) {
   .ngeo_require("igraph", "igraph conversion")
@@ -539,6 +543,8 @@ as_igraph <- function(x) {
 #'
 #' @param x An `ngeo_spatial_weights`.
 #' @return An `spdep` `nb` object.
+#' @templateVar example_call as_spdep_nb(spatial_weights)
+#' @template stable-spatial-relation-core
 #' @export
 as_spdep_nb <- function(x) {
   .ngeo_require("spdep", "spdep conversion")
@@ -566,6 +572,8 @@ as_spdep_nb <- function(x) {
 #'
 #' @param x An `ngeo_spatial_weights`.
 #' @return An `spdep` `listw` object.
+#' @templateVar example_call as_spdep_listw(spatial_weights)
+#' @template stable-spatial-relation-core
 #' @export
 as_spdep_listw <- function(x) {
   .ngeo_require("spdep", "spdep conversion")
