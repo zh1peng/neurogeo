@@ -107,6 +107,7 @@ jobs:
         run: |
           Rscript tools/check-inference-contracts-60.R
           Rscript tools/check-claim-evidence-60.R
+          Rscript tools/check-phase3-amendment-proposals-60.R
 
       - name: User-visible condition contracts
         run: |
