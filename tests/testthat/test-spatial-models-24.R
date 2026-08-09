@@ -214,13 +214,13 @@ test_that("kriging executes distance_method distances and covariance variance al
     surface, "signal", fit, targets = 1:4,
     neighbors = 4, distance_method = "euclidean"
   )
-  geodesic <- ngeo_kriging(
-    surface, "signal", fit, targets = 1:4,
-    neighbors = 4, distance_method = "edge_geodesic"
+  expect_error(
+    ngeo_kriging(
+      surface, "signal", fit, targets = 1:4,
+      neighbors = 4, distance_method = "edge_geodesic"
+    ),
+    class = "ngeo_error_covariance_metric"
   )
-  expect_false(isTRUE(all.equal(
-    euclidean$prediction, geodesic$prediction
-  )))
 
   point <- ngeo_point(
     cbind(c(0, 1, 3), 0),

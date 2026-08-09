@@ -82,7 +82,7 @@ test_that("common-source support tests are reproducible and family-aware", {
   expect_identical(first$null, "permutation")
 })
 
-test_that("Moran common-source null is explicitly spatial", {
+test_that("Moran common-source null is explicitly experimental", {
   fixture <- inference_fixture()
   spatial_weights <- ngeo_spatial_weights(
     fixture$source,
@@ -98,11 +98,13 @@ test_that("Moran common-source null is explicitly spatial", {
     null = "moran",
     spatial_weights = spatial_weights,
     nsim = 7,
-    seed = 17
+    seed = 17,
+    experimental_null = TRUE
   )
 
-  expect_true(result$preserves_spatial_autocorrelation)
+  expect_false(result$preserves_spatial_autocorrelation)
   expect_identical(result$null, "moran")
+  expect_identical(result$null_status, "experimental_uncalibrated")
   expect_equal(dim(result$simulated), c(7L, 2L))
 })
 

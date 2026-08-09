@@ -71,13 +71,48 @@
   )
 }
 
-.ngeo_rotation_matrix <- function() {
-  matrix <- matrix(stats::rnorm(9L), nrow = 3L)
-  rotation <- qr.Q(qr(matrix))
-  if (det(rotation) < 0) {
-    rotation[, 1L] <- -rotation[, 1L]
+.ngeo_experimental_null <- function(experimental, method) {
+  if (!is.logical(experimental) || length(experimental) != 1L ||
+      is.na(experimental)) {
+    .ngeo_abort(
+      "`experimental` must be TRUE or FALSE.",
+      "ngeo_error_argument"
+    )
   }
-  rotation
+  if (!isTRUE(experimental)) {
+    .ngeo_abort(
+      sprintf(
+        paste(
+          "%s is uncalibrated and cannot be used for stable inference;",
+          "set `experimental = TRUE` only for method evaluation."
+        ),
+        method
+      ),
+      "ngeo_error_experimental"
+    )
+  }
+  invisible(TRUE)
+}
+
+.ngeo_rotation_matrix <- function() {
+  uniform <- stats::runif(3L)
+  quaternion <- c(
+    x = sqrt(1 - uniform[[1L]]) * sin(2 * pi * uniform[[2L]]),
+    y = sqrt(1 - uniform[[1L]]) * cos(2 * pi * uniform[[2L]]),
+    z = sqrt(uniform[[1L]]) * sin(2 * pi * uniform[[3L]]),
+    w = sqrt(uniform[[1L]]) * cos(2 * pi * uniform[[3L]])
+  )
+  x <- quaternion[["x"]]
+  y <- quaternion[["y"]]
+  z <- quaternion[["z"]]
+  w <- quaternion[["w"]]
+  matrix(c(
+    1 - 2 * (y^2 + z^2), 2 * (x * y + z * w),
+    2 * (x * z - y * w), 2 * (x * y - z * w),
+    1 - 2 * (x^2 + z^2), 2 * (y * z + x * w),
+    2 * (x * z + y * w), 2 * (y * z - x * w),
+    1 - 2 * (x^2 + y^2)
+  ), nrow = 3L, byrow = TRUE)
 }
 
 .ngeo_spherical_coordinates <- function(x, coordinates) {
@@ -130,6 +165,8 @@
 #' @param strata Optional element-aligned hemisphere or structure strata.
 #' @param workers Number of R worker processes.
 #' @param sphere_tolerance Maximum relative radial standard deviation.
+#' @param experimental Must be `TRUE`. Surface-spin inference remains
+#'   experimental until its type-I error has been calibrated.
 #'
 #' @return An `ngeo_null` object containing simulations and index mappings.
 #' @export
@@ -141,7 +178,9 @@ ngeo_spin_null <- function(
     seed = NULL,
     strata = NULL,
     workers = 1L,
-    sphere_tolerance = 0.1) {
+    sphere_tolerance = 0.1,
+    experimental = FALSE) {
+  .ngeo_experimental_null(experimental, "Surface spin")
   .ngeo_require("dbscan", "surface-spin nearest-neighbor mapping")
   ngeo_validate(x, "strict")
   spherical <- .ngeo_spherical_coordinates(x, coordinates)
@@ -168,6 +207,16 @@ ngeo_spin_null <- function(
     )
   }
   if (is.null(strata)) {
+    component <- ngeo_components(ngeo_adjacency(x, method = "mesh"))
+    if (max(component, 0L) > 1L) {
+      .ngeo_abort(
+        paste(
+          "The surface has multiple connected components; provide explicit",
+          "hemisphere or structure `strata` to prevent cross-component spins."
+        ),
+        "ngeo_error_strata_required"
+      )
+    }
     strata <- rep.int("all", length(values))
   }
   if (length(strata) != length(values) || anyNA(strata)) {
@@ -210,10 +259,35 @@ ngeo_spin_null <- function(
     }
     list(values = values[mapping], mapping = mapping)
   })
+  mappings <- do.call(cbind, lapply(simulations, `[[`, "mapping"))
+  diagnostics <- data.frame(
+    simulation = seq_len(ncol(mappings)),
+    unique_targets = apply(mappings, 2L, function(mapping) {
+      length(unique(mapping))
+    }),
+    collisions = apply(mappings, 2L, function(mapping) {
+      length(mapping) - length(unique(mapping))
+    }),
+    coverage = apply(mappings, 2L, function(mapping) {
+      length(unique(mapping)) / length(mapping)
+    }),
+    cross_stratum = apply(mappings, 2L, function(mapping) {
+      sum(strata != strata[mapping])
+    }),
+    stringsAsFactors = FALSE
+  )
   result <- list(
     method = "surface_spin",
+    status = "experimental_uncalibrated",
     simulations = do.call(cbind, lapply(simulations, `[[`, "values")),
-    mappings = do.call(cbind, lapply(simulations, `[[`, "mapping")),
+    mappings = mappings,
+    mapping_diagnostics = diagnostics,
+    mapping_policy = "nearest_with_replacement",
+    collision_estimand = paste(
+      "vertex-assigned rotated field; repeated nearest targets duplicate",
+      "source values"
+    ),
+    preserves_spatial_autocorrelation = FALSE,
     element_id = x$base$elements$element_id,
     layer_id = x$layers$layer_id[[layer_index]],
     layer_name = x$layers$name[[layer_index]],
@@ -233,14 +307,18 @@ ngeo_spin_null <- function(
 
 #' Generate Moran spectral randomizations
 #'
-#' Random sign changes in the eigenbasis of the symmetric graph operator
-#' preserve the centered sum of squares and Moran quadratic form, subject to
-#' numerical tolerance. A dense eigendecomposition is guarded by
+#' Random sign changes in the eigenbasis of a symmetrized graph operator.
+#' This surrogate does not generally preserve the sample mean, variance, or
+#' Moran statistic for irregular or row-standardized graphs. It is therefore
+#' available only for explicit experimental method evaluation. A dense
+#' eigendecomposition is guarded by
 #' `options(neurogeo.max_spectral_null_elements)`.
 #'
 #' @inheritParams ngeo_moran
 #' @param nsim Number of null layers.
 #' @param workers Number of R worker processes.
+#' @param experimental Must be `TRUE`. This surrogate remains uncalibrated and
+#'   must not be treated as stable null inference.
 #'
 #' @return An `ngeo_null` object.
 #' @export
@@ -252,7 +330,9 @@ ngeo_moran_null <- function(
     seed = NULL,
     na_action = c("fail", "omit"),
     zero_policy = FALSE,
-    workers = 1L) {
+    workers = 1L,
+    experimental = FALSE) {
+  .ngeo_experimental_null(experimental, "Moran eigen-sign surrogate")
   na_action <- match.arg(na_action)
   input <- .ngeo_spatial_inputs(
     x,
@@ -288,7 +368,9 @@ ngeo_moran_null <- function(
     )
   })
   result <- list(
-    method = "moran_spectral",
+    method = "eigen_sign_surrogate",
+    status = "experimental_uncalibrated",
+    preserves_spatial_autocorrelation = FALSE,
     simulations = do.call(cbind, simulations),
     element_id = input$element_id,
     layer_id = input$layer_id,

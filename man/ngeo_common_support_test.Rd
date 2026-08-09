@@ -18,6 +18,7 @@ ngeo_common_support_test(
   nsim = 999L,
   seed = NULL,
   workers = 1L,
+  experimental_null = FALSE,
   adjustment = c("maxT", "BH", "BY", "holm")
 )
 }
@@ -47,6 +48,9 @@ ngeo_common_support_test(
 \item{seed}{Reproducible seed.}
 
 \item{workers}{Simulation workers.}
+
+\item{experimental_null}{Must be `TRUE` when `null` is `"moran"` or
+`"spin"`. These spatial surrogates remain uncalibrated.}
 
 \item{adjustment}{BH, BY, Holm, or max-T.}
 }

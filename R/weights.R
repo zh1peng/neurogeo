@@ -335,8 +335,10 @@ ngeo_spatial_weights <- function(x,
   } else {
     switch(
       x$base$type,
+      surface = "edge_geodesic",
       volume = "world_euclidean",
       parcellation = "region_centroid",
+      grayordinate = "edge_geodesic",
       "euclidean"
     )
   }
@@ -376,6 +378,15 @@ ngeo_spatial_weights <- function(x,
       )
       result <- distances
       if (length(result@x)) {
+        if (any(!is.finite(result@x) | result@x <= 0)) {
+          .ngeo_abort(
+            paste(
+              "Inverse-distance weights require finite positive distances;",
+              "duplicate coordinates or zero-length graph edges are not allowed."
+            ),
+            "ngeo_error_metric"
+          )
+        }
         result@x <- 1 / result@x
       }
       result

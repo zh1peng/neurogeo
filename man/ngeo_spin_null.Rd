@@ -12,7 +12,8 @@ ngeo_spin_null(
   seed = NULL,
   strata = NULL,
   workers = 1L,
-  sphere_tolerance = 0.1
+  sphere_tolerance = 0.1,
+  experimental = FALSE
 )
 }
 \arguments{
@@ -31,6 +32,9 @@ ngeo_spin_null(
 \item{workers}{Number of R worker processes.}
 
 \item{sphere_tolerance}{Maximum relative radial standard deviation.}
+
+\item{experimental}{Must be `TRUE`. Surface-spin inference remains
+experimental until its type-I error has been calibrated.}
 }
 \value{
 An `ngeo_null` object containing simulations and index mappings.

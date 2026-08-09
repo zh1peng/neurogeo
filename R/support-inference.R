@@ -37,7 +37,7 @@
     predictor = values[keep, 2L],
     support = support[keep]
   )
-  fit <- stats::lm(outcome ~ predictor, data = frame, spatial_weights = support)
+  fit <- stats::lm(outcome ~ predictor, data = frame, weights = support)
   coefficients <- summary(fit)$coefficients
   c(
     estimate = coefficients["predictor", "Estimate"],
