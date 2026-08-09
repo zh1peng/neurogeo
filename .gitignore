@@ -16,6 +16,7 @@ website/public/images/conte69-atlas-flatmap.png
 website/public/documentation-build.json
 website/tutorials/getting-started.md
 website/tutorials/format-workflows.md
+website/tutorials/workflow-*.md
 website/tutorials/*_files/
 website/modules/*.md
 !website/modules/index.md
@@ -26,6 +27,7 @@ website/en/tutorials/neighbors-and-weights.md
 website/en/tutorials/parcellation-and-aggregation.md
 website/en/tutorials/change-of-support.md
 website/en/tutorials/spatial-modelling.md
+website/en/tutorials/workflow-*.md
 website/en/tutorials/*_files/
 website/en/modules/real-world-support-mapping.md
 website/en/modules/support-uncertainty.md

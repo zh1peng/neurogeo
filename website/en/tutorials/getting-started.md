@@ -2,7 +2,7 @@
 title: "15-minute quickstart: from a fixed fixture to interpretable Moran's I"
 outline: [2, 3]
 editLink: false
-sourceSha256: "e88ab1cf8a5bb3f29ac64a40833888b0e51879a278c6546a3a7e21cad0ce2f2b"
+sourceSha256: "dd3a2b0378644009ddf8d9c29198ab47ef891ccdb09147770a1a9f8b78edf773"
 ---
 
 **Language:** [简体中文](/tutorials/getting-started)
@@ -221,24 +221,22 @@ significant only with the adjusted permutation evidence. The object
 history records construction:
 
 ``` r
-ngeo_history(point_data)$operations
-#> [[1]]
-#> [[1]]$operation
+construction <- ngeo_history(point_data)$operations[[1L]]
+construction$timestamp_utc <- NULL
+construction
+#> $operation
 #> [1] "ngeo_point"
 #>
-#> [[1]]$software
-#> [[1]]$software$package
+#> $software
+#> $software$package
 #> [1] "neurogeo"
 #>
-#> [[1]]$software$version
+#> $software$version
 #> [1] "6.0.0"
 #>
 #>
-#> [[1]]$timestamp_utc
-#> [1] "2026-08-09T10:38:57Z"
-#>
-#> [[1]]$parameters
-#> [[1]]$parameters$source_index_base
+#> $parameters
+#> $parameters$source_index_base
 #> [1] 1
 ```
 

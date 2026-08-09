@@ -80,6 +80,7 @@ static_sources <- c(
   "website/guide/installation.md",
   "website/glossary/index.md", "website/tutorials/index.md", "website/modules/index.md",
   "website/en/index.md", "website/en/guide/index.md",
+  "website/en/concepts/index.md", "website/en/concepts/options.md",
   "website/en/guide/installation.md",
   "website/en/glossary/index.md", "website/en/tutorials/index.md",
   "website/en/modules/index.md",
@@ -87,22 +88,22 @@ static_sources <- c(
 )
 static_routes <- c(
   "/readme", "/", "/guide/", "/concepts/", "/concepts/options", "/guide/installation", "/glossary/", "/tutorials/", "/modules/",
-  "/en/", "/en/guide/", "/en/guide/installation", "/en/glossary/", "/en/tutorials/", "/en/modules/",
+  "/en/", "/en/guide/", "/en/concepts/", "/en/concepts/options", "/en/guide/installation", "/en/glossary/", "/en/tutorials/", "/en/modules/",
   "/api/reference/"
 )
 static_locale <- c(
-  "neutral", rep("zh-CN", 8L), rep("en", 6L), "neutral"
+  "neutral", rep("zh-CN", 8L), rep("en", 8L), "neutral"
 )
 static_rows <- data.frame(
   document_id = c(
     "readme", "home", "guide", "concepts-index", "options", "installation", "glossary", "tutorial-index",
-    "module-index", "home", "guide", "installation", "glossary", "tutorial-index", "module-index",
+    "module-index", "home", "guide", "concepts-index", "options", "installation", "glossary", "tutorial-index", "module-index",
     "api-index"
   ),
   locale = static_locale,
   content_type = c(
     "start-here", "start-here", "start-here", "concept", "concept", "start-here", "concept", "navigation",
-    "navigation", "start-here", "start-here", "start-here", "concept", "navigation", "navigation",
+    "navigation", "start-here", "start-here", "concept", "concept", "start-here", "concept", "navigation", "navigation",
     "api-index"
   ),
   lifecycle = "stable",

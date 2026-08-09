@@ -5,6 +5,7 @@ editLink: false
 sourceSha256: "6809dcdc1587cad2c8b49d613a5dd12d80af651da9bbfaf5ab9c83224bb785e1"
 ---
 
+> **Translation status:** This page does not yet have a reviewed Simplified Chinese translation; the source-language version is shown.
 **Edit source:** [Edit on GitHub](https://github.com/zh1peng/neurogeo/edit/main/vignettes/multilayer-inference.Rmd)
 
 
