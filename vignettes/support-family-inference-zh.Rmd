@@ -98,7 +98,8 @@ coarse_features <- ngeo_layer_coupling(
 
 ```{r common-inference}
 schedule <- ngeo_exchangeability(
-  subject_id, permutations = 99L, seed = 2026L
+  subject_id, permutations = 99L, seed = 2026L,
+  unit_kind = "subject"
 )
 design <- data.frame(unit_id = subject_id, group = group)
 result <- ngeo_group_test(

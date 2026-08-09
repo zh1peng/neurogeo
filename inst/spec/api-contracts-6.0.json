@@ -691,10 +691,11 @@
         "schedule": "NULL",
         "permutations": "4999L",
         "seed": "NULL",
-        "budget": "ngeo_resource_budget()"
+        "budget": "ngeo_resource_budget()",
+        "unit_kind": "c(\"subject\", \"site\", \"spatial_block\", \"map_null\")"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_exchangeability"],
-      "documentation_sha256": "263d83750c756b833e96bd706902dc2dc14235256799ad3af450f2a57c98f0a3"
+      "documentation_sha256": "193620ad68d91971f944e0277fe43d5495b390ed073bae2a230e1f6d35b9f065"
     },
     "ngeo_export_history": {
       "symbol": "ngeo_export_history",

@@ -640,6 +640,13 @@ ngeo_group_test <- function(
     omnibus = null_result$omnibus_null
   )
   if (retain_null) null_output$endpoint <- null_result$endpoint_null
+  unit_kind <- exchangeability$unit_kind %||% "subject"
+  unit_label <- switch(
+    unit_kind,
+    subject = "subjects",
+    site = "sites",
+    spatial_block = "spatial blocks"
+  )
   result <- list(
     tests = tests,
     omnibus = omnibus_table,
@@ -653,6 +660,7 @@ ngeo_group_test <- function(
       group_summaries = group_summaries
     ),
     exchangeability = exchangeability,
+    sampling_unit = unit_kind,
     diagnostics = c(design_diagnostics, list(
       dropped_incomplete_units = aligned$dropped,
       complete_family = TRUE,
@@ -674,11 +682,16 @@ ngeo_group_test <- function(
       ),
       adjustment = adjustment,
       omnibus = omnibus,
-      inference_unit = "independent_subject",
+      inference_unit = paste0(
+        "independent_", unit_kind
+      ),
       endpoint_selection_refit = FALSE
     ),
     claim = paste(
-      "Freedman-Lane inference over complete independent subjects;",
+      paste0(
+        "Freedman-Lane inference over complete independent ",
+        unit_label, ";"
+      ),
       "validity assumes the declared exchangeability of residuals or sign symmetry,",
       "and does not treat spatial elements as independent observations."
     ),

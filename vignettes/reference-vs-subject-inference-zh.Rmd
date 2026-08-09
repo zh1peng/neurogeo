@@ -53,7 +53,8 @@ schedule <- ngeo_exchangeability(
   scheme = "within_block",
   blocks = subject_data$site,
   permutations = 4999L,
-  seed = 5001L
+  seed = 5001L,
+  unit_kind = "subject"
 )
 population_result <- ngeo_group_test(
   subject_features,
@@ -65,9 +66,10 @@ population_result <- ngeo_group_test(
 )
 ```
 
-Freedman--Lane 置换的是 reduced model 的完整受试者残差记录，并在声明的 block 内保持
-exchangeability。重复 session 必须先形成一个受试者 summary、配对 contrast，或交给能
-表达重复测量结构的外部模型；当前版本不实现 PALM-style exchangeability tree。
+`unit_kind = "subject"` 是科学声明，不会根据 `unit_id` 的文字自动推断。Freedman--Lane
+置换的是 reduced model 的完整受试者残差记录，并在声明的 block 内保持 exchangeability。
+重复 session 必须先形成一个受试者 summary、配对 contrast，或交给能表达重复测量结构
+的外部模型；当前版本不实现 PALM-style exchangeability tree。
 
 ## Support-family regime
 

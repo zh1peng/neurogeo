@@ -32,6 +32,9 @@
   fixed-effect GLS, and require explicit opt-in for the legacy independence
   analysis. Correlated random-effects requests are rejected rather than
   reported with independence-based uncertainty.
+* Added an explicit `unit_kind` to exchangeability schedules, preserve it in
+  group results and inference contracts, and reject map-null transformations
+  from the independent-unit permutation API.
 
 # neurogeo 5.0.0
 

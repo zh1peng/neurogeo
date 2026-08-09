@@ -77,13 +77,15 @@ schedule <- ngeo_exchangeability(
   subject_id,
   scheme = "free",
   permutations = 99L,
-  seed = 2026L
+  seed = 2026L,
+  unit_kind = "subject"
 )
 schedule
 ```
 
-schedule 的每一行移动完整受试者残差记录；同一行同时用于所有 layer pair、band 与
-endpoint。它不置换 vertex，也不为每个 endpoint 重新抽 seed。
+`unit_kind = "subject"` 声明每一列是独立受试者。schedule 的每一行移动完整受试者
+残差记录；同一行同时用于所有 layer pair、band 与 endpoint。它不置换 vertex，
+也不为每个 endpoint 重新抽 seed。
 
 ## 协变量调整、max-T 与 omnibus
 

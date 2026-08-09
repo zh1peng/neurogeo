@@ -163,9 +163,9 @@
   list(schedule = schedule, transformation = transformation)
 }
 
-#' Declare subject-level exchangeability transformations
+#' Declare independent-unit exchangeability transformations
 #'
-#' Transformations are stored in rows and independent unit in columns. The
+#' Transformations are stored in rows and independent units in columns. The
 #' observed identity transformation is kept outside the schedule.
 #'
 #' @param unit_id Ordered unique independent-unit identifiers.
@@ -175,9 +175,12 @@
 #' @param permutations Requested Monte Carlo transformations.
 #' @param seed Optional reproducible seed.
 #' @param budget Hard execution resource limits.
+#' @param unit_kind Scientific sampling unit represented by each column.
+#'   Subject, site, and spatial-block units are supported. Map nulls belong to
+#'   the spatial-null API and are rejected here.
 #'
 #' @return An `ngeo_exchangeability` object.
-#' @templateVar example_call ngeo_exchangeability(subject_data, unit = "subject_id", blocks = "site")
+#' @templateVar example_call ngeo_exchangeability(subject_id, blocks = site, unit_kind = "subject")
 #' @template stable-inference-core
 #' @export
 ngeo_exchangeability <- function(
@@ -187,9 +190,20 @@ ngeo_exchangeability <- function(
     schedule = NULL,
     permutations = 4999L,
     seed = NULL,
-    budget = ngeo_resource_budget()) {
+    budget = ngeo_resource_budget(),
+    unit_kind = c("subject", "site", "spatial_block", "map_null")) {
   unit_id <- .ngeo_exchange_units(unit_id)
   scheme <- match.arg(scheme)
+  unit_kind <- match.arg(unit_kind)
+  if (identical(unit_kind, "map_null")) {
+    .ngeo_abort(
+      paste(
+        "Map-null transformations are not independent-unit exchangeability;",
+        "use a declared spatial-null function."
+      ),
+      "ngeo_error_exchangeability"
+    )
+  }
   seed <- .ngeo_seed(seed)
   blocks <- .ngeo_exchange_blocks(
     blocks, unit_id, required = identical(scheme, "within_block")
@@ -265,11 +279,13 @@ ngeo_exchangeability <- function(
     budget, "memory_bytes", as.double(length(normalized)) * 4
   )
   identity <- list(
-    unit_id = unit_id, scheme = scheme, transformation = transformation,
+    unit_id = unit_id, unit_kind = unit_kind, scheme = scheme,
+    transformation = transformation,
     blocks = blocks, schedule = normalized
   )
   result <- list(
     unit_id = unit_id,
+    unit_kind = unit_kind,
     schedule = normalized,
     scheme = scheme,
     transformation = transformation,
@@ -294,9 +310,10 @@ ngeo_exchangeability <- function(
 print.ngeo_exchangeability <- function(x, ...) {
   cat(
     "<ngeo_exchangeability>\n",
+    "  unit kind: ", x$unit_kind %||% "subject", "\n",
     "  scheme: ", x$scheme, "\n",
     "  transformation: ", x$transformation, "\n",
-    "  unit: ", length(x$unit_id), "\n",
+    "  units: ", length(x$unit_id), "\n",
     "  transformations: ", nrow(x$schedule), " (", x$status, ")\n",
     "  schedule hash: ", x$schedule_hash, "\n",
     sep = ""

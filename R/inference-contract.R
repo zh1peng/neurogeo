@@ -108,6 +108,7 @@ ngeo_inference_contract <- function(x) {
   }
   row <- registry[match(result_class, registry$result_class), , drop = FALSE]
   dynamic_null <- .ngeo_result_scalar(x, c("null_model", "null"))
+  dynamic_sampling_unit <- .ngeo_result_scalar(x, "sampling_unit")
   dynamic_metric <- .ngeo_result_scalar(x, c(
     "distance_method", "metric", "weights_method", "normalization"
   ))
@@ -118,7 +119,8 @@ ngeo_inference_contract <- function(x) {
       result_class = result_class,
       lifecycle = "stable",
       estimand = row$estimand[[1L]],
-      sampling_unit = row$sampling_unit[[1L]],
+      sampling_unit = dynamic_sampling_unit %||%
+        row$sampling_unit[[1L]],
       null_model = dynamic_null %||% row$null_model[[1L]],
       metric = dynamic_metric %||% row$metric[[1L]],
       support = row$support[[1L]],
