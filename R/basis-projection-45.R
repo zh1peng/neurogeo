@@ -233,6 +233,8 @@
 #' @param chunk_layers Maximum layers read together.
 #'
 #' @return An `ngeo_subject_features` object.
+#' @templateVar example_call ngeo_basis_project(data, spatial_basis)
+#' @template stable-data-semantics-core
 #' @export
 ngeo_basis_project <- function(
     x,

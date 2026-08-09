@@ -253,6 +253,8 @@ ngeo_validate_layers <- function(
 #'
 #' @inheritParams ngeo_validate_layers
 #' @return An `ngeo_layer_index` that references, but does not copy, layers.
+#' @templateVar example_call ngeo_layer_index(data, unit = "subject_id", feature = "feature")
+#' @template stable-data-semantics-core
 #' @export
 ngeo_layer_index <- function(
     x,
@@ -379,6 +381,8 @@ print.ngeo_layer_index <- function(x, ...) {
 #' @param budget Hard resource limits checked before materialization.
 #'
 #' @return An ordinary `ngeo` object with one wider aligned values block.
+#' @templateVar example_call ngeo_bind_layers(first, second)
+#' @template stable-data-semantics-core
 #' @export
 ngeo_bind_layers <- function(
     ...,

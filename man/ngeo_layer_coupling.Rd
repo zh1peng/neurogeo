@@ -49,3 +49,37 @@ One API produces same-location, fixed-basis spectral, and directional layer
 endpoints. Spatial-map nulls are optional and remain explicitly distinct
 from subject or population inference.
 }
+\section{When to use and limitations}{
+
+Use these functions to inspect or change aligned values, layers, measures, or
+derived subject features after element identity has been verified. Do not
+treat layers as spatial elements, infer subject independence from column
+count, or combine measurements with incompatible units or support behavior.
+}
+
+\section{Units and assumptions}{
+
+Values retain the unit and intensive/extensive behavior declared by their
+measure. Rows remain aligned to base elements and columns to layer IDs.
+Binding, subsetting, projection, and coupling assume stable IDs, compatible
+bases, explicit missingness, and one measurement contract per selected layer.
+}
+
+\section{Validation evidence}{
+
+Alignment, layer-index, measure, chunking, projection, and coupling fixtures
+are declared in `inst/spec/validation-registry-6.0.csv`; claim status is in
+`inst/validation/claim-evidence-matrix-6.0.csv`.
+}
+
+\examples{
+\dontrun{
+ngeo_layer_coupling(data, layer_index, estimands = "same_location")
+}
+}
+\references{
+Wickham, H. (2014). Tidy data. *Journal of Statistical Software*, 59, 1--23.
+}
+\seealso{
+[ngeo_validate_layers()], [ngeo_measure()]
+}

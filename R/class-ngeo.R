@@ -355,6 +355,8 @@ measures <- function(x) {
 }
 
 #' @rdname ngeo_accessors
+#' @templateVar example_call ngeo_labels(data)
+#' @template stable-data-semantics-core
 #' @export
 ngeo_labels <- function(x) {
   ngeo_validate(x, "basic")

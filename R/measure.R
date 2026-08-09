@@ -102,6 +102,8 @@ ngeo_measure <- function(value_type = "continuous",
 #'   Optional replacement fields. Omitted fields are retained.
 #'
 #' @return A validated `ngeo` object with updated measure metadata.
+#' @templateVar example_call ngeo_update_measure(data, "thickness", unit = "mm")
+#' @template stable-data-semantics-core
 #' @export
 ngeo_update_measure <- function(
     x,
