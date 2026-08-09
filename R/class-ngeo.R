@@ -373,8 +373,27 @@ history <- function(x) {
 #' These are the preferred 6.x names. The original unprefixed accessors remain
 #' available throughout 6.x for compatibility.
 #'
+#' @section When to use and when not to use:
+#' Use these read-only accessors in user code and tutorials. Do not mutate the
+#' returned internal tables to update an object; use a constructor or a safe
+#' update function such as `ngeo_update_measure()`.
+#' @section Units and assumptions:
+#' Values retain their measure units; spatial-base coordinates retain their
+#' coordinate-space unit. Accessors do not transform, copy, or reinterpret
+#' either.
+#' @section Validation:
+#' Core alignment, immutability, and lifecycle tests validate every prefixed
+#' accessor against its 6.x compatibility accessor.
 #' @inheritParams ngeo_accessors
 #' @return The requested field.
+#' @examples
+#' x <- ngeo_point(matrix(c(0, 0, 1, 0), ncol = 2, byrow = TRUE))
+#' ngeo_base_type(x)
+#' ngeo_base_elements(x)
+#' ngeo_layers(x)
+#' @seealso [ngeo_validate()], [ngeo_update_measure()], [ngeo_point()]
+#' @references Neuroimaging Geoinformatics Core Specification 6.0,
+#'   `inst/spec/API-6.0.md`.
 #' @name ngeo_prefixed_accessors
 NULL
 

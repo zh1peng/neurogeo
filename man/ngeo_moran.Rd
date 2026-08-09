@@ -46,6 +46,28 @@ An `ngeo_global_stat` result.
 \description{
 Global Moran's I
 }
+\section{When to use and when not to use}{
+
+Use Moran's I to quantify global autocorrelation for one declared layer and
+weight matrix. Do not interpret it as causation or population inference,
+and do not use permutations whose exchangeability null is scientifically
+inappropriate.
+}
+
+\section{Units and assumptions}{
+
+Moran's I is dimensionless. Its estimand depends on the layer's measurement
+semantics, retained observations, zero policy, and exact weight
+normalization.
+}
+
+\section{Validation}{
+
+`ngeo_inference_contract()` reports estimand, sampling unit, null, metric,
+support, and uncertainty target. Reference calculations and null fixtures
+are registered in the 6.0 scientific validation corpus.
+}
+
 \examples{
 point <- ngeo_point(
   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
@@ -57,4 +79,12 @@ ngeo_moran(
   point, spatial_weights, "signal",
   control = ngeo_permutation_control(19, seed = 42)
 )
+}
+\references{
+Moran, P. A. P. (1950). Notes on continuous stochastic
+  phenomena. Biometrika, 37, 17-23.
+}
+\seealso{
+[ngeo_local_moran()], [ngeo_spatial_weights()],
+  [ngeo_inference_contract()]
 }

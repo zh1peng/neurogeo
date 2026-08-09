@@ -41,6 +41,25 @@ An `ngeo_point` object.
 \description{
 Construct a point dataset
 }
+\section{When to use and when not to use}{
+
+Use this constructor for observations located at explicit 2-D or 3-D point
+coordinates. Do not use it for voxels with an affine, mesh vertices with
+faces, parcels, or grayordinates; use their type-specific constructors.
+}
+
+\section{Units and assumptions}{
+
+Coordinate columns use `coordinate_space$unit`. Rows of `values` must align
+exactly with coordinate rows, and columns must align with `layers`.
+}
+
+\section{Validation}{
+
+Construction enforces alignment; use `ngeo_validate(..., "strict")` before
+analysis. The contract is validated by the point and quickstart fixtures.
+}
+
 \examples{
 point <- ngeo_point(
   matrix(c(0, 0, 1, 0, 1, 1, 0, 1), ncol = 2, byrow = TRUE),
@@ -49,4 +68,12 @@ point <- ngeo_point(
 base_hash(point)
 ngeo_distance(point, from = 1, to = 3, distance_method = "euclidean")
 ngeo_spatial_weights(point, method = "knn", k = 2)
+}
+\references{
+Neuroimaging Geoinformatics Core Specification 6.0,
+  `inst/spec/NGCS-6.0.md`.
+}
+\seealso{
+[ngeo_coordinate_space()], [ngeo_validate()],
+  [ngeo_spatial_weights()]
 }

@@ -325,7 +325,21 @@
 #' @param level Validation level: basic structural invariants, strict base
 #'   checks, or scientific semantic diagnostics.
 #'
+#' @section When to use and when not to use:
+#' Use strict validation after reading, constructing, migrating, or safely
+#' updating an object. Scientific validation diagnoses declared semantics; it
+#' does not prove that a method is appropriate for a study design.
+#' @section Units and assumptions:
+#' Validation preserves declared units and reports unknown semantics rather
+#' than inventing them. Passing validation assumes input metadata are truthful.
+#' @section Validation:
+#' Schema, golden-format, migration, and conformance fixtures exercise all
+#' registered base types and validation levels.
 #' @return `x`, invisibly.
+#' @seealso [ngeo_capabilities()], [ngeo_coordinate_space()],
+#'   [ngeo_measures()]
+#' @references Neuroimaging Geoinformatics Core Specification 6.0,
+#'   `inst/spec/NGCS-6.0.md`.
 #' @examples
 #' point <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 1, 1), ncol = 2, byrow = TRUE),

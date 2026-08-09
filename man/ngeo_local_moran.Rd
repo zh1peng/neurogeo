@@ -50,6 +50,25 @@ An `ngeo_lisa` data frame aligned to the analysed elements.
 \description{
 Local Moran statistics (LISA)
 }
+\section{When to use and when not to use}{
+
+Use local Moran statistics to describe element-level local association under
+an explicit conditional or total randomization null. Do not interpret
+unadjusted local p-values as a familywise-confirmatory result.
+}
+
+\section{Units and assumptions}{
+
+Local statistics are dimensionless but depend on layer semantics, weight
+normalization, missing-data handling, and the chosen local null.
+}
+
+\section{Validation}{
+
+The returned inference contract and columns record the null and adjustment.
+Local-reference fixtures validate ordering and exact graph-lag calculations.
+}
+
 \examples{
 point <- ngeo_point(
   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
@@ -57,4 +76,11 @@ point <- ngeo_point(
 )
 spatial_weights <- ngeo_spatial_weights(point, method = "knn", k = 2)
 ngeo_local_moran(point, spatial_weights, "signal", permutations = 19, seed = 7)
+}
+\references{
+Anselin, L. (1995). Local indicators of spatial association.
+  Geographical Analysis, 27, 93-115.
+}
+\seealso{
+[ngeo_moran()], [ngeo_spatial_weights()], [stats::p.adjust()]
 }
