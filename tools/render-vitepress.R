@@ -69,6 +69,7 @@ replace_front_matter <- function(path, document) {
   }
 
   language_link <- character()
+  translation_note <- character()
   if (nzchar(document$counterpart_route)) {
     if (identical(document$locale, "zh-CN")) {
       language_link <- paste0("**语言：** [English](",
@@ -76,6 +77,18 @@ replace_front_matter <- function(path, document) {
     } else {
       language_link <- paste0("**Language:** [简体中文](",
                               document$counterpart_route, ")")
+    }
+  } else if (identical(document$translation_status, "source-only")) {
+    translation_note <- if (identical(document$locale, "zh-CN")) {
+      paste(
+        "> **翻译状态：** 本页目前没有经过审校的英文译文；",
+        "这里展示简体中文原文。"
+      )
+    } else {
+      paste(
+        "> **Translation status:** This page does not yet have a reviewed",
+        "Simplified Chinese translation; the source-language version is shown."
+      )
     }
   }
   edit_link <- if (identical(document$locale, "zh-CN")) {
@@ -94,6 +107,7 @@ replace_front_matter <- function(path, document) {
       "---",
       "",
       language_link,
+      translation_note,
       edit_link,
       "",
       lines

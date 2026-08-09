@@ -111,6 +111,7 @@ const enTheme = {
         { text: 'CIFTI workflow', link: '/en/tutorials/workflow-cifti' },
         { text: 'ROI × cohort workflow', link: '/en/tutorials/workflow-roi-cohort' },
         { text: 'Core concepts', link: '/en/tutorials/core-concepts' },
+        { text: 'Runtime options', link: '/en/concepts/options' },
         { text: 'User glossary', link: '/en/glossary/' }
       ]
     },

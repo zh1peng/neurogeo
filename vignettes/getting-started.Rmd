@@ -146,7 +146,9 @@ local_result[c("element_id", "local_i", "p.adjusted", "cluster")]
 `cluster` is a Moran-quadrant description; call a local pattern significant only with the adjusted permutation evidence. The object history records construction:
 
 ```{r history}
-ngeo_history(point_data)$operations
+construction <- ngeo_history(point_data)$operations[[1L]]
+construction$timestamp_utc <- NULL
+construction
 ```
 
 ## Common mistakes

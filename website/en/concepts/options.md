@@ -1,17 +1,18 @@
 ---
-title: 运行时选项
-description: 从 neurogeo 6.0 源码生成的全局安全上限
+title: Runtime options
+description: Generated limits used by neurogeo 6.0
 ---
 
-# 运行时选项
+# Runtime options
 
-**语言：** [English](/en/concepts/options)
+**Language:** [简体中文](/concepts/options)
 
-本页由 R 源码中的所有 `getOption("neurogeo.*")` 调用自动生成。
-只应在当前分析范围内设置选项，并在分析结束后恢复原值。这里列出的
-全局安全上限不同于 `ngeo_resource_budget()` 声明的单次操作资源限额。
+This page is generated from every `getOption("neurogeo.*")` call in the
+R sources. Set an option only for the current analysis scope and restore it
+afterward. These global safety ceilings are distinct from the per-operation
+limits declared by `ngeo_resource_budget()`.
 
-| 选项 | 默认值 | 可接受值 | 生命周期 | 使用该选项的源码 |
+| Option | Default | Accepted value | Lifecycle | Consumer source |
 |---|---:|---|---|---|
 | `neurogeo.endpoint_chunk` | `128L` | positive integer | stable | `R/group-inference-47.R` |
 | `neurogeo.kriging_psd_relative_tolerance` | `1e-10` | positive number | stable | `R/spatial-models.R` |
@@ -49,4 +50,4 @@ description: 从 neurogeo 6.0 源码生成的全局安全上限
 | `neurogeo.max_variogram_pairs` | `1e+06` | positive number | stable | `R/model-uncertainty.R;R/statistics.R` |
 | `neurogeo.permutation_block` | `16L` | positive integer | stable | `R/group-inference-47.R` |
 
-共从源码生成 35 个唯一选项；如需修改，请编辑 R 调用位置并重新运行生成器。
+Generated from 35 unique options; edit the R call site and rerun the generator.

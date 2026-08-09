@@ -2,7 +2,7 @@
 title: "Choose a workflow: NIfTI, surface, CIFTI, or ROI/cohort"
 outline: [2, 3]
 editLink: false
-sourceSha256: "407b888d9e51f3c0ec1aa6dc09e4250b191d18d98540ed9abbb53ecb23f53fbe"
+sourceSha256: "3d6be9b550f42522c487afe949841b775bc18f18142d70e122abd2ff7a7de68a"
 ---
 
 **Language:** [简体中文](/tutorials/format-workflows)
@@ -60,8 +60,8 @@ nifti_path
 #> [1] "E:/03_tools/neurogeo/.r-lib/neurogeo/extdata/golden/tiny.nii.gz"
 ```
 
-Continue to [reading neuroimaging data](/en/tutorials/reading-data) for
-the reader and post-import checklist. Report the chosen world-space
+Continue with the executable [NIfTI volume
+workflow](/en/tutorials/workflow-volume). Report the chosen world-space
 distance and verified spatial unit.
 
 ## GIFTI or FreeSurfer / surface
@@ -79,8 +79,9 @@ surface_path
 #> [1] "E:/03_tools/neurogeo/.r-lib/neurogeo/extdata/golden/tetra.surf.gii"
 ```
 
-Continue to [neighbors and weights](/en/tutorials/neighbors-and-weights)
-after verifying faces, components, coordinate roles, and masks.
+Continue with the executable [surface
+workflow](/en/tutorials/workflow-surface) after verifying faces,
+components, coordinate roles, and masks.
 
 ## CIFTI / grayordinate
 
@@ -100,6 +101,9 @@ cifti_path
 Check every component’s structure and source indices. Surface distance
 also requires matching surface geometry; the CIFTI scalar array alone
 does not provide it.
+
+Continue with the executable [CIFTI
+workflow](/en/tutorials/workflow-cifti).
 
 ## ROI × cohort
 
@@ -126,6 +130,9 @@ roi_cohort
 Before group inference, declare the independent unit and exchangeability
 schedule. Do not treat several atlases derived from the same subjects as
 independent studies.
+
+Continue with the executable [ROI-by-cohort
+workflow](/en/tutorials/workflow-roi-cohort).
 
 ## What all four routes share
 

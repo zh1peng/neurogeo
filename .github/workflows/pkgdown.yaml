@@ -39,6 +39,7 @@ jobs:
       - name: Verify documentation sources and teaching fixtures
         run: |
           Rscript tools/check-documentation-manifest-60.R
+          Rscript tools/check-localization-contract-60.R
           Rscript tools/check-tutorial-fixtures-60.R
 
       - name: Build API reference
