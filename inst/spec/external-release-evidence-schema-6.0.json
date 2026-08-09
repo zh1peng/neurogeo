@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zh1peng.github.io/neurogeo/schema/external-release-evidence-6.0.json",
+  "title": "neurogeo 6.0 external release evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "package_version", "tag", "source_commit",
+    "source_tar_path", "source_tar_sha256", "github_release", "zenodo",
+    "governance", "recorded_at_utc"
+  ],
+  "properties": {
+    "schema": {"const": "neurogeo/external-release-evidence/1"},
+    "package_version": {"const": "6.0.0"},
+    "tag": {"type": "string", "pattern": "^v6\\.0\\.0(-rc[0-9]+)?$"},
+    "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "source_tar_path": {"type": "string", "minLength": 1},
+    "source_tar_sha256": {"$ref": "#/$defs/sha256"},
+    "github_release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "asset_sha256"],
+      "properties": {
+        "url": {"type": "string", "format": "uri"},
+        "asset_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "zenodo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["doi", "record_url", "asset_sha256"],
+      "properties": {
+        "doi": {"type": "string", "pattern": "^10\\."},
+        "record_url": {"type": "string", "format": "uri"},
+        "asset_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protected_main", "independent_reviews"],
+      "properties": {
+        "protected_main": {"const": true},
+        "independent_reviews": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["reviewer", "url", "approved_commit"],
+            "properties": {
+              "reviewer": {"type": "string", "minLength": 1},
+              "url": {"type": "string", "format": "uri"},
+              "approved_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+            }
+          }
+        }
+      }
+    },
+    "recorded_at_utc": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

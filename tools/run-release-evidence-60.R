@@ -2,111 +2,132 @@ args <- commandArgs(trailingOnly = TRUE)
 if (dir.exists(".r-lib")) {
   .libPaths(c(normalizePath(".r-lib"), .libPaths()))
 }
-output <- if (length(args)) args[[1L]] else
+strict <- "--require-release" %in% args
+paths <- args[!startsWith(args, "--")]
+output <- if (length(paths)) paths[[1L]] else
   file.path("check-output", "release-evidence-60.json")
 if (!requireNamespace("jsonlite", quietly = TRUE) ||
     !requireNamespace("digest", quietly = TRUE)) {
-  stop("The 6.0 evidence audit requires jsonlite and digest.")
+  stop("The 6.0 release evidence audit requires jsonlite and digest.")
 }
-read_report <- function(path) {
-  if (!file.exists(path)) stop("Missing required evidence: ", path)
+
+read_optional <- function(path) {
+  if (!file.exists(path)) return(NULL)
   jsonlite::read_json(path, simplifyVector = FALSE)
 }
-evidence_paths <- c(
-  unit = "check-output/unit-60.json",
-  api_freeze = "check-output/freeze-60-audit.json",
-  group_calibration = "check-output/group-inference-47-full-validation.json",
-  support_calibration = "check-output/support-family-48-full-validation.json",
-  real_data = "check-output/real-multilayer-50-validation.json",
-  performance = "check-output/multilayer-50-performance.json",
-  validation_suite = "check-output/validation-suite-60.json",
-  installed = "check-output/installed-conformance-60.json"
-)
-reports <- lapply(evidence_paths, read_report)
-check_log <- file.path(
-  "check-output", "rcheck-60-final", "neurogeo.Rcheck", "00check.log"
-)
-if (!file.exists(check_log)) stop("Missing R CMD check log: ", check_log)
-check_lines <- readLines(check_log, warn = FALSE)
-check_ok <- any(grepl("^Status: OK$", check_lines))
-as_cran_log <- file.path(
-  "check-output", "rcheck-60", "neurogeo.Rcheck", "00check.log"
-)
-as_cran_status <- if (file.exists(as_cran_log)) {
-  grep("^Status:", readLines(as_cran_log, warn = FALSE), value = TRUE)
-} else {
-  "not_run"
+scalar <- function(value, default = NULL) {
+  if (is.null(value) || !length(value)) default else value[[1L]]
 }
-site_files <- c(
-  "website/.vitepress/dist/index.html",
-  "website/.vitepress/dist/modules/reference-vs-subject-inference.html",
-  "website/.vitepress/dist/en/modules/multilayer-inference.html",
-  "docs/reference/ngeo_group_test.html",
-  "docs/articles/multilayer-inference.html"
+git <- function(arguments) {
+  suppressWarnings(system2("git", arguments, stdout = TRUE, stderr = TRUE))
+}
+
+version <- read.dcf("DESCRIPTION", fields = "Version")[[1L]]
+source_commit <- scalar(git(c("rev-parse", "HEAD")), "unavailable")
+source_dirty <- length(git(c("status", "--porcelain"))) > 0L
+p0_path <- file.path("check-output", "p0-evidence-60", "attestation.json")
+task_path <- file.path("check-output", "registry", "audit-task-status-60.json")
+performance_path <- file.path("check-output", "registry", "full-performance-60.json")
+val308_path <- file.path("check-output", "registry", "val308-coverage-audit-60.json")
+external_release_path <- file.path(
+  "check-output", "external-release-readiness-60.json"
 )
-source_files <- c(
-  "inst/spec/API-6.0.md", "inst/spec/NGCS-6.0.md",
-  "inst/spec/migration-6.0.md", "inst/spec/validation-6.0.md",
-  "vignettes/multilayer-inference.Rmd",
-  "vignettes/reference-vs-subject-inference-zh.Rmd"
+p0 <- read_optional(p0_path)
+tasks <- read_optional(task_path)
+performance <- read_optional(performance_path)
+val308 <- read_optional(val308_path)
+external_release <- read_optional(external_release_path)
+
+claim_path <- file.path("inst", "validation", "claim-evidence-matrix-6.0.csv")
+claims <- utils::read.csv(claim_path, stringsAsFactors = FALSE, check.names = FALSE)
+formative <- utils::read.csv(
+  file.path("inst", "validation", "formative-usability-results-6.0.csv"),
+  stringsAsFactors = FALSE, check.names = FALSE
 )
+phase3_paths <- stats::setNames(file.path(
+  "check-output", "registry", c(
+    "val301-safe-boundary-60.json", "val302-external-prerequisites-60.json",
+    "val303-sampling-unit-60.json", "val304-cross-atlas-60.json",
+    "val305-operator-simplex-60.json", "val306-spatial-models-60.json",
+    "val307-support-builder-60.json", "val308-coverage-audit-60.json"
+  )
+), paste0("VAL-30", 1:8))
+phase3 <- lapply(phase3_paths, read_optional)
+
+formative_complete <- nrow(formative) >= 5L &&
+  all(tolower(as.character(formative$completed)) == "true") &&
+  length(unique(formative$participant_id)) >= 5L
+phase3_present <- vapply(phase3, Negate(is.null), logical(1))
 checks <- list(
-  version = identical(as.character(utils::packageVersion("neurogeo")), "6.0.0"),
-  unit = isTRUE(reports$unit$pass),
-  api_freeze = isTRUE(reports$api_freeze$pass),
-  full_group_calibration = isTRUE(reports$group_calibration$pass) &&
-    isTRUE(reports$group_calibration$full_calibration),
-  full_support_calibration = isTRUE(reports$support_calibration$pass) &&
-    isTRUE(reports$support_calibration$full_calibration),
-  real_data = isTRUE(reports$real_data$pass),
-  full_performance = isTRUE(reports$performance$pass) &&
-    isTRUE(reports$performance$full_basis_matrix),
-  complete_validation_suite = isTRUE(reports$validation_suite$pass),
-  installed_conformance = identical(reports$installed$validation, "passed") &&
-    identical(reports$installed$package_version, "6.0.0"),
-  r_cmd_check = check_ok,
-  website = all(file.exists(site_files)),
-  documentation_sources = all(file.exists(source_files)),
-  cross_platform_ci = {
-    workflow <- readLines(".github/workflows/R-CMD-check.yaml", warn = FALSE)
-    all(vapply(c("ubuntu-latest", "macos-latest", "windows-latest"),
-               function(os) any(grepl(os, workflow, fixed = TRUE)), logical(1)))
-  }
+  source_tree_clean = !source_dirty,
+  p0_attestation_present = !is.null(p0),
+  p0_attestation_matches_current_source = !is.null(p0) &&
+    identical(scalar(p0$candidate$package_version), version) &&
+    identical(scalar(p0$candidate$source_commit), source_commit),
+  task_status_present = !is.null(tasks),
+  task_dependency_graph_valid = !is.null(tasks) &&
+    isTRUE(scalar(tasks$dependency_graph_acyclic, FALSE)) &&
+    isTRUE(scalar(tasks$dependency_phases_monotone, FALSE)),
+  all_audit_tasks_complete = !is.null(tasks) &&
+    isTRUE(scalar(tasks$all_gates_complete, FALSE)),
+  formative_usability_complete = formative_complete,
+  all_claims_externally_replicated = nrow(claims) > 0L &&
+    all(claims$evidence_status == "external-replicated"),
+  all_phase3_reports_present = all(phase3_present),
+  val301_calibration_complete = !is.null(phase3$`VAL-301`) &&
+    isTRUE(scalar(phase3$`VAL-301`$calibration_evidence, FALSE)),
+  val302_external_parity_complete = !is.null(phase3$`VAL-302`) &&
+    isTRUE(scalar(phase3$`VAL-302`$validation_evidence, FALSE)),
+  seven_core_performance_cases_pass = !is.null(performance) &&
+    identical(scalar(performance$validation), "passed") &&
+    length(performance$cases) == 7L,
+  val308_release_gate_complete = !is.null(val308) &&
+    isTRUE(scalar(val308$release_gate_satisfied, FALSE)),
+  immutable_external_release_complete = !is.null(external_release) &&
+    isTRUE(scalar(external_release$pass, FALSE)),
+  independent_external_validation_complete = FALSE
 )
 pass <- all(unlist(checks, use.names = FALSE))
-artifact_paths <- c(evidence_paths, r_cmd_check = check_log)
-if (file.exists(as_cran_log)) {
-  artifact_paths <- c(artifact_paths, r_cmd_check_as_cran = as_cran_log)
-}
-artifacts <- lapply(artifact_paths, function(path) {
-  list(
-    path = path, bytes = as.numeric(file.info(path)$size),
-    sha256 = digest::digest(
-      path, algo = "sha256", file = TRUE, serialize = FALSE
-    )
-  )
-})
-dependencies <- as.data.frame(utils::installed.packages()[, c("Package", "Version")],
-                              stringsAsFactors = FALSE)
-dependencies <- dependencies[order(dependencies$Package), , drop = FALSE]
-report <- list(
-  schema = "neurogeo/release-evidence-6.0",
-  package_version = as.character(utils::packageVersion("neurogeo")),
-  generated_at_utc = format(Sys.time(), tz = "UTC", usetz = TRUE),
-  policy = list(pull_request = FALSE, tag = FALSE, github_release = FALSE),
-  check_context = list(
-    local_standard = "Status: OK",
-    local_as_cran = as_cran_status,
-    local_as_cran_environment = paste(
-      "qpdf unavailable; CRAN incoming marked new submission; network time",
-      "verification unavailable. CI retains --as-cran on managed runners."
-    )
-  ),
-  checks = checks, artifacts = artifacts,
-  dependency_versions = dependencies, pass = pass
+
+artifact_paths <- c(
+  p0_attestation = p0_path, task_status = task_path,
+  core_performance = performance_path, val308_coverage = val308_path,
+  external_release = external_release_path,
+  claims = claim_path, formative = file.path(
+    "inst", "validation", "formative-usability-results-6.0.csv"
+  ), phase3_paths
 )
-if (!pass) stop("The 6.0 release evidence audit failed.", call. = FALSE)
+artifacts <- unname(lapply(names(artifact_paths), function(name) {
+  path <- artifact_paths[[name]]
+  present <- file.exists(path)
+  list(
+    id = name, path = path, present = present,
+    bytes = if (present) as.numeric(file.info(path)$size) else NULL,
+    sha256 = if (present) digest::digest(
+      path, algo = "sha256", file = TRUE, serialize = FALSE
+    ) else NULL
+  )
+}))
+report <- list(
+  schema = "neurogeo/release-readiness/2",
+  package_version = version,
+  source_commit = source_commit,
+  source_dirty = source_dirty,
+  generated_at_utc = format(Sys.time(), tz = "UTC", format = "%Y-%m-%dT%H:%M:%SZ"),
+  status = if (pass) "release-ready" else "blocked",
+  pass = pass,
+  checks = checks,
+  phase3_report_presence = as.list(phase3_present),
+  artifacts = artifacts,
+  evidence_boundary = paste(
+    "This readiness report never promotes internal or prerequisite evidence",
+    "to external validation. A signed tag, hosted release, DOI, independent",
+    "review, and external rerun must be verified outside the source tree."
+  )
+)
 dir.create(dirname(output), recursive = TRUE, showWarnings = FALSE)
-jsonlite::write_json(report, output, auto_unbox = TRUE, pretty = TRUE,
-                     null = "null")
+jsonlite::write_json(
+  report, output, auto_unbox = TRUE, pretty = TRUE, null = "null"
+)
 cat(normalizePath(output, winslash = "/", mustWork = TRUE), "\n")
+if (strict && !pass) quit(status = 2L)
