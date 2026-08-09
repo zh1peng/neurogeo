@@ -206,7 +206,8 @@
 #' @param coordinate_space Optional hybrid `ngeo_coordinate_space`.
 #' @param load_data Whether to retain the matrix values.
 #' @param strict Whether to run strict validation.
-#' @param checksum Whether to record an MD5 checksum.
+#' @param checksum Whether to record a SHA-256 source identity. A legacy MD5
+#'   field is retained through 6.x for history compatibility.
 #'
 #' @return An `ngeo_grayordinate` object.
 #' @export

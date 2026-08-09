@@ -1,9 +1,11 @@
 #' Declare hard execution resource limits
 #'
-#' @param memory_bytes Maximum estimated in-memory bytes.
-#' @param elapsed_seconds Maximum elapsed time.
-#' @param blocks Maximum scheduled chunks.
+#' @param memory_bytes Maximum estimated in-memory bytes. `Inf` is unlimited.
+#' @param elapsed_seconds Maximum elapsed time between operation start and a
+#'   checked block boundary. `Inf` is unlimited.
+#' @param blocks Maximum scheduled chunks. `Inf` is unlimited.
 #' @param materialized_elements Maximum explicitly materialized elements.
+#'   `Inf` is unlimited.
 #'
 #' @return An `ngeo_resource_budget`.
 #' @export
@@ -29,6 +31,23 @@ ngeo_resource_budget <- function(
 }
 
 .ngeo_budget_assert <- function(budget, field, value) {
+  if (inherits(budget, "ngeo_budget_context")) {
+    elapsed <- unname(proc.time()[["elapsed"]] - budget$started_elapsed)
+    if (elapsed > budget$budget$elapsed_seconds) {
+      .ngeo_abort(
+        sprintf(
+          "Elapsed execution time (%s seconds) exceeds the declared budget (%s seconds).",
+          format(elapsed, digits = 6L),
+          format(budget$budget$elapsed_seconds, scientific = FALSE)
+        ),
+        "ngeo_error_resource_deadline",
+        code = "NGEO_ERROR_RESOURCE_DEADLINE",
+        field = "elapsed_seconds",
+        hint = "Increase elapsed_seconds, reduce the workload, or resume from the last completed external artifact."
+      )
+    }
+    budget <- budget$budget
+  }
   if (!inherits(budget, "ngeo_resource_budget")) {
     .ngeo_abort(
       "A valid resource budget is required.",
@@ -47,6 +66,26 @@ ngeo_resource_budget <- function(
     )
   }
   invisible(TRUE)
+}
+
+.ngeo_budget_context <- function(budget) {
+  if (!inherits(budget, "ngeo_resource_budget")) {
+    .ngeo_abort(
+      "A valid resource budget is required.",
+      "ngeo_error_argument"
+    )
+  }
+  structure(
+    list(
+      budget = budget,
+      started_elapsed = unname(proc.time()[["elapsed"]])
+    ),
+    class = "ngeo_budget_context"
+  )
+}
+
+.ngeo_budget_checkpoint <- function(context) {
+  .ngeo_budget_assert(context, "blocks", 0)
 }
 
 .ngeo_atomic_backup_path <- function(path) {

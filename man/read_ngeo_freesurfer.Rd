@@ -48,7 +48,8 @@ read_ngeo_freesurfer(
 
 \item{strict}{Whether to run strict validation.}
 
-\item{checksum}{Whether to record MD5 checksums.}
+\item{checksum}{Whether to record SHA-256 source identities. Legacy MD5
+fields are retained through 6.x for history compatibility.}
 }
 \value{
 An `ngeo_surface` or `ngeo_volume` object.

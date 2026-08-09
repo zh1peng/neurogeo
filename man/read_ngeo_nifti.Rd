@@ -36,7 +36,8 @@ read_ngeo_nifti(
 
 \item{strict}{Whether to run strict validation.}
 
-\item{checksum}{Whether to record an MD5 checksum.}
+\item{checksum}{Whether to record a SHA-256 source identity. A legacy MD5
+field is retained through 6.x for history compatibility.}
 }
 \value{
 An `ngeo_volume` object.

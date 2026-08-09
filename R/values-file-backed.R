@@ -1,17 +1,20 @@
 # Format-aware file-backed values.
 .ngeo_file_source_identity <- function(path, checksum = TRUE) {
   info <- file.info(path)
+  normalized <- normalizePath(path, winslash = "/", mustWork = TRUE)
+  sha256 <- if (isTRUE(checksum)) {
+    digest::digest(
+      normalized, algo = "sha256", file = TRUE, serialize = FALSE
+    )
+  } else {
+    NULL
+  }
   list(
-    path = normalizePath(path, winslash = "/", mustWork = TRUE),
+    path = normalized,
+    source_id = .ngeo_logical_source_id(normalized, sha256, info$size),
     size = as.numeric(info$size),
     mtime = as.numeric(info$mtime),
-    sha256 = if (isTRUE(checksum)) {
-      digest::digest(
-        path, algo = "sha256", file = TRUE, serialize = FALSE
-      )
-    } else {
-      NULL
-    }
+    sha256 = sha256
   )
 }
 
@@ -351,18 +354,22 @@ ngeo_file_values <- function(
                 "ngeo_error_argument")
   }
   reader <- function(rows, columns) {
+    budget_context <- .ngeo_budget_context(budget)
     .ngeo_validate_file_identity(identity, verify)
     count <- length(rows) * length(columns)
-    .ngeo_budget_assert(budget, "materialized_elements", count)
-    .ngeo_budget_assert(budget, "memory_bytes", count * 8)
+    .ngeo_budget_assert(budget_context, "blocks", 1)
+    .ngeo_budget_assert(budget_context, "materialized_elements", count)
+    .ngeo_budget_assert(budget_context, "memory_bytes", count * 8)
     positions <- .ngeo_file_value_positions(
       selection, rows, columns
     )
-    matrix(
+    result <- matrix(
       .ngeo_binary_positions(identity$path, binary, positions),
       nrow = length(rows),
       ncol = length(columns)
     )
+    .ngeo_budget_checkpoint(budget_context)
+    result
   }
   structure(
     list(
@@ -420,8 +427,7 @@ ngeo_file_values_identity <- function(x) {
   ngeo_validate_file_values(x)
   digest::digest(
     list(
-      source_path = x$source_identity$path,
-      source_mtime = x$source_identity$mtime,
+      source_id = x$source_identity$source_id,
       source_sha256 = x$source_identity$sha256,
       source_size = x$source_identity$size,
       format = x$format,
@@ -446,7 +452,7 @@ ngeo_file_values_identity <- function(x) {
   colnames(x$values) <- x$layers$name
   x$history$file_backed <- list(
     format = format,
-    source = values$source,
+    source_id = values$source_identity$source_id,
     source_identity = ngeo_file_values_identity(values),
     verification = values$verify,
     selected_elements = selected_elements,

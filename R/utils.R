@@ -2,6 +2,19 @@
   if (is.null(x)) y else x
 }
 
+.ngeo_logical_source_id <- function(path, sha256 = NULL, size = NULL) {
+  name <- basename(path)
+  identity <- if (!is.null(sha256)) {
+    sha256
+  } else {
+    digest::digest(
+      list(name = name, size = as.numeric(size)),
+      algo = "sha256"
+    )
+  }
+  paste0("file:", name, "#sha256:", substr(identity, 1L, 16L))
+}
+
 .ngeo_condition_code <- function(class) {
   primary <- class[[1L]]
   prefix <- if (grepl("^ngeo_warning", primary)) "NGEO_WARNING" else

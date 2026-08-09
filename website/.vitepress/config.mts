@@ -20,6 +20,7 @@ const zhTheme = {
         { text: '15 分钟快速开始', link: '/tutorials/getting-started' },
         { text: '按数据格式选择入口', link: '/tutorials/format-workflows' },
         { text: '核心概念', link: '/concepts/' },
+        { text: '运行时 options', link: '/concepts/options' },
         { text: '用户术语表', link: '/glossary/' }
       ]
     },

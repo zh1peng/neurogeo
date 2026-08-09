@@ -65,9 +65,18 @@
 .ngeo_source_record <- function(path, importer, checksum = TRUE) {
   path <- normalizePath(path, mustWork = TRUE)
   info <- file.info(path)
+  sha256 <- if (isTRUE(checksum)) {
+    digest::digest(path, algo = "sha256", file = TRUE, serialize = FALSE)
+  } else {
+    NULL
+  }
   list(
-    source_id = path,
+    source_id = .ngeo_logical_source_id(path, sha256, info$size),
+    source_name = basename(path),
     size = unname(info$size),
+    checksum_sha256 = sha256,
+    # Retained through 6.x for legacy history consumers. New identity and
+    # verification use checksum_sha256.
     checksum_md5 = if (isTRUE(checksum)) {
       unname(tools::md5sum(path))
     } else {

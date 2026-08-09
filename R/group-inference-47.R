@@ -336,13 +336,14 @@
 .ngeo_group_null <- function(
     values, design, exchangeability, observed, family_labels,
     adjustment, omnibus, retain_null, workers, budget) {
+  budget_context <- .ngeo_budget_context(budget)
   b <- nrow(exchangeability$schedule)
   p <- ncol(values)
   family_levels <- unique(family_labels)
-  .ngeo_budget_assert(budget, "materialized_elements", nrow(values) * p)
+  .ngeo_budget_assert(budget_context, "materialized_elements", nrow(values) * p)
   if (retain_null) {
-    .ngeo_budget_assert(budget, "materialized_elements", as.double(b) * p)
-    .ngeo_budget_assert(budget, "memory_bytes", as.double(b) * p * 8)
+    .ngeo_budget_assert(budget_context, "materialized_elements", as.double(b) * p)
+    .ngeo_budget_assert(budget_context, "memory_bytes", as.double(b) * p * 8)
     endpoint_null <- matrix(NA_real_, b, p)
   } else {
     endpoint_null <- NULL
@@ -359,6 +360,7 @@
   permutation_block <- getOption("neurogeo.permutation_block", 16L)
   endpoint_chunk <- getOption("neurogeo.endpoint_chunk", 128L)
   blocks <- split(seq_len(b), ceiling(seq_len(b) / permutation_block))
+  .ngeo_budget_assert(budget_context, "blocks", length(blocks))
   cluster <- NULL
   if (workers > 1L) {
     cluster <- parallel::makeCluster(min(workers, length(blocks)))
@@ -371,6 +373,7 @@
     seq_along(blocks), ceiling(seq_along(blocks) / max(1L, workers))
   )
   for (batch in group_batches) {
+    .ngeo_budget_checkpoint(budget_context)
     current_blocks <- blocks[batch]
     run <- function(rows, schedule, transformation, fitted, residuals,
                     design, endpoint_chunk, block_fun) {

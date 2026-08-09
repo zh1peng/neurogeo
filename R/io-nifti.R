@@ -87,7 +87,8 @@
 #' @param affine Active affine choice.
 #' @param load_data Whether to retain values.
 #' @param strict Whether to run strict validation.
-#' @param checksum Whether to record an MD5 checksum.
+#' @param checksum Whether to record a SHA-256 source identity. A legacy MD5
+#'   field is retained through 6.x for history compatibility.
 #'
 #' @return An `ngeo_volume` object.
 #' @export

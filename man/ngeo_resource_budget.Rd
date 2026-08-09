@@ -12,13 +12,15 @@ ngeo_resource_budget(
 )
 }
 \arguments{
-\item{memory_bytes}{Maximum estimated in-memory bytes.}
+\item{memory_bytes}{Maximum estimated in-memory bytes. `Inf` is unlimited.}
 
-\item{elapsed_seconds}{Maximum elapsed time.}
+\item{elapsed_seconds}{Maximum elapsed time between operation start and a
+checked block boundary. `Inf` is unlimited.}
 
-\item{blocks}{Maximum scheduled chunks.}
+\item{blocks}{Maximum scheduled chunks. `Inf` is unlimited.}
 
-\item{materialized_elements}{Maximum explicitly materialized elements.}
+\item{materialized_elements}{Maximum explicitly materialized elements.
+`Inf` is unlimited.}
 }
 \value{
 An `ngeo_resource_budget`.
