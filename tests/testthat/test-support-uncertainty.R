@@ -187,6 +187,82 @@ test_that("ensemble sensitivity decomposes between-operator variance", {
   expect_true(all(result$distribution$total_variance >= 0))
 })
 
+test_that("non-uniform ensembles use declared mixture weights", {
+  fixture <- diagnostic_fixture()
+  ensemble <- ngeo_support_ensemble(
+    list(hard = fixture$hard, soft = fixture$soft),
+    spatial_weights = c(0.9, 0.1)
+  )
+  sensitivity <- ngeo_support_sensitivity(
+    fixture$source,
+    fixture$target,
+    ensemble,
+    layers = "outcome"
+  )
+  alternatives <- do.call(cbind, lapply(
+    sensitivity$values,
+    function(value) value[, 1L]
+  ))
+  expected_mean <- as.numeric(alternatives %*% c(0.9, 0.1))
+  expected_variance <- rowSums(
+    sweep(
+      sweep(alternatives, 1L, expected_mean, "-")^2,
+      2L,
+      c(0.9, 0.1),
+      "*"
+    )
+  )
+
+  expect_equal(sensitivity$distribution$ensemble_mean, expected_mean)
+  expect_equal(
+    sensitivity$distribution$between_operator_variance,
+    expected_variance
+  )
+  expect_equal(
+    sensitivity$distribution$lower,
+    apply(alternatives, 1L, min)
+  )
+  expect_equal(
+    sensitivity$distribution$upper,
+    apply(alternatives, 1L, max)
+  )
+
+  covariance <- ngeo_support_covariance(
+    fixture$source,
+    variance = rep(0, 4L)
+  )
+  first <- ngeo_support_uncertainty(
+    fixture$source,
+    fixture$target,
+    fixture$hard,
+    covariance,
+    layers = "outcome",
+    method = "monte_carlo",
+    operator_ensemble = ensemble,
+    nsim = 2000L,
+    seed = 1701
+  )
+  second <- ngeo_support_uncertainty(
+    fixture$source,
+    fixture$target,
+    fixture$hard,
+    covariance,
+    layers = "outcome",
+    method = "monte_carlo",
+    operator_ensemble = ensemble,
+    nsim = 2000L,
+    seed = 1701
+  )
+  expected_frequency <- 0.1
+  observed_frequency <- mean(first$operator_draw == 2L)
+  binomial_sd <- sqrt(expected_frequency * (1 - expected_frequency) / 2000)
+
+  expect_identical(first$operator_draw, second$operator_draw)
+  expect_lte(abs(observed_frequency - expected_frequency), 4 * binomial_sd)
+  expect_equal(first$estimate[, 1L], expected_mean, tolerance = 1e-12)
+  expect_match(first$assumptions, "declared weights", fixed = TRUE)
+})
+
 test_that("covariance validation rejects base and PSD violations", {
   fixture <- diagnostic_fixture()
   invalid <- diag(4)

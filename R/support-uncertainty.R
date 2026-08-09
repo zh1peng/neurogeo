@@ -528,8 +528,34 @@ ngeo_support_uncertainty <- function(
           "ngeo_error_base_mismatch"
         )
       }
+      operator_estimates <- lapply(operator_ensemble$layers, function(map) {
+        aggregate_to(
+          x,
+          target,
+          map,
+          layers = layer_index,
+          allocation = allocation,
+          unmapped = unmapped,
+          unknown = unknown
+        )$values
+      })
+      estimate <- Reduce(`+`, Map(
+        function(value, weight) value * weight,
+        operator_estimates,
+        operator_ensemble$spatial_weights
+      ))
     }
-    simulated <- .ngeo_with_seed(seed, function() {
+    simulation_result <- .ngeo_with_seed(seed, function() {
+      operator_draw <- if (is.null(operator_ensemble)) {
+        NULL
+      } else {
+        sample.int(
+          length(operator_ensemble$layers),
+          size = nsim,
+          replace = TRUE,
+          prob = operator_ensemble$spatial_weights
+        )
+      }
       value_draws <- lapply(
         covariance,
         .ngeo_draw_covariance,
@@ -552,9 +578,7 @@ ngeo_support_uncertainty <- function(
         current_map <- if (is.null(operator_ensemble)) {
           support_map
         } else {
-          operator_ensemble$layers[[
-            ((simulation - 1L) %% length(operator_ensemble$layers)) + 1L
-          ]]
+          operator_ensemble$layers[[operator_draw[[simulation]]]]
         }
         array_out[, , simulation] <- aggregate_to(
           current,
@@ -566,8 +590,9 @@ ngeo_support_uncertainty <- function(
           unknown = unknown
         )$values
       }
-      array_out
+      list(simulations = array_out, operator_draw = operator_draw)
     })
+    simulated <- simulation_result$simulations
     variance <- apply(simulated, c(1L, 2L), stats::var)
     if (length(layer_index) == 1L) {
       variance <- matrix(variance, ncol = 1L)
@@ -603,7 +628,7 @@ ngeo_support_uncertainty <- function(
         } else {
           paste0(
             operator_ensemble$kind,
-            " ensemble cycled across draws"
+            " ensemble sampled using declared weights"
           )
         }
       ),
@@ -616,7 +641,8 @@ ngeo_support_uncertainty <- function(
       target_base_hash = base_hash(target),
       layers = colnames(variance),
       nsim = nsim,
-      seed = .ngeo_seed(seed)
+      seed = .ngeo_seed(seed),
+      operator_draw = simulation_result$operator_draw
     )
   }
   class(result) <- "ngeo_support_uncertainty"

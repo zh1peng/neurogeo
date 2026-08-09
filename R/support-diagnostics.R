@@ -461,6 +461,17 @@ ngeo_support_monte_carlo <- function(
   result
 }
 
+.ngeo_weighted_quantile <- function(value, weight, probability) {
+  keep <- weight > 0
+  value <- value[keep]
+  weight <- weight[keep]
+  if (!length(value) || anyNA(value)) return(NA_real_)
+  order <- order(value)
+  value <- value[order]
+  cumulative <- cumsum(weight[order]) / sum(weight)
+  value[[which(cumulative >= probability)[[1L]]]]
+}
+
 #' Compare results under alternative support operators
 #'
 #' @param x Source `ngeo` dataset.
@@ -586,12 +597,12 @@ ngeo_support_sensitivity <- function(
       centered <- sweep(value_matrix, 1L, weighted_mean, "-")
       between <- as.numeric((centered^2) %*% ensemble_weights)
       lower <- apply(
-        value_matrix, 1L, stats::quantile,
-        probs = 0.025, names = FALSE
+        value_matrix, 1L, .ngeo_weighted_quantile,
+        weight = ensemble_weights, probability = 0.025
       )
       upper <- apply(
-        value_matrix, 1L, stats::quantile,
-        probs = 0.975, names = FALSE
+        value_matrix, 1L, .ngeo_weighted_quantile,
+        weight = ensemble_weights, probability = 0.975
       )
       within <- if (is.null(variance)) {
         rep.int(NA_real_, nrow(value_matrix))
