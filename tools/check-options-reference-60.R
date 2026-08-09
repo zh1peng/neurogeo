@@ -24,11 +24,20 @@ current <- c(
   file.path("website", "en", "concepts", "options.md")
 )
 expected <- c(expected_csv, expected_markdown, expected_english_markdown)
-if (!all(file.exists(current)) ||
-    !all(vapply(seq_along(current), function(i) {
-      identical(readBin(current[[i]], "raw", file.info(current[[i]])$size),
-                readBin(expected[[i]], "raw", file.info(expected[[i]])$size))
-    }, logical(1)))) {
+if (!all(file.exists(c(current, expected)))) {
+  stop("Generated options reference is stale.")
+}
+same_csv <- identical(
+  utils::read.csv(current[[1L]], stringsAsFactors = FALSE, check.names = FALSE),
+  utils::read.csv(expected[[1L]], stringsAsFactors = FALSE, check.names = FALSE)
+)
+same_markdown <- vapply(2:3, function(i) {
+  identical(
+    readLines(current[[i]], encoding = "UTF-8", warn = FALSE),
+    readLines(expected[[i]], encoding = "UTF-8", warn = FALSE)
+  )
+}, logical(1))
+if (!same_csv || !all(same_markdown)) {
   stop("Generated options reference is stale.")
 }
 registry <- utils::read.csv(current[[1L]], stringsAsFactors = FALSE)
