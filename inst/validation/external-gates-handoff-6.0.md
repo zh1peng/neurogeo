@@ -21,8 +21,9 @@ canonical machine-readable state is `inst/spec/audit-task-status-6.0.csv`.
    registered dependencies close. Preserve all attempted fits and observed
    accuracy, convergence, peak-memory, time, and failure-rate values.
 5. Ask an external validator to rerun the key simulations from the immutable
-   candidate. Complete UX-301 with 8--15 non-developer users and the frozen
-   novice/expert protocol.
+   candidate. Complete UX-301 with 8--15 non-developer users using
+   `inst/validation/ux301-protocol-6.0.md`; preserve every attempted row and
+   run `Rscript tools/check-ux301-60.R --require-complete`.
 6. Enable protected `main`, obtain independent reviews, then create the signed
    prerelease, GitHub Release, and Zenodo record from the identical attested
    source archive. Source files must not assert those external states early.
