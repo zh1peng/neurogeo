@@ -2,7 +2,7 @@
 % Please edit documentation in R/schema.R
 \name{ngeo_object_manifest}
 \alias{ngeo_object_manifest}
-\title{Create a portable NGCS 3.x object metadata manifest}
+\title{Create a portable NGCS 6.0 object metadata manifest}
 \usage{
 ngeo_object_manifest(x)
 }
@@ -13,7 +13,7 @@ ngeo_object_manifest(x)
 A JSON-compatible `ngeo_object_manifest`.
 }
 \description{
-Create a portable NGCS 3.x object metadata manifest
+Create a portable NGCS 6.0 object metadata manifest
 }
 \examples{
 point <- ngeo_point(

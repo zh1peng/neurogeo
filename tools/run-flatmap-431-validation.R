@@ -176,7 +176,7 @@ underlay_limits <- stats::quantile(
 
 left_continuous <- ngeo_cortical_map(
   left,
-  map = "vertex_metric",
+  layer = "vertex_metric",
   chart = "flat",
   atlas = "schaefer100",
   mask = left$base$geometry$mask,
@@ -190,7 +190,7 @@ left_continuous <- ngeo_cortical_map(
 )
 right_continuous <- ngeo_cortical_map(
   right,
-  map = "vertex_metric",
+  layer = "vertex_metric",
   chart = "flat",
   atlas = "schaefer100",
   mask = right$base$geometry$mask,

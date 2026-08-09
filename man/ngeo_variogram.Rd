@@ -6,7 +6,7 @@
 \usage{
 ngeo_variogram(
   x,
-  map = 1L,
+  layer = 1L,
   distance_method = NULL,
   breaks = 10L,
   max_distance = Inf,
@@ -16,7 +16,7 @@ ngeo_variogram(
 \arguments{
 \item{x}{An `ngeo` dataset.}
 
-\item{map}{One map name, ID, or index.}
+\item{layer}{One layer name, ID, or index.}
 
 \item{distance_method}{Explicit distance distance_method.}
 

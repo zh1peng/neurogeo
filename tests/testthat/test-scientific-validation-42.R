@@ -76,7 +76,7 @@ test_that("missing values rebuild W normalization on the retained graph", {
   input <- neurogeo:::.ngeo_spatial_inputs(
     missing_data,
     spatial_weights,
-    map = 1L,
+    layer = 1L,
     na_action = "omit",
     zero_policy = TRUE
   )

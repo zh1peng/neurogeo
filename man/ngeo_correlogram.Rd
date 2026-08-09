@@ -7,7 +7,7 @@
 ngeo_correlogram(
   x,
   spatial_weights,
-  map = 1L,
+  layer = 1L,
   lags = 1:10,
   permutations = 0L,
   alternative = c("two.sided", "greater", "less"),
@@ -23,7 +23,7 @@ ngeo_correlogram(
 
 \item{spatial_weights}{Matching `ngeo_spatial_weights`.}
 
-\item{map}{One map name, ID, or index.}
+\item{layer}{One layer name, ID, or index.}
 
 \item{lags}{Positive graph-lag orders.}
 

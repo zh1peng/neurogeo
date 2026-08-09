@@ -6,7 +6,7 @@
 \usage{
 ngeo_cortical_map(
   x,
-  map = 1L,
+  layer = 1L,
   values = NULL,
   chart = NULL,
   atlas = NULL,
@@ -25,7 +25,7 @@ ngeo_cortical_map(
 \arguments{
 \item{x}{An `ngeo_surface` with a chart.}
 
-\item{map}{One aligned map when `values` is not supplied.}
+\item{layer}{One aligned layer when `values` is not supplied.}
 
 \item{values}{Optional arbitrary vertex-aligned values.}
 

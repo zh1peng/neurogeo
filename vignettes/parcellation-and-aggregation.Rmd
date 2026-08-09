@@ -71,7 +71,7 @@ parcel unexpectedly dominates the aggregation.
 
 ```{r parcellation-plots, fig.width=8, fig.height=4.5, fig.alt="Surface thickness values and a bar chart of partition region sizes", fig.cap="Geometry and partition diagnostics should precede aggregation."}
 old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
-plot(surface, map = "thickness", show_edges = TRUE, palette = "Viridis")
+plot(surface, layer = "thickness", show_edges = TRUE, palette = "Viridis")
 plot(partition, col = c("#3b82a0", "#e29b45"), border = NA)
 par(old_par)
 ```

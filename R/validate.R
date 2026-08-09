@@ -63,6 +63,11 @@
       "ngeo_error_measure"
     )
   }
+  .ngeo_validate_labels(
+    x$base$labels %||% list(),
+    n_element,
+    as.character(x$layers$layer_id)
+  )
   invisible(TRUE)
 }
 

@@ -28,7 +28,7 @@ history(x)
 \arguments{
 \item{x}{An `ngeo` object.}
 
-\item{layers}{Optional map selection for `values()`.}
+\item{layers}{Optional layer selection for `values()`.}
 }
 \value{
 The requested field.

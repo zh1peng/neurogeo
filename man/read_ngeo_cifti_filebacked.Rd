@@ -31,7 +31,7 @@ read_ngeo_cifti_filebacked(
 \item{elements}{Optional one-based grayordinate selection after structure
 filtering.}
 
-\item{layers}{Optional map metadata overriding the file metadata.}
+\item{layers}{Optional layer metadata overriding the file metadata.}
 
 \item{measures}{Optional measurement semantics.}
 

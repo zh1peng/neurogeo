@@ -6,7 +6,7 @@
 \usage{
 ngeo_fit_variogram(
   x,
-  map = 1L,
+  layer = 1L,
   distance_method = NULL,
   breaks = 10L,
   max_distance = Inf,
@@ -17,7 +17,7 @@ ngeo_fit_variogram(
 \arguments{
 \item{x}{An empirical `ngeo_variogram` or an `ngeo` dataset.}
 
-\item{map, distance_method, breaks, max_distance}{Passed to `ngeo_variogram()`.}
+\item{layer, distance_method, breaks, max_distance}{Passed to `ngeo_variogram()`.}
 
 \item{model}{Spherical, exponential, or Gaussian model.}
 

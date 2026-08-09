@@ -2,7 +2,7 @@
 % Please edit documentation in R/layers-45.R
 \name{ngeo_bind_layers}
 \alias{ngeo_bind_layers}
-\title{Bind aligned map columns without changing their spatial base}
+\title{Bind aligned layer columns without changing their spatial base}
 \usage{
 ngeo_bind_layers(
   ...,
@@ -16,11 +16,11 @@ ngeo_bind_layers(
 \arguments{
 \item{...}{Named `ngeo` objects, or one named list of them.}
 
-\item{metadata}{Optional output-map metadata in exact column order.}
+\item{metadata}{Optional output-layer metadata in exact column order.}
 
 \item{source_id}{Optional deterministic source identifiers.}
 
-\item{conflicts}{Whether conflicting map identifiers fail or are prefixed.}
+\item{conflicts}{Whether conflicting layer identifiers fail or are prefixed.}
 
 \item{storage}{Automatic, delayed, or in-memory output values.}
 

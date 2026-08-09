@@ -37,7 +37,7 @@ test_that("common-source permutation inference is reproducible", {
 
   expect_s3_class(first, "ngeo_support_test")
   expect_equal(first$simulated, second$simulated)
-  expect_identical(first$permutation_domain, "common_source")
+  expect_identical(first$permutation_base, "common_source")
   expect_true(all(first$estimates$p_value > 0))
 })
 

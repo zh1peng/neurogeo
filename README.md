@@ -3,7 +3,7 @@
 `neurogeo` is the R reference implementation of the Neuroimaging
 Geoinformatics Core Specification (NGCS).
 
-The 5.1 data model has one sentence:
+The 6.0 data model has one sentence:
 
 > A spatial base defines where data live; layers contain the data observed on
 > that base; measures describe what those values mean.

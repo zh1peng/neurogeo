@@ -1,11 +1,11 @@
-.ngeo_plot_map <- function(x, map) {
+.ngeo_plot_map <- function(x, layer) {
   if (is.null(x$values)) {
     return(list(values = NULL, name = "geometry"))
   }
-  index <- .ngeo_layer_selection(x, map)
+  index <- .ngeo_layer_selection(x, layer)
   if (length(index) != 1L) {
     .ngeo_abort(
-      "`map` must select exactly one map for plotting.",
+      "`layer` must select exactly one layer for plotting.",
       "ngeo_error_argument"
     )
   }
@@ -56,13 +56,13 @@
 }
 
 .ngeo_plot_surface <- function(x,
-                               map,
+                               layer,
                                chart,
                                palette,
                                show_edges,
                                ...) {
   coordinates <- .ngeo_plot_surface_coordinates(x, chart)
-  map_data <- .ngeo_plot_map(x, map)
+  map_data <- .ngeo_plot_map(x, layer)
   colors <- .ngeo_plot_colors(map_data$values, palette)
   graphics::plot(
     coordinates,
@@ -99,8 +99,8 @@
   )
 }
 
-.ngeo_plot_volume <- function(x, map, slice, palette, ...) {
-  map_data <- .ngeo_plot_map(x, map)
+.ngeo_plot_volume <- function(x, layer, slice, palette, ...) {
+  map_data <- .ngeo_plot_map(x, layer)
   if (is.null(map_data$values)) {
     values <- rep.int(1, nrow(x$base$elements))
   } else {
@@ -137,7 +137,7 @@
   )
 }
 
-.ngeo_plot_points <- function(x, map, palette, ...) {
+.ngeo_plot_points <- function(x, layer, palette, ...) {
   coordinates <- x$base$geometry$coordinates
   if (ncol(coordinates) == 3L) {
     .ngeo_warn(
@@ -145,7 +145,7 @@
       "ngeo_warning_plot_projection"
     )
   }
-  map_data <- .ngeo_plot_map(x, map)
+  map_data <- .ngeo_plot_map(x, layer)
   graphics::plot(
     coordinates[, 1:2, drop = FALSE],
     pch = 21,
@@ -158,8 +158,8 @@
   )
 }
 
-.ngeo_plot_grayordinates <- function(x, map, palette, ...) {
-  map_data <- .ngeo_plot_map(x, map)
+.ngeo_plot_grayordinates <- function(x, layer, palette, ...) {
+  map_data <- .ngeo_plot_map(x, layer)
   values <- map_data$values %||% rep.int(1, nrow(x$base$elements))
   colors <- .ngeo_plot_colors(values, palette)
   graphics::plot(
@@ -183,8 +183,8 @@
   }
 }
 
-.ngeo_plot_regions <- function(x, map, palette, ...) {
-  map_data <- .ngeo_plot_map(x, map)
+.ngeo_plot_regions <- function(x, layer, palette, ...) {
+  map_data <- .ngeo_plot_map(x, layer)
   if (!is.null(x$base$geometry$centroid)) {
     coordinates <- x$base$geometry$centroid
     if (ncol(coordinates) == 3L) {
@@ -221,7 +221,7 @@
 #' Plot an NGCS dataset diagnostic
 #'
 #' @param x An `ngeo` dataset.
-#' @param map One map name, ID, or index.
+#' @param layer One layer name, ID, or index.
 #' @param chart Optional surface chart.
 #' @param slice Optional volume internal k-index.
 #' @param palette Base HCL palette name.
@@ -231,7 +231,7 @@
 #' @return `x`, invisibly.
 #' @export
 plot.ngeo <- function(x,
-                      map = 1L,
+                      layer = 1L,
                       chart = NULL,
                       slice = NULL,
                       palette = "viridis",
@@ -241,12 +241,12 @@ plot.ngeo <- function(x,
   switch(
     x$base$type,
     surface = .ngeo_plot_surface(
-      x, map, chart, palette, show_edges, ...
+      x, layer, chart, palette, show_edges, ...
     ),
-    volume = .ngeo_plot_volume(x, map, slice, palette, ...),
-    point = .ngeo_plot_points(x, map, palette, ...),
-    grayordinate = .ngeo_plot_grayordinates(x, map, palette, ...),
-    parcellation = .ngeo_plot_regions(x, map, palette, ...)
+    volume = .ngeo_plot_volume(x, layer, slice, palette, ...),
+    point = .ngeo_plot_points(x, layer, palette, ...),
+    grayordinate = .ngeo_plot_grayordinates(x, layer, palette, ...),
+    parcellation = .ngeo_plot_regions(x, layer, palette, ...)
   )
   invisible(x)
 }

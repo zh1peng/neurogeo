@@ -122,7 +122,7 @@ as.matrix.ngeo_delayed_values <- function(x, ...) {
 #'
 #' @param x An `ngeo` dataset or `ngeo_delayed_values`.
 #' @param chunk_size Positive row count.
-#' @param layers Optional map selection.
+#' @param layers Optional layer selection.
 #' @param FUN Optional function called with `(block, rows)`. When omitted an
 #'   iterator closure is returned.
 #'

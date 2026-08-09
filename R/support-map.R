@@ -404,7 +404,7 @@ ngeo_support_map_hash <- function(x) {
   )
 }
 
-.ngeo_validate_support_domains <- function(x, target, support_map) {
+.ngeo_validate_support_bases <- function(x, target, support_map) {
   ngeo_validate(x, "strict")
   ngeo_validate(target, "strict")
   ngeo_validate_support_map(support_map)
@@ -471,7 +471,7 @@ ngeo_support_map_hash <- function(x) {
 #' @param x Source `ngeo` dataset.
 #' @param target Target-base `ngeo` template.
 #' @param support_map Matching `ngeo_support_map`.
-#' @param layers Optional source map selection.
+#' @param layers Optional source layer selection.
 #' @param allocation Normalize non-unit columns or reject them.
 #' @param unmapped Reject or explicitly drop unmapped source support.
 #' @param unknown Interpretation for layers with unknown spatial semantics.
@@ -500,7 +500,7 @@ aggregate_to <- function(
     unmapped = c("error", "drop"),
     unknown = c("error", "intensive", "extensive"),
     budget = ngeo_resource_budget()) {
-  .ngeo_validate_support_domains(x, target, support_map)
+  .ngeo_validate_support_bases(x, target, support_map)
   allocation <- match.arg(allocation)
   unmapped <- match.arg(unmapped)
   unknown <- match.arg(unknown)
@@ -586,16 +586,18 @@ aggregate_to <- function(
   output <- do.call(cbind, output)
   maps_out <- x$layers[layer_index, , drop = FALSE]
   measures_out <- .ngeo_measures_for_layers(x, layer_index, unique = TRUE)
-  measures_out$support_behavior <- semantics_out
+  measures_out$support_behavior <- semantics_out[
+    match(measures_out$measure_id, maps_out$measure_id)
+  ]
   colnames(output) <- maps_out$name
   result <- .new_ngeo(
     base = target$base,
     values = output,
     layers = maps_out,
     measures = measures_out,
-    labels = x$base$labels,
+    labels = target$base$labels %||% list(),
     history = list(
-      spec_version = "2.0",
+      spec_version = "6.0",
       source_dataset = list(
         base_hash = base_hash(x),
         history = x$history
@@ -637,7 +639,7 @@ ngeo_support_variance <- function(
     allocation = c("error", "normalize"),
     unmapped = c("error", "drop"),
     unknown = c("error", "intensive", "extensive")) {
-  .ngeo_validate_support_domains(x, target, support_map)
+  .ngeo_validate_support_bases(x, target, support_map)
   allocation <- match.arg(allocation)
   unmapped <- match.arg(unmapped)
   unknown <- match.arg(unknown)
@@ -773,7 +775,7 @@ ngeo_compose_support_map <- function(first, second) {
     second$source_element_id
   )) {
     .ngeo_abort(
-      "Support-map composition requires identical intermediate domains.",
+      "Support-map composition requires identical intermediate bases.",
       "ngeo_error_base_mismatch"
     )
   }

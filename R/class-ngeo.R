@@ -203,6 +203,48 @@
   x$measures[rows, , drop = FALSE]
 }
 
+.ngeo_validate_labels <- function(labels, n_element, layer_ids = character()) {
+  if (!is.list(labels)) {
+    .ngeo_abort("`labels` must be a list.", "ngeo_error_labels")
+  }
+  for (label in labels) {
+    if (!is.list(label)) {
+      .ngeo_abort(
+        "Every label resource must be a list.",
+        "ngeo_error_labels"
+      )
+    }
+    if (!is.null(label$values) && length(label$values) != n_element) {
+      .ngeo_abort(
+        "Label values must align with base elements.",
+        "ngeo_error_alignment"
+      )
+    }
+    if (!is.null(label$layer_id) &&
+        (!is.character(label$layer_id) || length(label$layer_id) != 1L ||
+          is.na(label$layer_id) || !nzchar(label$layer_id) ||
+          !label$layer_id %in% layer_ids)) {
+      .ngeo_abort(
+        "A label resource references an undefined layer.",
+        "ngeo_error_labels"
+      )
+    }
+  }
+  invisible(TRUE)
+}
+
+.ngeo_subset_labels <- function(labels, index, n_element, layer_ids) {
+  labels <- Filter(function(label) {
+    is.null(label$layer_id) || label$layer_id %in% layer_ids
+  }, labels)
+  lapply(labels, function(label) {
+    if (!is.null(label$values) && length(label$values) == n_element) {
+      label$values <- label$values[index]
+    }
+    label
+  })
+}
+
 .new_ngeo <- function(base,
                       values = NULL,
                       layers = NULL,
@@ -226,14 +268,12 @@
     colnames(values) <- layers$name
   }
 
-  if (!is.list(labels)) {
-    .ngeo_abort("`labels` must be a list.", "ngeo_error_labels")
-  }
+  .ngeo_validate_labels(labels, n_element, layers$layer_id)
   if (!is.list(history)) {
     .ngeo_abort("`history` must be a list.", "ngeo_error_history")
   }
 
-  history$spec_version <- history$spec_version %||% "5.1"
+  history$spec_version <- history$spec_version %||% "6.0"
   history$package_version <- history$package_version %||%
     .ngeo_package_version()
 
@@ -267,7 +307,7 @@ base_type <- function(x) {
 #' Access core NGCS fields
 #'
 #' @param x An `ngeo` object.
-#' @param layers Optional map selection for `values()`.
+#' @param layers Optional layer selection for `values()`.
 #' @return The requested field.
 #' @name ngeo_accessors
 NULL
@@ -327,8 +367,10 @@ history <- function(x) {
 
 #' Compute an implementation base hash
 #'
-#' The hash identifies an R base representation. It is not a replacement
-#' for language-independent conformance fixtures.
+#' The hash identifies the ordered spatial base while intentionally excluding
+#' `base$labels`. Label resources may therefore be added or merged without
+#' changing spatial compatibility. It is not a replacement for
+#' language-independent conformance fixtures.
 #'
 #' @param x An `ngeo` object or `ngeo_base`.
 #' @return A hexadecimal xxHash64 digest.
@@ -349,6 +391,7 @@ base_hash <- function(x) {
       component
     })
   }
+  base$labels <- NULL
   digest::digest(base, algo = "xxhash64", serialize = TRUE)
 }
 

@@ -113,7 +113,7 @@ ngeo_atlas_robust_effect <- function(
   estimates <- lapply(seq_along(support_maps), function(i) {
     map <- support_maps[[i]]
     target <- targets[[i]]
-    .ngeo_validate_support_domains(x, target, map)
+    .ngeo_validate_support_bases(x, target, map)
     if (!identical(map$coverage, "complete")) {
       .ngeo_abort(
         "Atlas-robust effects require complete source coverage.",
@@ -291,7 +291,7 @@ ngeo_support_test <- function(
     )
   }
   for (i in seq_along(support_maps)) {
-    .ngeo_validate_support_domains(
+    .ngeo_validate_support_bases(
       x, targets[[i]], support_maps[[i]]
     )
     if (!identical(support_maps[[i]]$coverage, "complete")) {
@@ -366,7 +366,7 @@ ngeo_support_test <- function(
     seed = .ngeo_seed(seed),
     adjustment = adjustment,
     source_base_hash = base_hash(x),
-    permutation_domain = "common_source",
+    permutation_base = "common_source",
     claim = "common-source atlas comparison; not a spatially constrained null"
   )
   class(result) <- "ngeo_support_test"
@@ -380,7 +380,7 @@ print.ngeo_support_test <- function(x, ...) {
     "  statistic: ", x$statistic, "\n",
     "  atlases: ", nrow(x$estimates), "\n",
     "  permutations: ", x$nsim, "\n",
-    "  permutation base: ", x$permutation_domain, "\n",
+    "  permutation base: ", x$permutation_base, "\n",
     sep = ""
   )
   invisible(x)

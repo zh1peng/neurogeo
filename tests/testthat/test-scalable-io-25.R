@@ -102,7 +102,7 @@ test_that("BIDS derivative sidecars retain semantics and history", {
   sidecar <- jsonlite::fromJSON(output[["sidecar"]])
 
   expect_true(all(file.exists(output)))
-  expect_identical(sidecar$DomainHash, base_hash(x))
+  expect_identical(sidecar$BaseHash, base_hash(x))
   expect_identical(sidecar$Entities$space, "fsLR")
   expect_equal(nrow(sidecar$MeasurementSemantics), nrow(x$layers))
 })

@@ -171,10 +171,10 @@ run_scale <- function(nrow, ncol) {
     maximum_residual = basis$diagnostics$max_residual,
     maximum_orthogonality_error =
       basis$diagnostics$max_orthogonality_error,
-    dense_full_domain_matrix = basis$diagnostics$dense_full_domain_matrix,
+    dense_full_base_matrix = basis$diagnostics$dense_full_base_matrix,
     finite_features = all(is.finite(features$values)),
     chunk_layers = features$diagnostics$chunk_layers,
-    pass = identical(basis$diagnostics$dense_full_domain_matrix, FALSE) &&
+    pass = identical(basis$diagnostics$dense_full_base_matrix, FALSE) &&
       basis$diagnostics$max_residual <= 1e-6 &&
       basis$diagnostics$max_orthogonality_error <= 1e-6 &&
       all(is.finite(features$values)) &&

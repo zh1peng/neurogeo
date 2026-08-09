@@ -36,12 +36,29 @@
   }
   cluster <- parallel::makeCluster(min(workers, nsim))
   on.exit(parallel::stopCluster(cluster), add = TRUE)
-  parallel::clusterCall(cluster, function(library_paths) {
+  initialize_worker <- function(library_paths) {
     .libPaths(library_paths)
     loadNamespace("Matrix")
     loadNamespace("neurogeo")
-    NULL
-  }, library_paths = .libPaths())
+    as.character(utils::packageVersion("neurogeo"))
+  }
+  environment(initialize_worker) <- baseenv()
+  worker_versions <- unlist(parallel::clusterCall(
+    cluster,
+    initialize_worker,
+    library_paths = .libPaths()
+  ))
+  expected_version <- .ngeo_package_version()
+  if (any(worker_versions != expected_version)) {
+    .ngeo_abort(
+      sprintf(
+        "Parallel workers loaded neurogeo %s; expected %s.",
+        paste(unique(worker_versions), collapse = ", "),
+        expected_version
+      ),
+      "ngeo_error_worker_version"
+    )
+  }
   parallel::parLapply(
     cluster,
     seq_len(nsim),
@@ -106,7 +123,7 @@
 #' independently and mappings never cross stratum boundaries.
 #'
 #' @param x An `ngeo_surface`.
-#' @param map One numeric map.
+#' @param layer One numeric layer.
 #' @param coordinates Registration coordinate-set name.
 #' @param nsim Number of null layers.
 #' @param seed Reproducible seed.
@@ -118,7 +135,7 @@
 #' @export
 ngeo_spin_null <- function(
     x,
-    map = 1L,
+    layer = 1L,
     coordinates = NULL,
     nsim = 999L,
     seed = NULL,
@@ -128,17 +145,17 @@ ngeo_spin_null <- function(
   .ngeo_require("dbscan", "surface-spin nearest-neighbor mapping")
   ngeo_validate(x, "strict")
   spherical <- .ngeo_spherical_coordinates(x, coordinates)
-  layer_index <- .ngeo_layer_selection(x, map)
+  layer_index <- .ngeo_layer_selection(x, layer)
   if (length(layer_index) != 1L || is.null(x$values)) {
     .ngeo_abort(
-      "Surface spin requires exactly one loaded map.",
+      "Surface spin requires exactly one loaded layer.",
       "ngeo_error_values"
     )
   }
   values <- as.numeric(x$values[, layer_index])
   if (any(!is.finite(values))) {
     .ngeo_abort(
-      "Surface spin does not accept missing map values.",
+      "Surface spin does not accept missing layer values.",
       "ngeo_error_missing"
     )
   }
@@ -230,7 +247,7 @@ ngeo_spin_null <- function(
 ngeo_moran_null <- function(
     x,
     spatial_weights,
-    map = 1L,
+    layer = 1L,
     nsim = 999L,
     seed = NULL,
     na_action = c("fail", "omit"),
@@ -240,7 +257,7 @@ ngeo_moran_null <- function(
   input <- .ngeo_spatial_inputs(
     x,
     spatial_weights,
-    map,
+    layer,
     na_action,
     zero_policy
   )

@@ -190,10 +190,10 @@ run_scale <- function(label, nrow, ncol, modes) {
     feature_bytes = as.numeric(object.size(features)),
     max_residual = basis$diagnostics$max_residual,
     max_orthogonality_error = basis$diagnostics$max_orthogonality_error,
-    dense_full_domain_matrix = basis$diagnostics$dense_full_domain_matrix,
+    dense_full_base_matrix = basis$diagnostics$dense_full_base_matrix,
     solver = basis$components[[1L]]$solver,
     finite_features = all(is.finite(features$values)),
-    pass = identical(basis$diagnostics$dense_full_domain_matrix, FALSE) &&
+    pass = identical(basis$diagnostics$dense_full_base_matrix, FALSE) &&
       basis$diagnostics$max_residual <= 1e-6 &&
       basis$diagnostics$max_orthogonality_error <= 1e-6 &&
       all(is.finite(features$values))

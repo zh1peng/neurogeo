@@ -23,7 +23,7 @@ read_ngeo_cifti(
 
 \item{frames}{Optional map/frame selection.}
 
-\item{layers}{Optional map metadata overriding the file metadata.}
+\item{layers}{Optional layer metadata overriding the file metadata.}
 
 \item{measures}{Optional measurement semantics.}
 

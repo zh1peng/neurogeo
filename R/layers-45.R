@@ -161,7 +161,7 @@ ngeo_validate_layers <- function(
     if (length(globally_missing)) {
       .ngeo_abort(
         sprintf(
-          "Required layers are absent from the map table: %s.",
+          "Required layers are absent from the layer table: %s.",
           paste(globally_missing, collapse = ", ")
         ),
         "ngeo_error_layer_missing"
@@ -308,7 +308,7 @@ print.ngeo_layer_index <- function(x, ...) {
     if (is.null(current_names) || any(!nzchar(current_names))) {
       if (length(labels) != nrow(sources[[i]]$layers)) {
         .ngeo_abort(
-          "Unkeyed labels do not align with the source map table.",
+          "Unkeyed labels do not align with the source layer table.",
           "ngeo_error_labels"
         )
       }
@@ -332,15 +332,15 @@ print.ngeo_layer_index <- function(x, ...) {
   output
 }
 
-#' Bind aligned map columns without changing their spatial base
+#' Bind aligned layer columns without changing their spatial base
 #'
 #' Inputs must have exactly the same ordered base. No registration,
 #' resampling, nearest-neighbour matching, or name inference is performed.
 #'
 #' @param ... Named `ngeo` objects, or one named list of them.
-#' @param metadata Optional output-map metadata in exact column order.
+#' @param metadata Optional output-layer metadata in exact column order.
 #' @param source_id Optional deterministic source identifiers.
-#' @param conflicts Whether conflicting map identifiers fail or are prefixed.
+#' @param conflicts Whether conflicting layer identifiers fail or are prefixed.
 #' @param storage Automatic, delayed, or in-memory output values.
 #' @param budget Hard resource limits checked before materialization.
 #'
@@ -391,8 +391,8 @@ ngeo_bind_layers <- function(
   has_conflict <- anyDuplicated(all_ids) || anyDuplicated(all_names)
   if (has_conflict && identical(conflicts, "error")) {
     .ngeo_abort(
-      "Bound map IDs or names conflict; use `conflicts = \"prefix\"` explicitly.",
-      "ngeo_error_map_conflict"
+      "Bound layer IDs or names conflict; use `conflicts = \"prefix\"` explicitly.",
+      "ngeo_error_layer_conflict"
     )
   }
   if (identical(conflicts, "prefix")) {
@@ -434,7 +434,7 @@ ngeo_bind_layers <- function(
   if (!is.null(metadata)) {
     if (!is.data.frame(metadata) || nrow(metadata) != nrow(output_maps)) {
       .ngeo_abort(
-        "`metadata` must have one row per output map in exact order.",
+        "`metadata` must have one row per output layer in exact order.",
         "ngeo_error_alignment"
       )
     }
@@ -493,7 +493,7 @@ ngeo_bind_layers <- function(
       c(n_element, n_layer),
       layer_names = output_maps$name,
       source = list(
-        method = "composite_delayed_map_binding",
+        method = "composite_delayed_layer_binding",
         sources = vapply(sources, .ngeo_binding_source_hash, character(1))
       )
     )
@@ -506,8 +506,8 @@ ngeo_bind_layers <- function(
   result$base$labels <- .ngeo_merge_bound_labels(
     sources, source_ids, conflicts, output_maps
   )
-  result$history$map_binding <- list(
-    method = "exact_ordered_domain_column_binding",
+  result$history$layer_binding <- list(
+    method = "exact_ordered_base_layer_binding",
     storage = storage,
     base_hash = reference_hash,
     space_hash = reference_space,

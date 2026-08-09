@@ -60,7 +60,7 @@ test_that("solver controls are immutable and resource-bound", {
   expect_s3_class(control, "ngeo_solver_control")
   expect_invisible(ngeo_validate_solver_control(control))
   expect_identical(
-    ngeo_object_manifest(control)$object_schema_version, "3.4"
+    ngeo_object_manifest(control)$object_schema_version, "6.0"
   )
 
   changed <- control
@@ -360,7 +360,7 @@ test_that("iterative CAR agrees with the direct small smoother", {
   )
 })
 
-test_that("3.4 schemas cover iterative model objects", {
+test_that("6.0 manifests cover iterative model objects", {
   fixture <- iterative_model_fixture()
   control <- ngeo_solver_control(exact_threshold = 100)
   solution <- ngeo_iterative_solve(
@@ -399,7 +399,7 @@ test_that("3.4 schemas cover iterative model objects", {
     function(object) {
       identical(
         ngeo_object_manifest(object)$specification,
-        "NGCS 3.4"
+        "NGCS 6.0"
       )
     },
     logical(1)

@@ -6,7 +6,7 @@
 \usage{
 ngeo_variogram_uncertainty(
   x,
-  map,
+  layer,
   value_covariance,
   distance_method = NULL,
   breaks = 10L,
@@ -21,7 +21,7 @@ ngeo_variogram_uncertainty(
 \arguments{
 \item{x}{An `ngeo` dataset.}
 
-\item{map}{One numeric map.}
+\item{layer}{One numeric layer.}
 
 \item{value_covariance}{Matching base-bound measurement covariance.}
 

@@ -34,7 +34,7 @@ test_that("file-backed NIfTI matches loaded values and selections", {
   expect_true(nzchar(ngeo_file_values_identity(backed$values)))
   manifest <- ngeo_object_manifest(backed$values)
   expect_identical(manifest$object_schema, "ngcs/file-values")
-  expect_identical(manifest$specification, "NGCS 3.1")
+  expect_identical(manifest$specification, "NGCS 6.0")
   expect_true(ngeo_validate_manifest(manifest, backed$values)$valid)
 })
 

@@ -24,7 +24,7 @@ read_ngeo_nifti(
 
 \item{frames}{Optional frames passed to `RNifti::readNifti()`.}
 
-\item{layers}{Optional map metadata.}
+\item{layers}{Optional layer metadata.}
 
 \item{measures}{Optional measurement semantics.}
 

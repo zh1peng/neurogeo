@@ -270,7 +270,7 @@
 #' @param base Explicit surface/volume base, or safe automatic detection.
 #' @param affine Optional explicit MGH/MGZ affine.
 #' @param mask Optional volume mask.
-#' @param layers Optional map metadata.
+#' @param layers Optional layer metadata.
 #' @param measures Optional measurement semantics.
 #' @param coordinate_space Optional `ngeo_coordinate_space`.
 #' @param load_data Whether to retain volume data.

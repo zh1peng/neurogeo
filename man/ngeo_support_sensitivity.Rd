@@ -20,9 +20,9 @@ ngeo_support_sensitivity(
 \item{target}{Shared target template or a list of identical target
 templates.}
 
-\item{support_maps}{Two or more layers with common source and target domains.}
+\item{support_maps}{Two or more layers with common source and target bases.}
 
-\item{layers}{Optional value-map selection.}
+\item{layers}{Optional value-layer selection.}
 
 \item{reference}{Reference support-map index.}
 

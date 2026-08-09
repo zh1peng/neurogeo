@@ -2,16 +2,17 @@
 % Please edit documentation in R/partition.R
 \name{ngeo_aggregate}
 \alias{ngeo_aggregate}
-\title{Aggregate values from a base base to parcellation}
+\title{Aggregate values from a spatial base to a parcellation}
 \usage{
 ngeo_aggregate(
   x,
   partition,
   layers = NULL,
-  fun = NULL,
-  na.rm = TRUE,
-  tie = c("first", "error"),
-  connectivity = 6L
+  connectivity = 6L,
+  allocation = c("error", "normalize"),
+  unmapped = c("error", "drop"),
+  unknown = c("error", "intensive", "extensive"),
+  budget = ngeo_resource_budget()
 )
 }
 \arguments{
@@ -19,19 +20,15 @@ ngeo_aggregate(
 
 \item{partition}{Matching crisp partition.}
 
-\item{layers}{Optional map selection.}
-
-\item{fun}{Optional explicit aggregation function.}
-
-\item{na.rm}{Whether missing values may be excluded when policy allows.}
-
-\item{tie}{Categorical tie policy.}
+\item{layers}{Optional layer selection.}
 
 \item{connectivity}{Voxel connectivity for region adjacency.}
+
+\item{allocation, unmapped, unknown, budget}{Passed to [aggregate_to()].}
 }
 \value{
 An `ngeo_parcellation` dataset.
 }
 \description{
-Aggregate values from a base base to parcellation
+Aggregate values from a spatial base to a parcellation
 }

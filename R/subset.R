@@ -74,7 +74,7 @@
   } else if (is.logical(layers)) {
     if (length(layers) != n || anyNA(layers)) {
       .ngeo_abort(
-        sprintf("Logical map selection must have length %d.", n),
+        sprintf("Logical layer selection must have length %d.", n),
         "ngeo_error_index"
       )
     }
@@ -83,7 +83,7 @@
     index <- .ngeo_as_integer(layers, "layers")
     if (any(index < 1L | index > n)) {
       .ngeo_abort(
-        sprintf("Map positions must be between 1 and %d.", n),
+        sprintf("Layer positions must be between 1 and %d.", n),
         "ngeo_error_index"
       )
     }
@@ -240,7 +240,7 @@
 #'
 #' @param x An `ngeo` object.
 #' @param elements Element positions, stable element IDs, or a logical mask.
-#' @param layers Map positions, map IDs/names, or a logical mask.
+#' @param layers Layer positions, IDs/names, or a logical mask.
 #'
 #' @return An object of the same `ngeo` subclass.
 #' @examples
@@ -273,6 +273,12 @@ ngeo_subset <- function(x, elements = NULL, layers = NULL) {
   ]
   rownames(layer_metadata) <- NULL
   rownames(measure_metadata) <- NULL
+  base$labels <- .ngeo_subset_labels(
+    x$base$labels %||% list(),
+    element_index,
+    nrow(x$base$elements),
+    as.character(layer_metadata$layer_id)
+  )
 
   result <- base::structure(
     list(

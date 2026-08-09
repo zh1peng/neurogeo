@@ -6,7 +6,7 @@
 \usage{
 ngeo_kriging(
   x,
-  map,
+  layer,
   variogram,
   targets = NULL,
   predictors = character(),
@@ -18,7 +18,7 @@ ngeo_kriging(
 \arguments{
 \item{x}{An `ngeo` dataset.}
 
-\item{map}{Response map.}
+\item{layer}{Response layer.}
 
 \item{variogram}{A fitted `ngeo_variogram_fit`.}
 

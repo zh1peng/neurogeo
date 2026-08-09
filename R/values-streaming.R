@@ -2,7 +2,7 @@
 #' Compute delayed-native streaming summaries
 #'
 #' @param x An `ngeo` dataset or values block.
-#' @param layers Optional map selection.
+#' @param layers Optional layer selection.
 #' @param chunk_size Row chunk size.
 #' @param na_rm Whether to omit non-finite values.
 #'
@@ -52,7 +52,7 @@ ngeo_stream_summary <- function(
     }
   }
   result <- data.frame(
-    map = colnames(values)[columns] %||% paste0("map_", columns),
+    layer = colnames(values)[columns] %||% paste0("layer_", columns),
     n = count,
     missing = missing,
     mean = mean,
@@ -104,7 +104,7 @@ ngeo_stream_covariance <- function(
   }
   result <- cross / (count - 1L)
   dimnames(result) <- rep(list(
-    colnames(values)[columns] %||% paste0("map_", columns)
+    colnames(values)[columns] %||% paste0("layer_", columns)
   ), 2L)
   result
 }
@@ -112,7 +112,7 @@ ngeo_stream_covariance <- function(
 #' Fit OLS from delayed chunks using sufficient statistics
 #'
 #' @param x An `ngeo` dataset.
-#' @param response One response map.
+#' @param response One response layer.
 #' @param predictors Predictor layers.
 #' @param chunk_size Row chunk size.
 #'
@@ -174,23 +174,24 @@ ngeo_stream_lm <- function(
 #'
 #' @param x An `ngeo` dataset.
 #' @param spatial_weights Matching `ngeo_spatial_weights`.
-#' @param map One numeric map.
+#' @param layer One numeric layer.
 #' @param chunk_size Row chunk size.
 #'
 #' @return An `ngeo_stream_moran`.
 #' @export
-ngeo_stream_moran <- function(x, spatial_weights, map = 1L, chunk_size = 65536L) {
+ngeo_stream_moran <- function(
+    x, spatial_weights, layer = 1L, chunk_size = 65536L) {
   ngeo_validate(x, "strict")
   if (!inherits(spatial_weights, "ngeo_spatial_weights") ||
       !identical(spatial_weights$base_hash, base_hash(x))) {
     .ngeo_abort("Streaming Moran spatial_weights do not match the base.",
                 "ngeo_error_base_mismatch")
   }
-  map <- .ngeo_layer_selection(x, map)
-  if (length(map) != 1L) {
-    .ngeo_abort("Select one map.", "ngeo_error_argument")
+  layer <- .ngeo_layer_selection(x, layer)
+  if (length(layer) != 1L) {
+    .ngeo_abort("Select one layer.", "ngeo_error_argument")
   }
-  summary <- ngeo_stream_summary(x, map, chunk_size)
+  summary <- ngeo_stream_summary(x, layer, chunk_size)
   center <- summary$mean[[1L]]
   denominator <- (summary$n[[1L]] - 1L) * summary$variance[[1L]]
   matrix <- spatial_weights$matrix
@@ -201,8 +202,8 @@ ngeo_stream_moran <- function(x, spatial_weights, map = 1L, chunk_size = 65536L)
     block <- matrix[rows, , drop = FALSE]
     entries <- Matrix::summary(block)
     columns <- sort(unique(entries$j))
-    row_values <- as.numeric(x$values[rows, map]) - center
-    column_values <- as.numeric(x$values[columns, map]) - center
+    row_values <- as.numeric(x$values[rows, layer]) - center
+    column_values <- as.numeric(x$values[columns, layer]) - center
     numerator <- numerator + sum(
       row_values * as.numeric(
         block[, columns, drop = FALSE] %*% column_values
@@ -212,7 +213,7 @@ ngeo_stream_moran <- function(x, spatial_weights, map = 1L, chunk_size = 65536L)
   estimate <- nrow(matrix) / sum(matrix) * numerator / denominator
   result <- list(
     estimate = estimate,
-    map = x$layers$name[[map]],
+    layer = x$layers$name[[layer]],
     n = nrow(matrix),
     weights_method = spatial_weights$method,
     base_hash = base_hash(x),

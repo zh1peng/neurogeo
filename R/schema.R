@@ -2,23 +2,23 @@
 .ngeo_schema_definitions <- function() {
   definitions <- list(
     list("ngcs/ngeo-surface", "ngeo_surface", c(
-      "one_domain", "aligned_values", "unique_element_id",
+      "one_base", "aligned_values", "unique_element_id",
       "triangular_faces", "explicit_space"
     )),
     list("ngcs/ngeo-volume", "ngeo_volume", c(
-      "one_domain", "aligned_values", "unique_element_id",
+      "one_base", "aligned_values", "unique_element_id",
       "invertible_affine", "bounded_voxel_index"
     )),
     list("ngcs/ngeo-point", "ngeo_point", c(
-      "one_domain", "aligned_values", "unique_element_id",
+      "one_base", "aligned_values", "unique_element_id",
       "finite_coordinates"
     )),
     list("ngcs/ngeo-grayordinate", "ngeo_grayordinate", c(
-      "one_domain", "aligned_values", "unique_element_id",
+      "one_base", "aligned_values", "unique_element_id",
       "ordered_component_partition"
     )),
     list("ngcs/ngeo-parcellation", "ngeo_parcellation", c(
-      "one_domain", "aligned_values", "unique_region_id",
+      "one_base", "aligned_values", "unique_region_id",
       "aligned_support"
     )),
     list("ngcs/coordinate_space", "ngeo_coordinate_space", c(
@@ -28,31 +28,31 @@
       "exact_source_space", "exact_target_space", "declared_method"
     )),
     list("ngcs/spatial_weights", "ngeo_spatial_weights", c(
-      "square_sparse_matrix", "domain_bound", "declared_style"
+      "square_sparse_matrix", "base_bound", "declared_style"
     )),
     list("ngcs/partition", "ngeo_partition", c(
-      "domain_bound", "aligned_membership", "known_regions"
+      "base_bound", "aligned_membership", "known_regions"
     )),
     list("ngcs/support-map", "ngeo_support_map", c(
       "target_by_source", "nonnegative_sparse_operator",
-      "ordered_domain_identity"
+      "ordered_base_identity"
     )),
     list("ngcs/support-covariance", "ngeo_support_covariance", c(
-      "domain_bound", "ordered_element_id", "nonnegative_variance"
+      "base_bound", "ordered_element_id", "nonnegative_variance"
     )),
     list("ngcs/support-ensemble", "ngeo_support_ensemble", c(
-      "common_domains", "normalized_weights", "typed_uncertainty"
+      "common_bases", "normalized_weights", "typed_uncertainty"
     )),
     list("ngcs/file-values", "ngeo_file_values", c(
       "one_values_block", "verified_source_identity",
       "bounded_binary_selection"
     )),
     list("ngcs/resampling-plan", "ngeo_resampling_plan", c(
-      "exact_domain_identity", "authorized_path_only",
+      "exact_base_identity", "authorized_path_only",
       "explicit_resampling_policies", "bounded_execution"
     )),
     list("ngcs/resampling-result", "ngeo_resampling_result", c(
-      "one_target_domain", "joint_path_layer_identity",
+      "one_target_base", "joint_path_layer_identity",
       "explicit_uncertainty_policy"
     )),
     list("ngcs/time-axis", "ngeo_time_axis", c(
@@ -67,7 +67,7 @@
       "ngcs/spatiotemporal-spatial_weights",
       "ngeo_spatiotemporal_weights",
       c(
-        "separable_component_operators", "domain_and_axis_bound",
+        "separable_component_operators", "base_and_axis_bound",
         "matrix_free_normative_execution"
       )
     ),
@@ -87,12 +87,12 @@
       "ngcs/iterative-spatial-regression",
       "ngeo_iterative_spatial_regression",
       c(
-        "domain_and_weights_bound", "explicit_optimization_convergence",
+        "base_and_weights_bound", "explicit_optimization_convergence",
         "declared_logdet_method", "solver_diagnostics"
       )
     ),
     list("ngcs/iterative-car", "ngeo_iterative_car", c(
-      "domain_and_weights_bound", "declared_car_precision",
+      "base_and_weights_bound", "declared_car_precision",
       "iterative_convergence", "sparse_operator"
     )),
     list("ngcs/history-dag", "ngeo_history_dag", c(
@@ -124,32 +124,7 @@
   data.frame(
     schema_id = vapply(definitions, `[[`, character(1), 1L),
     class = vapply(definitions, `[[`, character(1), 2L),
-    version = {
-      schema_id <- vapply(definitions, `[[`, character(1), 1L)
-      introduced <- rep.int("3.0", length(schema_id))
-      names(introduced) <- schema_id
-      by_version <- list(
-        "3.1" = "ngcs/file-values",
-        "3.2" = c("ngcs/resampling-plan", "ngcs/resampling-result"),
-        "3.3" = c(
-          "ngcs/time-axis", "ngcs/temporal-spatial_weights",
-          "ngcs/spatiotemporal-spatial_weights"
-        ),
-        "3.4" = c(
-          "ngcs/solver-control", "ngcs/iterative-solution",
-          "ngcs/logdet-estimate", "ngcs/iterative-spatial-regression",
-          "ngcs/iterative-car"
-        ),
-        "3.5" = c(
-          "ngcs/history-dag", "ngcs/replay-manifest",
-          "ngcs/artifact-manifest", "ngcs/batch-manifest"
-        )
-      )
-      for (current in names(by_version)) {
-        introduced[by_version[[current]]] <- current
-      }
-      unname(introduced)
-    },
+    version = rep.int("6.0", length(definitions)),
     status = "stable",
     invariants = I(lapply(definitions, `[[`, 3L)),
     stringsAsFactors = FALSE
@@ -163,7 +138,7 @@
   index <- index[index > 0L]
   if (!length(index)) {
     .ngeo_abort(
-      "No NGCS 3.x schema is registered for this object class.",
+      "No NGCS 6.0 schema is registered for this object class.",
       "ngeo_error_schema"
     )
   }
@@ -324,20 +299,6 @@
   )
 }
 
-.ngeo_condition_code <- function(condition) {
-  primary <- class(condition)[
-    grepl("^ngeo_(error|warning)", class(condition))
-  ][1L]
-  if (is.na(primary) || !nzchar(primary)) primary <- if (
-    inherits(condition, "warning")
-  ) {
-    "warning"
-  } else {
-    "error"
-  }
-  toupper(gsub("[^A-Za-z0-9]+", "_", primary))
-}
-
 .ngeo_schema_report <- function(x) {
   schema <- .ngeo_schema(x)
   .ngeo_schema_validate_one(x, schema$schema_id[[1L]])
@@ -420,7 +381,7 @@
   )
 }
 
-.ngeo_portable_domain_signature <- function(base) {
+.ngeo_portable_base_signature <- function(base) {
   common <- list(
     type = base$type,
     elements = base$elements,
@@ -450,7 +411,7 @@
         if (inherits(geometry, "ngeo")) {
           component$geometry_sha256 <- digest::digest(
             .ngeo_manifest_json(
-              .ngeo_portable_domain_signature(geometry$base)
+              .ngeo_portable_base_signature(geometry$base)
             ),
             algo = "sha256",
             serialize = FALSE
@@ -476,7 +437,7 @@
 
 .ngeo_portable_base_hash <- function(base) {
   digest::digest(
-    .ngeo_manifest_json(.ngeo_portable_domain_signature(base)),
+    .ngeo_manifest_json(.ngeo_portable_base_signature(base)),
     algo = "sha256",
     serialize = FALSE
   )
@@ -485,8 +446,8 @@
 .ngeo_object_manifest_metadata <- function(x, schema_id) {
   if (inherits(x, "ngeo")) {
     return(list(
-      domain_type = x$base$type,
-      domain_sha256 = .ngeo_portable_base_hash(x$base),
+      base_type = x$base$type,
+      base_sha256 = .ngeo_portable_base_hash(x$base),
       ordered_element_id_sha256 = .ngeo_order_hash(
         x$base$elements$element_id
       ),
@@ -504,7 +465,7 @@
           NULL
         }
       ),
-      map_count = nrow(x$layers),
+      layer_count = nrow(x$layers),
       ordered_layer_id_sha256 = .ngeo_order_hash(x$layers$layer_id),
       layers = x$layers,
       measures = x$measures
@@ -663,7 +624,7 @@
   )
 }
 
-#' Create a portable NGCS 3.x object metadata manifest
+#' Create a portable NGCS 6.0 object metadata manifest
 #'
 #' @param x A valid registered NGCS object.
 #' @return A JSON-compatible `ngeo_object_manifest`.

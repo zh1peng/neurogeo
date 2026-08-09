@@ -22,7 +22,7 @@ ngeo_longitudinal_change(
 
 \item{name}{Output map name.}
 
-\item{budget}{Resource limits for two input layers and one output map.}
+\item{budget}{Resource limits for two input layers and one output layer.}
 }
 \value{
 One target-base `ngeo` map.

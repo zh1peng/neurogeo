@@ -86,7 +86,7 @@
   if (!valid_rows || !identical(
       as.character(x$layers$layer_id[rows]),
       as.character(index$layer_index$source_layer_id))) {
-    .ngeo_abort("The layer index is stale relative to the map table.",
+    .ngeo_abort("The layer index is stale relative to the layer table.",
                 "ngeo_error_alignment")
   }
   lookup <- matrix(
@@ -205,7 +205,7 @@
 
 .ngeo_coupling_endpoint <- function(
     estimand, layer_x, layer_y = NA_character_, direction = "none",
-    component = "whole_domain", band = "all", modes = integer(),
+    component = "whole_base", band = "all", modes = integer(),
     eigenvalues = numeric(), basis = NULL, support_hash,
     weights_info = NULL, energy_floor = NA_real_, unit = "1",
     bounds = "unbounded", standardization = "none",
@@ -225,7 +225,7 @@
     direction = direction,
     component = component,
     band = band,
-    scale_type = if (identical(component, "whole_domain")) "base" else
+    scale_type = if (identical(component, "whole_base")) "base" else
       "rank_matched",
     centering = if (identical(estimand, "classic_cross_moran"))
       "arithmetic_mean" else "support_weighted_mean",

@@ -330,6 +330,7 @@ test_that("longitudinal helpers obey temporal measurement support", {
     rep(4, length(time))
   )
   instant <- time_points_fixture(values = values, time = time)
+  instant$base$labels$group <- list(values = c("A", "B", "C"))
   trend <- ngeo_temporal_trend(instant)
   change <- ngeo_longitudinal_change(
     instant, from = 1, to = 4, scale = "rate"
@@ -342,6 +343,7 @@ test_that("longitudinal helpers obey temporal measurement support", {
   expect_equal(as.numeric(mean_layer$values), rowMeans(values))
   expect_identical(base_hash(trend), base_hash(instant))
   expect_identical(nrow(trend$base$elements), nrow(values))
+  expect_identical(trend$base$labels$group$values, c("A", "B", "C"))
 
   interval_axis <- ngeo_time_axis(
     time = c(0.5, 2),

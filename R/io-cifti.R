@@ -201,7 +201,7 @@
 #' @param path CIFTI path.
 #' @param surfaces Optional left/right surface geometry paths.
 #' @param frames Optional map/frame selection.
-#' @param layers Optional map metadata overriding the file metadata.
+#' @param layers Optional layer metadata overriding the file metadata.
 #' @param measures Optional measurement semantics.
 #' @param coordinate_space Optional hybrid `ngeo_coordinate_space`.
 #' @param load_data Whether to retain the matrix values.

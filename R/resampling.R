@@ -11,8 +11,8 @@
   character()
 }
 
-.ngeo_resampling_parameter_names <- function(method, domain_type) {
-  if (identical(domain_type, "surface")) {
+.ngeo_resampling_parameter_names <- function(method, base_type) {
+  if (identical(base_type, "surface")) {
     common <- c(
       "source_coordinates", "target_coordinates", "max_distance"
     )
@@ -199,12 +199,12 @@ ngeo_resampling_plan <- function(
       "ngeo_error_argument"
     )
   }
-  domain_type <- if (inherits(source, "ngeo_surface")) {
+  base_type <- if (inherits(source, "ngeo_surface")) {
     "surface"
   } else {
     "volume"
   }
-  allowed <- .ngeo_resampling_parameter_names(method, domain_type)
+  allowed <- .ngeo_resampling_parameter_names(method, base_type)
   unknown_parameter <- setdiff(names(parameters), allowed)
   if (length(unknown_parameter)) {
     .ngeo_abort(
@@ -331,7 +331,7 @@ ngeo_validate_resampling_plan <- function(x) {
       !identical(base_hash(x$source), x$source_base_hash) ||
       !identical(base_hash(x$target), x$target_base_hash)) {
     .ngeo_abort(
-      "Resampling plan domains, method, policies, or budget changed.",
+      "Resampling plan bases, method, policies, or budget changed.",
       "ngeo_error_resampling_plan_mutation"
     )
   }
@@ -628,7 +628,7 @@ ngeo_resampling_diagnostics <- function(
 #' Execute one explicitly authorized resampling plan
 #'
 #' @param plan A validated `ngeo_resampling_plan`.
-#' @param layers Optional source map selection.
+#' @param layers Optional source layer selection.
 #' @param value_variance Optional source-by-selected-map independent variance.
 #' @param authorize Must be explicitly `TRUE`.
 #' @param output_path Optional one-artifact output path.

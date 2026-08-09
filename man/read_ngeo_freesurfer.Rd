@@ -38,7 +38,7 @@ read_ngeo_freesurfer(
 
 \item{mask}{Optional volume mask.}
 
-\item{layers}{Optional map metadata.}
+\item{layers}{Optional layer metadata.}
 
 \item{measures}{Optional measurement semantics.}
 

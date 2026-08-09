@@ -336,7 +336,7 @@ add_agreement(
 
 empirical <- ngeo_variogram(
   kriging_data,
-  map = "signal",
+  layer = "signal",
   distance_method = "euclidean",
   breaks = c(0, 1, 2, 3)
 )

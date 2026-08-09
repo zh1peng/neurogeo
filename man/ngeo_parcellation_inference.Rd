@@ -8,7 +8,7 @@ ngeo_parcellation_inference(
   x,
   support_maps,
   targets,
-  map = 1L,
+  layer = 1L,
   nsim = 999L,
   seed = NULL,
   tolerance = 1e-10,
@@ -22,7 +22,7 @@ ngeo_parcellation_inference(
 
 \item{targets}{List of matching target templates.}
 
-\item{map}{One map.}
+\item{layer}{One layer.}
 
 \item{nsim}{Shared source bootstrap replicates.}
 

@@ -25,7 +25,7 @@ ngeo_volume(
 
 \item{mask}{Optional logical lattice mask.}
 
-\item{layers}{Optional map metadata.}
+\item{layers}{Optional layer metadata.}
 
 \item{measures}{Optional measurement semantics.}
 

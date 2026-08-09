@@ -6,7 +6,7 @@
 \usage{
 ngeo_spin_null(
   x,
-  map = 1L,
+  layer = 1L,
   coordinates = NULL,
   nsim = 999L,
   seed = NULL,
@@ -18,7 +18,7 @@ ngeo_spin_null(
 \arguments{
 \item{x}{An `ngeo_surface`.}
 
-\item{map}{One numeric map.}
+\item{layer}{One numeric layer.}
 
 \item{coordinates}{Registration coordinate-set name.}
 

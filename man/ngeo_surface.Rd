@@ -26,7 +26,7 @@ ngeo_surface(
 
 \item{values}{Optional vertex-aligned values.}
 
-\item{layers}{Optional map metadata.}
+\item{layers}{Optional layer metadata.}
 
 \item{measures}{Optional measurement semantics.}
 

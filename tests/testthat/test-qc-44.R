@@ -45,7 +45,7 @@ test_that("QC respects the values scan budget", {
     qc$checks$check == "values_scan" &
       qc$checks$status == "not_evaluated"
   ))
-  expect_null(qc$map_summary)
+  expect_null(qc$layer_summary)
 })
 
 test_that("QC covers every base without inventing topology", {
@@ -77,7 +77,7 @@ test_that("QC covers every base without inventing topology", {
     ngeo_qc
   )
   expect_identical(
-    vapply(reports, `[[`, character(1), "domain_type"),
+    vapply(reports, `[[`, character(1), "base_type"),
     c("surface", "volume", "point", "grayordinate", "parcellation")
   )
   point_topology <- reports[[3L]]$checks[

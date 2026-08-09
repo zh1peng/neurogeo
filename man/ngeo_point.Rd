@@ -21,7 +21,7 @@ ngeo_point(
 
 \item{values}{Optional point-aligned values.}
 
-\item{layers}{Optional map metadata.}
+\item{layers}{Optional layer metadata.}
 
 \item{measures}{Optional measurement semantics.}
 

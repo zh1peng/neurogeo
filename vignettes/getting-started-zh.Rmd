@@ -340,7 +340,7 @@ manual_I
 moran <- ngeo_moran(
   x,
   spatial_weights = w,
-  map = "signal",
+  layer = "signal",
   permutations = 99,
   seed = 2026
 )
@@ -361,7 +361,7 @@ Moran's I 必须与权重定义一起解释。它不是普通相关系数，也�
 lisa <- ngeo_local_moran(
   x,
   spatial_weights = w,
-  map = "signal",
+  layer = "signal",
   permutations = 99,
   seed = 2026,
   adjust = "BH"

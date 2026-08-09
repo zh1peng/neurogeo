@@ -27,7 +27,7 @@ x <- ngeo_point(
 qc <- ngeo_qc(x)
 qc
 qc$checks
-qc$map_summary
+qc$layer_summary
 ```
 
 ```{r plot, fig.width=6, fig.height=4}

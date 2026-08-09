@@ -137,22 +137,22 @@ test_that("aggregation records every layer when measures are shared", {
   expect_named(operation$parameters$missing_policy, result$layers$layer_id)
 })
 
-test_that("unknown semantics require an explicit aggregation function", {
+test_that("unknown semantics require an explicit interpretation", {
   x <- partition_surface()
   partition <- ngeo_partition(x, c("A", "A", "B", "B"))
 
   expect_error(
     ngeo_aggregate(x, partition, layers = "unspecified"),
-    class = "ngeo_error_measure_unknown"
+    class = "ngeo_error_measure"
   )
   result <- ngeo_aggregate(
     x,
     partition,
     layers = "unspecified",
-    fun = stats::median
+    unknown = "intensive"
   )
-  expect_equal(result$values[, 1L], c(3, 7))
-  expect_equal(result$measures$aggregation, "custom")
+  expect_equal(result$values[, 1L], c(8 / 3, 20 / 3))
+  expect_equal(result$measures$support_behavior, "intensive")
 })
 
 test_that("partition base hashes prevent accidental reuse", {

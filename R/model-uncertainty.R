@@ -1,6 +1,6 @@
 # Model uncertainty propagation.
 .ngeo_model_covariance_matrix <- function(covariance, x) {
-  .ngeo_validate_covariance_domain(covariance, x)
+  .ngeo_validate_covariance_base(covariance, x)
   maximum <- getOption("neurogeo.max_model_covariance_dimension", 2000L)
   if (covariance$dimension > maximum) {
     .ngeo_abort(
@@ -32,14 +32,14 @@
 
 .ngeo_variogram_uncertain_empirical <- function(
     x,
-    map,
+    layer,
     covariance,
     distance_method,
     breaks,
     max_distance) {
-  layer_index <- .ngeo_layer_selection(x, map)
+  layer_index <- .ngeo_layer_selection(x, layer)
   if (length(layer_index) != 1L) {
-    .ngeo_abort("Select one variogram map.", "ngeo_error_argument")
+    .ngeo_abort("Select one variogram layer.", "ngeo_error_argument")
   }
   values <- as.numeric(x$values[, layer_index])
   if (any(!is.finite(values))) {
@@ -129,7 +129,7 @@
 #' Fit a measurement-uncertainty-aware variogram
 #'
 #' @param x An `ngeo` dataset.
-#' @param map One numeric map.
+#' @param layer One numeric layer.
 #' @param value_covariance Matching base-bound measurement covariance.
 #' @param distance_method,breaks,max_distance,model Passed to variogram estimation.
 #' @param nsim Number of parameter simulations.
@@ -141,7 +141,7 @@
 #' @export
 ngeo_variogram_uncertainty <- function(
     x,
-    map,
+    layer,
     value_covariance,
     distance_method = NULL,
     breaks = 10L,
@@ -158,11 +158,11 @@ ngeo_variogram_uncertainty <- function(
   }
   .ngeo_interval(0, 1, level)
   empirical <- .ngeo_variogram_uncertain_empirical(
-    x, map, value_covariance, distance_method, breaks, max_distance
+    x, layer, value_covariance, distance_method, breaks, max_distance
   )
   fit <- ngeo_fit_variogram(empirical, model = model)
   nsim <- .ngeo_nsim(nsim)
-  layer_index <- .ngeo_layer_selection(x, map)
+  layer_index <- .ngeo_layer_selection(x, layer)
   draws <- .ngeo_with_seed(
     seed,
     function() .ngeo_draw_covariance(value_covariance, nsim)
@@ -237,7 +237,7 @@ ngeo_variogram_uncertainty <- function(
 #' @export
 ngeo_kriging_uncertainty <- function(
     x,
-    map,
+    layer,
     variogram,
     targets = NULL,
     predictors = character(),
@@ -249,7 +249,7 @@ ngeo_kriging_uncertainty <- function(
     support_variance = NULL,
     level = 0.95) {
   base <- ngeo_kriging(
-    x, map, variogram, targets, predictors, target_predictors,
+    x, layer, variogram, targets, predictors, target_predictors,
     neighbors, distance_method
   )
   linear <- attr(base, "linear_weights")
@@ -271,7 +271,7 @@ ngeo_kriging_uncertainty <- function(
       current <- variogram
       current$parameters <- draws[i, ]
       ngeo_kriging(
-        x, map, current, targets, predictors, target_predictors,
+        x, layer, current, targets, predictors, target_predictors,
         neighbors, distance_method
       )$prediction
     }, numeric(nrow(base)))
@@ -483,7 +483,7 @@ ngeo_spatial_regression_uncertainty <- function(
     level = 0.95,
     zero_policy = FALSE) {
   model <- match.arg(model)
-  .ngeo_validate_covariance_domain(value_covariance, x)
+  .ngeo_validate_covariance_base(value_covariance, x)
   if (!is.matrix(x$values)) {
     .ngeo_abort("Model simulation requires an in-memory aligned values block.",
                 "ngeo_error_resource")

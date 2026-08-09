@@ -268,82 +268,6 @@ ngeo_boundary <- function(x, partition, connectivity = 6L) {
   )
 }
 
-.ngeo_mode <- function(values, tie) {
-  values <- values[!is.na(values)]
-  if (!length(values)) {
-    return(NA)
-  }
-  counts <- table(values)
-  winners <- names(counts)[counts == max(counts)]
-  if (length(winners) > 1L && identical(tie, "error")) {
-    .ngeo_abort(
-      "Categorical aggregation produced a tie.",
-      "ngeo_error_aggregation_tie"
-    )
-  }
-  winner <- winners[[1L]]
-  if (is.numeric(values) || is.integer(values)) {
-    as.numeric(winner)
-  } else if (is.logical(values)) {
-    identical(winner, "TRUE")
-  } else {
-    winner
-  }
-}
-
-.ngeo_aggregate_map <- function(values,
-                                membership,
-                                parcellation,
-                                support,
-                                measure,
-                                fun,
-                                na.rm,
-                                tie) {
-  result <- vector("list", length(parcellation))
-  semantics <- measure$support_behavior[[1L]]
-  missing_policy <- measure$missing_policy[[1L]]
-
-  for (i in seq_along(parcellation)) {
-    index <- which(membership == parcellation[[i]])
-    current <- values[index]
-    current_support <- support[index]
-    if (!isTRUE(na.rm) || identical(missing_policy, "preserve")) {
-      if (anyNA(current)) {
-        result[[i]] <- NA
-        next
-      }
-    } else {
-      keep <- !is.na(current)
-      current <- current[keep]
-      current_support <- current_support[keep]
-    }
-    if (!length(current)) {
-      result[[i]] <- NA
-    } else if (!is.null(fun)) {
-      result[[i]] <- fun(current)
-    } else if (semantics %in% c("extensive", "count")) {
-      result[[i]] <- sum(current)
-    } else if (identical(semantics, "intensive")) {
-      if (anyNA(current_support) || any(current_support < 0) ||
-          sum(current_support) <= 0) {
-        .ngeo_abort(
-          "Intensive aggregation requires positive support sizes.",
-          "ngeo_error_support"
-        )
-      }
-      result[[i]] <- stats::weighted.mean(current, current_support)
-    } else if (identical(semantics, "categorical")) {
-      result[[i]] <- .ngeo_mode(current, tie)
-    } else {
-      .ngeo_abort(
-        "Unknown measurement semantics require an explicit `fun=`.",
-        "ngeo_error_measure_unknown"
-      )
-    }
-  }
-  unlist(result, recursive = FALSE, use.names = FALSE)
-}
-
 .ngeo_region_support <- function(support, membership, parcellation) {
   vapply(parcellation, function(region) {
     current <- support[membership == region]
@@ -382,68 +306,28 @@ ngeo_boundary <- function(x, partition, connectivity = 6L) {
   result
 }
 
-#' Aggregate values from a base base to parcellation
+#' Aggregate values from a spatial base to a parcellation
 #'
 #' @param x Base `ngeo` dataset.
 #' @param partition Matching crisp partition.
-#' @param layers Optional map selection.
-#' @param fun Optional explicit aggregation function.
-#' @param na.rm Whether missing values may be excluded when policy allows.
-#' @param tie Categorical tie policy.
+#' @param layers Optional layer selection.
 #' @param connectivity Voxel connectivity for region adjacency.
+#' @param allocation,unmapped,unknown,budget Passed to [aggregate_to()].
 #'
 #' @return An `ngeo_parcellation` dataset.
 #' @export
 ngeo_aggregate <- function(x,
                            partition,
                            layers = NULL,
-                           fun = NULL,
-                           na.rm = TRUE,
-                           tie = c("first", "error"),
-                           connectivity = 6L) {
+                           connectivity = 6L,
+                           allocation = c("error", "normalize"),
+                           unmapped = c("error", "drop"),
+                           unknown = c("error", "intensive", "extensive"),
+                           budget = ngeo_resource_budget()) {
   .ngeo_validate_partition(partition, x)
-  tie <- match.arg(tie)
-  if (!is.null(fun) && !is.function(fun)) {
-    .ngeo_abort("`fun` must be a function.", "ngeo_error_argument")
-  }
-  if (is.null(x$values)) {
-    .ngeo_abort(
-      "Cannot aggregate a dataset with unloaded values.",
-      "ngeo_error_values"
-    )
-  }
-
-  layer_index <- .ngeo_layer_selection(x, layers)
   membership <- partition$membership
   parcellation <- partition$parcellation$region_id
   support <- ngeo_support_size(x)
-  values <- vector("list", length(layer_index))
-  for (i in seq_along(layer_index)) {
-    map <- layer_index[[i]]
-    values[[i]] <- .ngeo_aggregate_map(
-      x$values[, map],
-      membership,
-      parcellation,
-      support,
-      .ngeo_measures_for_layers(x, map),
-      fun,
-      na.rm,
-      tie
-    )
-  }
-  values <- do.call(cbind, values)
-  maps_out <- x$layers[layer_index, , drop = FALSE]
-  layer_measures <- .ngeo_measures_for_layers(x, layer_index)
-  measures_out <- layer_measures[
-    !duplicated(layer_measures$measure_id), , drop = FALSE
-  ]
-  rownames(maps_out) <- NULL
-  rownames(measures_out) <- NULL
-  if (!is.null(fun)) {
-    measures_out$aggregation <- "custom"
-  }
-  colnames(values) <- maps_out$name
-
   region_support <- .ngeo_region_support(support, membership, parcellation)
   centroid <- .ngeo_region_centroid(
     x,
@@ -460,21 +344,25 @@ ngeo_aggregate <- function(x,
   } else {
     NULL
   }
-  result <- ngeo_parcellation(
+  target <- ngeo_parcellation(
     partition$parcellation,
-    values = values,
     membership = membership,
     source_base = x,
     centroid = centroid,
     support_size = region_support,
     adjacency = adjacency,
-    layers = maps_out,
-    measures = measures_out,
     coordinate_space = x$base$coordinate_space
   )
-  result$history$source_dataset <- list(
-    base_hash = base_hash(x),
-    history = x$history
+  support_map <- ngeo_support_map_from_partition(x, partition, target)
+  result <- aggregate_to(
+    x,
+    target,
+    support_map,
+    layers = layers,
+    allocation = allocation,
+    unmapped = unmapped,
+    unknown = unknown,
+    budget = budget
   )
   result$history$partition <- partition$history
   result$history$operations <- c(
@@ -484,20 +372,16 @@ ngeo_aggregate <- function(x,
       list(
         partition_source = partition$source,
         excluded_elements = sum(is.na(membership)),
-        layers = maps_out$layer_id,
+        layers = result$layers$layer_id,
         aggregation_rules = stats::setNames(
-          if (is.null(fun)) {
-            layer_measures$aggregation
-          } else {
-            rep.int("custom", nrow(maps_out))
-          },
-          maps_out$layer_id
+          result$measures$support_behavior[
+            match(result$layers$measure_id, result$measures$measure_id)
+          ],
+          result$layers$layer_id
         ),
-        custom_function = !is.null(fun),
-        na_rm = na.rm,
         missing_policy = stats::setNames(
-          layer_measures$missing_policy,
-          maps_out$layer_id
+          rep.int("error", nrow(result$layers)),
+          result$layers$layer_id
         ),
         output_support_size = region_support
       )

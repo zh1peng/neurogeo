@@ -76,7 +76,7 @@
 #' @param coordinates A coordinate matrix or named list of matrices.
 #' @param faces A three-column triangle index matrix.
 #' @param values Optional vertex-aligned values.
-#' @param layers Optional map metadata.
+#' @param layers Optional layer metadata.
 #' @param measures Optional measurement semantics.
 #' @param labels Optional label tables.
 #' @param coordinate_space An `ngeo_coordinate_space`.
@@ -285,7 +285,7 @@ ngeo_surface <- function(coordinates,
 #' @param dim Three lattice dimensions.
 #' @param affine Active voxel-to-world 4 by 4 affine.
 #' @param mask Optional logical lattice mask.
-#' @param layers Optional map metadata.
+#' @param layers Optional layer metadata.
 #' @param measures Optional measurement semantics.
 #' @param labels Optional label tables.
 #' @param coordinate_space An `ngeo_coordinate_space`.

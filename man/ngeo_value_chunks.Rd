@@ -11,7 +11,7 @@ ngeo_value_chunks(x, chunk_size = 65536L, layers = NULL, FUN = NULL)
 
 \item{chunk_size}{Positive row count.}
 
-\item{layers}{Optional map selection.}
+\item{layers}{Optional layer selection.}
 
 \item{FUN}{Optional function called with `(block, rows)`. When omitted an
 iterator closure is returned.}

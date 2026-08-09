@@ -7,7 +7,7 @@
 ngeo_moran_null(
   x,
   spatial_weights,
-  map = 1L,
+  layer = 1L,
   nsim = 999L,
   seed = NULL,
   na_action = c("fail", "omit"),
@@ -20,7 +20,7 @@ ngeo_moran_null(
 
 \item{spatial_weights}{Matching `ngeo_spatial_weights`.}
 
-\item{map}{One map name, ID, or index.}
+\item{layer}{One layer name, ID, or index.}
 
 \item{nsim}{Number of null layers.}
 
