@@ -89,6 +89,8 @@
 #'
 #' @return An `ngeo_inference_contract` suitable for printing, summary, and
 #'   [ngeo_object_manifest()].
+#' @templateVar example_call ngeo_inference_contract(unit = "subject", null = "label_permutation")
+#' @template stable-inference-core
 #' @export
 ngeo_inference_contract <- function(x) {
   if (inherits(x, "ngeo_inference_contract")) {

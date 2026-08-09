@@ -938,6 +938,8 @@ ngeo_validate_support_ensemble <- function(x) {
 #'
 #' @inheritParams ngeo_support_ensemble
 #' @return An `ngeo_support_ensemble`.
+#' @templateVar example_call ngeo_registration_ensemble(list(registration_a, registration_b))
+#' @template stable-inference-core
 #' @export
 ngeo_registration_ensemble <- function(
     layers,
@@ -955,6 +957,8 @@ ngeo_registration_ensemble <- function(
 #'
 #' @inheritParams ngeo_support_ensemble
 #' @return An `ngeo_support_ensemble`.
+#' @templateVar example_call ngeo_segmentation_ensemble(list(segmentation_a, segmentation_b))
+#' @template stable-inference-core
 #' @export
 ngeo_segmentation_ensemble <- function(
     layers,

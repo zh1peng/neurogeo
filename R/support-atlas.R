@@ -241,6 +241,8 @@ ngeo_cross_atlas <- function(
 #' @param allocation Extensive overlap allocation policy.
 #'
 #' @return An `ngeo_parcellation_inference` object.
+#' @templateVar example_call ngeo_parcellation_inference(effect_map, atlas_family)
+#' @template stable-inference-core
 #' @export
 ngeo_parcellation_inference <- function(
     x,

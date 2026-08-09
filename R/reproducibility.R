@@ -40,6 +40,8 @@
 #' @param nodes A list of nodes with `id`, `type`, and `logical_hash`.
 #' @param edges A list of directed edges with `from`, `to`, and `role`.
 #' @return An immutable `ngeo_history_dag`.
+#' @templateVar example_call ngeo_history_dag(nodes = history_nodes, edges = history_edges)
+#' @template stable-governance-core
 #' @export
 ngeo_history_dag <- function(nodes, edges = list()) {
   if (!is.list(nodes) || !length(nodes) || !is.list(edges)) {
@@ -102,6 +104,8 @@ ngeo_history_dag <- function(nodes, edges = list()) {
 #'
 #' @param x A history DAG.
 #' @return `x`, invisibly.
+#' @templateVar example_call ngeo_validate_history_dag(history_dag)
+#' @template stable-governance-core
 #' @export
 ngeo_validate_history_dag <- function(x) {
   invalid <- !is.list(x) ||
@@ -194,6 +198,8 @@ ngeo_validate_history_dag <- function(x) {
 #' Capture the deterministic software environment used for replay
 #'
 #' @return An `ngeo_environment_snapshot`.
+#' @templateVar example_call ngeo_environment_snapshot()
+#' @template stable-governance-core
 #' @export
 ngeo_environment_snapshot <- function() {
   dependencies <- c("digest", "jsonlite", "Matrix")

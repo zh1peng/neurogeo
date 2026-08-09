@@ -210,6 +210,8 @@
 #'
 #' @return A current `ngeo` object on success, or an
 #'   `ngeo_migration_report` when reconstruction is required.
+#' @templateVar example_call ngeo_migrate_5x(legacy_object)
+#' @template stable-governance-core
 #' @export
 ngeo_migrate_5x <- function(x, strict = TRUE) {
   type <- if (is.list(x) && is.list(x$domain)) {

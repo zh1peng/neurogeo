@@ -412,6 +412,8 @@ print.ngeo_support_test <- function(x, ...) {
 #' @param source_support Optional common source support.
 #'
 #' @return A data frame of assignment disagreement and entropy change.
+#' @templateVar example_call ngeo_boundary_sensitivity(reference_atlas, atlas_family)
+#' @template stable-inference-core
 #' @export
 ngeo_boundary_sensitivity <- function(
     support_maps,

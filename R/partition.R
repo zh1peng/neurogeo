@@ -198,6 +198,8 @@ print.ngeo_partition <- function(x, ...) {
 #' @param connectivity Voxel connectivity.
 #'
 #' @return A sparse region-by-region matrix.
+#' @templateVar example_call ngeo_region_adjacency(parcellation_data)
+#' @template stable-inference-core
 #' @export
 ngeo_region_adjacency <- function(x,
                                   partition,
@@ -250,6 +252,8 @@ ngeo_region_adjacency <- function(x,
 #' @param connectivity Voxel connectivity.
 #'
 #' @return A data frame of base element and region IDs.
+#' @templateVar example_call ngeo_boundary(parcellation_data)
+#' @template stable-inference-core
 #' @export
 ngeo_boundary <- function(x, partition, connectivity = 6L) {
   .ngeo_validate_partition(partition, x)

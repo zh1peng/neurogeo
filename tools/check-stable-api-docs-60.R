@@ -20,6 +20,12 @@ observed <- utils::read.csv(current, stringsAsFactors = FALSE)
 if (!identical(observed, expected)) {
   stop("Stable API documentation coverage is stale.")
 }
+if (any(!observed$complete)) {
+  stop(
+    "Every stable export must satisfy the reviewed documentation contract: ",
+    sum(observed$complete), " of ", nrow(observed), " are complete."
+  )
+}
 cat(
   "Stable API documentation coverage is current:",
   sum(observed$complete), "of", nrow(observed), "complete.\n"

@@ -242,6 +242,7 @@
 #' )
 #' qc <- ngeo_qc(x)
 #' qc$checks
+#' @template stable-governance-core
 #' @export
 ngeo_qc <- function(
     x,
