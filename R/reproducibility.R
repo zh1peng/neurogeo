@@ -282,6 +282,7 @@ ngeo_environment_snapshot <- function() {
 #'   values = cbind(signal = c(1, 2, 3))
 #' )
 #' ngeo_logical_hash(point)
+#' @template stable-reproducibility
 #' @export
 ngeo_logical_hash <- function(
     x,
@@ -301,6 +302,8 @@ ngeo_logical_hash <- function(
 #' @param inputs Named character mapping from formal arguments to artifacts.
 #' @param arguments JSON-compatible non-artifact arguments.
 #' @return An `ngeo_replay_step`.
+#' @templateVar example_call ngeo_replay_step("read", "read_ngeo", arguments = list(path = "input.nii.gz"))
+#' @template stable-reproducibility
 #' @export
 ngeo_replay_step <- function(
     id,
@@ -387,6 +390,8 @@ ngeo_replay_step <- function(
 #' @param outputs Optional artifact identifiers to expose as outputs.
 #' @param budget Resource limits for logical hashing.
 #' @return A validated `ngeo_replay_manifest`.
+#' @templateVar example_call ngeo_record_replay(list(replay_step), outputs = result)
+#' @template stable-reproducibility
 #' @export
 ngeo_record_replay <- function(
     inputs,
@@ -461,6 +466,8 @@ ngeo_record_replay <- function(
 #' @param manifest A replay manifest list.
 #' @param mode Return a report or raise a classed error.
 #' @return An `ngeo_replay_validation_report`.
+#' @templateVar example_call ngeo_validate_replay_manifest(replay_manifest)
+#' @template stable-reproducibility
 #' @export
 ngeo_validate_replay_manifest <- function(
     manifest,
@@ -596,6 +603,8 @@ ngeo_validate_replay_manifest <- function(
 #' @param environment_policy Require an exact or compatible environment.
 #' @param budget Resource limits for logical hashing.
 #' @return An `ngeo_replay_result` containing verified outputs.
+#' @templateVar example_call ngeo_replay(replay_manifest, verify = TRUE)
+#' @template stable-reproducibility
 #' @export
 ngeo_replay <- function(
     manifest,
@@ -754,6 +763,8 @@ read_ngeo_replay_manifest <- function(path) {
 #' @param root Root below which paths are represented.
 #' @param roles Optional artifact roles aligned with `paths`.
 #' @return An immutable `ngeo_artifact_manifest`.
+#' @templateVar example_call ngeo_artifact_manifest(c(input = "input.nii.gz"))
+#' @template stable-reproducibility
 #' @export
 ngeo_artifact_manifest <- function(
     paths,
@@ -793,6 +804,8 @@ ngeo_artifact_manifest <- function(
 #' @param root Optional filesystem root for content verification.
 #' @param mode Return a report or raise a classed error.
 #' @return An `ngeo_artifact_validation_report`.
+#' @templateVar example_call ngeo_validate_artifact_manifest(artifact_manifest)
+#' @template stable-reproducibility
 #' @export
 ngeo_validate_artifact_manifest <- function(
     manifest,
@@ -945,6 +958,8 @@ read_ngeo_artifact_manifest <- function(path, root = NULL) {
 #' @param directory Optional directory used to verify all artifacts.
 #' @param mode Return a report or raise a classed error.
 #' @return An `ngeo_batch_validation_report`.
+#' @templateVar example_call ngeo_validate_artifact_batch(artifact_manifests)
+#' @template stable-reproducibility
 #' @export
 ngeo_validate_artifact_batch <- function(
     manifest,

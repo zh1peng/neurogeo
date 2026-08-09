@@ -150,6 +150,8 @@ ngeo_time_axis <- function(
 NULL
 
 #' @rdname ngeo_time_axis_validation
+#' @templateVar example_call ngeo_time_axis_hash(time_axis)
+#' @template stable-reproducibility
 #' @export
 ngeo_validate_time_axis <- function(x) {
   if (!inherits(x, "ngeo_time_axis")) {

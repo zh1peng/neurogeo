@@ -3,6 +3,8 @@
 #'
 #' @param x An `ngeo_coordinate_space`.
 #' @return A SHA-256 identity.
+#' @templateVar example_call ngeo_coordinate_space_hash(coordinate_space)
+#' @template stable-reproducibility
 #' @export
 ngeo_coordinate_space_hash <- function(x) {
   if (!inherits(x, "ngeo_coordinate_space")) {
@@ -230,6 +232,8 @@ ngeo_resolve_space <- function(registry, coordinate_space) {
 #'
 #' @param x An `ngeo_transform`.
 #' @return A SHA-256 identity.
+#' @templateVar example_call ngeo_transform_hash(transform)
+#' @template stable-reproducibility
 #' @export
 ngeo_transform_hash <- function(x) {
   if (!inherits(x, "ngeo_transform")) {

@@ -645,6 +645,7 @@
 #' manifest <- ngeo_object_manifest(point)
 #' manifest$object_schema
 #' ngeo_validate_manifest(manifest, point)
+#' @template stable-reproducibility
 #' @export
 ngeo_object_manifest <- function(x) {
   report <- .ngeo_schema_report(x)
@@ -666,6 +667,8 @@ ngeo_object_manifest <- function(x) {
 #' @param x Optional object that the manifest must describe.
 #' @param mode Return a report or raise a classed error.
 #' @return An `ngeo_manifest_validation_report`.
+#' @templateVar example_call ngeo_validate_manifest(object_manifest, data)
+#' @template stable-reproducibility
 #' @export
 ngeo_validate_manifest <- function(
     manifest,
