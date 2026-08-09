@@ -90,9 +90,9 @@ Workbench executables.
 | Experimental MGWR | `GWmodel` + `sf` | 2.4.1 + 1.1.0 | Use stable single-bandwidth GWR or explicitly install the experimental backend |
 | Experimental spatial ordination | `ade4` + `adespatial` + `spdep` | not installed in this audit environment | No automatic substitute; the method is unavailable |
 
-`spatialreg`, `permuco`, and `permute` remain in Suggests but are not required
-by a current 6.0 public runtime path. Their presence does not mean users must
-install them; Phase 2 will converge these declarations.
+`spatialreg` and `permuco` are used only for independent scientific reference
+validation, not by a public runtime path; ordinary users need not install them.
+The unused `permute` Suggest has been removed.
 
 ## Reading a backend failure
 

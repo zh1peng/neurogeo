@@ -1,0 +1,3 @@
+artifact,observed_bytes,maximum_bytes,measurement
+installed-package,4231355,10000000,recursive installed neurogeo files in the 6.0 audit environment
+source-tarball,pending-clean-candidate,8000000,R CMD build output from the final clean candidate
