@@ -36,6 +36,8 @@
 #' @param allow_overlap Whether interval supports may overlap.
 #' @param tolerance Numeric regularity and boundary tolerance.
 #' @return An `ngeo_time_axis`.
+#' @templateVar example_call ngeo_time_axis(c(0, 1, 2), unit = "seconds")
+#' @template stable-temporal-core
 #' @export
 ngeo_time_axis <- function(
     time = NULL,
@@ -344,6 +346,8 @@ ngeo_time_axis_hash <- function(x) {
 #' @param axis An `ngeo_time_axis`.
 #' @param temporal_semantics Scalar or map-aligned temporal semantics.
 #' @return `x` with time metadata aligned to layers and measures.
+#' @templateVar example_call ngeo_set_time_axis(data, ngeo_time_axis(c(0, 1, 2), unit = "seconds"))
+#' @template stable-temporal-core
 #' @export
 ngeo_set_time_axis <- function(
     x,
@@ -420,6 +424,8 @@ ngeo_set_time_axis <- function(
 #'
 #' @param x A time-aware `ngeo` object.
 #' @return The verified `ngeo_time_axis`.
+#' @templateVar example_call ngeo_get_time_axis(time_data)
+#' @template stable-temporal-core
 #' @export
 ngeo_get_time_axis <- function(x) {
   ngeo_validate(x, "strict")
@@ -484,6 +490,8 @@ ngeo_get_time_axis <- function(x) {
 #' @param index Optional ordered one-based time indices.
 #' @param range Optional inclusive numeric time range.
 #' @return A time-aware subset with the same spatial base.
+#' @templateVar example_call ngeo_time_slice(time_data, range = c(10, 20))
+#' @template stable-temporal-core
 #' @export
 ngeo_time_slice <- function(x, index = NULL, range = NULL) {
   axis <- ngeo_get_time_axis(x)
@@ -591,6 +599,8 @@ ngeo_time_slice <- function(x, index = NULL, range = NULL) {
 #' @param directed Whether only later rows receive earlier neighbours.
 #' @param style Binary, row-standardized, or unnormalized spatial_weights.
 #' @return An `ngeo_temporal_weights`.
+#' @templateVar example_call ngeo_temporal_weights(ngeo_get_time_axis(time_data), method = "adjacent")
+#' @template stable-temporal-core
 #' @export
 ngeo_temporal_weights <- function(
     axis,
@@ -689,6 +699,8 @@ ngeo_temporal_weights <- function(
 #'
 #' @param x An `ngeo_temporal_weights`.
 #' @return `x`, invisibly.
+#' @templateVar example_call ngeo_validate_temporal_weights(temporal_weights)
+#' @template stable-temporal-core
 #' @export
 ngeo_validate_temporal_weights <- function(x) {
   if (!inherits(x, "ngeo_temporal_weights") ||
@@ -730,6 +742,8 @@ ngeo_validate_temporal_weights <- function(x) {
 #'
 #' @inheritParams ngeo_temporal_weights
 #' @return An ordered list of one-based neighbour indices per time row.
+#' @templateVar example_call ngeo_temporal_neighbors(ngeo_get_time_axis(time_data), method = "adjacent")
+#' @template stable-temporal-core
 #' @export
 ngeo_temporal_neighbors <- function(
     axis,
@@ -766,6 +780,8 @@ ngeo_temporal_neighbors <- function(
 #' @param combination Weighted Kronecker sum or Kronecker product.
 #' @param spatial_scale Spatial share for the sum.
 #' @return An `ngeo_spatiotemporal_weights` without a coordinate_space-by-time matrix.
+#' @templateVar example_call ngeo_spatiotemporal_weights(spatial_weights, temporal_weights)
+#' @template stable-temporal-core
 #' @export
 ngeo_spatiotemporal_weights <- function(
     spatial,
@@ -815,6 +831,8 @@ ngeo_spatiotemporal_weights <- function(
 #'
 #' @param x An `ngeo_spatiotemporal_weights`.
 #' @return `x`, invisibly.
+#' @templateVar example_call ngeo_validate_spatiotemporal_weights(space_time_weights)
+#' @template stable-temporal-core
 #' @export
 ngeo_validate_spatiotemporal_weights <- function(x) {
   if (!inherits(x, "ngeo_spatiotemporal_weights") ||
@@ -869,6 +887,8 @@ ngeo_validate_spatiotemporal_weights <- function(x) {
 #' @param max_observations Maximum permitted coordinate_space-time observations.
 #' @param budget Resource budget for sparse nonzeros and bytes.
 #' @return A sparse Kronecker reference matrix.
+#' @templateVar example_call ngeo_materialize_spatiotemporal_weights(space_time_weights)
+#' @template stable-temporal-core
 #' @export
 ngeo_materialize_spatiotemporal_weights <- function(
     spatial_weights,
@@ -951,6 +971,8 @@ ngeo_materialize_spatiotemporal_weights <- function(
 #' @param center Whether to subtract the global coordinate_space-time mean.
 #' @param budget Resource limits for materializing the aligned values block.
 #' @return An element-by-time lag matrix.
+#' @templateVar example_call ngeo_spatiotemporal_lag(time_data, space_time_weights)
+#' @template stable-temporal-core
 #' @export
 ngeo_spatiotemporal_lag <- function(
     x,
@@ -1446,6 +1468,8 @@ ngeo_spatiotemporal_variogram <- function(
 #' @param name Output map name.
 #' @param budget Resource limits for two input layers and one output layer.
 #' @return One target-base `ngeo` map.
+#' @templateVar example_call ngeo_longitudinal_change(time_data, first = 1, second = 2)
+#' @template stable-temporal-core
 #' @export
 ngeo_longitudinal_change <- function(
     x,
@@ -1516,6 +1540,8 @@ ngeo_longitudinal_change <- function(
 #' @param x Time-aware `ngeo` data.
 #' @param budget Resource limits for complete input and two-map output.
 #' @return Two layers: intercept and slope per time unit.
+#' @templateVar example_call ngeo_temporal_trend(time_data)
+#' @template stable-temporal-core
 #' @export
 ngeo_temporal_trend <- function(
     x,
@@ -1582,6 +1608,8 @@ ngeo_temporal_trend <- function(
 #' @param name Output map name.
 #' @param budget Resource limits for complete input and one-map output.
 #' @return One target-base `ngeo` map.
+#' @templateVar example_call ngeo_temporal_contrast(time_data, contrast = c(-1, 0, 1))
+#' @template stable-temporal-core
 #' @export
 ngeo_temporal_contrast <- function(
     x,
