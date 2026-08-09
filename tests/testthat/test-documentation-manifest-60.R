@@ -8,6 +8,9 @@ test_that("documentation manifest covers current sources and route identities", 
   expect_true(all(file.exists(test_path("..", "..", manifest$source))))
   expect_true(all(nzchar(manifest$source_sha256)))
   expect_true(all(nzchar(manifest$route_sha256)))
+  code_rows <- nzchar(manifest$code_source)
+  expect_true(all(file.exists(test_path("..", "..", manifest$code_source[code_rows]))))
+  expect_true(all(nzchar(manifest$code_sha256[code_rows])))
   expect_true(all(manifest$counterpart_route[
     manifest$translation_status == "paired"
   ] %in% manifest$route))

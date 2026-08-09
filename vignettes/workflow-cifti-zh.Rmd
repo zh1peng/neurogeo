@@ -1,0 +1,29 @@
+---
+title: "CIFTI grayordinates：统计前先检查 components"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{CIFTI grayordinates：统计前先检查 components}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+CIFTI 的行可以同时包含 cortical vertices 和 subcortical voxels。建立 topology
+前必须检查 brain models、structures、source indices 和附加的 surface geometry。
+行顺序本身就是科学契约的一部分。
+
+下面的 workflow 给微型双侧 CIFTI fixture 附加匹配的四 vertex surfaces，执行
+QC，建立不会跨 structure 连边的 component-contiguity weights，以显式 zero
+policy 计算 Moran's I，绘制有序数值，写出 dscalar CIFTI 并验证 round trip。
+
+```{r setup, include=FALSE}
+code <- file.path("..", "inst", "tutorial-code", "workflow-cifti.R")
+if (!file.exists(code)) code <- system.file("tutorial-code", "workflow-cifti.R", package = "neurogeo")
+knitr::read_chunk(code)
+```
+
+```{r workflow-cifti}
+```
+
+这里的 line plot 是 ordering diagnostic，不是 cortical map。没有经过验证的
+surface geometry 时，surface topology、area、geodesic distance 和 cortical
+plotting 都必须保持不可用。

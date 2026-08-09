@@ -1,0 +1,30 @@
+---
+title: "ROI × cohort：subjects 是 layers，parcels 是 base"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{ROI × cohort：subjects 是 layers，parcels 是 base}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+对 ROI-by-subject 表格，parcels 是 spatial elements，subjects 是 layers，不能
+反过来。group 和 subject identifiers 属于 layer metadata；measurement unit 和
+support behavior 属于去重后的 measure。
+
+下面的 workflow 读取随包安装的 cohort 表，构造并验证该模型，执行 QC，在不直接
+修改内部字段的情况下生成 case-minus-control 描述性 map，在声明的 parcel
+adjacency 上分析其空间模式、绘图，并导出隐去路径的 history。这个 6 人 fixture
+只用于说明数据形状，不能支持 population 或 clinical claim。
+
+```{r setup, include=FALSE}
+code <- file.path("..", "inst", "tutorial-code", "workflow-roi-cohort.R")
+if (!file.exists(code)) code <- system.file("tutorial-code", "workflow-roi-cohort.R", package = "neurogeo")
+knitr::read_chunk(code)
+```
+
+```{r workflow-roi-cohort}
+```
+
+若要做 confirmatory group inference，应先创建 subject-level exchangeability
+schedule，并在运行 `ngeo_group_test()` 前声明 estimand、independent unit、null、
+family、support 和 uncertainty target。

@@ -1,0 +1,30 @@
+---
+title: "Cortical surface: geometry, topology, and metric"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Cortical surface: geometry, topology, and metric}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+A surface measurement is aligned to ordered vertices; faces define topology,
+while a coordinate set defines a metric embedding. They are related but not
+interchangeable. Never attach a metric array whose vertex order is uncertain.
+
+This executable workflow reads GIFTI geometry, constructs one explicit
+intensive measure, validates it, builds mesh-contiguity weights, computes and
+interprets Moran's I, creates a declared viewing chart, plots, writes GIFTI,
+and checks the restored history.
+
+```{r setup, include=FALSE}
+code <- file.path("..", "inst", "tutorial-code", "workflow-surface.R")
+if (!file.exists(code)) code <- system.file("tutorial-code", "workflow-surface.R", package = "neurogeo")
+knitr::read_chunk(code)
+```
+
+```{r workflow-surface}
+```
+
+The tutorial chart is only a viewing projection; it is not a cortical
+registration or an anatomical flattening. Use a registered surface pair for
+cross-subject mapping and record its source and direction.

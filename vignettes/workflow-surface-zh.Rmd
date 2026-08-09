@@ -1,0 +1,28 @@
+---
+title: "皮层表面：geometry、topology 与 metric"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{皮层表面：geometry、topology 与 metric}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+surface measure 与有序 vertex 对齐；faces 定义 topology，coordinate set 定义
+metric embedding。二者相关但不能互换。若无法确认 metric array 的 vertex order，
+不要把它附加到 geometry。
+
+下面的 executable workflow 读取 GIFTI geometry，构造一个显式 intensive
+measure，严格验证后建立 mesh-contiguity weights，计算并解释 Moran's I，创建声明
+过的 viewing chart、绘图、写出 GIFTI，并检查恢复对象的 history。
+
+```{r setup, include=FALSE}
+code <- file.path("..", "inst", "tutorial-code", "workflow-surface.R")
+if (!file.exists(code)) code <- system.file("tutorial-code", "workflow-surface.R", package = "neurogeo")
+knitr::read_chunk(code)
+```
+
+```{r workflow-surface}
+```
+
+教程中的 chart 只是 viewing projection，不是 cortical registration 或解剖学
+flattening。跨被试 mapping 必须使用已经注册的 surface pair，并记录来源和方向。

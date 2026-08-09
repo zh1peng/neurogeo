@@ -31,6 +31,12 @@ if (anyDuplicated(expected$source) || anyDuplicated(expected$route) ||
     any(!file.exists(expected$source))) {
   stop("Documentation sources and routes must be present and unique.")
 }
+code_sources <- expected$code_source[nzchar(expected$code_source)]
+if (any(!file.exists(code_sources)) || any(!nzchar(
+    expected$code_sha256[nzchar(expected$code_source)]
+))) {
+  stop("Canonical tutorial code is missing or unhashed.")
+}
 
 vignettes <- sort(gsub("\\\\", "/", list.files(
   "vignettes", pattern = "\\.Rmd$", full.names = TRUE
