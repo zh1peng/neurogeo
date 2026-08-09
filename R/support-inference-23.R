@@ -270,43 +270,15 @@ print.ngeo_support_adjustment <- function(x, ...) {
   )
 }
 
-#' Summarize cross-atlas effects with explicit dependence assumptions
-#'
-#' Consensus summarizes declared atlas-specific effects. By default it is
-#' descriptive: the function reports no interval or p-value until the caller
-#' supplies an atlas covariance matrix or explicitly authorizes independence.
-#' This is not a claim of local parcellation invariance.
-#'
-#' @param x Effect vector, estimates data frame, or
-#'   `ngeo_atlas_robust_effect`.
-#' @param standard_error Positive effect standard errors.
-#' @param method Fixed or DerSimonian-Laird random effects. Random effects are
-#'   available only for the explicit independence analysis.
-#' @param labels Optional atlas labels.
-#' @param confidence Confidence level.
-#' @param covariance Optional positive-definite covariance matrix for the
-#'   aligned atlas estimates. Its diagonal must equal `standard_error^2`; any
-#'   row and column names must match the ordered atlas labels.
-#' @param independence Explicit authorization for the conventional
-#'   independence analysis when `covariance` is not supplied. The safe default
-#'   returns a descriptive consensus without an interval or p-value.
-#'
-#' @return An `ngeo_cross_atlas_consensus` with `inference_mode`, the pooled
-#'   estimate, atlas weights, dependence assumptions, and inferential fields
-#'   only when their assumptions were explicitly supplied.
-#' @templateVar example_call ngeo_cross_atlas_consensus(atlas_results)
-#' @template stable-neuroimaging-method
-#' @export
-ngeo_cross_atlas_consensus <- function(
+.ngeo_cross_atlas_setup <- function(
     x,
-    standard_error = NULL,
-    method = c("random", "fixed"),
-    labels = NULL,
-    confidence = 0.95,
-    covariance = NULL,
-    independence = FALSE) {
-  method_missing <- missing(method)
-  method <- match.arg(method)
+    standard_error,
+    labels,
+    confidence,
+    covariance,
+    independence,
+    method,
+    method_missing) {
   if (!is.logical(independence) || length(independence) != 1L ||
       is.na(independence)) {
     .ngeo_abort(
@@ -347,13 +319,10 @@ ngeo_cross_atlas_consensus <- function(
       "ngeo_error_argument"
     )
   }
-  covariance <- if (is.null(covariance)) {
-    NULL
-  } else {
+  covariance <- if (is.null(covariance)) NULL else
     .ngeo_consensus_covariance(
       covariance, input$standard_error, input$labels
     )
-  }
   if (!is.null(covariance) && identical(method, "random") && !method_missing) {
     .ngeo_abort(
       "Correlated random-effects consensus is not implemented; use `method = \"fixed\"`.",
@@ -368,34 +337,91 @@ ngeo_cross_atlas_consensus <- function(
   } else {
     "descriptive"
   }
-  fit_consensus <- function(estimate, standard_error, covariance = NULL) {
-    if (identical(inference_mode, "covariance-aware")) {
-      .ngeo_gls_consensus(estimate, covariance)
-    } else if (identical(inference_mode, "independence")) {
-      .ngeo_meta_estimate(estimate, standard_error, method)
-    } else {
-      .ngeo_descriptive_consensus(estimate, standard_error)
-    }
+  list(
+    input = input, covariance = covariance, method = method,
+    inference_mode = inference_mode
+  )
+}
+
+.ngeo_fit_cross_atlas_consensus <- function(
+    estimate, standard_error, covariance, inference_mode, method) {
+  if (identical(inference_mode, "covariance-aware")) {
+    .ngeo_gls_consensus(estimate, covariance)
+  } else if (identical(inference_mode, "independence")) {
+    .ngeo_meta_estimate(estimate, standard_error, method)
+  } else {
+    .ngeo_descriptive_consensus(estimate, standard_error)
   }
-  fit <- fit_consensus(input$estimate, input$standard_error, covariance)
+}
+
+.ngeo_cross_atlas_leave_one_out <- function(
+    input, covariance, inference_mode, method, estimate) {
+  do.call(rbind, lapply(seq_along(input$estimate), function(i) {
+    current <- .ngeo_fit_cross_atlas_consensus(
+      input$estimate[-i], input$standard_error[-i],
+      if (is.null(covariance)) NULL else covariance[-i, -i, drop = FALSE],
+      inference_mode, method
+    )
+    data.frame(
+      omitted = input$labels[[i]], estimate = current$estimate,
+      standard_error = current$standard_error,
+      change = current$estimate - estimate, stringsAsFactors = FALSE
+    )
+  }))
+}
+
+#' Summarize cross-atlas effects with explicit dependence assumptions
+#'
+#' Consensus summarizes declared atlas-specific effects. By default it is
+#' descriptive: the function reports no interval or p-value until the caller
+#' supplies an atlas covariance matrix or explicitly authorizes independence.
+#' This is not a claim of local parcellation invariance.
+#'
+#' @param x Effect vector, estimates data frame, or
+#'   `ngeo_atlas_robust_effect`.
+#' @param standard_error Positive effect standard errors.
+#' @param method Fixed or DerSimonian-Laird random effects. Random effects are
+#'   available only for the explicit independence analysis.
+#' @param labels Optional atlas labels.
+#' @param confidence Confidence level.
+#' @param covariance Optional positive-definite covariance matrix for the
+#'   aligned atlas estimates. Its diagonal must equal `standard_error^2`; any
+#'   row and column names must match the ordered atlas labels.
+#' @param independence Explicit authorization for the conventional
+#'   independence analysis when `covariance` is not supplied. The safe default
+#'   returns a descriptive consensus without an interval or p-value.
+#'
+#' @return An `ngeo_cross_atlas_consensus` with `inference_mode`, the pooled
+#'   estimate, atlas weights, dependence assumptions, and inferential fields
+#'   only when their assumptions were explicitly supplied.
+#' @templateVar example_call ngeo_cross_atlas_consensus(atlas_results)
+#' @template stable-neuroimaging-method
+#' @export
+ngeo_cross_atlas_consensus <- function(
+    x,
+    standard_error = NULL,
+    method = c("random", "fixed"),
+    labels = NULL,
+    confidence = 0.95,
+    covariance = NULL,
+    independence = FALSE) {
+  method_missing <- missing(method)
+  method <- match.arg(method)
+  setup <- .ngeo_cross_atlas_setup(
+    x, standard_error, labels, confidence, covariance, independence,
+    method, method_missing
+  )
+  input <- setup$input
+  covariance <- setup$covariance
+  method <- setup$method
+  inference_mode <- setup$inference_mode
+  fit <- .ngeo_fit_cross_atlas_consensus(
+    input$estimate, input$standard_error, covariance, inference_mode, method
+  )
   critical <- stats::qnorm(1 - (1 - confidence) / 2)
-  leave_one_out <- do.call(rbind, lapply(
-    seq_along(input$estimate),
-    function(i) {
-      current <- fit_consensus(
-        input$estimate[-i],
-        input$standard_error[-i],
-        if (is.null(covariance)) NULL else covariance[-i, -i, drop = FALSE]
-      )
-      data.frame(
-        omitted = input$labels[[i]],
-        estimate = current$estimate,
-        standard_error = current$standard_error,
-        change = current$estimate - fit$estimate,
-        stringsAsFactors = FALSE
-      )
-    }
-  ))
+  leave_one_out <- .ngeo_cross_atlas_leave_one_out(
+    input, covariance, inference_mode, method, fit$estimate
+  )
   result <- list(
     estimate = fit$estimate,
     standard_error = fit$standard_error,

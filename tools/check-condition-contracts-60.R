@@ -1,3 +1,6 @@
+if (dir.exists(".r-lib")) {
+  .libPaths(c(normalizePath(".r-lib"), .libPaths()))
+}
 root <- normalizePath(".", winslash = "/", mustWork = TRUE)
 contract_path <- file.path(root, "inst", "spec", "condition-contracts-6.0.csv")
 snapshot_path <- file.path(
