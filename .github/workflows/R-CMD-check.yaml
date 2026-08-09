@@ -95,6 +95,7 @@ jobs:
           Rscript tools/check-package-boundary-60.R
           Rscript tools/check-complexity-60.R
           Rscript tools/check-release-readiness-60.R
+          Rscript tools/check-audit-task-status-60.R
 
       - name: Public API lifecycle registry
         run: Rscript tools/check-feature-freeze-60.R
