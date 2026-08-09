@@ -103,6 +103,7 @@
 #' values(surface)
 #' ngeo_vertex_area(surface)
 #' ngeo_validate(surface, "strict")
+#' @template stable-geometry-core
 #' @export
 ngeo_surface <- function(coordinates,
                          faces,
@@ -302,6 +303,7 @@ ngeo_surface <- function(coordinates,
 #' ngeo_voxel_volume(volume)
 #' ngeo_support_size(volume)
 #' ngeo_validate(volume, "strict")
+#' @template stable-geometry-core
 #' @export
 ngeo_volume <- function(values = NULL,
                         dim,
