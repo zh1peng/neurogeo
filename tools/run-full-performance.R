@@ -9,9 +9,19 @@ output <- if (length(args)) {
 }
 
 if (!requireNamespace("testthat", quietly = TRUE) ||
-    !requireNamespace("jsonlite", quietly = TRUE)) {
-  stop("Full performance validation requires testthat and jsonlite.")
+    !requireNamespace("jsonlite", quietly = TRUE) ||
+    !requireNamespace("digest", quietly = TRUE)) {
+  stop("Full performance validation requires testthat, jsonlite, and digest.")
 }
+
+design_path <- file.path("inst", "validation", "phase3-design-6.0.json")
+design_hash <- digest::digest(
+  design_path, algo = "sha256", file = TRUE, serialize = FALSE
+)
+locked_hash <- trimws(readLines(
+  file.path("inst", "validation", "phase3-design-6.0.sha256"), warn = FALSE
+))
+stopifnot(identical(design_hash, locked_hash))
 
 dir.create(dirname(output), recursive = TRUE, showWarnings = FALSE)
 Sys.setenv(
@@ -30,6 +40,10 @@ timing <- system.time(
 )
 
 result <- list(
+  schema = "neurogeo/core-performance/1",
+  validation_id = "VAL-308-partial",
+  design_sha256 = design_hash,
+  package_version = read.dcf("DESCRIPTION", fields = "Version")[[1L]],
   generated_at_utc = format(
     Sys.time(),
     tz = "UTC",
@@ -41,6 +55,7 @@ result <- list(
     format = "%Y-%m-%dT%H:%M:%SZ"
   ),
   validation = "passed",
+  full_val308_evidence = FALSE,
   elapsed_seconds = unname(timing[["elapsed"]]),
   cases = list(
     surface_164k = list(
@@ -92,6 +107,11 @@ result <- list(
       sparse_matrix_mib_limit = 10,
       analytic_diagonal_covariance = TRUE
     )
+  ),
+  evidence_boundary = paste(
+    "These seven tests establish bounded sparse core workflows only.",
+    "They do not instantiate the frozen 36-cell VAL-308 factorial, report",
+    "per-cell observed metrics, or satisfy its release gate."
   ),
   platform = R.version$platform,
   r_version = R.version.string
