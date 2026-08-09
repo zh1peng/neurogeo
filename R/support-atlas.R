@@ -35,6 +35,8 @@
 #' @param distance_method Intersection, Jaccard, or Dice support.
 #'
 #' @return A sparse first-atlas by second-atlas matrix.
+#' @templateVar example_call ngeo_atlas_overlap(first_atlas, second_atlas)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_atlas_overlap <- function(
     first,
@@ -81,6 +83,8 @@ ngeo_atlas_overlap <- function(
 #' @inheritParams ngeo_atlas_overlap
 #'
 #' @return A data frame with best Dice and Jaccard matches.
+#' @templateVar example_call ngeo_atlas_compare(first_atlas, second_atlas)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_atlas_compare <- function(first, second, source_support = NULL) {
   pair_count <- nrow(first$operator) * nrow(second$operator)
@@ -127,6 +131,8 @@ ngeo_atlas_compare <- function(first, second, source_support = NULL) {
 #' @param model Must be `"piecewise_constant"`.
 #'
 #' @return An `ngeo_cross_atlas` list with transfer operator and uncertainty.
+#' @templateVar example_call ngeo_cross_atlas(source_atlas, target_atlas)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_cross_atlas <- function(
     values,

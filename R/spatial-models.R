@@ -969,6 +969,8 @@ print.ngeo_car <- function(x, ...) {
 #' @inheritParams ngeo_spatial_regression
 #'
 #' @return An `ngeo_support_model`.
+#' @templateVar example_call ngeo_support_model(source_data, support_family, model = "sar")
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_model <- function(
     x,

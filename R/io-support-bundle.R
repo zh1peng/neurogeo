@@ -175,6 +175,8 @@ write_ngeo_support_bundle <- function(
 #'
 #' @param path Bundle directory or manifest path.
 #' @return The parsed manifest, invisibly.
+#' @templateVar example_call ngeo_validate_support_bundle("support-bundle")
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_validate_support_bundle <- function(path) {
   bundle <- .ngeo_read_support_bundle_manifest(path)
@@ -317,6 +319,8 @@ read_ngeo_support_bundle <- function(path) {
 #' @param chunk_size Ordered source columns per chunk.
 #' @param overwrite Whether to replace an existing bundle.
 #' @return A schema 2 bundle output.
+#' @templateVar example_call ngeo_migrate_support_map_exchange("legacy-bundle", "bundle-v2")
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_migrate_support_map_exchange <- function(
     path,

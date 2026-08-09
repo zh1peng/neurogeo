@@ -30,6 +30,32 @@ A sparse crisp `ngeo_support_map`.
 \description{
 Build a crisp support map from aligned atlas labels
 }
+\section{When to use and limitations}{
+
+Use this method when changing, comparing, or quantifying a declared
+neuroimaging support. Do not equate interpolation with new information, and
+do not use an atlas or resampling map whose source/target spaces, masks, or
+element identities do not match the data.
+}
+
+\section{Units and assumptions}{
+
+Measurement units follow the measure contract: intensive measures are
+support-weighted, whereas extensive measures conserve totals when the map
+permits it. Coordinates and distance units come from the declared spaces.
+The method assumes aligned element identities, finite non-negative mapping
+weights, explicit missing-support behavior, and geometry appropriate for the
+requested volume, surface, grayordinate, or parcellation operation.
+}
+
+\section{Validation evidence}{
+
+Support-map, conservation, resampling, and atlas validation targets are
+recorded in `inst/validation/claim-evidence-matrix-6.0.csv`. Executable
+conformance suites and their evidence outputs are declared in
+`inst/spec/validation-registry-6.0.csv`.
+}
+
 \examples{
 source <- ngeo_point(
   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
@@ -42,4 +68,11 @@ atlas <- ngeo_atlas_map(
 ngeo_support_diagnostics(atlas)
 regional <- aggregate_to(source, atlas$target, atlas)
 values(regional)
+}
+\references{
+Glasser, M. F. et al. (2013). The minimal preprocessing pipelines for the
+Human Connectome Project. *NeuroImage*, 80, 105--124.
+}
+\seealso{
+[ngeo_support_map()], [ngeo_validate()]
 }

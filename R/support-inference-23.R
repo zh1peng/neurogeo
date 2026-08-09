@@ -7,6 +7,8 @@
 #' @param alternative Two-sided, greater, or less max-T family.
 #'
 #' @return An `ngeo_support_adjustment`.
+#' @templateVar example_call ngeo_support_adjust(p_values, support_family)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_adjust <- function(
     p_value = NULL,
@@ -195,6 +197,8 @@ print.ngeo_support_adjustment <- function(x, ...) {
 #' @param confidence Confidence level.
 #'
 #' @return An `ngeo_cross_atlas_consensus`.
+#' @templateVar example_call ngeo_cross_atlas_consensus(atlas_results)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_cross_atlas_consensus <- function(
     x,
@@ -331,6 +335,8 @@ print.ngeo_cross_atlas_consensus <- function(x, ...) {
 #' @return An `ngeo_common_support_test`.
 #' @param experimental_null Must be `TRUE` when `null` is `"moran"` or
 #'   `"spin"`. These spatial surrogates remain uncalibrated.
+#' @templateVar example_call ngeo_common_support_test(subject_features, support_maps)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_common_support_test <- function(
     x,

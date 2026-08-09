@@ -66,6 +66,8 @@
 #' @param seed Reproducible bootstrap seed.
 #'
 #' @return An `ngeo_atlas_robust_effect`.
+#' @templateVar example_call ngeo_atlas_robust_effect(effect_maps, atlas_family)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_atlas_robust_effect <- function(
     x,
@@ -264,6 +266,8 @@ print.ngeo_atlas_robust_effect <- function(x, ...) {
 #' @param adjustment Multiple-testing adjustment for atlas-specific p-values.
 #'
 #' @return An `ngeo_support_test`.
+#' @templateVar example_call ngeo_support_test(effect, standard_error, support_family)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_test <- function(
     x,

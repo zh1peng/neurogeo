@@ -736,6 +736,8 @@ ngeo_car_uncertainty <- function(
 #' @param level Interval level.
 #'
 #' @return An `ngeo_support_model_ensemble`.
+#' @templateVar example_call ngeo_support_model_ensemble(fitted_support_models)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_model_ensemble <- function(
     fits,

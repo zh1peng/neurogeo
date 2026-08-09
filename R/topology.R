@@ -264,6 +264,8 @@ ngeo_components <- function(x, adjacency = NULL) {
 #'
 #' @param x An `ngeo` object.
 #' @return A numeric vector aligned with base elements.
+#' @templateVar example_call ngeo_support_size(parcellation_data)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_size <- function(x) {
   ngeo_validate(x, "basic")

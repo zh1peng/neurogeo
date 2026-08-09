@@ -147,6 +147,8 @@
 #' @param parameters Named method-specific builder parameters.
 #' @param budget Resource limits for sparse mapping and materialized results.
 #' @return An immutable-identity `ngeo_resampling_plan`.
+#' @templateVar example_call ngeo_resampling_plan(source_data, target_base, method = "nearest")
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_resampling_plan <- function(
     source,
@@ -300,6 +302,8 @@ ngeo_resampling_plan <- function(
 #'
 #' @param x An `ngeo_resampling_plan`.
 #' @return `x`, invisibly.
+#' @templateVar example_call ngeo_validate_resampling_plan(resampling_plan)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_validate_resampling_plan <- function(x) {
   if (!inherits(x, "ngeo_resampling_plan")) {
@@ -485,6 +489,8 @@ ngeo_validate_resampling_plan <- function(x) {
 #' @param plan A validated `ngeo_resampling_plan`.
 #' @param authorize Must be explicitly `TRUE`.
 #' @return An `ngeo_support_map` carrying joint path/plan history.
+#' @templateVar example_call ngeo_build_resampling_map(resampling_plan, authorize = TRUE)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_build_resampling_map <- function(plan, authorize = FALSE) {
   .ngeo_resampling_build(plan, authorize)$map
@@ -496,6 +502,8 @@ ngeo_build_resampling_map <- function(plan, authorize = FALSE) {
 #' @param support_map A map created from the plan.
 #' @param tolerance Numeric coverage tolerance.
 #' @return An `ngeo_resampling_diagnostics`.
+#' @templateVar example_call ngeo_resampling_diagnostics(resampling_plan)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_resampling_diagnostics <- function(
     plan, support_map, tolerance = 1e-10) {
@@ -637,6 +645,8 @@ ngeo_resampling_diagnostics <- function(
 #' @param overwrite Whether an atomic output may replace an existing file.
 #' @return An `ngeo_resampling_result` with data, map, optional variance,
 #' diagnostics, history, and optional atomic output metadata.
+#' @templateVar example_call ngeo_resample(source_data, resampling_plan, authorize = TRUE)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_resample <- function(
     plan,

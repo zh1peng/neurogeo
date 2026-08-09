@@ -869,6 +869,7 @@ ngeo_voxel_overlap_map <- function(
 #' ngeo_support_diagnostics(atlas)
 #' regional <- aggregate_to(source, atlas$target, atlas)
 #' values(regional)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_atlas_map <- function(
     source,
@@ -973,6 +974,7 @@ ngeo_atlas_map <- function(
 #' )
 #' atlas
 #' ngeo_support_diagnostics(atlas)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_probabilistic_atlas_map <- function(
     source,
