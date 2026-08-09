@@ -90,6 +90,40 @@ test_that("same-location coupling is support weighted and bounded", {
   )
 })
 
+test_that("layer-coupling public result structure is characterized", {
+  signal <- c(-2, -1, 0, 1, 2)
+  x <- coupling_fixture(
+    cbind(signal, signal, signal, -signal),
+    rep(c("s1", "s2"), each = 2L),
+    rep(c("x", "y"), 2L)
+  )
+  result <- ngeo_layer_coupling(
+    x, ngeo_validate_layers(x, complete = "error"),
+    estimands = "same_location"
+  )
+
+  expect_named(
+    result,
+    c("values", "unit", "endpoints", "diagnostics", "history")
+  )
+  expect_identical(dimnames(result$values), list(
+    c("s1", "s2"), "same_location::x::y::none::whole_base::all"
+  ))
+  expect_equal(as.numeric(result$values), c(1, -1), tolerance = 1e-12)
+  expect_named(result$diagnostics, c(
+    "unit", "endpoints", "missing_endpoints", "low_energy",
+    "chunk_layers", "elementwise_missingness", "absent_unit_layer",
+    "isolates"
+  ))
+  expect_named(result$history, c(
+    "method", "base_hash", "index_hash", "basis_hash", "operator_hash",
+    "support_hash", "weights_hash", "source_layer_id",
+    "values_materialized", "inference_unit"
+  ))
+  expect_identical(result$history$method, "support_aware_layer_coupling")
+  expect_identical(result$history$inference_unit, "independent_unit")
+})
+
 test_that("missing layers remain missing and invalid measures fail", {
   x <- coupling_fixture(
     cbind(1:5, 5:1, c(2, 3, 5, 7, 11)),

@@ -402,6 +402,135 @@
   )
 }
 
+.ngeo_coupling_same_location <- function(
+    x, index, lookup, pair_table, support) {
+  endpoint_tables <- vector("list", nrow(pair_table))
+  endpoint_values <- vector("list", nrow(pair_table))
+  for (pair in seq_len(nrow(pair_table))) {
+    values <- rep.int(NA_real_, nrow(index$unit))
+    for (unit in seq_len(nrow(index$unit))) {
+      layers <- lookup[unit, c(pair_table$x[[pair]], pair_table$y[[pair]])]
+      if (anyNA(layers)) next
+      current <- .ngeo_coupling_values(x, layers)
+      values[[unit]] <- .ngeo_weighted_correlation(
+        current[, 1L], current[, 2L], support$values
+      )
+    }
+    endpoint_tables[[pair]] <- .ngeo_coupling_endpoint(
+      "same_location", pair_table$x[[pair]], pair_table$y[[pair]],
+      support_hash = support$hash, bounds = "[-1,1]",
+      standardization = "support_weighted_norm"
+    )
+    endpoint_values[[pair]] <- matrix(values, ncol = 1L)
+  }
+  list(tables = endpoint_tables, values = endpoint_values)
+}
+
+.ngeo_coupling_directional <- function(
+    x, index, lookup, pair_table, support, weights_info, estimands,
+    lag_direction) {
+  directions <- switch(
+    lag_direction,
+    both = c("x_to_y", "y_to_x"),
+    x_to_y = "x_to_y",
+    y_to_x = "y_to_x"
+  )
+  endpoint_tables <- list()
+  endpoint_values <- list()
+  for (pair in seq_len(nrow(pair_table))) {
+    for (direction in directions) {
+      first_layer <- if (direction == "x_to_y") pair_table$x[[pair]] else
+        pair_table$y[[pair]]
+      second_layer <- if (direction == "x_to_y") pair_table$y[[pair]] else
+        pair_table$x[[pair]]
+      if ("directional_lag" %in% estimands) {
+        values <- rep.int(NA_real_, nrow(index$unit))
+        for (unit in seq_len(nrow(index$unit))) {
+          layers <- lookup[unit, c(first_layer, second_layer)]
+          if (anyNA(layers)) next
+          current <- .ngeo_coupling_values(x, layers)
+          values[[unit]] <- .ngeo_directional_lag(
+            current[, 1L], current[, 2L], support$values,
+            weights_info$matrix
+          )
+        }
+        endpoint_tables[[length(endpoint_tables) + 1L]] <-
+          .ngeo_coupling_endpoint(
+            "directional_lag", pair_table$x[[pair]], pair_table$y[[pair]],
+            direction = direction, support_hash = support$hash,
+            weights_info = weights_info, bounds = "[-1,1]",
+            standardization = "support_weighted_lag_norm"
+          )
+        endpoint_values[[length(endpoint_values) + 1L]] <-
+          matrix(values, ncol = 1L)
+      }
+      if ("classic_cross_moran" %in% estimands) {
+        values <- rep.int(NA_real_, nrow(index$unit))
+        for (unit in seq_len(nrow(index$unit))) {
+          layers <- lookup[unit, c(first_layer, second_layer)]
+          if (anyNA(layers)) next
+          current <- .ngeo_coupling_values(x, layers)
+          values[[unit]] <- .ngeo_classic_cross_moran(
+            current[, 1L], current[, 2L], weights_info$matrix
+          )
+        }
+        endpoint_tables[[length(endpoint_tables) + 1L]] <-
+          .ngeo_coupling_endpoint(
+            "classic_cross_moran", pair_table$x[[pair]], pair_table$y[[pair]],
+            direction = direction, support_hash = support$hash,
+            weights_info = weights_info, bounds = "unbounded",
+            standardization = "sample_z_n_over_S0"
+          )
+        endpoint_values[[length(endpoint_values) + 1L]] <-
+          matrix(values, ncol = 1L)
+      }
+    }
+  }
+  list(tables = endpoint_tables, values = endpoint_values)
+}
+
+.ngeo_coupling_result <- function(
+    x, index, basis, support, weights_info, selected_layers,
+    endpoint_tables, endpoint_values, low_energy, chunk_layers) {
+  endpoints <- do.call(rbind, endpoint_tables)
+  rownames(endpoints) <- NULL
+  values <- do.call(cbind, endpoint_values)
+  colnames(values) <- endpoints$endpoint_id
+  rownames(values) <- index$unit$unit_id
+  low_table <- if (length(low_energy)) do.call(rbind, low_energy) else
+    data.frame(unit_id = character(), endpoint_id = character(),
+               low_energy = logical(), stringsAsFactors = FALSE)
+  result <- list(
+    values = values,
+    unit = index$unit,
+    endpoints = endpoints,
+    diagnostics = list(
+      unit = nrow(index$unit), endpoints = nrow(endpoints),
+      missing_endpoints = sum(!is.finite(values)),
+      low_energy = low_table,
+      chunk_layers = chunk_layers,
+      elementwise_missingness = "fail",
+      absent_unit_layer = "endpoint_NA",
+      isolates = "error"
+    ),
+    history = list(
+      method = "support_aware_layer_coupling",
+      base_hash = base_hash(x), index_hash = index$index_hash,
+      basis_hash = if (is.null(basis)) NA_character_ else basis$basis_hash,
+      operator_hash = if (is.null(basis)) NA_character_ else
+        basis$operator_hash,
+      support_hash = support$hash,
+      weights_hash = if (is.null(weights_info)) NA_character_ else
+        weights_info$hash,
+      source_layer_id = x$layers$layer_id[selected_layers],
+      values_materialized = FALSE,
+      inference_unit = "independent_unit"
+    )
+  )
+  class(result) <- "ngeo_subject_features"
+  result
+}
+
 #' Generate support-aware layer structure and coupling endpoints
 #'
 #' One API produces same-location, fixed-basis spectral, and directional layer
@@ -506,22 +635,11 @@ ngeo_layer_coupling <- function(
   }
 
   if ("same_location" %in% estimands) {
-    for (pair in seq_len(nrow(pair_table))) {
-      values <- rep.int(NA_real_, nrow(index$unit))
-      for (unit in seq_len(nrow(index$unit))) {
-        layers <- lookup[unit, c(pair_table$x[[pair]], pair_table$y[[pair]])]
-        if (anyNA(layers)) next
-        current <- .ngeo_coupling_values(x, layers)
-        values[[unit]] <- .ngeo_weighted_correlation(
-          current[, 1L], current[, 2L], support$values
-        )
-      }
-      add_endpoint(.ngeo_coupling_endpoint(
-        "same_location", pair_table$x[[pair]], pair_table$y[[pair]],
-        support_hash = support$hash, bounds = "[-1,1]",
-        standardization = "support_weighted_norm"
-      ), values)
-    }
+    stage <- .ngeo_coupling_same_location(
+      x, index, lookup, pair_table, support
+    )
+    endpoint_tables <- c(endpoint_tables, stage$tables)
+    endpoint_values <- c(endpoint_values, stage$values)
   }
 
   selected_layers <- sort(unique(used_maps[is.finite(used_maps)]))
@@ -673,93 +791,18 @@ ngeo_layer_coupling <- function(
   }
 
   if (need_weights) {
-    directions <- switch(
-      lag_direction,
-      both = c("x_to_y", "y_to_x"),
-      x_to_y = "x_to_y",
-      y_to_x = "y_to_x"
+    stage <- .ngeo_coupling_directional(
+      x, index, lookup, pair_table, support, weights_info, estimands,
+      lag_direction
     )
-    for (pair in seq_len(nrow(pair_table))) {
-      for (direction in directions) {
-        first_layer <- if (direction == "x_to_y") pair_table$x[[pair]] else
-          pair_table$y[[pair]]
-        second_layer <- if (direction == "x_to_y") pair_table$y[[pair]] else
-          pair_table$x[[pair]]
-        if ("directional_lag" %in% estimands) {
-          values <- rep.int(NA_real_, nrow(index$unit))
-          for (unit in seq_len(nrow(index$unit))) {
-            layers <- lookup[unit, c(first_layer, second_layer)]
-            if (anyNA(layers)) next
-            current <- .ngeo_coupling_values(x, layers)
-            values[[unit]] <- .ngeo_directional_lag(
-              current[, 1L], current[, 2L], support$values,
-              weights_info$matrix
-            )
-          }
-          add_endpoint(.ngeo_coupling_endpoint(
-            "directional_lag", pair_table$x[[pair]], pair_table$y[[pair]],
-            direction = direction, support_hash = support$hash,
-            weights_info = weights_info, bounds = "[-1,1]",
-            standardization = "support_weighted_lag_norm"
-          ), values)
-        }
-        if ("classic_cross_moran" %in% estimands) {
-          values <- rep.int(NA_real_, nrow(index$unit))
-          for (unit in seq_len(nrow(index$unit))) {
-            layers <- lookup[unit, c(first_layer, second_layer)]
-            if (anyNA(layers)) next
-            current <- .ngeo_coupling_values(x, layers)
-            values[[unit]] <- .ngeo_classic_cross_moran(
-              current[, 1L], current[, 2L], weights_info$matrix
-            )
-          }
-          add_endpoint(.ngeo_coupling_endpoint(
-            "classic_cross_moran", pair_table$x[[pair]], pair_table$y[[pair]],
-            direction = direction, support_hash = support$hash,
-            weights_info = weights_info, bounds = "unbounded",
-            standardization = "sample_z_n_over_S0"
-          ), values)
-        }
-      }
-    }
+    endpoint_tables <- c(endpoint_tables, stage$tables)
+    endpoint_values <- c(endpoint_values, stage$values)
   }
 
-  endpoints <- do.call(rbind, endpoint_tables)
-  rownames(endpoints) <- NULL
-  values <- do.call(cbind, endpoint_values)
-  colnames(values) <- endpoints$endpoint_id
-  rownames(values) <- index$unit$unit_id
-  low_table <- if (length(low_energy)) do.call(rbind, low_energy) else
-    data.frame(unit_id = character(), endpoint_id = character(),
-               low_energy = logical(), stringsAsFactors = FALSE)
-  result <- list(
-    values = values,
-    unit = index$unit,
-    endpoints = endpoints,
-    diagnostics = list(
-      unit = nrow(index$unit), endpoints = nrow(endpoints),
-      missing_endpoints = sum(!is.finite(values)),
-      low_energy = low_table,
-      chunk_layers = chunk_layers,
-      elementwise_missingness = "fail",
-      absent_unit_layer = "endpoint_NA",
-      isolates = "error"
-    ),
-    history = list(
-      method = "support_aware_layer_coupling",
-      base_hash = base_hash(x), index_hash = index$index_hash,
-      basis_hash = if (is.null(basis)) NA_character_ else basis$basis_hash,
-      operator_hash = if (is.null(basis)) NA_character_ else
-        basis$operator_hash,
-      support_hash = support$hash,
-      weights_hash = if (is.null(weights_info)) NA_character_ else
-        weights_info$hash,
-      source_layer_id = x$layers$layer_id[selected_layers],
-      values_materialized = FALSE,
-      inference_unit = "independent_unit"
-    )
+  result <- .ngeo_coupling_result(
+    x, index, basis, support, weights_info, selected_layers,
+    endpoint_tables, endpoint_values, low_energy, chunk_layers
   )
-  class(result) <- "ngeo_subject_features"
   if (!is.null(null)) {
     result$null <- .ngeo_coupling_null(
       x, index, pair_table, basis, bands, spatial_weights, estimands,
