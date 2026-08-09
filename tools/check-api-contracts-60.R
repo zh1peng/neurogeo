@@ -8,13 +8,9 @@ rscript <- file.path(
 )
 status <- system2(rscript, c("tools/generate-api-contracts-60.R", temporary))
 if (!identical(status, 0L)) stop("Could not regenerate API contracts.")
-expected_hash <- digest::digest(
-  expected, algo = "sha256", file = TRUE, serialize = FALSE
-)
-observed_hash <- digest::digest(
-  temporary, algo = "sha256", file = TRUE, serialize = FALSE
-)
-if (!identical(expected_hash, observed_hash)) {
+expected_contract <- jsonlite::read_json(expected, simplifyVector = FALSE)
+observed_contract <- jsonlite::read_json(temporary, simplifyVector = FALSE)
+if (!identical(expected_contract, observed_contract)) {
   stop(
     paste(
       "Stable API contract snapshot is stale.",
