@@ -124,6 +124,7 @@ jobs:
           Rscript tools/check-format-tutorials-60.R
           Rscript tools/check-formative-usability-60.R
           Rscript tools/check-ux301-60.R
+          Rscript tools/check-phase4-readiness-60.R
 
       - name: Controlled user terminology
         run: Rscript tools/check-user-terminology-60.R
