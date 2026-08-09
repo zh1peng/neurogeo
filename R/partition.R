@@ -75,6 +75,7 @@
 #' ngeo_boundary(surface, partition)
 #' ngeo_region_adjacency(surface, partition)
 #' ngeo_aggregate(surface, partition)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_partition <- function(x,
                            labels,
@@ -315,6 +316,8 @@ ngeo_boundary <- function(x, partition, connectivity = 6L) {
 #' @param allocation,unmapped,unknown,budget Passed to [aggregate_to()].
 #'
 #' @return An `ngeo_parcellation` dataset.
+#' @templateVar example_call ngeo_aggregate(source_data, partition)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_aggregate <- function(x,
                            partition,

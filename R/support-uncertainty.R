@@ -28,6 +28,8 @@
 #' @param history Optional covariance history.
 #'
 #' @return An `ngeo_support_covariance`.
+#' @templateVar example_call ngeo_support_covariance(support_map, source_covariance)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_covariance <- function(
     x,
@@ -160,6 +162,8 @@ ngeo_support_covariance <- function(
 #' @param x An `ngeo_support_covariance`.
 #'
 #' @return `x`, invisibly.
+#' @templateVar example_call ngeo_validate_support_covariance(support_covariance)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_validate_support_covariance <- function(x) {
   if (!inherits(x, "ngeo_support_covariance") ||
@@ -398,6 +402,8 @@ ngeo_validate_support_covariance <- function(x) {
 #' @param seed Reproducible seed.
 #'
 #' @return An `ngeo_support_uncertainty`.
+#' @templateVar example_call ngeo_support_uncertainty(support_map, source_covariance)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_uncertainty <- function(
     x,
@@ -699,6 +705,8 @@ print.ngeo_support_uncertainty <- function(x, ...) {
 #' @param iterations Sparse power iterations for the largest singular value.
 #'
 #' @return An `ngeo_support_condition`.
+#' @templateVar example_call ngeo_support_condition(support_uncertainty)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_condition <- function(
     x,
@@ -812,6 +820,8 @@ print.ngeo_support_condition <- function(x, ...) {
 #' @param history Optional ensemble history.
 #'
 #' @return An `ngeo_support_ensemble`.
+#' @templateVar example_call ngeo_support_ensemble(list(atlas_a, atlas_b))
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_ensemble <- function(
     layers,
@@ -881,6 +891,8 @@ ngeo_support_ensemble <- function(
 #' @param x An `ngeo_support_ensemble`.
 #'
 #' @return `x`, invisibly.
+#' @templateVar example_call ngeo_validate_support_ensemble(support_ensemble)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_validate_support_ensemble <- function(x) {
   layers <- x$layers %||% x$samples

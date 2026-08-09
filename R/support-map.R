@@ -110,6 +110,8 @@
 #' @param history Optional mapping history.
 #'
 #' @return An `ngeo_support_map`.
+#' @templateVar example_call ngeo_support_map(source_base, target_base, mapping_matrix)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_map <- function(
     source,
@@ -204,6 +206,8 @@ ngeo_support_map <- function(
 #' @param target Target parcellation template with the partition's region order.
 #'
 #' @return A crisp `ngeo_support_map`.
+#' @templateVar example_call ngeo_support_map_from_partition(source_data, partition, target_base)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_map_from_partition <- function(source, partition, target) {
   .ngeo_validate_partition(partition, source)
@@ -241,6 +245,8 @@ ngeo_support_map_from_partition <- function(source, partition, target) {
 #' @param tolerance Numeric invariant tolerance.
 #'
 #' @return `x`, invisibly.
+#' @templateVar example_call ngeo_validate_support_map(support_map)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_validate_support_map <- function(x, tolerance = 1e-10) {
   if (!inherits(x, "ngeo_support_map")) {
@@ -388,6 +394,8 @@ ngeo_validate_support_map <- function(x, tolerance = 1e-10) {
 #' @param x An `ngeo_support_map`.
 #'
 #' @return An xxHash64 string.
+#' @templateVar example_call ngeo_support_map_hash(support_map)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_map_hash <- function(x) {
   ngeo_validate_support_map(x)
@@ -490,6 +498,7 @@ ngeo_support_map_hash <- function(x) {
 #' result <- aggregate_to(source, atlas$target, atlas)
 #' values(result)
 #' sum(values(result))
+#' @template stable-neuroimaging-method
 #' @export
 aggregate_to <- function(
     x,
@@ -632,6 +641,8 @@ aggregate_to <- function(
 #' @param value_variance Source element-by-map independent variances.
 #'
 #' @return A target element-by-map variance matrix.
+#' @templateVar example_call ngeo_support_variance(support_map, source_variance)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_variance <- function(
     x,
@@ -759,6 +770,8 @@ ngeo_support_variance <- function(
 #' @param second Intermediate-to-target support map.
 #'
 #' @return A composed `ngeo_support_map`.
+#' @templateVar example_call ngeo_compose_support_map(source_to_mid, mid_to_target)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_compose_support_map <- function(first, second) {
   ngeo_validate_support_map(first)

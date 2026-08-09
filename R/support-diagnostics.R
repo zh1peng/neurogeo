@@ -27,6 +27,8 @@
 #'
 #' @return A numeric vector aligned with source elements. Unmapped elements
 #'   are `NA`.
+#' @templateVar example_call ngeo_support_entropy(probabilistic_support_map)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_entropy <- function(x, normalized = TRUE) {
   ngeo_validate_support_map(x)
@@ -69,6 +71,7 @@ ngeo_support_entropy <- function(x, normalized = TRUE) {
 #' diagnostics <- ngeo_support_diagnostics(atlas)
 #' diagnostics$summary
 #' diagnostics$source
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_diagnostics <- function(
     x,
@@ -331,6 +334,8 @@ plot.ngeo_support_map <- function(x, ...) {
 #' @param tolerance Numerical mapping tolerance.
 #'
 #' @return An `ngeo_support_ensemble`.
+#' @templateVar example_call ngeo_support_monte_carlo(support_uncertainty, nsim = 199, seed = 2026)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_monte_carlo <- function(
     x,
@@ -485,6 +490,8 @@ ngeo_support_monte_carlo <- function(
 #' @param ... Passed to `aggregate_to()`.
 #'
 #' @return An `ngeo_support_sensitivity` object.
+#' @templateVar example_call ngeo_support_sensitivity(source_data, support_family)
+#' @template stable-neuroimaging-method
 #' @export
 ngeo_support_sensitivity <- function(
     x,
