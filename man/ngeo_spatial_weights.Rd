@@ -43,6 +43,26 @@ An `ngeo_spatial_weights` object.
 \description{
 Construct sparse spatial weights
 }
+\section{When to use and when not to use}{
+
+Use this function after choosing a neighborhood definition that matches the
+scientific support and metric. Do not treat row standardization, KNN, or a
+distance threshold as a neutral default; each changes the estimand.
+}
+
+\section{Units and assumptions}{
+
+Distance thresholds and bandwidths use the declared coordinate unit.
+Contiguity methods require matching topology; metric methods require
+confirmed coordinates and units.
+}
+
+\section{Validation}{
+
+The result records method, normalization, metric, and base identity. Sparse
+topology, format, and scale fixtures validate registered methods.
+}
+
 \examples{
 point <- ngeo_point(
   matrix(c(0, 0, 1, 0, 1, 1, 0, 1), ncol = 2, byrow = TRUE)
@@ -53,4 +73,11 @@ spatial_weights <- ngeo_spatial_weights(
 spatial_weights
 ngeo_components(spatial_weights$matrix)
 Matrix::rowSums(spatial_weights$matrix)
+}
+\references{
+Cliff, A. D. and Ord, J. K. (1981). Spatial Processes: Models
+  and Applications. Pion.
+}
+\seealso{
+[ngeo_distance()], [ngeo_moran()], [ngeo_components()]
 }

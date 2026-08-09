@@ -9,7 +9,21 @@
 #' @param measure_id Optional stable unique measure identifier.
 #' @param name Optional human-readable measure name.
 #'
+#' @section When to use and when not to use:
+#' Use one measure row to declare what a layer's values mean. Do not use units
+#' alone as a substitute for intensive/extensive/count/categorical support
+#' behavior, and do not mutate an existing object's measure table directly.
+#' @section Units and assumptions:
+#' `unit` is the scientific measurement unit, not the coordinate unit.
+#' Aggregation must agree with support behavior; unknown semantics deliberately
+#' block operations that would otherwise guess.
+#' @section Validation:
+#' `ngeo_update_measure()` provides the safe audited update path and strict
+#' object validation checks every layer-to-measure reference.
 #' @return A one-row measurement metadata data frame.
+#' @seealso [ngeo_update_measure()], [ngeo_measures()], [ngeo_validate()]
+#' @references Neuroimaging Geoinformatics Core Specification 6.0,
+#'   `inst/spec/NGCS-6.0.md`.
 #' @examples
 #' ngeo_measure(
 #'   value_type = "continuous",

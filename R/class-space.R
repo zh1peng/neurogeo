@@ -9,7 +9,21 @@
 #' @param resolution Optional voxel resolution.
 #' @param source_metadata Source metadata retained by an importer.
 #'
+#' @section When to use and when not to use:
+#' Use this function to declare the coordinate frame and unit reported by a
+#' reliable header or study contract. Do not infer a template, registration,
+#' or millimetre unit from coordinate values alone; retain `"unknown"` instead.
+#' @section Units and assumptions:
+#' `unit` applies to every physical coordinate on the base. Template, density,
+#' structure, and resolution are descriptive declarations, not registration
+#' evidence.
+#' @section Validation:
+#' Constructors and metric operations validate this object. Unknown-unit and
+#' reliable-header behavior is covered by the 6.0 coordinate-space fixtures.
 #' @return An `ngeo_coordinate_space` object.
+#' @seealso [ngeo_point()], [ngeo_validate()], [ngeo_distance()]
+#' @references Neuroimaging Geoinformatics Core Specification 6.0,
+#'   `inst/spec/NGCS-6.0.md`.
 #' @examples
 #' fs_lr <- ngeo_coordinate_space(
 #'   "fsLR-32k",

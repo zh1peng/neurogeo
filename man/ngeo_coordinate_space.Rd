@@ -38,6 +38,26 @@ An `ngeo_coordinate_space` object.
 \description{
 Construct a coordinate-space description
 }
+\section{When to use and when not to use}{
+
+Use this function to declare the coordinate frame and unit reported by a
+reliable header or study contract. Do not infer a template, registration,
+or millimetre unit from coordinate values alone; retain `"unknown"` instead.
+}
+
+\section{Units and assumptions}{
+
+`unit` applies to every physical coordinate on the base. Template, density,
+structure, and resolution are descriptive declarations, not registration
+evidence.
+}
+
+\section{Validation}{
+
+Constructors and metric operations validate this object. Unknown-unit and
+reliable-header behavior is covered by the 6.0 coordinate-space fixtures.
+}
+
 \examples{
 fs_lr <- ngeo_coordinate_space(
   "fsLR-32k",
@@ -49,4 +69,11 @@ fs_lr <- ngeo_coordinate_space(
 )
 fs_lr
 ngeo_coordinate_space_hash(fs_lr)
+}
+\references{
+Neuroimaging Geoinformatics Core Specification 6.0,
+  `inst/spec/NGCS-6.0.md`.
+}
+\seealso{
+[ngeo_point()], [ngeo_validate()], [ngeo_distance()]
 }

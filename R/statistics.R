@@ -370,7 +370,24 @@ ngeo_permutation_control <- function(
 #' @param control Optional [ngeo_permutation_control()] overriding permutation
 #'   inference arguments.
 #'
+#' @section When to use and when not to use:
+#' Use Moran's I to quantify global autocorrelation for one declared layer and
+#' weight matrix. Do not interpret it as causation or population inference,
+#' and do not use permutations whose exchangeability null is scientifically
+#' inappropriate.
+#' @section Units and assumptions:
+#' Moran's I is dimensionless. Its estimand depends on the layer's measurement
+#' semantics, retained observations, zero policy, and exact weight
+#' normalization.
+#' @section Validation:
+#' `ngeo_inference_contract()` reports estimand, sampling unit, null, metric,
+#' support, and uncertainty target. Reference calculations and null fixtures
+#' are registered in the 6.0 scientific validation corpus.
 #' @return An `ngeo_global_stat` result.
+#' @seealso [ngeo_local_moran()], [ngeo_spatial_weights()],
+#'   [ngeo_inference_contract()]
+#' @references Moran, P. A. P. (1950). Notes on continuous stochastic
+#'   phenomena. Biometrika, 37, 17-23.
 #' @examples
 #' point <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
@@ -452,7 +469,20 @@ ngeo_geary <- function(x,
 #' @param null_model Conditional randomization with the focal value fixed, or
 #'   total randomization of the complete centered vector.
 #'
+#' @section When to use and when not to use:
+#' Use local Moran statistics to describe element-level local association under
+#' an explicit conditional or total randomization null. Do not interpret
+#' unadjusted local p-values as a familywise-confirmatory result.
+#' @section Units and assumptions:
+#' Local statistics are dimensionless but depend on layer semantics, weight
+#' normalization, missing-data handling, and the chosen local null.
+#' @section Validation:
+#' The returned inference contract and columns record the null and adjustment.
+#' Local-reference fixtures validate ordering and exact graph-lag calculations.
 #' @return An `ngeo_lisa` data frame aligned to the analysed elements.
+#' @seealso [ngeo_moran()], [ngeo_spatial_weights()], [stats::p.adjust()]
+#' @references Anselin, L. (1995). Local indicators of spatial association.
+#'   Geographical Analysis, 27, 93-115.
 #' @examples
 #' point <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),

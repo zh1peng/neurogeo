@@ -10,7 +10,21 @@
 #' @param uncertainty Optional non-negative uncertainty per point.
 #' @param index_base Source index base.
 #'
+#' @section When to use and when not to use:
+#' Use this constructor for observations located at explicit 2-D or 3-D point
+#' coordinates. Do not use it for voxels with an affine, mesh vertices with
+#' faces, parcels, or grayordinates; use their type-specific constructors.
+#' @section Units and assumptions:
+#' Coordinate columns use `coordinate_space$unit`. Rows of `values` must align
+#' exactly with coordinate rows, and columns must align with `layers`.
+#' @section Validation:
+#' Construction enforces alignment; use `ngeo_validate(..., "strict")` before
+#' analysis. The contract is validated by the point and quickstart fixtures.
 #' @return An `ngeo_point` object.
+#' @seealso [ngeo_coordinate_space()], [ngeo_validate()],
+#'   [ngeo_spatial_weights()]
+#' @references Neuroimaging Geoinformatics Core Specification 6.0,
+#'   `inst/spec/NGCS-6.0.md`.
 #' @examples
 #' point <- ngeo_point(
 #'   matrix(c(0, 0, 1, 0, 1, 1, 0, 1), ncol = 2, byrow = TRUE),
