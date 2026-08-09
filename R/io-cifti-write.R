@@ -97,6 +97,8 @@
 #' @param named_map_metadata Optional metadata list aligned with scalar or
 #'   label layers.
 #' @return A normalized CIFTI output contract.
+#' @templateVar example_call ngeo_validate_cifti_contract(grayordinate_data, intent = "dscalar")
+#' @template stable-io
 #' @export
 ngeo_validate_cifti_contract <- function(
     x,
@@ -305,6 +307,8 @@ ngeo_validate_cifti_contract <- function(
 #' @param named_map_metadata Optional metadata aligned with scalar/label layers.
 #'
 #' @return `path`, invisibly.
+#' @templateVar example_call write_ngeo_cifti(grayordinate_data, "statmap.dscalar.nii")
+#' @template stable-io
 #' @export
 write_ngeo_cifti <- function(
     x,

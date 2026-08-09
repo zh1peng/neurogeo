@@ -32,6 +32,8 @@
 #'
 #' @param path File path or basename.
 #' @return An `ngeo_bids_name`.
+#' @templateVar example_call ngeo_bids_parse_name("sub-01_task-rest_bold.nii.gz")
+#' @template stable-io
 #' @export
 ngeo_bids_parse_name <- function(path) {
   .ngeo_assert_scalar_character(path, "path")
@@ -90,6 +92,8 @@ ngeo_bids_parse_name <- function(path) {
 #' @param suffix Derivative suffix.
 #' @param extension Supported extension, including its leading dot.
 #' @return A canonical basename.
+#' @templateVar example_call ngeo_bids_build_name(list(sub = "01", task = "rest"), suffix = "bold", extension = ".nii.gz")
+#' @template stable-io
 #' @export
 ngeo_bids_build_name <- function(entities, suffix, extension) {
   .ngeo_validate_bids_entities(entities)
@@ -128,6 +132,8 @@ ngeo_bids_build_name <- function(entities, suffix, extension) {
 #' @param x Optional matching `ngeo` dataset.
 #' @param path Optional canonical derivative path.
 #' @return `sidecar`, invisibly.
+#' @templateVar example_call ngeo_validate_bids_sidecar(sidecar, path = derivative_path)
+#' @template stable-io
 #' @export
 ngeo_validate_bids_sidecar <- function(sidecar, x = NULL, path = NULL) {
   required <- c(

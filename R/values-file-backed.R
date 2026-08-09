@@ -323,6 +323,8 @@
 #' @param budget Resource limits applied to every materialized value block.
 #' @param complete_selection Whether the values represent the complete file.
 #' @return An `ngeo_file_values` and `ngeo_delayed_values`.
+#' @templateVar example_call ngeo_file_values("values.bin", dim = c(100, 2), layer_names = c("a", "b"), format = "nifti", selection = selection, binary = binary)
+#' @template stable-io
 #' @export
 ngeo_file_values <- function(
     path,
@@ -398,6 +400,8 @@ ngeo_file_values <- function(
 NULL
 
 #' @rdname ngeo_file_values_validation
+#' @templateVar example_call ngeo_validate_file_values(file_values)
+#' @template stable-io
 #' @export
 ngeo_validate_file_values <- function(x) {
   required_binary <- c(
@@ -483,6 +487,8 @@ ngeo_file_values_identity <- function(x) {
 #' @param verify Source mutation verification policy.
 #' @param budget Resource limits for materialized value blocks.
 #' @return An `ngeo_volume` with `ngeo_file_values`.
+#' @templateVar example_call read_ngeo_nifti_filebacked("sub-01_bold.nii.gz")
+#' @template stable-io
 #' @export
 read_ngeo_nifti_filebacked <- function(
     path,
@@ -649,6 +655,8 @@ read_ngeo_nifti_filebacked <- function(
 #' @param verify Source mutation verification policy.
 #' @param budget Resource limits for materialized value blocks.
 #' @return An `ngeo_grayordinate` with `ngeo_file_values`.
+#' @templateVar example_call read_ngeo_cifti_filebacked("sub-01_task-rest.dtseries.nii")
+#' @template stable-io
 #' @export
 read_ngeo_cifti_filebacked <- function(
     path,
@@ -806,6 +814,8 @@ read_ngeo_cifti_filebacked <- function(
 #' @param verify Source mutation verification policy.
 #' @param budget Resource limits for materialized value blocks.
 #' @return An `ngeo_volume` with `ngeo_file_values`.
+#' @templateVar example_call read_ngeo_mgh_filebacked("lh.thickness.mgh")
+#' @template stable-io
 #' @export
 read_ngeo_mgh_filebacked <- function(
     path,
@@ -910,6 +920,8 @@ read_ngeo_mgh_filebacked <- function(
 #' @param format Auto-detected or explicit NIfTI, CIFTI, MGH, or MGZ.
 #' @param ... Arguments passed to the format-specific reader.
 #' @return An `ngeo` object with file-backed aligned values.
+#' @templateVar example_call read_ngeo_filebacked("sub-01_bold.nii.gz")
+#' @template stable-io
 #' @export
 read_ngeo_filebacked <- function(
     path,
@@ -949,6 +961,8 @@ read_ngeo_filebacked <- function(
 #' @param chunk_bytes Positive copy-buffer size.
 #' @param overwrite Whether to replace the output.
 #' @return An `ngeo_atomic_output`.
+#' @templateVar example_call write_ngeo_filebacked(data, "values.bin", overwrite = FALSE)
+#' @template stable-io
 #' @export
 write_ngeo_filebacked <- function(
     x,

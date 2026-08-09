@@ -28,3 +28,39 @@ Standard `.dscalar.nii`, `.dlabel.nii`, and `.dtseries.nii` paths dispatch
 to the pure-R CIFTI writer. Use [write_ngeo_cifti()] directly when explicit
 axis metadata is required.
 }
+\section{When to use and limitations}{
+
+Use this API at a package boundary to read, validate, or write an explicitly
+supported neuroimaging or exchange format. Do not infer measurement meaning,
+coordinate units, subject independence, or transform validity from a filename
+alone; inspect the returned object and sidecar before analysis.
+}
+
+\section{Units and assumptions}{
+
+Array values retain their declared measurement units. Coordinates, affine
+matrices, surface geometry, time axes, masks, and index bases are preserved
+as explicit metadata. The caller must resolve conflicting headers, confirm
+qform/sform or surface-space identity, and authorize overwrite operations.
+}
+
+\section{Validation evidence}{
+
+Round-trip, malformed-header, checksum, path-privacy, and golden-file suites
+are declared in `inst/spec/validation-registry-6.0.csv`; claim status is
+recorded in `inst/validation/claim-evidence-matrix-6.0.csv`.
+}
+
+\examples{
+\dontrun{
+write_ngeo(data, "output.nii.gz", format = "nifti")
+}
+}
+\references{
+Gorgolewski, K. J. et al. (2016). The brain imaging data structure, a format
+for organizing and describing outputs of neuroimaging experiments.
+*Scientific Data*, 3, 160044.
+}
+\seealso{
+[read_ngeo()], [write_ngeo()], [ngeo_validate()]
+}

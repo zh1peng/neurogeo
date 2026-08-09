@@ -186,6 +186,8 @@
 #'   surface <- read_ngeo(geometry)
 #'   base_type(surface)
 #' }
+#' @templateVar example_call read_ngeo("sub-01_T1w.nii.gz", format = "nifti")
+#' @template stable-io
 #' @export
 read_ngeo <- function(x = NULL,
                       geometry = NULL,

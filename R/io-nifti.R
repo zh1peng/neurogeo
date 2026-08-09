@@ -91,6 +91,8 @@
 #'   field is retained through 6.x for history compatibility.
 #'
 #' @return An `ngeo_volume` object.
+#' @templateVar example_call read_ngeo_nifti("sub-01_T1w.nii.gz")
+#' @template stable-io
 #' @export
 read_ngeo_nifti <- function(path,
                             mask = NULL,

@@ -7,6 +7,8 @@
 #' @param generated_by Optional generator metadata.
 #'
 #' @return A JSON-ready list.
+#' @templateVar example_call ngeo_bids_sidecar(data, sources = "sub-01/anat/sub-01_T1w.nii.gz")
+#' @template stable-io
 #' @export
 ngeo_bids_sidecar <- function(
     x,
@@ -62,6 +64,8 @@ ngeo_bids_sidecar <- function(
 #' @param ... Passed to the selected writer.
 #'
 #' @return Data and JSON paths.
+#' @templateVar example_call write_ngeo_bids_derivative(data, "derivatives/neurogeo", suffix = "statmap")
+#' @template stable-io
 #' @export
 write_ngeo_bids_derivative <- function(
     x,
