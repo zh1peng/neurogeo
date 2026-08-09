@@ -9,7 +9,7 @@ if (!requireNamespace("digest", quietly = TRUE)) {
 canonical_text_hash <- function(path) {
   bytes <- readBin(path, "raw", n = file.info(path)$size)
   text <- rawToChar(bytes)
-  text <- gsub("\\r\\n?", "\\n", text, perl = TRUE)
+  text <- gsub("\r\n?", "\n", text, perl = TRUE)
   digest::digest(text, algo = "sha256", serialize = FALSE)
 }
 
