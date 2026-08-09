@@ -271,6 +271,12 @@ jobs:
           Rscript tools/run-full-performance.R
           check-output/full-performance-60.json
 
+      - name: Audit frozen VAL-308 coverage
+        run: >-
+          Rscript tools/check-val308-coverage-60.R
+          check-output/val308-coverage-audit-60.json
+          check-output/full-performance-60.json
+
       - name: Verify full-performance artifact
         shell: Rscript {0}
         run: |
@@ -280,10 +286,21 @@ jobs:
           )
           stopifnot(
             identical(result$validation, "passed"),
+            identical(result$full_val308_evidence, FALSE),
             length(result$cases) == 7L
+          )
+          coverage <- jsonlite::read_json(
+            "check-output/val308-coverage-audit-60.json",
+            simplifyVector = TRUE
+          )
+          stopifnot(
+            identical(coverage$validation_evidence, FALSE),
+            identical(coverage$release_gate_satisfied, FALSE)
           )
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: full-performance-60
-          path: check-output/full-performance-60.json
+          path: |
+            check-output/full-performance-60.json
+            check-output/val308-coverage-audit-60.json
