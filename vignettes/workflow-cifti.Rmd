@@ -17,7 +17,7 @@ between structures, computes Moran's I with an explicit zero policy, plots the
 ordered values, writes dscalar CIFTI, and verifies the round trip.
 
 ```{r setup, include=FALSE}
-knitr::read_chunk("inst/tutorial-code/workflow-cifti.R")
+knitr::read_chunk("../inst/tutorial-code/workflow-cifti.R")
 ```
 
 ```{r workflow-cifti}

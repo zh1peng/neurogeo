@@ -18,7 +18,7 @@ a round trip, and inspects history. Moran's I is descriptive for these voxels;
 it is not subject-level inference or a causal effect.
 
 ```{r setup, include=FALSE}
-knitr::read_chunk("inst/tutorial-code/workflow-volume.R")
+knitr::read_chunk("../inst/tutorial-code/workflow-volume.R")
 ```
 
 ```{r workflow-volume}
