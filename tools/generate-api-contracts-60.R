@@ -53,6 +53,11 @@ function_contract <- function(symbol, type) {
     body_text,
     gregexpr("ngeo_(?:error|warning)_[a-z0-9_]+", body_text, perl = TRUE)
   )[[1L]]
+  declared_conditions <- attr(object, "ngeo_condition_classes", exact = TRUE)
+  if (!is.null(declared_conditions) && !is.character(declared_conditions)) {
+    stop("Declared condition classes must be a character vector: ", symbol)
+  }
+  conditions <- c(conditions, declared_conditions)
   if (identical(conditions, character(0))) conditions <- character()
   list(
     symbol = symbol,
