@@ -58,6 +58,9 @@ jobs:
       - name: Stable 6.0 API contract
         run: Rscript tools/run-contract-60-audit.R
 
+      - name: Canonical validation registry
+        run: Rscript tools/check-validation-registry-60.R
+
       - name: Public API lifecycle registry
         run: Rscript tools/check-feature-freeze-60.R
 

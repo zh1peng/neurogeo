@@ -1,71 +1,62 @@
 param(
     [string]$StartAt = "",
-    [string]$Output = "check-output/validation-suite-60.json"
+    [string]$Output = "check-output/validation-suite-60.json",
+    [ValidateSet("all", "smoke", "full", "external", "performance")]
+    [string]$Level = "all"
 )
 
 $ErrorActionPreference = "Stop"
-
-$scripts = @(
-    "tools/run-conformance.R",
-    "tools/validate-external-workflows.R",
-    "tools/run-simulation-validation.R",
-    "tools/run-support-map-conformance.R",
-    "tools/run-support-builder-conformance.R",
-    "tools/validate-support-workflows.R",
-    "tools/run-support-inference-validation.R",
-    "tools/run-support-uncertainty-validation.R",
-    "tools/run-support-inference-23-validation.R",
-    "tools/run-spatial-models-24-validation.R",
-    "tools/run-scalable-io-25-validation.R",
-    "tools/run-execution-26-validation.R",
-    "tools/run-model-uncertainty-27-validation.R",
-    "tools/run-space-graph-28-validation.R",
-    "tools/run-interoperability-29-validation.R",
-    "tools/run-installed-conformance-291.R",
-    "tools/run-schema-30-validation.R",
-    "tools/run-file-backed-31-validation.R",
-    "tools/run-resampling-32-validation.R",
-    "tools/run-spatiotemporal-33-validation.R",
-    "tools/run-iterative-models-34-validation.R",
-    "tools/run-reproducibility-35-validation.R",
-    "tools/run-format-reference-41-validation.R",
-    "tools/run-scientific-validation-42.R",
-    "tools/run-coverage-421.R",
-    "tools/fetch-reference-422.R",
-    "tools/run-real-data-validation-422.R",
-    "tools/run-cartography-43-validation.R",
-    "tools/run-multilayer-45-validation.R",
-    "tools/run-coupling-46-validation.R",
-    "tools/run-group-inference-47-validation.R",
-    "tools/run-support-family-48-validation.R",
-    "tools/run-experimental-49-validation.R",
-    "tools/run-contract-60-audit.R",
-    "tools/fetch-reference-50.R",
-    "tools/run-real-multilayer-50-validation.R",
-    "tools/run-multilayer-50-performance.R",
-    "tools/run-full-performance.R"
-)
-
+$registryPath = "inst/spec/validation-registry-6.0.csv"
+if (-not (Test-Path -LiteralPath $registryPath)) {
+    throw "Missing validation registry: $registryPath"
+}
+$registry = @(Import-Csv -LiteralPath $registryPath)
+if ($Level -ne "all") {
+    $registry = @($registry | Where-Object { $_.level -eq $Level })
+}
 if ($StartAt) {
-    $startIndex = [Array]::IndexOf($scripts, $StartAt)
-    if ($startIndex -lt 0) {
-        throw "Unknown validation script: $StartAt"
+    $startIndex = -1
+    for ($i = 0; $i -lt $registry.Count; $i++) {
+        if ($registry[$i].suite_id -eq $StartAt -or
+            $registry[$i].script -eq $StartAt) {
+            $startIndex = $i
+            break
+        }
     }
-    $scripts = $scripts[$startIndex..($scripts.Count - 1)]
+    if ($startIndex -lt 0) {
+        throw "Unknown validation suite or script: $StartAt"
+    }
+    $registry = @($registry[$startIndex..($registry.Count - 1)])
 }
 
 $started = [DateTime]::UtcNow
 $results = @()
-foreach ($script in $scripts) {
-    Write-Output "Running $script"
+foreach ($entry in $registry) {
+    if (-not (Test-Path -LiteralPath $entry.script)) {
+        throw "Missing registered validation script: $($entry.script)"
+    }
+    Write-Output "Running $($entry.suite_id): $($entry.script)"
+    $scriptArguments = @()
+    if ($entry.arguments) {
+        $scriptArguments = @($entry.arguments -split ';' | Where-Object { $_ })
+    }
     $timer = [System.Diagnostics.Stopwatch]::StartNew()
-    & Rscript.exe $script
+    & Rscript.exe $entry.script @scriptArguments
     $timer.Stop()
     if ($LASTEXITCODE -ne 0) {
-        throw "$script failed with exit code $LASTEXITCODE"
+        throw "$($entry.script) failed with exit code $LASTEXITCODE"
+    }
+    if ($timer.Elapsed.TotalSeconds -gt [double]$entry.timeout_seconds) {
+        throw "$($entry.suite_id) exceeded its registry timeout"
+    }
+    if ($entry.output -and -not (Test-Path -LiteralPath $entry.output)) {
+        throw "$($entry.suite_id) did not create registered output $($entry.output)"
     }
     $results += [ordered]@{
-        script = $script
+        suite_id = $entry.suite_id
+        level = $entry.level
+        script = $entry.script
+        output = $entry.output
         elapsed_seconds = [Math]::Round($timer.Elapsed.TotalSeconds, 3)
         pass = $true
     }
@@ -73,12 +64,17 @@ foreach ($script in $scripts) {
 
 $description = Get-Content -LiteralPath "DESCRIPTION"
 $version = ($description | Where-Object { $_ -match '^Version:' }) -replace '^Version:\s*', ''
+$registrySha = (Get-FileHash -LiteralPath $registryPath -Algorithm SHA256).Hash.ToLowerInvariant()
+$sourceCommit = (& git rev-parse HEAD).Trim()
 $report = [ordered]@{
     schema = "neurogeo/validation-suite-6.0"
     package_version = $version
+    source_commit = $sourceCommit
+    validation_registry_sha256 = $registrySha
     generated_at_utc = [DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")
     started_at_utc = $started.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")
-    scripts = $results
+    level = $Level
+    suites = $results
     pass = $true
 }
 $parent = Split-Path -Parent $Output
