@@ -104,7 +104,10 @@ ngeo_update_measure <- function(
   if (is.na(row)) {
     .ngeo_abort(
       sprintf("Unknown measure ID `%s`.", measure_id),
-      "ngeo_error_measure"
+      "ngeo_error_measure",
+      code = "NGEO_ERROR_MEASURE_UNKNOWN",
+      field = "measure_id",
+      hint = "Choose an ID returned by ngeo_measures(x)$measure_id."
     )
   }
   updates <- list(
@@ -124,11 +127,25 @@ ngeo_update_measure <- function(
       !updates$support_behavior %in% c(
         "unknown", "intensive", "extensive", "count", "categorical"
       )) {
-    .ngeo_abort("Unknown `support_behavior`.", "ngeo_error_measure")
+    .ngeo_abort(
+      "Unknown `support_behavior`.",
+      "ngeo_error_measure",
+      code = "NGEO_ERROR_MEASURE_SUPPORT_BEHAVIOR",
+      field = "support_behavior",
+      hint = paste(
+        "Use one of unknown, intensive, extensive, count, or categorical."
+      )
+    )
   }
   if ("missing_policy" %in% names(updates) &&
       !updates$missing_policy %in% c("preserve", "exclude")) {
-    .ngeo_abort("Unknown `missing_policy`.", "ngeo_error_measure")
+    .ngeo_abort(
+      "Unknown `missing_policy`.",
+      "ngeo_error_measure",
+      code = "NGEO_ERROR_MEASURE_MISSING_POLICY",
+      field = "missing_policy",
+      hint = "Use preserve or exclude."
+    )
   }
   result <- x
   for (field in names(updates)) {

@@ -5,7 +5,13 @@
         "`%s` is required for %s. Install it with install.packages(\"%s\").",
         package, feature, package
       ),
-      "ngeo_error_backend"
+      "ngeo_error_backend",
+      code = "NGEO_ERROR_BACKEND_MISSING",
+      field = package,
+      hint = sprintf(
+        "Run install.packages(\"%s\"), or use the documented native-data fallback.",
+        package
+      )
     )
   }
   invisible(TRUE)
@@ -35,7 +41,10 @@
           basename(path),
           conditionMessage(error)
         ),
-        "ngeo_error_io"
+        "ngeo_error_io",
+        code = "NGEO_ERROR_IO_READ",
+        field = "path",
+        hint = "Verify that the file exists, matches the requested format, and is readable."
       )
     }
   )

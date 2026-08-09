@@ -36,6 +36,11 @@ jobs:
           extra-packages: any::pkgdown
           needs: website
 
+      - name: Verify documentation sources and teaching fixtures
+        run: |
+          Rscript tools/check-documentation-manifest-60.R
+          Rscript tools/check-tutorial-fixtures-60.R
+
       - name: Build API reference
         shell: Rscript {0}
         run: |
@@ -54,6 +59,9 @@ jobs:
         run: |
           npm ci
           npm run docs:build
+
+      - name: Verify documentation artifact identity
+        run: Rscript tools/check-documentation-artifact-60.R
 
       - name: Add pkgdown API reference
         shell: bash

@@ -67,6 +67,16 @@ jobs:
       - name: Stable scientific inference contracts
         run: Rscript tools/check-inference-contracts-60.R
 
+      - name: User-visible condition contracts
+        run: Rscript tools/check-condition-contracts-60.R
+
+      - name: Documentation and teaching corpus freshness
+        run: |
+          Rscript tools/check-documentation-manifest-60.R
+          Rscript tools/check-tutorial-fixtures-60.R
+          Rscript tools/check-quickstart-60.R
+          Rscript tools/check-formative-usability-60.R
+
       - name: Controlled user terminology
         run: Rscript tools/check-user-terminology-60.R
 

@@ -50,6 +50,8 @@ articles:
 - title: English documentation
   navbar: English
   contents:
+  - getting-started
+  - format-workflows
   - multilayer-inference
   - core-concepts
   - reading-data

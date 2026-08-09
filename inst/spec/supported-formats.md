@@ -1,6 +1,10 @@
 # Supported standard formats
 
-Status: reviewed for neurogeo 4.4.2
+Status: reviewed for neurogeo 6.0.0 audit candidate
+
+Installation requirements, audit-environment versions, and unavailable-backend
+fallbacks are maintained in the bilingual installation pages:
+`website/guide/installation.md` and `website/en/guide/installation.md`.
 
 ## Input
 

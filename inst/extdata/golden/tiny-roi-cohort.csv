@@ -1,0 +1,7 @@
+subject_id,group,age_years,roi_A,roi_B,roi_C,roi_D
+sub-01,control,25,2.10,2.34,2.48,2.62
+sub-02,control,31,2.18,2.29,2.55,2.58
+sub-03,control,37,2.06,2.41,2.51,2.67
+sub-04,case,28,1.92,2.17,2.31,2.44
+sub-05,case,34,1.88,2.22,2.27,2.39
+sub-06,case,40,1.83,2.13,2.24,2.35

@@ -1,40 +1,40 @@
 ---
 title: neurogeo
-description: R reference implementation of the Neuroimaging Geoinformatics Core Specification
+description: Auditable spatial data and statistics for neuroimaging
 ---
 
-<img class="ng-home-logo" src="/logo.png" alt="neurogeo logo representing neuroimaging geometry, spatial relations, and measurement">
+<img class="ng-home-logo" src="/logo.png" alt="neurogeo logo">
 
-# neurogeo
+# From neuroimaging files to interpretable spatial results
 
-`neurogeo` is the R reference implementation of the Neuroimaging
-Geoinformatics Core Specification (NGCS).
+`neurogeo` keeps values on vertices, voxels, grayordinates, parcels, or points aligned with spatial identity, measurement semantics, support, and operation history. It begins after preprocessing, registration, or segmentation and supports spatial relations, aggregation, statistical analysis, and reproducible output.
 
-> **6.0 audit status:** public API additions are frozen while correctness,
-> documentation, and release evidence are audited. Surface spin and the Moran
-> eigen-sign surrogate are uncalibrated experimental methods, not stable null
-> inference.
+## What data do you have?
 
-## Object contract
+- **NIfTI / volume:** start with [affine, mask, and voxel units](/en/tutorials/format-workflows#nifti-volume).
+- **GIFTI / FreeSurfer surface:** start with [vertex order, faces, and coordinate roles](/en/tutorials/format-workflows#gifti-or-freesurfer-surface).
+- **CIFTI / grayordinate:** start with [brain models, structures, and components](/en/tutorials/format-workflows#cifti-grayordinate).
+- **ROI × subject/cohort:** start with [parcel base, subject layers, and group design](/en/tutorials/format-workflows#roi-cohort).
 
-```text
-one shared spatial base
-+ one aligned values block
-+ layer metadata
-+ de-duplicated measure definitions
-+ operation history
-```
+Each input reaches its workflow within two clicks. New users should first complete the [15-minute quickstart](/en/tutorials/getting-started).
 
-## Scope
+## What does the package do?
 
-The package provides standard-format input, spatial-base objects, sparse
-spatial weights, spatial statistics, support aggregation, transform graphs,
-and operation history. It does not perform MRI preprocessing, registration,
-segmentation, or surface reconstruction.
+- reads and writes common neuroimaging formats while checking ordered elements;
+- declares topology, distance, spatial weights, and support operators;
+- distinguishes intensive, extensive, count, and categorical measurements;
+- runs spatial statistics, support-aware analyses, and resource-bounded models;
+- records source identity, history, inference contracts, and portable manifests.
 
-## Documentation
+It does not perform MRI preprocessing, registration, segmentation, or surface reconstruction, and it never silently resamples incompatible spaces.
 
-- [Installation and basic use](/en/guide/)
-- [Analysis workflows](/en/tutorials/)
-- [Module index](/en/modules/)
-- [Function reference](/api/reference/)
+## Choose a documentation type
+
+- [Installation and first run](/en/guide/)
+- [Tutorial paths](/en/tutorials/)
+- [User glossary](/en/glossary/)
+- [Methods, assumptions, and limitations](/en/modules/)
+- [API reference](/api/reference/)
+- [简体中文](/)
+
+> **Inference status:** surface spin and the Moran eigen-sign surrogate remain uncalibrated opt-in experimental methods. They are not stable null inference before preregistered type-I and power validation.

@@ -1,38 +1,34 @@
 ---
 title: 教程路线
-description: 按数据格式和研究任务选择教程
+description: 按学习阶段和神经影像输入选择可执行教程
 ---
 
 # 教程路线
 
-第一次使用时，建议先完成[安装与第一个空间分析](/guide/)，再按自己的输入
-数据进入对应路线。
+## 第一次使用
 
-## 按数据格式
+1. [安装与第一次运行](/guide/)
+2. [15 分钟快速开始](/tutorials/getting-started)
+3. [按 NIfTI、surface、CIFTI 或 ROI/cohort 选择工作流](/tutorials/format-workflows)
 
-- **NIfTI / volume**：读取体素网格、检查 affine 与单位、处理 mask，再建立
-  voxel 邻接或 world-space 距离；
-- **GIFTI / FreeSurfer surface**：区分 anatomical、registration 和
-  visualization coordinates，检查 faces 与 component，再使用 geodesic 距离；
-- **CIFTI / grayordinate**：先检查 brain model、structure 和 surface/volume
-  component，禁止跨结构的隐式距离；
-- **ROI / cohort matrix**：一个稳定 parcel base 对应多名被试的 layers，
-  `measure_id` 连接去重后的测量定义。
+## 理解对象
 
-当前可运行的格式示例见[格式工作流](/tutorials/format-workflows)，完整的
-15 分钟双语 quickstart 与许可固定的教学数据正在按 6.0 审计计划重建。
+- [base、values、layer 与 measure](/modules/core-concepts)
+- [用户术语表](/glossary/)
+- [质量控制](/modules/quality-control)
 
-## 按任务
+## 构造空间关系
 
-1. [读取真实数据](/modules/reading-data)
-2. [核心对象与语义](/modules/core-concepts)
-3. [邻居、距离与空间权重](/modules/neighbors-and-weights)
-4. [分区与聚合](/modules/parcellation-and-aggregation)
-5. [support 转换](/modules/change-of-support)
-6. [空间模型](/modules/spatial-modelling)
+- [邻接、距离与空间权重](/modules/neighbors-and-weights)
+- [分区与聚合](/modules/parcellation-and-aggregation)
+- [空间 support 转换](/modules/change-of-support)
+- [显式 transform 重采样](/modules/transform-aware-resampling)
 
-## 推断安全提示
+## 分析与解释
 
-surface spin 和 Moran eigen-sign surrogate 目前是
-`experimental_uncalibrated`。它们要求显式 opt-in，仅用于方法评估；在完成
-预注册 type-I/power 校准前，不应把输出解释为稳定 p 值或 null inference。
+- [Support uncertainty](/modules/support-uncertainty)
+- [Support-aware inference](/modules/support-aware-inference)
+- [空间模型](/modules/spatial-modelling)
+- [时空分析](/modules/spatiotemporal-analysis)
+
+每篇稳定科学教程都应说明 estimand、sampling unit、null、metric、support 和 uncertainty target。实验方法单独标记，不与稳定入口混排。

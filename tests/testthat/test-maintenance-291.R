@@ -21,14 +21,14 @@ test_that("installed conformance resources are self-contained", {
   )
 })
 
-test_that("installed format inventory matches implemented 2.9 capabilities", {
+test_that("installed format inventory matches reviewed 6.0 capabilities", {
   formats_path <- system.file(
     "spec", "supported-formats.md", package = "neurogeo"
   )
   formats <- paste(readLines(formats_path, warn = FALSE), collapse = "\n")
 
   expect_match(
-    formats, "Status: reviewed for neurogeo 4.4.2", fixed = TRUE
+    formats, "Status: reviewed for neurogeo 6.0.0 audit candidate", fixed = TRUE
   )
   expect_match(formats, "pure-R CIFTI-2 writer", fixed = TRUE)
   expect_match(formats, "NGCS support map schema 2", fixed = TRUE)

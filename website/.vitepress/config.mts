@@ -4,95 +4,76 @@ const repository = 'https://github.com/zh1peng/neurogeo'
 
 const zhTheme = {
   logo: '/logo.png',
+  nav: [
+    { text: '开始', link: '/guide/' },
+    { text: '教程', link: '/tutorials/' },
+    { text: '方法与假设', link: '/modules/' },
+    { text: 'API', link: '/api/reference/' }
+  ],
   sidebar: [
     {
-      text: '概览',
+      text: '从这里开始',
       items: [
         { text: '软件包概览', link: '/' },
-        { text: '安装与基本用法', link: '/guide/' },
-        { text: 'NGCS 数据模型', link: '/concepts/' }
+        { text: '安装与第一次运行', link: '/guide/' },
+        { text: '安装、版本与可选后端', link: '/guide/installation' },
+        { text: '15 分钟快速开始', link: '/tutorials/getting-started' },
+        { text: '按数据格式选择入口', link: '/tutorials/format-workflows' },
+        { text: '核心概念', link: '/concepts/' },
+        { text: '用户术语表', link: '/glossary/' }
       ]
     },
     {
-      text: '中文工作流',
-      items: [
-        { text: '工作流索引', link: '/tutorials/' },
-        { text: "点数据与 Moran's I", link: '/tutorials/getting-started' },
-        { text: '格式 I/O 与验证', link: '/tutorials/format-workflows' }
-      ]
-    },
-    {
-      text: '数据模型与 I/O',
+      text: '读取、检查与写出',
       collapsed: true,
       items: [
-        { text: '功能模块索引', link: '/modules/' },
-        { text: '核心概念与对象契约', link: '/modules/core-concepts' },
         { text: '读取神经影像数据', link: '/modules/reading-data' },
-        { text: 'Schema 验证与 manifest', link: '/modules/schema-validation' },
-        { text: '统一科学质量控制', link: '/modules/quality-control' },
+        { text: '对象与测量语义', link: '/modules/core-concepts' },
+        { text: '质量控制', link: '/modules/quality-control' },
         { text: '皮层二维地图', link: '/modules/cortical-cartography' },
-        { text: '互操作与可审计交换', link: '/modules/interoperability' },
-        { text: '可扩展 I/O', link: '/modules/scalable-io' },
-        { text: '文件后端 values', link: '/modules/file-backed-io' }
+        { text: '互操作与交换', link: '/modules/interoperability' },
+        { text: '可扩展与文件后端 I/O', link: '/modules/scalable-io' }
       ]
     },
     {
       text: '空间关系与 support',
       collapsed: true,
       items: [
-        { text: '邻接关系与空间权重', link: '/modules/neighbors-and-weights' },
+        { text: '邻接、距离与空间权重', link: '/modules/neighbors-and-weights' },
         { text: '分区与聚合', link: '/modules/parcellation-and-aggregation' },
-        { text: '空间支持变换', link: '/modules/change-of-support' },
+        { text: '空间 support 转换', link: '/modules/change-of-support' },
         { text: '真实数据 support mapping', link: '/modules/real-world-support-mapping' },
-        { text: '显式 transform resampling', link: '/modules/transform-aware-resampling' },
+        { text: '显式 transform 重采样', link: '/modules/transform-aware-resampling' },
         { text: '空间与 transform path', link: '/modules/space-transform-graph' }
       ]
     },
     {
-      text: '推断与模型',
+      text: '统计、推断与模型',
       collapsed: true,
       items: [
         { text: 'Support uncertainty', link: '/modules/support-uncertainty' },
         { text: 'Support-aware inference', link: '/modules/support-aware-inference' },
-        { text: '多图层数据与严格索引', link: '/modules/multilayer-data' },
-        { text: '固定空间基', link: '/modules/spatial-basis' },
-        { text: '多尺度图层耦合', link: '/modules/layer-coupling' },
-        { text: '受试者组间推断', link: '/modules/group-inference' },
-        { text: '跨 support 共同推断', link: '/modules/support-family-inference' },
-        { text: '参考图与受试者 null', link: '/modules/reference-vs-subject-inference' },
-        { text: '实验方法边界', link: '/modules/advanced-spatial-methods' },
-        { text: '有界空间建模', link: '/modules/spatial-modelling' },
-        { text: '空间模型不确定性', link: '/modules/model-uncertainty' },
-        { text: '迭代空间模型', link: '/modules/iterative-spatial-models' },
-        { text: '时间与时空分析', link: '/modules/spatiotemporal-analysis' }
+        { text: '多 layer 与组水平推断', link: '/modules/group-inference' },
+        { text: '空间模型', link: '/modules/spatial-modelling' },
+        { text: '模型不确定性', link: '/modules/model-uncertainty' },
+        { text: '时空分析', link: '/modules/spatiotemporal-analysis' },
+        { text: '实验方法边界', link: '/modules/advanced-spatial-methods' }
       ]
     },
     {
-      text: '执行与复现',
+      text: '验证与复现',
       collapsed: true,
       items: [
-        { text: '有界科学计算', link: '/modules/bounded-execution' },
-        { text: '可审计 replay', link: '/modules/reproducible-replay' }
-      ]
-    },
-    {
-      text: '参考',
-      items: [
-        { text: '函数参考', link: '/api/reference/' }
+        { text: 'Schema 与 manifest', link: '/modules/schema-validation' },
+        { text: '有界执行', link: '/modules/bounded-execution' },
+        { text: '可审计 replay', link: '/modules/reproducible-replay' },
+        { text: '全部模块索引', link: '/modules/' }
       ]
     }
   ],
-  outline: {
-    level: [2, 3],
-    label: '本页内容'
-  },
-  docFooter: {
-    prev: '上一篇',
-    next: '下一篇'
-  },
-  lastUpdated: {
-    text: '最后更新'
-  },
+  outline: { level: [2, 3], label: '本页内容' },
+  docFooter: { prev: '上一篇', next: '下一篇' },
+  lastUpdated: { text: '最后更新' },
   editLink: {
     pattern: `${repository}/edit/main/:path`,
     text: '在 GitHub 上编辑此页'
@@ -105,21 +86,30 @@ const zhTheme = {
 
 const enTheme = {
   logo: '/logo.png',
+  nav: [
+    { text: 'Start', link: '/en/guide/' },
+    { text: 'Tutorials', link: '/en/tutorials/' },
+    { text: 'Methods & assumptions', link: '/en/modules/' },
+    { text: 'API', link: '/api/reference/' }
+  ],
   sidebar: [
     {
-      text: 'Overview',
+      text: 'Start here',
       items: [
         { text: 'Package overview', link: '/en/' },
-        { text: 'Installation and basic use', link: '/en/guide/' },
-        { text: 'Module index', link: '/en/modules/' }
+        { text: 'Installation and first run', link: '/en/guide/' },
+        { text: 'Installation and backends', link: '/en/guide/installation' },
+        { text: '15-minute quickstart', link: '/en/tutorials/getting-started' },
+        { text: 'Choose by data format', link: '/en/tutorials/format-workflows' },
+        { text: 'Core concepts', link: '/en/tutorials/core-concepts' },
+        { text: 'User glossary', link: '/en/glossary/' }
       ]
     },
     {
-      text: 'Data model and I/O',
+      text: 'Read inspect and write',
+      collapsed: true,
       items: [
-        { text: 'Core concepts', link: '/en/tutorials/core-concepts' },
-        { text: 'Reading data', link: '/en/tutorials/reading-data' },
-        { text: 'Schema validation', link: '/en/modules/schema-validation' },
+        { text: 'Reading neuroimaging data', link: '/en/tutorials/reading-data' },
         { text: 'Quality control', link: '/en/modules/quality-control' },
         { text: 'Cortical cartography', link: '/en/modules/cortical-cartography' },
         { text: 'Interoperability', link: '/en/modules/interoperability' },
@@ -129,6 +119,7 @@ const enTheme = {
     },
     {
       text: 'Spatial relations and support',
+      collapsed: true,
       items: [
         { text: 'Neighbors and weights', link: '/en/tutorials/neighbors-and-weights' },
         { text: 'Parcellation and aggregation', link: '/en/tutorials/parcellation-and-aggregation' },
@@ -139,65 +130,54 @@ const enTheme = {
       ]
     },
     {
-      text: 'Inference and models',
+      text: 'Statistics inference and models',
+      collapsed: true,
       items: [
         { text: 'Support uncertainty', link: '/en/modules/support-uncertainty' },
         { text: 'Support-aware inference', link: '/en/modules/support-aware-inference' },
-        { text: 'Multilayer spatial inference', link: '/en/modules/multilayer-inference' },
+        { text: 'Multilayer inference', link: '/en/modules/multilayer-inference' },
         { text: 'Spatial modelling', link: '/en/tutorials/spatial-modelling' },
         { text: 'Model uncertainty', link: '/en/modules/model-uncertainty' },
-        { text: 'Iterative spatial models', link: '/en/modules/iterative-spatial-models' },
         { text: 'Spatiotemporal analysis', link: '/en/modules/spatiotemporal-analysis' }
       ]
     },
     {
-      text: 'Execution and reproducibility',
+      text: 'Validation and reproducibility',
+      collapsed: true,
       items: [
+        { text: 'Schema and manifests', link: '/en/modules/schema-validation' },
         { text: 'Bounded execution', link: '/en/modules/bounded-execution' },
-        { text: 'Reproducible replay', link: '/en/modules/reproducible-replay' }
-      ]
-    },
-    {
-      text: 'Reference',
-      items: [
-        { text: 'Function reference', link: '/api/reference/' }
+        { text: 'Auditable replay', link: '/en/modules/reproducible-replay' },
+        { text: 'All modules', link: '/en/modules/' }
       ]
     }
   ],
-  outline: {
-    level: [2, 3],
-    label: 'On this page'
+  outline: { level: [2, 3], label: 'On this page' },
+  editLink: {
+    pattern: `${repository}/edit/main/:path`,
+    text: 'Edit this page on GitHub'
   }
 }
 
 export default defineConfig({
   title: 'neurogeo',
-  description: '神经影像空间数据与空间统计的可复现分析工具',
+  description: 'Auditable spatial data and statistics for neuroimaging',
   base: '/neurogeo/',
   cleanUrls: true,
   lastUpdated: true,
   ignoreDeadLinks: [/^\/api\//],
-  markdown: {
-    math: true
-  },
+  markdown: { math: true },
   head: [
     ['meta', { name: 'theme-color', content: '#176b63' }],
-    ['link', {
-      rel: 'icon',
-      type: 'image/png',
-      href: '/neurogeo/favicon.png'
-    }],
-    ['link', {
-      rel: 'apple-touch-icon',
-      href: '/neurogeo/logo.png'
-    }]
+    ['link', { rel: 'icon', type: 'image/png', href: '/neurogeo/favicon.png' }],
+    ['link', { rel: 'apple-touch-icon', href: '/neurogeo/logo.png' }]
   ],
   locales: {
     root: {
       label: '简体中文',
       lang: 'zh-CN',
       title: 'neurogeo',
-      description: 'Neuroimaging Geoinformatics Core Specification 的 R 参考实现',
+      description: '面向神经影像空间数据与空间统计的可审计 R 工具包',
       themeConfig: zhTheme
     },
     en: {
@@ -205,16 +185,12 @@ export default defineConfig({
       lang: 'en',
       link: '/en/',
       title: 'neurogeo',
-      description: 'R reference implementation of the Neuroimaging Geoinformatics Core Specification',
+      description: 'Auditable spatial data and statistics for neuroimaging',
       themeConfig: enTheme
     }
   },
   themeConfig: {
-    search: {
-      provider: 'local'
-    },
-    socialLinks: [
-      { icon: 'github', link: repository }
-    ]
+    search: { provider: 'local' },
+    socialLinks: [{ icon: 'github', link: repository }]
   }
 })

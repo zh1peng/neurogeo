@@ -2,7 +2,10 @@
 title: "Multilayer spatial inference"
 outline: [2, 3]
 editLink: false
+sourceSha256: "6809dcdc1587cad2c8b49d613a5dd12d80af651da9bbfaf5ab9c83224bb785e1"
 ---
+
+**Edit source:** [Edit on GitHub](https://github.com/zh1peng/neurogeo/edit/main/vignettes/multilayer-inference.Rmd)
 
 
 ## Scientific question and data contract

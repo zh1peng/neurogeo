@@ -1,0 +1,6 @@
+scenario,parent_class,code,field,hint_contract
+missing_backend,ngeo_error_backend,NGEO_ERROR_BACKEND_MISSING,package,install package or use native-data fallback
+invalid_scalar_character,ngeo_error_argument,NGEO_ERROR_ARGUMENT_SCALAR_CHARACTER,argument,supply one non-missing non-empty character value
+missing_layer_metadata,ngeo_error_layer_metadata,NGEO_ERROR_LAYER_METADATA_MISSING,layers,add metadata or choose existing columns
+unknown_measure,ngeo_error_measure,NGEO_ERROR_MEASURE_UNKNOWN,measure_id,choose an existing measure ID
+failed_reader,ngeo_error_io,NGEO_ERROR_IO_READ,path,verify existence format and readability

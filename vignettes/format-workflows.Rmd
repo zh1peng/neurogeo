@@ -1,0 +1,107 @@
+---
+title: "Choose a workflow: NIfTI, surface, CIFTI, or ROI/cohort"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Choose a workflow: NIfTI, surface, CIFTI, or ROI/cohort}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## Choose from the spatial element—not the filename alone
+
+Use this page after the [15-minute quickstart](/en/tutorials/getting-started). A filename tells you its container format; the analysis base tells you what one row means.
+
+| Your rows represent | Typical input | Base | First checks |
+|---|---|---|---|
+| voxels | NIfTI | volume | dimensions, affine, mask, physical unit |
+| surface vertices | GIFTI or FreeSurfer | surface | vertex order, faces, coordinate role |
+| mixed brain models | CIFTI | grayordinate | component order, structure, vertex/voxel index |
+| parcels × subjects | CSV/TSV | parcellation plus subject layers | region IDs, subject IDs, measure semantics |
+
+The installed teaching corpus has one CC0 fixture for each route:
+
+```{r corpus}
+corpus_path <- system.file(
+  "extdata", "tutorial-fixtures-6.0.csv",
+  package = "neurogeo",
+  mustWork = TRUE
+)
+corpus <- read.csv(corpus_path)
+corpus[c("fixture_id", "format", "workflow", "size_bytes", "sha256")]
+```
+
+## NIfTI / volume
+
+Start with the affine, not a screenshot. Equal array dimensions do not imply the same coordinate space.
+
+```{r nifti-path}
+nifti_path <- system.file(
+  "extdata", "golden", "tiny.nii.gz",
+  package = "neurogeo", mustWork = TRUE
+)
+nifti_path
+```
+
+Continue to [reading neuroimaging data](/en/tutorials/reading-data) for the reader and post-import checklist. Report the chosen world-space distance and verified spatial unit.
+
+## GIFTI or FreeSurfer / surface
+
+A surface needs both ordered vertex coordinates and triangular faces. Anatomical coordinates may define a metric; registration and visualization coordinates must not silently do so.
+
+```{r surface-path}
+surface_path <- system.file(
+  "extdata", "golden", "tetra.surf.gii",
+  package = "neurogeo", mustWork = TRUE
+)
+surface_path
+```
+
+Continue to [neighbors and weights](/en/tutorials/neighbors-and-weights) after verifying faces, components, coordinate roles, and masks.
+
+## CIFTI / grayordinate
+
+A grayordinate row belongs to an ordered brain model. It may refer to a cortical vertex or a subcortical voxel; there is no valid implicit distance across structures.
+
+```{r cifti-path}
+cifti_path <- system.file(
+  "extdata", "golden", "tiny.dscalar.nii",
+  package = "neurogeo", mustWork = TRUE
+)
+cifti_path
+```
+
+Check every component's structure and source indices. Surface distance also requires matching surface geometry; the CIFTI scalar array alone does not provide it.
+
+## ROI × cohort
+
+Keep region support separate from independent subjects. Regions define the spatial base; subjects normally belong in the layer table or group-design object rather than being treated as spatial neighbors.
+
+```{r roi-path}
+roi_path <- system.file(
+  "extdata", "golden", "tiny-roi-cohort.csv",
+  package = "neurogeo", mustWork = TRUE
+)
+roi_cohort <- read.csv(roi_path)
+roi_cohort
+```
+
+Before group inference, declare the independent unit and exchangeability schedule. Do not treat several atlases derived from the same subjects as independent studies.
+
+## What all four routes share
+
+Every workflow should reach the same checkpoints:
+
+1. read from a real immutable source;
+2. inspect ordered elements and values;
+3. confirm coordinate space and measurement semantics;
+4. run strict validation and QC;
+5. declare metric, support, and null explicitly;
+6. inspect `ngeo_inference_contract()` for a scientific result;
+7. write output with history and source identity.
+
+The format-specific end-to-end tutorials expand these checkpoints without changing the core object model.
