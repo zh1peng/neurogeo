@@ -49,6 +49,7 @@ route_target <- function(route) {
 
 replace_front_matter <- function(path, document) {
   lines <- readLines(path, encoding = "UTF-8", warn = FALSE)
+  lines <- sub("[[:space:]]+$", "", lines)
   output_dir <- normalizePath(dirname(path), winslash = "/", mustWork = TRUE)
   lines <- gsub(paste0(output_dir, "/"), "./", lines, fixed = TRUE)
   math_fence <- FALSE

@@ -212,7 +212,7 @@ local_result <- ngeo_local_moran(
 local_result[c("element_id", "local_i", "p.adjusted", "cluster")]
 #> <ngeo_lisa>
 #>   observations: 9
-#>   layer: 
+#>   layer:
 #>   permutations:
 ```
 
@@ -225,18 +225,18 @@ ngeo_history(point_data)$operations
 #> [[1]]
 #> [[1]]$operation
 #> [1] "ngeo_point"
-#> 
+#>
 #> [[1]]$software
 #> [[1]]$software$package
 #> [1] "neurogeo"
-#> 
+#>
 #> [[1]]$software$version
 #> [1] "6.0.0"
-#> 
-#> 
+#>
+#>
 #> [[1]]$timestamp_utc
-#> [1] "2026-08-09T10:33:46Z"
-#> 
+#> [1] "2026-08-09T10:38:57Z"
+#>
 #> [[1]]$parameters
 #> [[1]]$parameters$source_index_base
 #> [1] 1
