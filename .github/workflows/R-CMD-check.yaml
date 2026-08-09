@@ -93,6 +93,7 @@ jobs:
           Rscript tools/check-validation-registry-60.R
           Rscript tools/check-supply-chain-60.R
           Rscript tools/check-package-boundary-60.R
+          Rscript tools/check-complexity-60.R
           Rscript tools/check-release-readiness-60.R
 
       - name: Public API lifecycle registry
