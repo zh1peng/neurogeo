@@ -59,7 +59,8 @@ prediction variance 一起解释。
 
 ```{r}
 bandwidth <- ngeo_gwr_bandwidth(
-  x, "response", "predictor", candidates = c(1.5, 2.5, 4.5)
+  x, "response", "predictor", candidates = c(1.5, 2.5, 4.5),
+  cv = "kfold", folds = 5L
 )
 gwr <- ngeo_gwr(x, "response", "predictor", bandwidth)
 gwr[, c("element_id", "fitted", "condition_number")]
@@ -67,6 +68,8 @@ gwr[, c("element_id", "fitted", "condition_number")]
 
 local coefficient 或 fitted value 必须与 condition number、effective sample
 size 和 bandwidth 敏感性一起检查。
+`cv = "kfold"` 使用按 element ID 记录的空间连续验证块，不再按输入行号取模分折；
+因此同一个 base 改变行顺序不会改变 CV loss 或选择的 bandwidth。
 
 ## SAR 与 CAR
 

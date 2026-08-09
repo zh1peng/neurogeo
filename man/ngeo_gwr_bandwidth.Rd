@@ -2,7 +2,7 @@
 % Please edit documentation in R/spatial-models.R
 \name{ngeo_gwr_bandwidth}
 \alias{ngeo_gwr_bandwidth}
-\title{Select a GWR bandwidth by leave-one-out or deterministic k-fold CV}
+\title{Select a GWR bandwidth by leave-one-out or spatial-block CV}
 \usage{
 ngeo_gwr_bandwidth(
   x,
@@ -28,15 +28,15 @@ ngeo_gwr_bandwidth(
 
 \item{kernel}{Gaussian or compact bisquare kernel.}
 
-\item{cv}{Leave-one-out or k-fold.}
+\item{cv}{Leave-one-out or spatial k-fold.}
 
-\item{folds}{Number of deterministic folds.}
+\item{folds}{Number of deterministic spatial folds.}
 }
 \value{
 An `ngeo_gwr_bandwidth`.
 }
 \description{
-Select a GWR bandwidth by leave-one-out or deterministic k-fold CV
+Select a GWR bandwidth by leave-one-out or spatial-block CV
 }
 \section{When to use and limitations}{
 

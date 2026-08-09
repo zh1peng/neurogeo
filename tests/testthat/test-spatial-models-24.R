@@ -80,6 +80,41 @@ test_that("GWR bandwidth selection and local fits recover a linear field", {
   expect_true(all(is.finite(fit$condition_number)))
 })
 
+test_that("GWR spatial-block CV is invariant to element row order", {
+  coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
+  predictor <- coordinates[, 1L] - 0.5 * coordinates[, 2L]
+  response <- 1 + 1.5 * predictor + sin(coordinates[, 1L])
+  x <- ngeo_point(
+    coordinates,
+    values = cbind(response = response, predictor = predictor)
+  )
+  original <- ngeo_gwr_bandwidth(
+    x, "response", "predictor", candidates = c(1.5, 2.5, 4),
+    distance_method = "euclidean", cv = "kfold", folds = 5L
+  )
+  element_id <- x$base$elements$element_id
+  reordered_x <- ngeo_subset(x, elements = rev(element_id))
+  reordered <- ngeo_gwr_bandwidth(
+    reordered_x, "response", "predictor", candidates = c(1.5, 2.5, 4),
+    distance_method = "euclidean", cv = "kfold", folds = 5L
+  )
+  expect_identical(
+    original$fold_method, "farthest-seed spatial Voronoi blocks"
+  )
+  expect_equal(original$bandwidth, reordered$bandwidth)
+  expect_equal(original$candidates, reordered$candidates, tolerance = 1e-12)
+  expect_identical(
+    original$fold_id[element_id], reordered$fold_id[element_id]
+  )
+  expect_error(
+    ngeo_gwr_bandwidth(
+      x, "response", "predictor", candidates = 2.5,
+      distance_method = "euclidean", cv = "kfold", folds = 1L
+    ),
+    class = "ngeo_error_argument"
+  )
+})
+
 test_that("SAR and SEM likelihoods recover small direct simulations", {
   fixture <- model_grid()
   weight <- as.matrix(fixture$spatial_weights$matrix)

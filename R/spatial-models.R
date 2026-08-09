@@ -477,11 +477,11 @@ ngeo_kriging <- function(
   result
 }
 
-#' Select a GWR bandwidth by leave-one-out or deterministic k-fold CV
+#' Select a GWR bandwidth by leave-one-out or spatial-block CV
 #'
 #' @param candidates Positive bandwidth candidates.
-#' @param cv Leave-one-out or k-fold.
-#' @param folds Number of deterministic folds.
+#' @param cv Leave-one-out or spatial k-fold.
+#' @param folds Number of deterministic spatial folds.
 #' @inheritParams ngeo_kernel_regression
 #'
 #' @return An `ngeo_gwr_bandwidth`.
@@ -527,8 +527,16 @@ ngeo_gwr_bandwidth <- function(
     to = seq_len(nrow(design)),
     distance_method = metric_name
   ))
-  folds <- if (cv == "loo") seq_len(nrow(design)) else
-    ((seq_len(nrow(design)) - 1L) %% .ngeo_as_integer(folds, "folds")) + 1L
+  fold_method <- if (cv == "loo") "leave-one-out" else
+    "farthest-seed spatial Voronoi blocks"
+  folds <- if (cv == "loo") {
+    seq_len(nrow(design))
+  } else {
+    .ngeo_spatial_cv_folds(
+      distances, .ngeo_as_integer(folds, "folds"),
+      x$base$elements$element_id
+    )
+  }
   score <- vapply(candidates, function(bandwidth) {
     error <- numeric(nrow(design))
     for (i in seq_len(nrow(design))) {
@@ -559,12 +567,45 @@ ngeo_gwr_bandwidth <- function(
     candidates = data.frame(bandwidth = candidates, rmse = score),
     cv = cv,
     folds = if (cv == "loo") nrow(design) else length(unique(folds)),
+    fold_method = fold_method,
+    fold_id = stats::setNames(folds, x$base$elements$element_id),
     distance_method = metric_name,
     kernel = kernel,
     base_hash = base_hash(x)
   )
   class(result) <- "ngeo_gwr_bandwidth"
   result
+}
+
+.ngeo_spatial_cv_folds <- function(distance, folds, element_id) {
+  n <- nrow(distance)
+  if (!is.matrix(distance) || ncol(distance) != n ||
+      length(element_id) != n || anyNA(distance) ||
+      any(distance < 0) || anyNA(element_id) || anyDuplicated(element_id)) {
+    .ngeo_abort(
+      "Spatial CV requires one valid distance matrix and unique element IDs.",
+      "ngeo_error_alignment"
+    )
+  }
+  if (length(folds) != 1L || folds < 2L || folds >= n) {
+    .ngeo_abort(
+      "Spatial k-fold CV requires `folds` between two and n - 1.",
+      "ngeo_error_argument"
+    )
+  }
+  stable_order <- order(as.character(element_id), method = "radix")
+  seeds <- stable_order[[1L]]
+  while (length(seeds) < folds) {
+    nearest <- apply(distance[, seeds, drop = FALSE], 1L, min)
+    nearest[seeds] <- -Inf
+    candidates <- which(nearest == max(nearest))
+    seeds <- c(seeds, candidates[order(
+      match(candidates, stable_order), method = "radix"
+    )][[1L]])
+  }
+  apply(distance[, seeds, drop = FALSE], 1L, function(row) {
+    which(row == min(row))[[1L]]
+  })
 }
 
 #' Fit geographically weighted regression with conditioning diagnostics

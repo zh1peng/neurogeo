@@ -75,11 +75,16 @@ plot(empirical, pch = 21, bg = "#26a69a", col = "white", cex = 1.5)
 ```{r}
 bandwidth <- ngeo_gwr_bandwidth(
   x, "response", "predictor",
-  candidates = c(1.5, 2.5, 4.5)
+  candidates = c(1.5, 2.5, 4.5),
+  cv = "kfold", folds = 5L
 )
 gwr <- ngeo_gwr(x, "response", "predictor", bandwidth)
 gwr[, c("element_id", "fitted", "condition_number")]
 ```
+
+`cv = "kfold"` constructs spatially contiguous, element-ID keyed validation
+blocks. It does not assign folds from row position. Reordering the same base
+therefore cannot change the selected bandwidth or CV loss.
 
 ```{r gwr-diagnostics, fig.width=8, fig.height=4.5, fig.alt="Maps of GWR fitted values and condition numbers over the five by five grid", fig.cap="Fitted values must be read together with local numerical diagnostics."}
 old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
