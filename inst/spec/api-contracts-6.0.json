@@ -694,8 +694,8 @@
         "budget": "ngeo_resource_budget()",
         "unit_kind": "c(\"subject\", \"site\", \"spatial_block\", \"map_null\")"
       },
-      "condition_classes": ["ngeo_error_argument", "ngeo_error_exchangeability"],
-      "documentation_sha256": "193620ad68d91971f944e0277fe43d5495b390ed073bae2a230e1f6d35b9f065"
+      "condition_classes": ["ngeo_error_argument", "ngeo_error_exchangeability", "ngeo_error_exchangeability_design"],
+      "documentation_sha256": "1c37de3d62208d66815318dc7980d489155421986d309130eadc1a03fb0f9407"
     },
     "ngeo_export_history": {
       "symbol": "ngeo_export_history",

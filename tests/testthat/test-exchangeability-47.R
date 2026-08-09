@@ -41,6 +41,19 @@ test_that("sampling-unit kind is explicit and map nulls are separate", {
   )
 })
 
+test_that("free and sign-flip schedules cannot silently ignore blocks", {
+  ids <- paste0("s", 1:6)
+  blocks <- rep(c("site_a", "site_b"), each = 3L)
+  expect_error(
+    ngeo_exchangeability(ids, scheme = "free", blocks = blocks),
+    class = "ngeo_error_exchangeability_design"
+  )
+  expect_error(
+    ngeo_exchangeability(ids, scheme = "sign_flip", blocks = blocks),
+    class = "ngeo_error_exchangeability_design"
+  )
+})
+
 test_that("within-block schedules never cross blocks", {
   ids <- paste0("s", 1:8)
   blocks <- rep(c("site-a", "site-b"), each = 4L)

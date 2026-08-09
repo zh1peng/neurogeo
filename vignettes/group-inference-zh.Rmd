@@ -122,3 +122,9 @@ single-step family-wise error。
 heteroscedasticity、family/twin exchangeability tree 或 repeated-session mixed model。
 复杂设计应由外部工具生成合法 user schedule；重复 session 必须先变为一个受试者
 summary 或 paired contrast。
+
+如果 site、family 或其他已知结构限制了可交换性，应使用 `scheme = "within_block"`
+并把该结构传给 `blocks`，或提供经过验证且不跨 block 的 user schedule。VAL-303 在
+site-confounded 设计中发现 free residual permutation 的 type-I error 偏高；因此把
+`blocks` 与 `scheme = "free"` 或 `"sign_flip"` 同时传入会报错，不会静默忽略 block。
+软件只能检查声明的结构，不能从 ID 名称判断用户声明的生物学采样单位是否真实。

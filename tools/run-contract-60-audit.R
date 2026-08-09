@@ -27,7 +27,7 @@ expected_formals <- list(
   ngeo_spatial_basis = c("x", "spatial_weights", "operator", "coordinates", "support", "n_modes", "components", "symmetrize", "tolerance", "budget"),
   ngeo_basis_project = c("x", "basis", "index", "layers", "bands", "center", "scale", "summaries", "chunk_rows", "chunk_layers"),
   ngeo_layer_coupling = c("x", "index", "pairs", "basis", "bands", "spatial_weights", "estimands", "lag_direction", "energy_floor", "null", "chunk_layers"),
-  ngeo_exchangeability = c("unit_id", "scheme", "blocks", "schedule", "permutations", "seed", "budget"),
+  ngeo_exchangeability = c("unit_id", "scheme", "blocks", "schedule", "permutations", "seed", "budget", "unit_kind"),
   ngeo_group_test = c("features", "data", "model", "test", "exchangeability", "family", "transform", "adjustment", "omnibus", "missing", "retain_null", "workers", "budget")
 )
 exports <- getNamespaceExports("neurogeo")
