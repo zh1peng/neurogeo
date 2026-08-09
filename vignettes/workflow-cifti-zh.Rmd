@@ -16,7 +16,9 @@ QC，建立不会跨 structure 连边的 component-contiguity weights，以显�
 policy 计算 Moran's I，绘制有序数值，写出 dscalar CIFTI 并验证 round trip。
 
 ```{r setup, include=FALSE}
-knitr::read_chunk("../inst/tutorial-code/workflow-cifti.R")
+knitr::read_chunk(system.file(
+  "tutorial-code", "workflow-cifti.R", package = "neurogeo"
+))
 ```
 
 ```{r workflow-cifti}

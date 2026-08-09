@@ -18,7 +18,9 @@ and exports redacted history. This six-subject fixture demonstrates data shape;
 it cannot support a population or clinical claim.
 
 ```{r setup, include=FALSE}
-knitr::read_chunk("../inst/tutorial-code/workflow-roi-cohort.R")
+knitr::read_chunk(system.file(
+  "tutorial-code", "workflow-roi-cohort.R", package = "neurogeo"
+))
 ```
 
 ```{r workflow-roi-cohort}
