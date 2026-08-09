@@ -59,7 +59,7 @@ utils::untar(archive, exdir = snapshot)
 run(
   r_binary,
   c(
-    "CMD", "build", snapshot, "--no-build-vignettes", "--no-manual",
+    "CMD", "build", snapshot, "--no-manual",
     "--no-resave-data"
   ),
   wd = build_path
