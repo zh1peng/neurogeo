@@ -786,7 +786,7 @@
         "x": ""
       },
       "condition_classes": ["ngeo_error_time_axis", "ngeo_error_time_axis_mutation"],
-      "documentation_sha256": "6e8b14ab9c1332742b7b495abd8e0da08f30c54bb9c135eb0429285acdfba601"
+      "documentation_sha256": "677f9e52200dd6c321bb3d705a9762443d841a874b3b5e39250f97807f5a4a48"
     },
     "ngeo_getis_ord": {
       "symbol": "ngeo_getis_ord",
@@ -1118,7 +1118,7 @@
         "budget": "ngeo_resource_budget()"
       },
       "condition_classes": ["ngeo_error_temporal_measure", "ngeo_error_time_axis"],
-      "documentation_sha256": "d9f6d5d9a9c53265ecf960b08d253d158423f02c9c56752912655278dbe0de4d"
+      "documentation_sha256": "a6961d30b53c50e0f45df394f73c180b6890117f54acacc7097f48be4729a0d4"
     },
     "ngeo_materialize_spatiotemporal_weights": {
       "symbol": "ngeo_materialize_spatiotemporal_weights",
@@ -1129,7 +1129,7 @@
         "budget": "ngeo_resource_budget()"
       },
       "condition_classes": "ngeo_error_resource",
-      "documentation_sha256": "fdb7be5231887da1b9d8a4ca168c33f3d215e805b13e7b4e227e75f422b0fda4"
+      "documentation_sha256": "6e64dbc3a91e6729bf67294c421287290ad21e71e7fda01d43c81b62248e888a"
     },
     "ngeo_measure": {
       "symbol": "ngeo_measure",
@@ -1556,7 +1556,7 @@
         "temporal_semantics": "\"instantaneous\""
       },
       "condition_classes": "ngeo_error_alignment",
-      "documentation_sha256": "6333d101b384680f0c8e3c013dcf3bf935b82e68937ed65b21742f2c622d3eea"
+      "documentation_sha256": "1c25669c11ce71bac21f529d691d4589314436064f0a78fb21920d5fe88e4027"
     },
     "ngeo_solver_control": {
       "symbol": "ngeo_solver_control",
@@ -1696,7 +1696,7 @@
         "budget": "ngeo_resource_budget()"
       },
       "condition_classes": "ngeo_error_argument",
-      "documentation_sha256": "a77351e0d1866b59830dac053b29e14d7d7b742b7278b2814f63e4059454c8e4"
+      "documentation_sha256": "e08ee9e21e82654c567c76221a2b667563582991d6f9341e39dd379546c3a832"
     },
     "ngeo_spatiotemporal_moran": {
       "symbol": "ngeo_spatiotemporal_moran",
@@ -1737,7 +1737,7 @@
         "spatial_scale": "0.5"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_spatiotemporal_weights"],
-      "documentation_sha256": "1639211486f6058381148f5df2ba8dab97a4bc02fdf33f9608e8b85c7e6531da"
+      "documentation_sha256": "9fc7c1f062975102e07ab1afbf7fc870de48e50c6b48ed46eae701fd3541a202"
     },
     "ngeo_stream_covariance": {
       "symbol": "ngeo_stream_covariance",
@@ -2104,7 +2104,7 @@
         "budget": "ngeo_resource_budget()"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_temporal_measure", "ngeo_error_temporal_support"],
-      "documentation_sha256": "853fd1e2e812a86483293f0fe39d3badaa250b19557fe94d4a2bacc1ef4c7e6b"
+      "documentation_sha256": "b7b6743ed6be4f6793a87f3b3d9c5d3510caaf8ac867d5404e5457dab413227e"
     },
     "ngeo_temporal_moran": {
       "symbol": "ngeo_temporal_moran",
@@ -2129,7 +2129,7 @@
         "directed": "FALSE"
       },
       "condition_classes": [],
-      "documentation_sha256": "c9dca1381fd88922a65ce5521fea8d0e840ca609908f94566a24ec3fab2bc9a0"
+      "documentation_sha256": "e7327dc518ce4972c347b07a44e37fce135a7d0542075ed92b011cd808c194f2"
     },
     "ngeo_temporal_trend": {
       "symbol": "ngeo_temporal_trend",
@@ -2139,7 +2139,7 @@
         "budget": "ngeo_resource_budget()"
       },
       "condition_classes": ["ngeo_error_temporal_measure", "ngeo_error_temporal_support"],
-      "documentation_sha256": "e5a23d6bb31d6c9cd73b1e4d2db8d9b1ffee55fc2ed4036aa9fc4db94b98e03a"
+      "documentation_sha256": "5340a560ddb4a64ca95043611a0f6e69207dc829cab2d3f631f93db72a928c5f"
     },
     "ngeo_temporal_variogram": {
       "symbol": "ngeo_temporal_variogram",
@@ -2165,7 +2165,7 @@
         "style": "c(\"W\", \"B\", \"none\")"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_temporal_weights"],
-      "documentation_sha256": "5ab58f78b6e7469cf357d177fd642dc215774a9b840c1197f2ea75d9dbbe6ef1"
+      "documentation_sha256": "2a60a36fde8615edbd7182ce25bd0d249134d06edb4f59ccd0173a25fe03c78d"
     },
     "ngeo_time_axis": {
       "symbol": "ngeo_time_axis",
@@ -2182,7 +2182,7 @@
         "tolerance": "1e-10"
       },
       "condition_classes": ["ngeo_error_temporal_support", "ngeo_error_time_axis"],
-      "documentation_sha256": "f168d02b15cf07f29febe7624ce06b38ee0bb8fb0f30f1da0cf16c60d923035c"
+      "documentation_sha256": "db11277730dd2e9397f2fbc6f9b41afb63ae8edda5096666f6a8077130559d06"
     },
     "ngeo_time_axis_hash": {
       "symbol": "ngeo_time_axis_hash",
@@ -2202,7 +2202,7 @@
         "range": "NULL"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_index"],
-      "documentation_sha256": "f4fa2c52b300c85baf1636712f60262426c30cb0c05e1ccee854eb3d1c604c6e"
+      "documentation_sha256": "6101ea3a77aa9c882428e09572a41ecfc72d6462f34884678128acc221697224"
     },
     "ngeo_transform": {
       "symbol": "ngeo_transform",
@@ -2432,7 +2432,7 @@
         "x": ""
       },
       "condition_classes": "ngeo_error_spatiotemporal_weights",
-      "documentation_sha256": "722ac5263d20db3e28e5dcc432ceac00b3589b5956efc28158ebf8e568bbdfe7"
+      "documentation_sha256": "4aac25efbb303557f1318ee005b2c7768a0b5ddd95a328ed460a91d256bfd3d6"
     },
     "ngeo_validate_support_bundle": {
       "symbol": "ngeo_validate_support_bundle",
@@ -2478,7 +2478,7 @@
         "x": ""
       },
       "condition_classes": "ngeo_error_temporal_weights",
-      "documentation_sha256": "e1def12411c9fd5bb6f4b4f88f902b6beb7473b6b1997c2f4b973d9eee159f68"
+      "documentation_sha256": "dab81f16d2d3baa3045054eb12c86f9ed4e6365a454a53605afc179dbfc96cb4"
     },
     "ngeo_validate_time_axis": {
       "symbol": "ngeo_validate_time_axis",
