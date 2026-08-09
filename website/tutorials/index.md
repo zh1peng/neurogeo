@@ -11,6 +11,11 @@ description: 按学习阶段和神经影像输入选择可执行教程
 2. [15 分钟快速开始](/tutorials/getting-started)
 3. [按 NIfTI、surface、CIFTI 或 ROI/cohort 选择工作流](/tutorials/format-workflows)
 
+- [NIfTI volume：read → QC → analysis → plot → round-trip](/tutorials/workflow-volume)
+- [GIFTI surface：geometry → topology → metric](/tutorials/workflow-surface)
+- [CIFTI：brain models → components → analysis](/tutorials/workflow-cifti)
+- [ROI × cohort：parcels 是 base，subjects 是 layers](/tutorials/workflow-roi-cohort)
+
 ## 理解对象
 
 - [base、values、layer 与 measure](/modules/core-concepts)

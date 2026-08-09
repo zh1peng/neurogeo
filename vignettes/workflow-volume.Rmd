@@ -1,0 +1,32 @@
+---
+title: "NIfTI volume: read to auditable result"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{NIfTI volume: read to auditable result}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+This workflow is for voxel data with an affine. A voxel index is not a physical
+coordinate: inspect the affine and coordinate-space unit before choosing a
+metric or neighborhood. Zero is retained as data unless an explicit mask says
+otherwise.
+
+The code reads a bundled checksum-pinned NIfTI, inspects base/layer/measure
+semantics, runs QC and a six-neighbor Moran analysis, plots one layer, performs
+a round trip, and inspects history. Moran's I is descriptive for these voxels;
+it is not subject-level inference or a causal effect.
+
+```{r setup, include=FALSE}
+code <- file.path("..", "inst", "tutorial-code", "workflow-volume.R")
+if (!file.exists(code)) code <- system.file("tutorial-code", "workflow-volume.R", package = "neurogeo")
+knitr::read_chunk(code)
+```
+
+```{r workflow-volume}
+```
+
+If qform and sform disagree, neurogeo preserves both and emits a structured
+warning. Resolve that conflict from acquisition/BIDS metadata rather than
+silencing it. For large files, use the file-backed reader and a finite
+`ngeo_resource_budget()`.

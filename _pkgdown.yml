@@ -18,6 +18,10 @@ articles:
   contents:
   - getting-started-zh
   - format-workflows-zh
+  - workflow-volume-zh
+  - workflow-surface-zh
+  - workflow-cifti-zh
+  - workflow-roi-cohort-zh
   - core-concepts-zh
   - reading-data-zh
   - schema-validation-zh
@@ -52,6 +56,10 @@ articles:
   contents:
   - getting-started
   - format-workflows
+  - workflow-volume
+  - workflow-surface
+  - workflow-cifti
+  - workflow-roi-cohort
   - multilayer-inference
   - core-concepts
   - reading-data

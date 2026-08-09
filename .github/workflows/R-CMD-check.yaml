@@ -117,6 +117,7 @@ jobs:
           Rscript tools/check-stable-api-docs-60.R
           Rscript tools/check-tutorial-fixtures-60.R
           Rscript tools/check-quickstart-60.R
+          Rscript tools/check-format-tutorials-60.R
           Rscript tools/check-formative-usability-60.R
 
       - name: Controlled user terminology

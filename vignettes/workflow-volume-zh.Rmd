@@ -1,0 +1,30 @@
+---
+title: "NIfTI 体数据：从读入到可审计结果"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{NIfTI 体数据：从读入到可审计结果}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+这条路线适用于带 affine 的 voxel 数据。voxel index 不是物理坐标；选择 metric
+或邻域前必须检查 affine 和 coordinate-space unit。除非显式 mask 另有声明，零值
+仍是数据，不会自动当作背景。
+
+下面的唯一 canonical 代码读取随包安装且有 checksum 的 NIfTI，检查
+base/layer/measure 语义，执行 QC、六邻域 Moran 分析和绘图，再做 round trip 并
+查看 history。这里的 Moran's I 只描述这些 voxel 的空间自相关，不是被试水平推断，
+也不是因果效应。
+
+```{r setup, include=FALSE}
+code <- file.path("..", "inst", "tutorial-code", "workflow-volume.R")
+if (!file.exists(code)) code <- system.file("tutorial-code", "workflow-volume.R", package = "neurogeo")
+knitr::read_chunk(code)
+```
+
+```{r workflow-volume}
+```
+
+若 qform 和 sform 冲突，neurogeo 会保留两者并发出结构化 warning。应根据采集或
+BIDS metadata 解决冲突，而不是静默忽略。大文件请改用 file-backed reader 和有限
+的 `ngeo_resource_budget()`。

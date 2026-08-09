@@ -1,0 +1,30 @@
+---
+title: "CIFTI grayordinates: components before statistics"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{CIFTI grayordinates: components before statistics}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+CIFTI rows can mix cortical vertices and subcortical voxels. Inspect brain
+models, structures, source indices, and attached surface geometry before
+creating topology. Row order is part of the scientific contract.
+
+This workflow attaches matching four-vertex surfaces to the tiny bilateral
+CIFTI fixture, runs QC, constructs component-contiguity weights without edges
+between structures, computes Moran's I with an explicit zero policy, plots the
+ordered values, writes dscalar CIFTI, and verifies the round trip.
+
+```{r setup, include=FALSE}
+code <- file.path("..", "inst", "tutorial-code", "workflow-cifti.R")
+if (!file.exists(code)) code <- system.file("tutorial-code", "workflow-cifti.R", package = "neurogeo")
+knitr::read_chunk(code)
+```
+
+```{r workflow-cifti}
+```
+
+The line plot is an ordering diagnostic, not a cortical map. Without verified
+surface geometry, surface topology, area, geodesic distance, and cortical
+plotting must remain unavailable.

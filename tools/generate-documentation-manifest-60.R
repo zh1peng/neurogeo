@@ -29,7 +29,12 @@ content_type <- function(id) {
 english_tutorials <- c(
   "getting-started", "format-workflows", "core-concepts", "reading-data",
   "neighbors-and-weights", "parcellation-and-aggregation",
-  "change-of-support", "spatial-modelling"
+  "change-of-support", "spatial-modelling", "workflow-volume",
+  "workflow-surface", "workflow-cifti", "workflow-roi-cohort"
+)
+workflow_tutorials <- c(
+  "workflow-volume", "workflow-surface", "workflow-cifti",
+  "workflow-roi-cohort"
 )
 
 vignettes <- sort(list.files(
@@ -40,7 +45,7 @@ vignette_rows <- lapply(vignettes, function(source) {
   locale <- if (grepl("-zh$", stem)) "zh-CN" else "en"
   id <- sub("-zh$", "", stem)
   prefix <- if (identical(locale, "en")) "/en" else ""
-  section <- if (id %in% c("getting-started", "format-workflows") ||
+  section <- if (id %in% c("getting-started", "format-workflows", workflow_tutorials) ||
       (identical(locale, "en") && id %in% english_tutorials)) {
     "tutorials"
   } else {
@@ -56,6 +61,11 @@ vignette_rows <- lapply(vignettes, function(source) {
       "stable"
     },
     source = gsub("\\\\", "/", source),
+    code_source = if (id %in% workflow_tutorials) {
+      paste0("inst/tutorial-code/", id, ".R")
+    } else {
+      ""
+    },
     route = paste0(prefix, "/", section, "/", id),
     title = read_title(source),
     stringsAsFactors = FALSE
@@ -97,6 +107,7 @@ static_rows <- data.frame(
   ),
   lifecycle = "stable",
   source = static_sources,
+  code_source = "",
   route = static_routes,
   title = vapply(static_sources, read_title, character(1)),
   stringsAsFactors = FALSE
@@ -122,10 +133,15 @@ manifest$translation_status <- ifelse(
 manifest$source_sha256 <- vapply(manifest$source, function(path) {
   digest::digest(path, algo = "sha256", file = TRUE, serialize = FALSE)
 }, character(1))
+manifest$code_sha256 <- vapply(manifest$code_source, function(path) {
+  if (!nzchar(path)) return("")
+  digest::digest(path, algo = "sha256", file = TRUE, serialize = FALSE)
+}, character(1))
 manifest$route_sha256 <- vapply(seq_len(nrow(manifest)), function(i) {
   digest::digest(
     paste(
       manifest$route[[i]], manifest$source_sha256[[i]],
+      manifest$code_sha256[[i]],
       manifest$counterpart_route[[i]], sep = "\n"
     ),
     algo = "sha256", serialize = FALSE

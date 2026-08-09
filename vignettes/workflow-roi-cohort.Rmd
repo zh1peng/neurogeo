@@ -1,0 +1,31 @@
+---
+title: "ROI by cohort: subjects are layers, parcels are the base"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{ROI by cohort: subjects are layers, parcels are the base}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+For an ROI-by-subject table, parcels are spatial elements and subjects are
+layers—not the reverse. Group and subject identifiers belong in layer metadata;
+measurement units and support behavior belong in the deduplicated measure.
+
+The workflow reads a bundled cohort table, constructs and validates that model,
+runs QC, derives a case-minus-control descriptive map without internal
+mutation, analyzes its spatial pattern on declared parcel adjacency, plots it,
+and exports redacted history. This six-subject fixture demonstrates data shape;
+it cannot support a population or clinical claim.
+
+```{r setup, include=FALSE}
+code <- file.path("..", "inst", "tutorial-code", "workflow-roi-cohort.R")
+if (!file.exists(code)) code <- system.file("tutorial-code", "workflow-roi-cohort.R", package = "neurogeo")
+knitr::read_chunk(code)
+```
+
+```{r workflow-roi-cohort}
+```
+
+For confirmatory group inference, create a subject-level exchangeability
+schedule and state the estimand, independent unit, null, family, support, and
+uncertainty target before running `ngeo_group_test()`.

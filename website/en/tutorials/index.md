@@ -11,6 +11,11 @@ description: Executable tutorials organized by learning stage and neuroimaging i
 2. [15-minute quickstart](/en/tutorials/getting-started)
 3. [Choose NIfTI, surface, CIFTI, or ROI/cohort](/en/tutorials/format-workflows)
 
+- [NIfTI volume: read → QC → analysis → plot → round-trip](/en/tutorials/workflow-volume)
+- [GIFTI surface: geometry → topology → metric](/en/tutorials/workflow-surface)
+- [CIFTI: brain models → components → analysis](/en/tutorials/workflow-cifti)
+- [ROI × cohort: parcels are the base, subjects are layers](/en/tutorials/workflow-roi-cohort)
+
 ## Understand the object
 
 - [Base, values, layer, and measure](/en/tutorials/core-concepts)

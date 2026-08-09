@@ -26,6 +26,11 @@ library(neurogeo)
 
 ## 1. 范围与数据契约
 
+四条可直接执行的路线分别是 [NIfTI volume](/tutorials/workflow-volume)、
+[surface](/tutorials/workflow-surface)、[CIFTI](/tutorials/workflow-cifti) 和
+[ROI × cohort](/tutorials/workflow-roi-cohort)。本页后续章节解释更完整的格式契约
+和 round-trip 细节。
+
 本工作流使用固定校验和的格式样例执行读取、结构检查、可视化、写出、再读入
 和对象比较。FreeSurfer、FSL 和 Connectome Workbench 不是运行时依赖。
 

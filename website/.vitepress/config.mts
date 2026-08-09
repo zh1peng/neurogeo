@@ -19,6 +19,10 @@ const zhTheme = {
         { text: '安装、版本与可选后端', link: '/guide/installation' },
         { text: '15 分钟快速开始', link: '/tutorials/getting-started' },
         { text: '按数据格式选择入口', link: '/tutorials/format-workflows' },
+        { text: 'NIfTI volume workflow', link: '/tutorials/workflow-volume' },
+        { text: 'Surface workflow', link: '/tutorials/workflow-surface' },
+        { text: 'CIFTI workflow', link: '/tutorials/workflow-cifti' },
+        { text: 'ROI × cohort workflow', link: '/tutorials/workflow-roi-cohort' },
         { text: '核心概念', link: '/concepts/' },
         { text: '运行时 options', link: '/concepts/options' },
         { text: '用户术语表', link: '/glossary/' }
@@ -102,6 +106,10 @@ const enTheme = {
         { text: 'Installation and backends', link: '/en/guide/installation' },
         { text: '15-minute quickstart', link: '/en/tutorials/getting-started' },
         { text: 'Choose by data format', link: '/en/tutorials/format-workflows' },
+        { text: 'NIfTI volume workflow', link: '/en/tutorials/workflow-volume' },
+        { text: 'Surface workflow', link: '/en/tutorials/workflow-surface' },
+        { text: 'CIFTI workflow', link: '/en/tutorials/workflow-cifti' },
+        { text: 'ROI × cohort workflow', link: '/en/tutorials/workflow-roi-cohort' },
         { text: 'Core concepts', link: '/en/tutorials/core-concepts' },
         { text: 'User glossary', link: '/en/glossary/' }
       ]
