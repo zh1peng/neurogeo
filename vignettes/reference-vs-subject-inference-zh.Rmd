@@ -70,6 +70,9 @@ population_result <- ngeo_group_test(
 置换的是 reduced model 的完整受试者残差记录，并在声明的 block 内保持 exchangeability。
 重复 session 必须先形成一个受试者 summary、配对 contrast，或交给能表达重复测量结构
 的外部模型；当前版本不实现 PALM-style exchangeability tree。
+已知 site block 时不能把 `blocks` 传给 `scheme = "free"`：该组合会报错，因为 free
+schedule 会跨 site。VAL-303 仅支持这个 site-confounded 场景下的 within-block 或
+不跨 block 的 user schedule；这不是对任意复杂 exchangeability tree 的校准。
 
 ## Support-family regime
 

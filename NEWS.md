@@ -35,6 +35,12 @@
 * Added an explicit `unit_kind` to exchangeability schedules, preserve it in
   group results and inference contracts, and reject map-null transformations
   from the independent-unit permutation API.
+* Calibrated subject, site, and spatial-block group inference across balanced,
+  unbalanced, and site-confounded designs. The frozen VAL-303 run found that
+  unrestricted residual permutation was anti-conservative for the
+  site-confounded design, so free/sign-flip schedules now reject supplied
+  blocks instead of silently ignoring them; use within-block or a
+  block-respecting user schedule.
 
 # neurogeo 5.0.0
 

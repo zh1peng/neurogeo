@@ -170,7 +170,9 @@
 #'
 #' @param unit_id Ordered unique independent-unit identifiers.
 #' @param scheme Free, within-block, sign-flip, or user schedule.
-#' @param blocks Optional unit-aligned exchangeability blocks.
+#' @param blocks Optional unit-aligned exchangeability blocks for
+#'   `within_block` or user schedules. Supplying blocks to `free` or
+#'   `sign_flip` is an error because those schemes would ignore them.
 #' @param schedule User-supplied integer transformation matrix.
 #' @param permutations Requested Monte Carlo transformations.
 #' @param seed Optional reproducible seed.
@@ -208,6 +210,15 @@ ngeo_exchangeability <- function(
   blocks <- .ngeo_exchange_blocks(
     blocks, unit_id, required = identical(scheme, "within_block")
   )
+  if (!is.null(blocks) && scheme %in% c("free", "sign_flip")) {
+    .ngeo_abort(
+      paste0(
+        "`blocks` would be ignored by `scheme = \"", scheme, "\"`; ",
+        "use `scheme = \"within_block\"` or a block-respecting user schedule."
+      ),
+      "ngeo_error_exchangeability_design"
+    )
+  }
   if (identical(scheme, "within_block") &&
       length(unique(blocks)) < 2L) {
     .ngeo_abort("Within-block exchangeability requires at least two blocks.",

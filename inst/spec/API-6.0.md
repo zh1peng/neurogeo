@@ -48,6 +48,12 @@ implemented and is rejected rather than silently reduced to independence.
 `ngeo_exchangeability()` records `unit_kind` as `subject`, `site`, or
 `spatial_block`. `map_null` is intentionally rejected because reference-map
 null transformations are not independent-unit group permutations.
+`blocks` are meaningful only for `scheme = "within_block"` or a user-supplied
+block-respecting schedule. Passing blocks to `free` or `sign_flip` is a typed
+error, because silently ignoring a known site/family restriction would change
+the null model. The package validates declared structure but cannot infer from
+an identifier whether the biological sampling unit or block declaration is
+truthful.
 
 ### Experimental
 

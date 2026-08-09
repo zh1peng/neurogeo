@@ -18,3 +18,20 @@ generated from the candidate source tree:
 Historical 4.x and 5.0 scientific calibration reports remain evidence for the
 unchanged algorithms they cover. They do not replace a fresh 6.0 unit,
 contract, manifest, installed-conformance, and package-check run.
+
+## Internal Phase 3 calibration boundary
+
+VAL-303 executes the frozen 36-cell sampling-unit design with 5,000 attempted
+replicates per supported calibration cell. Subject, site, and spatial-block
+labels share the same independent-unit mathematics; map nulls are nine
+separation cells and never receive fabricated group-level coverage. Exact
+enumeration is used for free, within-block, and user-supplied schedules.
+
+The first frozen run found one repeated failure pattern: free residual
+permutation in the site-confounded design had type-I error 0.0684 (Wilson 95%
+interval 0.0617 to 0.0757). The blocked and block-respecting user schedules
+passed. The prespecified stop rule therefore restricts the stable path:
+declared blocks may not be silently supplied to `free` or `sign_flip`; users
+must choose within-block or a valid user schedule. The retained result status
+is `passed-with-restriction`, not an unqualified pass. This is internal
+simulation evidence, not external PALM execution or cohort validation.

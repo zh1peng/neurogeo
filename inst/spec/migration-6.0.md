@@ -87,3 +87,9 @@ Existing `ngeo_exchangeability()` calls remain subject-level by default. New
 code should set `unit_kind = "subject"`, `"site"`, or `"spatial_block"`
 explicitly when that distinction matters. Map-level spatial nulls are not an
 exchangeability unit and now raise a typed error if passed as `map_null`.
+Calls that supplied `blocks` together with `scheme = "free"` or
+`scheme = "sign_flip"` now fail instead of silently ignoring the restriction.
+Use `scheme = "within_block"`, or pass an externally generated user schedule
+whose rows stay within the declared blocks. In site-confounded designs, the
+6.0 calibration supports the blocked paths and does not support free residual
+permutation.

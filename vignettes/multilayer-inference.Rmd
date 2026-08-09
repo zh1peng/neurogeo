@@ -104,6 +104,29 @@ claim about the declared population only when residual exchangeability and the
 subject design are defensible. It does not establish causality, registration
 quality, equal physical scale across atlases, or parcellation invariance.
 
+If site, family, or another known structure limits exchangeability, declare it
+instead of using a free schedule:
+
+```{r blocked-schedule}
+site <- factor(rep(c("site-a", "site-b"), length.out = length(unit_id)))
+blocked_design <- transform(design, site = site)
+blocked_schedule <- ngeo_exchangeability(
+  unit_id,
+  scheme = "within_block",
+  blocks = blocked_design$site,
+  permutations = 4999L,
+  seed = 5001L,
+  unit_kind = "subject"
+)
+blocked_schedule
+```
+
+VAL-303 found free residual permutation anti-conservative in its
+site-confounded cell. Passing `blocks` to `scheme = "free"` is therefore an
+error rather than a request that can be silently ignored. For more complex
+PALM-style exchangeability trees, supply a validated user schedule and report
+the external tool and schedule construction.
+
 ## Declared support family
 
 Construct features independently on every atlas or support, then pass the
