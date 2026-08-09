@@ -41,6 +41,9 @@
   site-confounded design, so free/sign-flip schedules now reject supplied
   blocks instead of silently ignoring them; use within-block or a
   block-respecting user schedule.
+* Replaced row-index modulo GWR k-fold assignment with deterministic
+  farthest-seed spatial Voronoi blocks. Bandwidth results now record element-ID
+  keyed fold membership and are invariant to element row order.
 
 # neurogeo 5.0.0
 

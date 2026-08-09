@@ -876,7 +876,7 @@
         "folds": "5L"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_model"],
-      "documentation_sha256": "673b9d1f3dcfbd029a9224f5142663b7d6e5a930d97c12db43cd77fa0bc08c8f"
+      "documentation_sha256": "7c2d4ada85af2648b0b21db1e87e5aca37c92fd7dbd70735a4b46561aa5552b8"
     },
     "ngeo_gwr_uncertainty": {
       "symbol": "ngeo_gwr_uncertainty",
