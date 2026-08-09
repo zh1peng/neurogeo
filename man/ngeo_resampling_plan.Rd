@@ -26,8 +26,8 @@ ngeo_resampling_plan(
 \item{path}{An explicitly selected `ngeo_transform_path` from the exact
 source coordinate_space to the exact target coordinate_space.}
 
-\item{method}{Nearest, linear/trilinear, barycentric, or exact
-axis-aligned overlap mapping.}
+\item{method}{Nearest, volume linear/trilinear, conservative surface
+source-scatter barycentric, or exact axis-aligned overlap mapping.}
 
 \item{coverage}{Geometric coverage policy: reject, retain partial
 contributions, or normalize covered contributions.}

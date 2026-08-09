@@ -93,6 +93,9 @@ result$diagnostics
 
 Surface plans support nearest and barycentric mapping. Volume plans support
 nearest, trilinear (`method = "linear"`), and exact axis-aligned overlap.
+Here surface `barycentric` means conservative source scatter: each source
+vertex contributes barycentric weights to one target triangle. It is not
+target-gather interpolation and is not an area-aware Workbench equivalent.
 The path must be supplied, non-lossy, and affine-applicable. An auditable warp
 edge remains useful in a transform graph, but this resampling bridge refuses
 to execute it.

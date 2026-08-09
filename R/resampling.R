@@ -131,8 +131,8 @@
 #' @param source,target Source data and target-base template.
 #' @param path An explicitly selected `ngeo_transform_path` from the exact
 #' source coordinate_space to the exact target coordinate_space.
-#' @param method Nearest, linear/trilinear, barycentric, or exact
-#' axis-aligned overlap mapping.
+#' @param method Nearest, volume linear/trilinear, conservative surface
+#'   source-scatter barycentric, or exact axis-aligned overlap mapping.
 #' @param coverage Geometric coverage policy: reject, retain partial
 #' contributions, or normalize covered contributions.
 #' @param conservation For extensive/count layers, reject non-unit allocation

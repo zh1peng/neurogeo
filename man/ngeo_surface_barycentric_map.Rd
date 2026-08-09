@@ -2,7 +2,7 @@
 % Please edit documentation in R/support-builders.R
 \name{ngeo_surface_barycentric_map}
 \alias{ngeo_surface_barycentric_map}
-\title{Build a barycentric map in a known surface registration}
+\title{Build a conservative source-scatter barycentric surface map}
 \usage{
 ngeo_surface_barycentric_map(
   source,
@@ -43,6 +43,9 @@ A sparse probabilistic `ngeo_support_map`.
 \description{
 Each eligible source vertex is projected to the closest candidate target
 triangle. Non-negative barycentric spatial_weights form one operator column.
+This is a source-to-target scatter/remap that conserves each mapped source
+column; it is not target-gather interpolation and is not equivalent to an
+area-aware Workbench resampling method.
 }
 \section{When to use and limitations}{
 

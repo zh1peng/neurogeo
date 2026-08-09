@@ -20,6 +20,10 @@ base 上评价 source measurements。一次可审计 resampling 必须分别声�
 2. nearest、linear 或 barycentric 等 interpolation method；
 3. coverage、conservation、missing value 和 uncertainty policy。
 
+surface 的 `barycentric` 在这里是守恒的 source-scatter remap：每个 source vertex
+把权重分配到一个 target triangle。它不是 target-gather interpolation，也不等同于
+Workbench 的 area-aware resampling。需要后两种语义时，不应把当前方法当作替代品。
+
 ## 注册 coordinate_space 与 transform
 
 ```{r, eval=FALSE}

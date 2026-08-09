@@ -1502,7 +1502,7 @@
         "budget": "ngeo_resource_budget()"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_resampling_method", "ngeo_error_uncertainty"],
-      "documentation_sha256": "7129bcb49fe7c4c3b01f3b19c061f2175e6b34ccabf57666132814783c9b06ee"
+      "documentation_sha256": "0c187e6353f792516806c3ed4b80c7a8d6d93735ba75a9af959b298b1bb94c19"
     },
     "ngeo_resolve_space": {
       "symbol": "ngeo_resolve_space",
@@ -2061,7 +2061,7 @@
         "source_support": "NULL"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_coverage"],
-      "documentation_sha256": "a7846651cef6a72e9a6975b5c864b0ed9975061bc51672109c99c168824582cb"
+      "documentation_sha256": "f4ff4954892b11616a1b23e616e536640f25234fe31c0352389e894667388d21"
     },
     "ngeo_surface_nearest_map": {
       "symbol": "ngeo_surface_nearest_map",

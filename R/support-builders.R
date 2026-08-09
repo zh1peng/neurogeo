@@ -308,10 +308,13 @@ ngeo_surface_nearest_map <- function(
   list(index = index, engine = "dbscan_candidate_faces")
 }
 
-#' Build a barycentric map in a known surface registration
+#' Build a conservative source-scatter barycentric surface map
 #'
 #' Each eligible source vertex is projected to the closest candidate target
 #' triangle. Non-negative barycentric spatial_weights form one operator column.
+#' This is a source-to-target scatter/remap that conserves each mapped source
+#' column; it is not target-gather interpolation and is not equivalent to an
+#' area-aware Workbench resampling method.
 #'
 #' @inheritParams ngeo_surface_nearest_map
 #' @param candidate_faces Number of centroid-nearest target faces evaluated
