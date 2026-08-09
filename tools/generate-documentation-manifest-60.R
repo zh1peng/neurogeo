@@ -6,6 +6,13 @@ if (!requireNamespace("digest", quietly = TRUE)) {
   stop("Documentation manifest generation requires digest.")
 }
 
+canonical_text_hash <- function(path) {
+  bytes <- readBin(path, "raw", n = file.info(path)$size)
+  text <- rawToChar(bytes)
+  text <- gsub("\\r\\n?", "\\n", text, perl = TRUE)
+  digest::digest(text, algo = "sha256", serialize = FALSE)
+}
+
 read_title <- function(path) {
   lines <- readLines(path, encoding = "UTF-8", warn = FALSE)
   title <- grep("^title:\\s*", lines, value = TRUE)
@@ -132,11 +139,11 @@ manifest$translation_status <- ifelse(
   ifelse(nzchar(manifest$counterpart_route), "paired", "source-only")
 )
 manifest$source_sha256 <- vapply(manifest$source, function(path) {
-  digest::digest(path, algo = "sha256", file = TRUE, serialize = FALSE)
+  canonical_text_hash(path)
 }, character(1))
 manifest$code_sha256 <- vapply(manifest$code_source, function(path) {
   if (!nzchar(path)) return("")
-  digest::digest(path, algo = "sha256", file = TRUE, serialize = FALSE)
+  canonical_text_hash(path)
 }, character(1))
 manifest$route_sha256 <- vapply(seq_len(nrow(manifest)), function(i) {
   digest::digest(
