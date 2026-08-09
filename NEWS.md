@@ -6,14 +6,15 @@
 * Nested type-specific geometry under `base$geometry`, made topology optional,
   and standardized base types as point, surface, volume, parcellation, and
   grayordinate.
-* Added the public `spatial_base()`, `values()`, `layers()`, `measures()`, and
-  `history()` accessors. Layers now reference de-duplicated measures through
-  `measure_id`.
+* Added preferred `ngeo_spatial_base()`, `ngeo_values()`, `ngeo_layers()`,
+  `ngeo_measures()`, and `ngeo_history()` accessors while retaining the
+  unprefixed compatibility accessors throughout 6.x. Layers reference
+  de-duplicated measures through `measure_id`.
 * Renamed user-facing coordinate-space, distance-method, spatial-weights, and
-  aggregation APIs. This is an intentional breaking release with no migration
-  or compatibility layer for 5.x serialized objects. This major version
-  supersedes the incompatible 5.0 API freeze rather than weakening its
-  within-major compatibility promise.
+  aggregation APIs. `ngeo_migrate_5x()` provides auditable migration for
+  common in-memory point, surface, volume, parcellation, and grayordinate
+  objects; unsupported delayed or extension types return a structured
+  reconstruction report rather than a partial object.
 * Unified crisp partition aggregation with the canonical `aggregate_to()`
   engine, including correct shared-measure metadata and per-layer history.
 * Made labels an enforced element-aligned contract across construction,

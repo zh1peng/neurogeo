@@ -1,0 +1,14 @@
+{
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "name": "neurogeo",
+  "version": "6.0.0",
+  "description": "Auditable spatial data, support mappings, and spatial statistics for neuroimaging.",
+  "codeRepository": "https://github.com/zh1peng/neurogeo",
+  "issueTracker": "https://github.com/zh1peng/neurogeo/issues",
+  "license": "https://spdx.org/licenses/MIT",
+  "programmingLanguage": "R",
+  "runtimePlatform": "R >= 4.2.0",
+  "author": [{"@type": "Person", "name": "zh1peng", "email": "zhipeng30@foxmail.com"}],
+  "developmentStatus": "active"
+}
