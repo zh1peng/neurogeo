@@ -516,6 +516,8 @@ print.ngeo_common_support_test <- function(x, ...) {
 #' @param scales Unique ordered scale labels aligned with support layers.
 #'
 #' @return An `ngeo_multiscale_inference`.
+#' @templateVar example_call ngeo_multiscale_inference(scale_results, family = "support")
+#' @template stable-inference-core
 #' @export
 ngeo_multiscale_inference <- function(
     x,
@@ -619,6 +621,8 @@ print.ngeo_multiscale_inference <- function(x, ...) {
 #' @param seed Reproducible seed.
 #'
 #' @return An `ngeo_boundary_test`.
+#' @templateVar example_call ngeo_boundary_test(effect_map, boundary_family)
+#' @template stable-inference-core
 #' @export
 ngeo_boundary_test <- function(
     x,

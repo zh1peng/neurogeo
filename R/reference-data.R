@@ -27,6 +27,7 @@
 #' fixtures <- ngeo_example_data()
 #' fixtures[, c("name", "format", "verified")]
 #' ngeo_example_data("rnifti-example")$path
+#' @template stable-governance-core
 #' @export
 ngeo_example_data <- function(name = NULL, verify = TRUE) {
   manifest_path <- .ngeo_example_manifest_path()

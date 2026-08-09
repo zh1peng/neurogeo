@@ -72,6 +72,8 @@
 #' @param star Include the focal element to compute Gi-star.
 #'
 #' @return An `ngeo_getis` data frame aligned to analysed elements.
+#' @templateVar example_call ngeo_getis_ord(data, spatial_weights, layer = "signal")
+#' @template stable-inference-core
 #' @export
 ngeo_getis_ord <- function(
     x,
@@ -215,6 +217,8 @@ ngeo_getis_ord <- function(
 #' @param lags Positive graph-lag orders.
 #'
 #' @return An `ngeo_correlogram` data frame.
+#' @templateVar example_call ngeo_correlogram(data, layer = "signal", breaks = c(0, 5, 10))
+#' @template stable-inference-core
 #' @export
 ngeo_correlogram <- function(
     x,

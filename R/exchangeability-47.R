@@ -177,6 +177,8 @@
 #' @param budget Hard execution resource limits.
 #'
 #' @return An `ngeo_exchangeability` object.
+#' @templateVar example_call ngeo_exchangeability(subject_data, unit = "subject_id", blocks = "site")
+#' @template stable-inference-core
 #' @export
 ngeo_exchangeability <- function(
     unit_id,

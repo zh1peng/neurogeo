@@ -596,6 +596,8 @@ write_ngeo <- function(x,
 #' @param overwrite Replace an existing JSON output.
 #'
 #' @return A JSON-compatible history record, invisibly when written.
+#' @templateVar example_call ngeo_export_history(data, "history.json")
+#' @template stable-governance-core
 #' @export
 ngeo_export_history <- function(
     x,

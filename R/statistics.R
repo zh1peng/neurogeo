@@ -173,6 +173,7 @@
 #'   permutations = 99, seed = 42, alternative = "two.sided"
 #' )
 #' control
+#' @template stable-inference-core
 #' @export
 ngeo_permutation_control <- function(
     permutations = 999L,
