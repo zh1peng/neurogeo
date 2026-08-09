@@ -53,3 +53,10 @@ registered, but neither is parity evidence. C03 therefore remains pending.
 The stable documentation now distinguishes target-gather interpolation from
 the implemented conservative surface source-scatter barycentric remap, and
 CIFTI resampling remains runtime-rejected rather than implicitly assembled.
+
+VAL-301 is blocked before primary result generation because the frozen grid
+does not name a procedure/statistic or map non-zero spatial autocorrelation to
+a null versus power hypothesis. The design audit specifies the required
+pre-result amendment. Until then, spin and eigen-sign surrogate generators
+remain experimental, reject default calls, and cannot support C02. The
+registered safe-boundary suite checks that containment but is not calibration.
