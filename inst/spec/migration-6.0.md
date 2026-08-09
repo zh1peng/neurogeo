@@ -70,3 +70,13 @@ semantics.
 
 Portable object manifests are versioned as NGCS 6.0 and use `base_type`,
 `base_sha256`, `layer_count`, and `ordered_layer_id_sha256`.
+
+## Cross-atlas inference
+
+`ngeo_cross_atlas_consensus()` no longer treats atlas-specific estimates as
+independent by default. Calls without a covariance matrix now return a
+descriptive marginal-precision-weighted estimate with `NA` confidence and
+p-value fields. Use `covariance =` for covariance-aware fixed-effect GLS, or
+set `independence = TRUE` to reproduce the earlier fixed/DerSimonian--Laird
+analysis under an explicit independence assumption. A correlated random-effects
+model is not silently approximated and is rejected.

@@ -28,6 +28,10 @@
   version.
 * Added canonical NGCS/API/migration/validation 6.0 specifications and fresh
   unit, installed-conformance, API-contract, and package-check gates.
+* Made cross-atlas consensus descriptive by default, added covariance-aware
+  fixed-effect GLS, and require explicit opt-in for the legacy independence
+  analysis. Correlated random-effects requests are rejected rather than
+  reported with independence-based uncertainty.
 
 # neurogeo 5.0.0
 

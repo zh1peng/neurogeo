@@ -2,14 +2,16 @@
 % Please edit documentation in R/support-inference-23.R
 \name{ngeo_cross_atlas_consensus}
 \alias{ngeo_cross_atlas_consensus}
-\title{Compute fixed- or random-effects cross-atlas consensus}
+\title{Summarize cross-atlas effects with explicit dependence assumptions}
 \usage{
 ngeo_cross_atlas_consensus(
   x,
   standard_error = NULL,
   method = c("random", "fixed"),
   labels = NULL,
-  confidence = 0.95
+  confidence = 0.95,
+  covariance = NULL,
+  independence = FALSE
 )
 }
 \arguments{
@@ -18,18 +20,31 @@ ngeo_cross_atlas_consensus(
 
 \item{standard_error}{Positive effect standard errors.}
 
-\item{method}{Fixed or DerSimonian-Laird random effects.}
+\item{method}{Fixed or DerSimonian-Laird random effects. Random effects are
+available only for the explicit independence analysis.}
 
 \item{labels}{Optional atlas labels.}
 
 \item{confidence}{Confidence level.}
+
+\item{covariance}{Optional positive-definite covariance matrix for the
+aligned atlas estimates. Its diagonal must equal `standard_error^2`; any
+row and column names must match the ordered atlas labels.}
+
+\item{independence}{Explicit authorization for the conventional
+independence analysis when `covariance` is not supplied. The safe default
+returns a descriptive consensus without an interval or p-value.}
 }
 \value{
-An `ngeo_cross_atlas_consensus`.
+An `ngeo_cross_atlas_consensus` with `inference_mode`, the pooled
+  estimate, atlas weights, dependence assumptions, and inferential fields
+  only when their assumptions were explicitly supplied.
 }
 \description{
-Consensus summarizes declared atlas-specific effects. It is not a claim
-of local parcellation invariance.
+Consensus summarizes declared atlas-specific effects. By default it is
+descriptive: the function reports no interval or p-value until the caller
+supplies an atlas covariance matrix or explicitly authorizes independence.
+This is not a claim of local parcellation invariance.
 }
 \section{When to use and limitations}{
 
