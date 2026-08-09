@@ -847,7 +847,7 @@ print.ngeo_spatial_regression <- function(x, ...) {
 #'
 #' @param x An `ngeo` dataset.
 #' @param response One numeric map.
-#' @param spatial_weights Matching symmetric spatial spatial_weights.
+#' @param spatial_weights Matching symmetric spatial weights.
 #' @param type Proper or intrinsic CAR.
 #' @param rho Proper-CAR dependence in `[0, 1)`.
 #' @param precision Optional positive smoothing precision; when omitted it is

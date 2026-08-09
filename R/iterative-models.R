@@ -610,7 +610,7 @@ ngeo_logdet_approx <- function(
 #' @param x An `ngeo` dataset.
 #' @param response One numeric response map.
 #' @param predictors Optional numeric predictor layers.
-#' @param spatial_weights Matching sparse spatial spatial_weights.
+#' @param spatial_weights Matching sparse spatial weights.
 #' @param model Spatial lag (SAR) or spatial error (SEM).
 #' @param control Solver and log-determinant controls.
 #' @param logdet Exact-small or deterministic approximate evaluation.

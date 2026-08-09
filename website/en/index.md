@@ -10,6 +10,11 @@ description: R reference implementation of the Neuroimaging Geoinformatics Core 
 `neurogeo` is the R reference implementation of the Neuroimaging
 Geoinformatics Core Specification (NGCS).
 
+> **6.0 audit status:** public API additions are frozen while correctness,
+> documentation, and release evidence are audited. Surface spin and the Moran
+> eigen-sign surrogate are uncalibrated experimental methods, not stable null
+> inference.
+
 ## Object contract
 
 ```text

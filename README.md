@@ -3,6 +3,11 @@
 `neurogeo` is the R reference implementation of the Neuroimaging
 Geoinformatics Core Specification (NGCS).
 
+> **Development status (6.0 audit):** public API additions are temporarily
+> frozen while correctness, documentation, and release evidence are audited.
+> Surface-spin and Moran eigen-sign nulls are experimental and require explicit
+> opt-in; they must not be used as calibrated inferential procedures.
+
 The 6.0 data model has one sentence:
 
 > A spatial base defines where data live; layers contain the data observed on
@@ -63,7 +68,7 @@ w <- ngeo_spatial_weights(
   distance_method = "euclidean",
   style = "W"
 )
-ngeo_moran(x, w, map = "signal", permutations = 999, seed = 2026)
+ngeo_moran(x, w, layer = "signal", permutations = 999, seed = 2026)
 ```
 
 The five spatial-base types are `point`, `surface`, `volume`, `parcellation`,

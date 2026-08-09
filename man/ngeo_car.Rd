@@ -19,7 +19,7 @@ ngeo_car(
 
 \item{response}{One numeric map.}
 
-\item{spatial_weights}{Matching symmetric spatial spatial_weights.}
+\item{spatial_weights}{Matching symmetric spatial weights.}
 
 \item{type}{Proper or intrinsic CAR.}
 

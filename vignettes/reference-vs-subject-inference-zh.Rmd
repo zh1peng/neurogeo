@@ -67,7 +67,7 @@ population_result <- ngeo_group_test(
 
 Freedman--Lane 置换的是 reduced model 的完整受试者残差记录，并在声明的 block 内保持
 exchangeability。重复 session 必须先形成一个受试者 summary、配对 contrast，或交给能
-表达重复测量结构的外部模型；5.0 不实现 PALM-style exchangeability tree。
+表达重复测量结构的外部模型；当前版本不实现 PALM-style exchangeability tree。
 
 ## Support-family regime
 

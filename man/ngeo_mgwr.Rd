@@ -25,7 +25,7 @@ ngeo_mgwr(
 \item{bandwidths}{Positive fixed bandwidths for the intercept followed by
 each predictor.}
 
-\item{distance_method}{Explicit NGCS distance distance_method.}
+\item{distance_method}{Explicit NGCS distance method.}
 
 \item{kernel}{Bisquare or Gaussian kernel.}
 

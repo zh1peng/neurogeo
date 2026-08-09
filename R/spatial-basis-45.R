@@ -251,12 +251,12 @@ ngeo_spatial_basis <- function(
   }
   if (!identical(operator, "graph_laplacian")) {
     .ngeo_abort(
-      "The cotangent basis remains experimental until the 4.6 promotion gate.",
+      "The cotangent basis is experimental and requires explicit opt-in.",
       "ngeo_error_capability"
     )
   }
   if (is.null(spatial_weights)) {
-    .ngeo_abort("A graph-Laplacian basis requires explicit spatial spatial_weights.",
+    .ngeo_abort("A graph-Laplacian basis requires explicit spatial weights.",
                 "ngeo_error_argument")
   }
 

@@ -449,7 +449,7 @@ ngeo_flatten_surface <- function(
 
 #' Project a cortical surface for planar viewing
 #'
-#' Viewing projections are explicitly non-distance_method. Spherical projection
+#' Viewing projections are explicitly non-metric. Spherical projection
 #' requires a caller-supplied seam longitude and does not estimate a spherical
 #' registration.
 #'
@@ -460,7 +460,7 @@ ngeo_flatten_surface <- function(
 #' @param seam Explicit seam longitude in radians for spherical projection.
 #' @param name New chart name.
 #' @param tolerance Degenerate-face tolerance.
-#' @return `x` with a non-distance_method viewing chart.
+#' @return `x` with a non-metric viewing chart.
 #' @examples
 #' surface <- ngeo_surface(
 #'   matrix(c(0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1),

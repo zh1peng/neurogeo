@@ -287,7 +287,7 @@
   )
 }
 
-#' Construct sparse spatial spatial_weights
+#' Construct sparse spatial weights
 #'
 #' @param x An `ngeo` object.
 #' @param method Contiguity, KNN, radius/distance band, or a distance kernel.

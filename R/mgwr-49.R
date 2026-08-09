@@ -11,7 +11,7 @@
 #' @param predictors Predictor layers.
 #' @param bandwidths Positive fixed bandwidths for the intercept followed by
 #'   each predictor.
-#' @param distance_method Explicit NGCS distance distance_method.
+#' @param distance_method Explicit NGCS distance method.
 #' @param kernel Bisquare or Gaussian kernel.
 #' @param max_iterations Maximum backend coefficient back-fitting iterations.
 #' @param threshold Positive convergence threshold.

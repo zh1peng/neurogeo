@@ -251,7 +251,7 @@ plot.ngeo <- function(x,
   invisible(x)
 }
 
-#' Plot a spatial spatial_weights diagnostic
+#' Plot a spatial-weights diagnostic
 #'
 #' @param x An `ngeo_spatial_weights`.
 #' @param ... Additional histogram arguments.

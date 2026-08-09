@@ -3,6 +3,10 @@ title: "neurogeo: Semantically explicit geoinformatics for neuroimaging in R"
 version: "2.0 preprint draft"
 ---
 
+> **SUPERSEDED — NOT THE 6.0 MANUSCRIPT.** This historical NGCS 2.0 draft is
+> retained only for provenance. It must not be cited as describing the current
+> package, API, validation status, or scientific claims.
+
 # Abstract
 
 Neuroimaging measurements are commonly stored on cortical meshes, voxel

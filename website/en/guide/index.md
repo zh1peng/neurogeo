@@ -4,6 +4,9 @@ title: Installation and basic use
 
 # Installation and basic use
 
+Surface spin and the Moran eigen-sign surrogate currently require explicit
+experimental opt-in and must not be interpreted as calibrated null inference.
+
 ## Requirements
 
 - R 4.2.0 or later;
@@ -39,7 +42,7 @@ w <- ngeo_spatial_weights(
   threshold = 1.01,
   style = "W"
 )
-ngeo_moran(x, w, "signal", permutations = 999, seed = 2026)
+ngeo_moran(x, w, layer = "signal", permutations = 999, seed = 2026)
 ```
 
 The values rows align with base elements and the values columns align with

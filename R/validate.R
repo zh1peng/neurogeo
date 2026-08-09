@@ -237,7 +237,7 @@
   if (any(coordinate_meta$dimension[chart_rows] != 2L) ||
       any(coordinate_meta$metric_eligible[chart_rows])) {
     .ngeo_abort(
-      "Computational charts must be 2D and not distance_method-eligible.",
+      "Computational charts must be 2D and not metric-eligible.",
       "ngeo_error_chart"
     )
   }
@@ -359,7 +359,7 @@ ngeo_validate <- function(x, level = c("basic", "strict", "scientific")) {
     .ngeo_validate_parcellation(x)
   } else {
     .ngeo_abort(
-      sprintf("Domain type `%s` is not implemented by this prototype.", type),
+      sprintf("Domain type `%s` is not supported.", type),
       "ngeo_error_base"
     )
   }

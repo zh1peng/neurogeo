@@ -24,7 +24,7 @@ ngeo_spatial_regression_iterative(
 
 \item{predictors}{Optional numeric predictor layers.}
 
-\item{spatial_weights}{Matching sparse spatial spatial_weights.}
+\item{spatial_weights}{Matching sparse spatial weights.}
 
 \item{model}{Spatial lag (SAR) or spatial error (SEM).}
 

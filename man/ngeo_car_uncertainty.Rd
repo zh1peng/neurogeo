@@ -21,7 +21,7 @@ ngeo_car_uncertainty(
 
 \item{response}{One numeric map.}
 
-\item{spatial_weights}{Matching symmetric spatial spatial_weights.}
+\item{spatial_weights}{Matching symmetric spatial weights.}
 
 \item{value_covariance}{Positive-definite observation covariance.}
 

@@ -1,0 +1,42 @@
+{
+  "schema": "neurogeo/audit-baseline-failures/1",
+  "baseline_commit": "b5129a48173673290251b8a5d0801b67fe6817c2",
+  "package_version": "6.0.0",
+  "failures": [
+    {
+      "id": "layer-ambiguity",
+      "source": "R/subset.R",
+      "observed": "A duplicated layer name selected its first occurrence without a condition."
+    },
+    {
+      "id": "support-weighted-regression",
+      "source": "R/support-inference.R",
+      "observed": "The argument was named spatial_weights and silently passed through lm(...); the fit was unweighted."
+    },
+    {
+      "id": "failure-safe-overwrite",
+      "source": "R/execution.R",
+      "observed": "The existing target was unlinked before the final rename, so a failed promotion destroyed the old output."
+    },
+    {
+      "id": "surface-spin",
+      "source": "R/null-models.R",
+      "observed": "Gaussian QR corrected only determinant sign and did not apply the diagonal-sign correction required for Haar SO(3)."
+    },
+    {
+      "id": "moran-eigen-sign",
+      "source": "R/null-models.R",
+      "observed": "On an irregular row-standardized graph, simulations changed mean, variance, and Moran's I despite documentation claiming invariance."
+    },
+    {
+      "id": "metric-safety",
+      "source": "R/distance.R; R/weights.R",
+      "observed": "Non-metric surface coordinate roles could enter distance calculations, surface KNN defaulted to Euclidean distance, and inverse zero distances could become infinite weights."
+    },
+    {
+      "id": "kriging-covariance",
+      "source": "R/spatial-models.R",
+      "observed": "Arbitrary graph shortest-path distances entered covariance kernels without a PSD gate, and negative prediction variance was silently clamped to zero."
+    }
+  ]
+}
