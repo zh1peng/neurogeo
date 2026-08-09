@@ -11,6 +11,7 @@
 ^paper$
 ^neuroimaging_geoinformatics_development_plan\(1\)\.md$
 ^neurogeo_4\.5-5\.0_development_plan_zh\.md$
+^neurogeo_6\.0_audit_and_improvement_plan_zh\.md$
 ^check-output.*$
 ^docs$
 ^node_modules$
