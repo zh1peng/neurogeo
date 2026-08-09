@@ -184,19 +184,116 @@ print.ngeo_support_adjustment <- function(x, ...) {
   )
 }
 
-#' Compute fixed- or random-effects cross-atlas consensus
+.ngeo_descriptive_consensus <- function(estimate, standard_error) {
+  weight <- 1 / standard_error^2
+  list(
+    estimate = sum(weight * estimate) / sum(weight),
+    standard_error = NA_real_,
+    statistic = NA_real_,
+    p_value = NA_real_,
+    q = NA_real_,
+    q_p_value = NA_real_,
+    i_squared = NA_real_,
+    tau_squared = NA_real_,
+    spatial_weights = weight / sum(weight),
+    df = length(estimate) - 1L
+  )
+}
+
+.ngeo_consensus_covariance <- function(covariance, standard_error, labels) {
+  n <- length(standard_error)
+  if (!is.matrix(covariance) || !is.numeric(covariance) ||
+      !identical(dim(covariance), c(n, n)) || anyNA(covariance) ||
+      any(!is.finite(covariance))) {
+    .ngeo_abort(
+      "`covariance` must be a finite square matrix aligned to the atlas effects.",
+      "ngeo_error_inference"
+    )
+  }
+  scale <- max(1, max(abs(covariance)))
+  if (max(abs(covariance - t(covariance))) > 1e-10 * scale) {
+    .ngeo_abort(
+      "`covariance` must be symmetric.",
+      "ngeo_error_inference"
+    )
+  }
+  covariance_names <- dimnames(covariance)
+  if (!is.null(covariance_names) &&
+      (!identical(covariance_names[[1L]], labels) ||
+       !identical(covariance_names[[2L]], labels))) {
+    .ngeo_abort(
+      "Covariance row and column names must match the ordered atlas labels.",
+      "ngeo_error_alignment"
+    )
+  }
+  if (max(abs(diag(covariance) - standard_error^2)) > 1e-8 * scale) {
+    .ngeo_abort(
+      "The covariance diagonal must equal `standard_error^2`.",
+      "ngeo_error_inference"
+    )
+  }
+  factor <- tryCatch(chol(covariance), error = function(error) NULL)
+  if (is.null(factor)) {
+    .ngeo_abort(
+      "`covariance` must be positive definite.",
+      "ngeo_error_inference"
+    )
+  }
+  covariance
+}
+
+.ngeo_gls_consensus <- function(estimate, covariance) {
+  precision <- chol2inv(chol(covariance))
+  one <- rep.int(1, length(estimate))
+  denominator <- as.numeric(crossprod(one, precision %*% one))
+  weight <- as.numeric(precision %*% one) / denominator
+  pooled <- sum(weight * estimate)
+  pooled_se <- sqrt(1 / denominator)
+  residual <- estimate - pooled
+  q <- as.numeric(crossprod(residual, precision %*% residual))
+  df <- length(estimate) - 1L
+  list(
+    estimate = pooled,
+    standard_error = pooled_se,
+    statistic = pooled / pooled_se,
+    p_value = 2 * stats::pnorm(abs(pooled / pooled_se), lower.tail = FALSE),
+    q = q,
+    q_p_value = if (df > 0L) {
+      stats::pchisq(q, df = df, lower.tail = FALSE)
+    } else {
+      NA_real_
+    },
+    i_squared = if (q > 0) max(0, (q - df) / q) else 0,
+    tau_squared = 0,
+    spatial_weights = weight,
+    df = df
+  )
+}
+
+#' Summarize cross-atlas effects with explicit dependence assumptions
 #'
-#' Consensus summarizes declared atlas-specific effects. It is not a claim
-#' of local parcellation invariance.
+#' Consensus summarizes declared atlas-specific effects. By default it is
+#' descriptive: the function reports no interval or p-value until the caller
+#' supplies an atlas covariance matrix or explicitly authorizes independence.
+#' This is not a claim of local parcellation invariance.
 #'
 #' @param x Effect vector, estimates data frame, or
 #'   `ngeo_atlas_robust_effect`.
 #' @param standard_error Positive effect standard errors.
-#' @param method Fixed or DerSimonian-Laird random effects.
+#' @param method Fixed or DerSimonian-Laird random effects. Random effects are
+#'   available only for the explicit independence analysis.
 #' @param labels Optional atlas labels.
 #' @param confidence Confidence level.
+#' @param covariance Optional positive-definite covariance matrix for the
+#'   aligned atlas estimates. Its diagonal must equal `standard_error^2`; any
+#'   row and column names must match the ordered atlas labels.
+#' @param independence Explicit authorization for the conventional
+#'   independence analysis when `covariance` is not supplied. The safe default
+#'   returns a descriptive consensus without an interval or p-value.
 #'
-#' @return An `ngeo_cross_atlas_consensus`.
+#' @return An `ngeo_cross_atlas_consensus` with `inference_mode`, the pooled
+#'   estimate, atlas weights, dependence assumptions, and inferential fields
+#'   only when their assumptions were explicitly supplied.
 #' @templateVar example_call ngeo_cross_atlas_consensus(atlas_results)
 #' @template stable-neuroimaging-method
 #' @export
@@ -205,8 +302,43 @@ ngeo_cross_atlas_consensus <- function(
     standard_error = NULL,
     method = c("random", "fixed"),
     labels = NULL,
-    confidence = 0.95) {
+    confidence = 0.95,
+    covariance = NULL,
+    independence = FALSE) {
+  method_missing <- missing(method)
   method <- match.arg(method)
+  if (!is.logical(independence) || length(independence) != 1L ||
+      is.na(independence)) {
+    .ngeo_abort(
+      "`independence` must be one non-missing logical value.",
+      "ngeo_error_argument"
+    )
+  }
+  if (!is.null(covariance) && isTRUE(independence)) {
+    .ngeo_abort(
+      "Supply `covariance` or authorize `independence`, not both.",
+      "ngeo_error_inference"
+    )
+  }
+  if (!is.null(covariance) && is.null(standard_error) && is.numeric(x)) {
+    if (!is.matrix(covariance) || !is.numeric(covariance) ||
+        nrow(covariance) != ncol(covariance)) {
+      .ngeo_abort(
+        "`covariance` must be a finite square matrix aligned to the atlas effects.",
+        "ngeo_error_inference"
+      )
+    }
+    covariance_diagonal <- diag(covariance)
+    if (anyNA(covariance_diagonal) ||
+        any(!is.finite(covariance_diagonal)) ||
+        any(covariance_diagonal <= 0)) {
+      .ngeo_abort(
+        "The covariance diagonal must contain finite positive variances.",
+        "ngeo_error_inference"
+      )
+    }
+    standard_error <- sqrt(covariance_diagonal)
+  }
   input <- .ngeo_consensus_inputs(x, standard_error, labels)
   if (!is.numeric(confidence) || length(confidence) != 1L ||
       is.na(confidence) || confidence <= 0 || confidence >= 1) {
@@ -215,19 +347,45 @@ ngeo_cross_atlas_consensus <- function(
       "ngeo_error_argument"
     )
   }
-  fit <- .ngeo_meta_estimate(
-    input$estimate,
-    input$standard_error,
-    method
-  )
+  covariance <- if (is.null(covariance)) {
+    NULL
+  } else {
+    .ngeo_consensus_covariance(
+      covariance, input$standard_error, input$labels
+    )
+  }
+  if (!is.null(covariance) && identical(method, "random") && !method_missing) {
+    .ngeo_abort(
+      "Correlated random-effects consensus is not implemented; use `method = \"fixed\"`.",
+      "ngeo_error_inference"
+    )
+  }
+  if (!is.null(covariance)) method <- "fixed"
+  inference_mode <- if (!is.null(covariance)) {
+    "covariance-aware"
+  } else if (isTRUE(independence)) {
+    "independence"
+  } else {
+    "descriptive"
+  }
+  fit_consensus <- function(estimate, standard_error, covariance = NULL) {
+    if (identical(inference_mode, "covariance-aware")) {
+      .ngeo_gls_consensus(estimate, covariance)
+    } else if (identical(inference_mode, "independence")) {
+      .ngeo_meta_estimate(estimate, standard_error, method)
+    } else {
+      .ngeo_descriptive_consensus(estimate, standard_error)
+    }
+  }
+  fit <- fit_consensus(input$estimate, input$standard_error, covariance)
   critical <- stats::qnorm(1 - (1 - confidence) / 2)
   leave_one_out <- do.call(rbind, lapply(
     seq_along(input$estimate),
     function(i) {
-      current <- .ngeo_meta_estimate(
+      current <- fit_consensus(
         input$estimate[-i],
         input$standard_error[-i],
-        method
+        if (is.null(covariance)) NULL else covariance[-i, -i, drop = FALSE]
       )
       data.frame(
         omitted = input$labels[[i]],
@@ -241,13 +399,44 @@ ngeo_cross_atlas_consensus <- function(
   result <- list(
     estimate = fit$estimate,
     standard_error = fit$standard_error,
-    confidence_interval = c(
-      fit$estimate - critical * fit$standard_error,
-      fit$estimate + critical * fit$standard_error
-    ),
+    confidence_interval = if (is.finite(fit$standard_error)) {
+      c(
+        fit$estimate - critical * fit$standard_error,
+        fit$estimate + critical * fit$standard_error
+      )
+    } else {
+      c(NA_real_, NA_real_)
+    },
     statistic = fit$statistic,
     p_value = fit$p_value,
-    method = method,
+    method = if (identical(inference_mode, "descriptive")) {
+      "descriptive"
+    } else {
+      method
+    },
+    inference_mode = inference_mode,
+    covariance = covariance,
+    null_model = if (identical(inference_mode, "covariance-aware")) {
+      "normal GLS with supplied atlas covariance"
+    } else if (identical(inference_mode, "independence")) {
+      "normal independent-estimate meta-analysis approximation"
+    } else {
+      "not applicable for descriptive consensus"
+    },
+    uncertainty_target = if (identical(inference_mode, "covariance-aware")) {
+      "pooled effect under supplied atlas covariance"
+    } else if (identical(inference_mode, "independence")) {
+      "approximate meta-analytic standard error under explicit independence"
+    } else {
+      "not applicable for descriptive consensus"
+    },
+    assumptions = if (identical(inference_mode, "covariance-aware")) {
+      "The supplied covariance captures dependence among aligned atlas estimates."
+    } else if (identical(inference_mode, "independence")) {
+      "Atlas estimates are explicitly assumed independent."
+    } else {
+      "Descriptive marginal-precision weighting; no inferential independence claim."
+    },
     confidence = confidence,
     heterogeneity = list(
       q = fit$q,
@@ -265,7 +454,10 @@ ngeo_cross_atlas_consensus <- function(
       stringsAsFactors = FALSE
     ),
     leave_one_out = leave_one_out,
-    claim = "cross-atlas consensus; not parcellation invariance"
+    claim = paste0(
+      "cross-atlas consensus; ", inference_mode,
+      "; not parcellation invariance"
+    )
   )
   class(result) <- "ngeo_cross_atlas_consensus"
   result
@@ -276,10 +468,15 @@ print.ngeo_cross_atlas_consensus <- function(x, ...) {
   cat(
     "<ngeo_cross_atlas_consensus>\n",
     "  method: ", x$method, "\n",
+    "  inference: ", x$inference_mode, "\n",
     "  atlases: ", nrow(x$atlas), "\n",
     "  estimate: ", format(x$estimate, digits = 5L), "\n",
     "  I-squared: ",
-    format(100 * x$heterogeneity$i_squared, digits = 4L), "%\n",
+    if (is.finite(x$heterogeneity$i_squared)) {
+      paste0(format(100 * x$heterogeneity$i_squared, digits = 4L), "%")
+    } else {
+      "not estimated"
+    }, "\n",
     sep = ""
   )
   invisible(x)

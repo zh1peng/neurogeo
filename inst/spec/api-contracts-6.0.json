@@ -643,10 +643,12 @@
         "standard_error": "NULL",
         "method": "c(\"random\", \"fixed\")",
         "labels": "NULL",
-        "confidence": "0.95"
+        "confidence": "0.95",
+        "covariance": "NULL",
+        "independence": "FALSE"
       },
-      "condition_classes": "ngeo_error_argument",
-      "documentation_sha256": "d845846f0c726721889536ca4ca8c6a389752f71a5ad2f59f315b00008f46a95"
+      "condition_classes": ["ngeo_error_argument", "ngeo_error_inference"],
+      "documentation_sha256": "209a41138d2d54a6368b524491d2edb59e60f8decd2c655c47e450114ea15ff1"
     },
     "ngeo_distance": {
       "symbol": "ngeo_distance",

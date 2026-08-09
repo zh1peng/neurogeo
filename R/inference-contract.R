@@ -111,6 +111,7 @@ ngeo_inference_contract <- function(x) {
   dynamic_metric <- .ngeo_result_scalar(x, c(
     "distance_method", "metric", "weights_method", "normalization"
   ))
+  dynamic_uncertainty <- .ngeo_result_scalar(x, "uncertainty_target")
   result <- structure(
     list(
       schema = "NGCS-inference-contract-1",
@@ -121,7 +122,8 @@ ngeo_inference_contract <- function(x) {
       null_model = dynamic_null %||% row$null_model[[1L]],
       metric = dynamic_metric %||% row$metric[[1L]],
       support = row$support[[1L]],
-      uncertainty_target = row$uncertainty_target[[1L]],
+      uncertainty_target = dynamic_uncertainty %||%
+        row$uncertainty_target[[1L]],
       identifiers = .ngeo_inference_identifiers(x)
     ),
     class = "ngeo_inference_contract"

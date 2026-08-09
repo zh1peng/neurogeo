@@ -40,6 +40,11 @@ The returned contract has one canonical representation shared by its print,
 summary, and portable object manifest. Experimental result classes do not
 receive a stable inference contract by implication.
 
+`ngeo_cross_atlas_consensus()` is descriptive unless the caller supplies an
+aligned atlas covariance matrix or sets `independence = TRUE`. Covariance-aware
+fixed-effect GLS is stable; a correlated random-effects approximation is not
+implemented and is rejected rather than silently reduced to independence.
+
 ### Experimental
 
 `ngeo_spatial_ordination()`, `ngeo_coregionalization()`, and `ngeo_mgwr()` are

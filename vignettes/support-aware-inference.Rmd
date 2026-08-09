@@ -81,8 +81,9 @@ family_test$estimates
 
 ## Summarize robustness
 
-Atlas effects include intervals, random-effects consensus, heterogeneity,
-and leave-one-atlas-out influence.
+Atlas-specific effects include intervals and leave-one-atlas-out influence.
+Because estimates derived from the same source data are correlated,
+cross-atlas inference is descriptive until that dependence is supplied.
 
 ```{r}
 effect <- ngeo_atlas_robust_effect(
@@ -95,6 +96,24 @@ effect <- ngeo_atlas_robust_effect(
 effect$estimates
 effect$meta_analysis
 ```
+
+When a subject-level model or paired common-source bootstrap has produced an
+atlas-by-atlas covariance matrix, it can support a covariance-aware
+fixed-effect summary. `paired_atlas_covariance` below means that study-derived
+matrix; it is deliberately not guessed from the two point estimates.
+
+```{r, eval=FALSE}
+covariance_aware <- ngeo_cross_atlas_consensus(
+  effect$estimates$estimate,
+  labels = effect$estimates$atlas,
+  covariance = paired_atlas_covariance
+)
+covariance_aware
+```
+
+Use `independence = TRUE` only when study design justifies independent atlas
+estimates. It is an explicit ablation, not the default substitute for an
+unknown covariance.
 
 ## Multiscale inference
 

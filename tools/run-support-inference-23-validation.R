@@ -148,12 +148,35 @@ consensus <- ngeo_cross_atlas_consensus(
   c(1, 2, 4),
   c(1, 2, 1),
   method = "fixed",
-  labels = c("a", "b", "c")
+  labels = c("a", "b", "c"),
+  independence = TRUE
 )
 reference_consensus <- sum(c(1, 2, 4) / c(1, 2, 1)^2) /
   sum(1 / c(1, 2, 1)^2)
 if (!isTRUE(all.equal(consensus$estimate, reference_consensus))) {
   stop("Consensus does not match inverse-variance reference.")
+}
+descriptive <- ngeo_cross_atlas_consensus(c(1, 2, 4), c(1, 2, 1))
+if (!identical(descriptive$inference_mode, "descriptive") ||
+    !is.na(descriptive$p_value)) {
+  stop("Cross-atlas consensus did not default to descriptive output.")
+}
+atlas_correlation <- outer(1:3, 1:3, function(i, j) 0.6^abs(i - j))
+atlas_covariance <- atlas_correlation * tcrossprod(c(1, 2, 1))
+aware <- ngeo_cross_atlas_consensus(
+  c(1, 2, 4), covariance = atlas_covariance
+)
+precision <- solve(atlas_covariance)
+one <- rep(1, 3L)
+denominator <- as.numeric(crossprod(one, precision %*% one))
+reference_aware <- sum(as.numeric(precision %*% one) * c(1, 2, 4)) /
+  denominator
+if (!identical(aware$inference_mode, "covariance-aware") ||
+    !isTRUE(all.equal(aware$estimate, reference_aware, tolerance = 1e-12)) ||
+    !isTRUE(all.equal(
+      aware$standard_error, sqrt(1 / denominator), tolerance = 1e-12
+    ))) {
+  stop("Covariance-aware consensus differs from the GLS reference.")
 }
 
 result <- list(
@@ -174,6 +197,13 @@ result <- list(
     maximum_absolute_bias = effect_bias,
     bias_limit = effect_bias_limit,
     all_atlas_intervals_cover = coverage
+  ),
+  cross_atlas = list(
+    descriptive_default = identical(descriptive$inference_mode, "descriptive") &&
+      is.na(descriptive$p_value),
+    independence_reference_error = abs(consensus$estimate - reference_consensus),
+    covariance_reference_error = abs(aware$estimate - reference_aware),
+    covariance_standard_error = aware$standard_error
   ),
   null_calibration = list(
     experiments = experiments,

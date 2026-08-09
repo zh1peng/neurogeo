@@ -64,8 +64,35 @@ family_test$estimates
 unconstrained permutation 必须标记为 non-spatial。需要保持空间自相关时，应使用
 与 spatial_weights 对应的 Moran spectral null，或具有有效球面配准坐标的 surface spin。
 
+## 跨 atlas 汇总中的相关性
+
+同一批 source data 经过多个 atlas 得到的 estimate 通常相关，不能默认当作独立
+研究。`ngeo_cross_atlas_consensus()` 的默认结果因此只有描述性 estimate，不提供
+CI 或 p 值。若 subject-level model 或共同 source bootstrap 已经产生 atlas-by-atlas
+covariance matrix，可按下面的接口进行 covariance-aware fixed-effect GLS。
+`paired_atlas_covariance` 指研究流程实际估计的矩阵，不能从两个 point estimate 猜测。
+
+```{r}
+effect <- ngeo_atlas_robust_effect(
+  source, layers, targets,
+  outcome = "outcome", predictor = "predictor"
+)
+effect$meta_analysis$inference_mode
+```
+
+```{r, eval=FALSE}
+covariance_aware <- ngeo_cross_atlas_consensus(
+  effect$estimates$estimate,
+  labels = effect$estimates$atlas,
+  covariance = paired_atlas_covariance
+)
+covariance_aware
+```
+
+只有研究设计确实支持 atlas estimate 相互独立时，才应显式设置
+`independence = TRUE`。这个设置适合作为消融，不是未知 covariance 的替代品。
+
 ## 解释
 
-heterogeneity、random-effects consensus 和 leave-one-atlas-out influence
-描述对所提供 support family 的稳健性，不证明局部 effect 与 parcellation 或
-scale 无关。
+descriptive/covariance-aware consensus 和 leave-one-atlas-out influence 描述对
+所提供 support family 的稳健性，不证明局部 effect 与 parcellation 或 scale 无关。

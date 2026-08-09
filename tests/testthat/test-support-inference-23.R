@@ -28,7 +28,8 @@ test_that("cross-atlas consensus matches inverse-variance formulas", {
     estimate,
     standard_error,
     method = "fixed",
-    labels = c("a", "b", "c")
+    labels = c("a", "b", "c"),
+    independence = TRUE
   )
   weight <- 1 / standard_error^2
 
@@ -38,17 +39,72 @@ test_that("cross-atlas consensus matches inverse-variance formulas", {
   )
   expect_equal(fixed$standard_error, sqrt(1 / sum(weight)))
   expect_equal(nrow(fixed$leave_one_out), 3L)
-  expect_identical(fixed$claim, "cross-atlas consensus; not parcellation invariance")
+  expect_identical(fixed$inference_mode, "independence")
+  expect_match(fixed$claim, "not parcellation invariance")
 
   pair <- ngeo_cross_atlas_consensus(
     c(1, 3),
     c(0.5, 0.5),
-    labels = c("left", "right")
+    labels = c("left", "right"),
+    independence = TRUE
   )
   expect_equal(pair$leave_one_out$estimate, c(3, 1))
   expect_true(all(is.na(c(
     neurogeo:::.ngeo_meta_estimate(1, 0.5, "random")$q_p_value
   ))))
+})
+
+test_that("cross-atlas inference requires covariance or explicit independence", {
+  estimate <- c(0.1, 0.2, 0.3)
+  standard_error <- rep(0.2, 3)
+  descriptive <- ngeo_cross_atlas_consensus(estimate, standard_error)
+  expect_identical(descriptive$inference_mode, "descriptive")
+  expect_true(is.na(descriptive$p_value))
+  expect_true(all(is.na(descriptive$confidence_interval)))
+  expect_identical(
+    ngeo_inference_contract(descriptive)$uncertainty_target,
+    "not applicable for descriptive consensus"
+  )
+
+  covariance <- outer(seq_along(estimate), seq_along(estimate), function(i, j) {
+    0.75^abs(i - j)
+  }) * 0.2^2
+  aware <- ngeo_cross_atlas_consensus(
+    estimate,
+    covariance = covariance
+  )
+  precision <- solve(covariance)
+  one <- rep(1, length(estimate))
+  denominator <- as.numeric(crossprod(one, precision %*% one))
+  weight <- as.numeric(precision %*% one) / denominator
+  expect_identical(aware$inference_mode, "covariance-aware")
+  expect_identical(
+    ngeo_inference_contract(aware)$uncertainty_target,
+    "pooled effect under supplied atlas covariance"
+  )
+  expect_equal(aware$estimate, sum(weight * estimate), tolerance = 1e-12)
+  expect_equal(aware$standard_error, sqrt(1 / denominator), tolerance = 1e-12)
+  expect_error(
+    ngeo_cross_atlas_consensus(
+      estimate, covariance = covariance, independence = TRUE
+    ),
+    class = "ngeo_error_inference"
+  )
+  expect_error(
+    ngeo_cross_atlas_consensus(
+      estimate, standard_error, covariance = covariance * 2
+    ),
+    class = "ngeo_error_inference"
+  )
+  named_covariance <- covariance
+  dimnames(named_covariance) <- list(c("b", "a", "c"), c("b", "a", "c"))
+  expect_error(
+    ngeo_cross_atlas_consensus(
+      estimate, covariance = named_covariance,
+      labels = c("a", "b", "c")
+    ),
+    class = "ngeo_error_alignment"
+  )
 })
 
 test_that("common-source support tests are reproducible and family-aware", {
