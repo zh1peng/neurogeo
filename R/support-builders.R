@@ -156,6 +156,8 @@
 #' @param source_support Optional positive source vertex support.
 #'
 #' @return A sparse crisp `ngeo_support_map`.
+#' @templateVar example_call ngeo_surface_nearest_map(source_surface, target_surface)
+#' @template stable-geometry-core
 #' @export
 ngeo_surface_nearest_map <- function(
     source,
@@ -317,6 +319,8 @@ ngeo_surface_nearest_map <- function(
 #' @param tolerance Geometric and sparse-weight tolerance.
 #'
 #' @return A sparse probabilistic `ngeo_support_map`.
+#' @templateVar example_call ngeo_surface_barycentric_map(source_surface, target_surface)
+#' @template stable-geometry-core
 #' @export
 ngeo_surface_barycentric_map <- function(
     source,
@@ -465,6 +469,8 @@ ngeo_surface_barycentric_map <- function(
 #' @param method Nearest vertex or barycentric projection.
 #'
 #' @return A sparse `ngeo_support_map`.
+#' @templateVar example_call ngeo_surface_registration_map(source_surface, target_surface, sphere_registration)
+#' @template stable-geometry-core
 #' @export
 ngeo_surface_registration_map <- function(
     source,
@@ -574,6 +580,8 @@ ngeo_surface_registration_map <- function(
 #' @param source_support Optional positive source voxel support.
 #'
 #' @return A sparse crisp or probabilistic `ngeo_support_map`.
+#' @templateVar example_call ngeo_affine_grid_map(source_volume, target_volume, transform = affine)
+#' @template stable-geometry-core
 #' @export
 ngeo_affine_grid_map <- function(
     source,
@@ -709,6 +717,8 @@ ngeo_affine_grid_map <- function(
 #' @param max_contributions Maximum non-zero overlap entries.
 #'
 #' @return A sparse probabilistic `ngeo_support_map`.
+#' @templateVar example_call ngeo_voxel_overlap_map(source_volume, target_volume)
+#' @template stable-geometry-core
 #' @export
 ngeo_voxel_overlap_map <- function(
     source,
@@ -1079,6 +1089,8 @@ ngeo_probabilistic_atlas_map <- function(
 #'
 #' @inheritParams ngeo_atlas_map
 #' @return A sparse crisp `ngeo_support_map`.
+#' @templateVar example_call ngeo_label_overlap_map(source_labels, target_labels)
+#' @template stable-geometry-core
 #' @export
 ngeo_label_overlap_map <- function(
     source,

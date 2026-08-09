@@ -288,6 +288,7 @@ ngeo_point <- function(coordinates,
 #'   values = cbind(statistic = c(1.2, 0.7))
 #' )
 #' base_elements(gray)
+#' @template stable-geometry-core
 #' @export
 ngeo_grayordinate <- function(components,
                                values = NULL,
@@ -393,6 +394,7 @@ ngeo_grayordinate <- function(components,
 #' )
 #' base_elements(parcellation)
 #' ngeo_support_size(parcellation)
+#' @template stable-geometry-core
 #' @export
 ngeo_parcellation <- function(parcellation,
                          values = NULL,

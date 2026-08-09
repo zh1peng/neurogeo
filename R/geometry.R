@@ -6,6 +6,8 @@
 #' @param coordinates Coordinate-set name, or `"active"`.
 #'
 #' @return A numeric vector aligned to surface elements.
+#' @templateVar example_call ngeo_vertex_area(surface_data)
+#' @template stable-geometry-core
 #' @export
 ngeo_vertex_area <- function(x, coordinates = "active") {
   if (!inherits(x, "ngeo_surface")) {
@@ -68,6 +70,8 @@ ngeo_vertex_area <- function(x, coordinates = "active") {
 #'
 #' @param x An `ngeo_volume` object.
 #' @return The absolute determinant of the affine linear component.
+#' @templateVar example_call ngeo_voxel_volume(volume_data)
+#' @template stable-geometry-core
 #' @export
 ngeo_voxel_volume <- function(x) {
   if (!inherits(x, "ngeo_volume")) {

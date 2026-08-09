@@ -138,7 +138,7 @@
         "source_support": "NULL"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_coverage"],
-      "documentation_sha256": "d20a0b94d0b7a92e9c3c0cf61561845cbcb8bb3a26aa183ca60ad76601227c55"
+      "documentation_sha256": "1800a50eca0686f64ae6dbe15bf514ed9080717734aaf39eb0548fab04af0072"
     },
     "ngeo_aggregate": {
       "symbol": "ngeo_aggregate",
@@ -199,7 +199,7 @@
         "max_features": "getOption(\"neurogeo.max_sf_features\", 100000L)"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_capability", "ngeo_error_resource"],
-      "documentation_sha256": "5ce0993b403126726d634e15967e2583d158332edf4945a9ca1ce588b6f09f5f"
+      "documentation_sha256": "a6e9871a5ddf29f15610adbb448df68f13db96eb57ae5c0d23b6fa1685e59686"
     },
     "ngeo_atlas_compare": {
       "symbol": "ngeo_atlas_compare",
@@ -457,7 +457,7 @@
         "chart": "NULL"
       },
       "condition_classes": [],
-      "documentation_sha256": "293bcb4be5db5632a53c4c15db7199770ca574b9cf20f982c284e921e0acb070"
+      "documentation_sha256": "e284ad39ee874fa59a9aa6114d6a33f264efc6aff39a02f5fee8ac1ac3031da2"
     },
     "ngeo_common_support_test": {
       "symbol": "ngeo_common_support_test",
@@ -586,7 +586,7 @@
         "shared_scale": "FALSE"
       },
       "condition_classes": ["ngeo_error_alignment", "ngeo_error_argument"],
-      "documentation_sha256": "cff1854b0163bd1a06ba4228dca1ec3c0ada63e3e228bf0f7740f5f4272003a3"
+      "documentation_sha256": "35eec5c2f71e269117cbdc3b372804d2ffbdae616c489860b2a26371baf5bd25"
     },
     "ngeo_cortical_map": {
       "symbol": "ngeo_cortical_map",
@@ -609,7 +609,7 @@
         "overlay_alpha": "1"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_coverage"],
-      "documentation_sha256": "c12cc9b51c845b3489cb3877fd060e276da1b7b8e4164c2afae599253cbe6c55"
+      "documentation_sha256": "f7daa71cae8c1be7473ea148c639be839f8393f71027e7b5785bca32328a381c"
     },
     "ngeo_cortical_map_data": {
       "symbol": "ngeo_cortical_map_data",
@@ -618,7 +618,7 @@
         "x": ""
       },
       "condition_classes": "ngeo_error_argument",
-      "documentation_sha256": "96e92360f8ec130811a54e556e328d5a565b181e85737697d0d2b341edc13296"
+      "documentation_sha256": "cf7e19c80bcc329eb7885dcd5fcc77b10abc8945f3f3a1be0a20713437e34b64"
     },
     "ngeo_cross_atlas": {
       "symbol": "ngeo_cross_atlas",
@@ -759,7 +759,7 @@
         "tolerance": "1e-12"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_geometry"],
-      "documentation_sha256": "2a06a3b7554753712166cef5efd3619a39f047053b7fed7d9b038c626cd6c39d"
+      "documentation_sha256": "4b8485e4792baa13c19348b54ad27ec1e9ed9196168c93657750471ccda171f1"
     },
     "ngeo_geary": {
       "symbol": "ngeo_geary",
@@ -819,7 +819,7 @@
         "coordinate_space": "ngeo_coordinate_space(kind = \"hybrid\")"
       },
       "condition_classes": ["ngeo_error_base", "ngeo_error_coordinate_space"],
-      "documentation_sha256": "8facbdec374c617e27df5a453b83cd17cf287933cb633dc38f89425f5ae5c0f8"
+      "documentation_sha256": "debe02ebe87dc6fcdd54051517fff8460bd308f39a6b4a105a7dea5970287f11"
     },
     "ngeo_group_test": {
       "symbol": "ngeo_group_test",
@@ -1012,7 +1012,7 @@
         "source_support": "NULL"
       },
       "condition_classes": [],
-      "documentation_sha256": "0f365a7e2daab7a2e710fcb99f48f604c0aee7dfd29582e74a09c005f5c64b7a"
+      "documentation_sha256": "1f7f0006d6b736d23bb58ffea214442352e942a741ba98f8b9a42b314a7547c5"
     },
     "ngeo_labels": {
       "symbol": "ngeo_labels",
@@ -1272,7 +1272,7 @@
         "coordinate_space": "ngeo_coordinate_space()"
       },
       "condition_classes": ["ngeo_error_alignment", "ngeo_error_base", "ngeo_error_coordinate_space", "ngeo_error_geometry"],
-      "documentation_sha256": "8f7740e198488c3b2ff3eb5906985a87bc6b027d6bd747bd68065947aff0b949"
+      "documentation_sha256": "1a1b9a414494216083b18ada67102a3a478b03051a3f0aee6df4c6a231f8aaec"
     },
     "ngeo_parcellation_inference": {
       "symbol": "ngeo_parcellation_inference",
@@ -1359,7 +1359,7 @@
         "tolerance": "1e-12"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_chart", "ngeo_error_geometry"],
-      "documentation_sha256": "6503436e3f48f7a544c125a80b771077d6c443e288a8c7764caacef3b06b1646"
+      "documentation_sha256": "c9347295911ef8935c6fea590597c77d6ea723b8c7162f1f550154bc1536b069"
     },
     "ngeo_qc": {
       "symbol": "ngeo_qc",
@@ -1545,7 +1545,7 @@
         "source": "NULL"
       },
       "condition_classes": ["ngeo_error_alignment", "ngeo_error_capability", "ngeo_error_chart"],
-      "documentation_sha256": "a22209c9e6b3131d43807acb9d21809398f74dd757b7762262c081d5a97620ab"
+      "documentation_sha256": "43ed11b5488e9644437e0a30dfe072ad1dfff16b3e881a0d696223ba4ec4c7be"
     },
     "ngeo_set_time_axis": {
       "symbol": "ngeo_set_time_axis",
@@ -2041,7 +2041,7 @@
         "source_index_base": "NULL"
       },
       "condition_classes": ["ngeo_error_alignment", "ngeo_error_coordinate_space", "ngeo_error_geometry", "ngeo_error_index"],
-      "documentation_sha256": "916d1cf51f9ec323d0c8f6ab73f9087f53f0c4f713e22a3f6410063d96597026"
+      "documentation_sha256": "b1bf4a4479982391825f54411c25fb060936a6770a8d1b4fd40784b7f71b5ec3"
     },
     "ngeo_surface_barycentric_map": {
       "symbol": "ngeo_surface_barycentric_map",
@@ -2058,7 +2058,7 @@
         "source_support": "NULL"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_coverage"],
-      "documentation_sha256": "101e9de7557c620b2d9ee6ce2399c468d132bde7795be860869d996e8ff149dc"
+      "documentation_sha256": "a7846651cef6a72e9a6975b5c864b0ed9975061bc51672109c99c168824582cb"
     },
     "ngeo_surface_nearest_map": {
       "symbol": "ngeo_surface_nearest_map",
@@ -2073,7 +2073,7 @@
         "source_support": "NULL"
       },
       "condition_classes": "ngeo_error_argument",
-      "documentation_sha256": "90feb593d0db943f67f0e1e6d3de25cb97343dfffd0fae836b54358d6e604538"
+      "documentation_sha256": "e3a2f6883fa33e7ee872032575c1242d66aa61e722e58ad3cde2784926571d94"
     },
     "ngeo_surface_registration_map": {
       "symbol": "ngeo_surface_registration_map",
@@ -2091,7 +2091,7 @@
         "source_support": "NULL"
       },
       "condition_classes": [],
-      "documentation_sha256": "8ba73e12a5da8b39608267810c7b680b01e88955ff6aa4b7aa32ad0d651a4743"
+      "documentation_sha256": "6dacb4a02dc80ea3a72fed5c8eacef7a39171e894c06288544bf196ed295b90b"
     },
     "ngeo_temporal_contrast": {
       "symbol": "ngeo_temporal_contrast",
@@ -2570,7 +2570,7 @@
         "coordinates": "\"active\""
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_geometry", "ngeo_error_metric"],
-      "documentation_sha256": "7db992b46e894a218b60921fab95342c2427789c186f3b3668dc6c5e9b4834a7"
+      "documentation_sha256": "5c5fd0ce0a322743a0eb3597c1b1dacfc44e9306cc8123d7014fa932ae21aefb"
     },
     "ngeo_volume": {
       "symbol": "ngeo_volume",
@@ -2587,7 +2587,7 @@
         "index_base": "c(\"one\", \"zero\")"
       },
       "condition_classes": ["ngeo_error_alignment", "ngeo_error_coordinate_space", "ngeo_error_geometry"],
-      "documentation_sha256": "a0d181508f72916704acdd20eb7d694146757017124b47e053e94285a7e3f096"
+      "documentation_sha256": "ff54f88a31d1a5c73cc306ec88922859a3678a28f64fa66b9359f1288422309f"
     },
     "ngeo_voxel_overlap_map": {
       "symbol": "ngeo_voxel_overlap_map",
@@ -2602,7 +2602,7 @@
         "source_support": "NULL"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_coverage", "ngeo_error_resource"],
-      "documentation_sha256": "fab599554ec753e684b2d75d7eb21c32f74585321af0fda4c4f0fca9d7dad2d6"
+      "documentation_sha256": "5e0228f0423e15e97d229a9d5e71a6f391b1be21512f3956fcea1a35ec02826d"
     },
     "ngeo_voxel_volume": {
       "symbol": "ngeo_voxel_volume",
@@ -2611,7 +2611,7 @@
         "x": ""
       },
       "condition_classes": "ngeo_error_argument",
-      "documentation_sha256": "d6d13d2c02e01ec943f78031979d525f9db7d836e72e4f4519f06da055a260ab"
+      "documentation_sha256": "aa79346da8448868faafac3b9fb21bfb7bd9c2a3961dbb6e28239ed33cb386c9"
     },
     "ngeo_write_artifact_batch": {
       "symbol": "ngeo_write_artifact_batch",

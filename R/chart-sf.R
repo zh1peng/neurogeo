@@ -50,6 +50,8 @@
 #' @param source Optional source description.
 #'
 #' @return A new `ngeo_surface` with the chart and history appended.
+#' @templateVar example_call ngeo_set_chart(surface_data, "flat", flat_coordinates)
+#' @template stable-geometry-core
 #' @export
 ngeo_set_chart <- function(x,
                            coordinates,
@@ -143,6 +145,8 @@ ngeo_set_chart <- function(x,
 #' @param chart Optional chart name.
 #'
 #' @return The stored distortion metadata, or `NULL`.
+#' @templateVar example_call ngeo_chart_distortion(surface_data, "flat")
+#' @template stable-geometry-core
 #' @export
 ngeo_chart_distortion <- function(x, chart = NULL) {
   .ngeo_chart_coordinates(x, chart)$metadata$distortion
@@ -169,6 +173,8 @@ ngeo_chart_distortion <- function(x, chart = NULL) {
 #' @param max_features Explicit feature-count guard.
 #'
 #' @return An `sf` object with NGCS identity attributes.
+#' @templateVar example_call ngeo_as_sf(parcellation_data)
+#' @template stable-geometry-core
 #' @export
 ngeo_as_sf <- function(x,
                        feature = c("element", "face"),

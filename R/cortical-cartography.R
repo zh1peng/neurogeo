@@ -374,6 +374,7 @@
 #'   surface, "harmonic", boundary = c(1, 2, 3, 4)
 #' )
 #' ngeo_chart_distortion(flat, "flat")
+#' @template stable-geometry-core
 #' @export
 ngeo_flatten_surface <- function(
     x,
@@ -469,6 +470,7 @@ ngeo_flatten_surface <- function(
 #' )
 #' viewed <- ngeo_project_surface(surface, "orthographic", view = "xy")
 #' viewed$base$charts$view$kind
+#' @template stable-geometry-core
 #' @export
 ngeo_project_surface <- function(
     x,
@@ -935,6 +937,7 @@ ngeo_project_surface <- function(
 #' )
 #' map <- ngeo_cortical_map(surface, atlas = c("A", "A", "B", "B"))
 #' ngeo_cortical_map_data(map)$faces
+#' @template stable-geometry-core
 #' @export
 ngeo_cortical_map <- function(
     x,
@@ -1153,6 +1156,8 @@ ngeo_cortical_map <- function(
 #'
 #' @param x An `ngeo_cortical_map`.
 #' @return Vertices, faces, atlas boundaries, legend, and chart metadata.
+#' @templateVar example_call ngeo_cortical_map_data(cortical_map)
+#' @template stable-geometry-core
 #' @export
 ngeo_cortical_map_data <- function(x) {
   if (!inherits(x, "ngeo_cortical_map")) {
@@ -1197,6 +1202,8 @@ ngeo_cortical_map_data <- function(x) {
 #'   one categorical color contract and one legend. Categorical layers with
 #'   conflicting colors for the same label are rejected.
 #' @return An `ngeo_cortical_layout`.
+#' @templateVar example_call ngeo_cortical_layout(left = left_map, right = right_map)
+#' @template stable-geometry-core
 #' @export
 ngeo_cortical_layout <- function(
     ...,
