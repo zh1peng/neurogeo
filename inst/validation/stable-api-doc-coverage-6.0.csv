@@ -1,10 +1,10 @@
 "symbol","owner","source","purpose","when_not","units","assumptions","return_schema","example","see_also","reference","validation","complete"
 "aggregate_to","neuroimaging-methods","man/aggregate_to.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"as_igraph","core-api","man/as_igraph.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
-"as_spdep_listw","core-api","man/as_spdep_listw.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
-"as_spdep_nb","core-api","man/as_spdep_nb.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"as_igraph","core-api","man/as_igraph.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"as_spdep_listw","core-api","man/as_spdep_listw.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"as_spdep_nb","core-api","man/as_spdep_nb.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_add_transform","core-api","man/ngeo_add_transform.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"ngeo_adjacency","core-api","man/ngeo_adjacency.Rd",TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_adjacency","core-api","man/ngeo_adjacency.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_affine_grid_map","core-api","man/ngeo_affine_grid_map.Rd",TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
 "ngeo_aggregate","neuroimaging-methods","man/ngeo_aggregate.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_apply_transform","core-api","man/ngeo_apply_transform.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -33,7 +33,7 @@
 "ngeo_car_uncertainty","statistical-methods","man/ngeo_car_uncertainty.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_chart_distortion","core-api","man/ngeo_chart_distortion.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
 "ngeo_common_support_test","neuroimaging-methods","man/ngeo_common_support_test.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"ngeo_components","core-api","man/ngeo_components.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_components","core-api","man/ngeo_components.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_compose_support_map","neuroimaging-methods","man/ngeo_compose_support_map.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_compose_transform","core-api","man/ngeo_compose_transform.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_coordinate_space","core-api","man/ngeo_coordinate_space.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -46,7 +46,7 @@
 "ngeo_cortical_map_data","core-api","man/ngeo_cortical_map_data.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
 "ngeo_cross_atlas","neuroimaging-methods","man/ngeo_cross_atlas.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_cross_atlas_consensus","neuroimaging-methods","man/ngeo_cross_atlas_consensus.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"ngeo_distance","core-api","man/ngeo_distance.Rd",TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_distance","core-api","man/ngeo_distance.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_environment_snapshot","core-api","man/ngeo_environment_snapshot.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
 "ngeo_example_data","core-api","man/ngeo_example_data.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,TRUE,FALSE,FALSE,TRUE,FALSE
 "ngeo_exchangeability","core-api","man/ngeo_exchangeability.Rd",TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
@@ -88,7 +88,7 @@
 "ngeo_model_calibration","statistical-methods","man/ngeo_model_calibration.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_moran","statistical-methods","man/ngeo_moran.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_multiscale_inference","core-api","man/ngeo_multiscale_inference.Rd",TRUE,FALSE,FALSE,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
-"ngeo_neighbors","core-api","man/ngeo_neighbors.Rd",TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_neighbors","core-api","man/ngeo_neighbors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_object_manifest","reproducibility-engineering","man/ngeo_object_manifest.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_parcellation","core-api","man/ngeo_parcellation.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE
 "ngeo_parcellation_inference","core-api","man/ngeo_parcellation_inference.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE

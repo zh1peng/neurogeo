@@ -26,7 +26,7 @@
         "x": ""
       },
       "condition_classes": "ngeo_error_argument",
-      "documentation_sha256": "961c0c3b7a08e3e60c2cec43dbb78828b694bd9b11313b17e44e8886cdf7c3e2"
+      "documentation_sha256": "168955af3c1656277c6d83df7caa5bf8e886dea56503159a2cd60bf4702107d2"
     },
     "as_spdep_listw": {
       "symbol": "as_spdep_listw",
@@ -35,7 +35,7 @@
         "x": ""
       },
       "condition_classes": [],
-      "documentation_sha256": "f469d9861819dfc82ca0ef78bcd3cda56ad41c6946923899cf78346db80b44be"
+      "documentation_sha256": "3542112b2dafedd3afe5025541826dbeebf375b6187c83706ccc8e9fcad2d079"
     },
     "as_spdep_nb": {
       "symbol": "as_spdep_nb",
@@ -44,7 +44,7 @@
         "x": ""
       },
       "condition_classes": "ngeo_error_argument",
-      "documentation_sha256": "dd26ccc7842a6f442d959262c5f3f50c9f4ca3b269e0da682f63230ad5e7b83d"
+      "documentation_sha256": "f115e471f4791aa8375fa1d0e6c4a8078150ef51c29a1fb79fca060b3cf71225"
     },
     "base_elements": {
       "symbol": "base_elements",
@@ -123,7 +123,7 @@
         "include_masked": "FALSE"
       },
       "condition_classes": "ngeo_error_capability",
-      "documentation_sha256": "e4dee01cc7359150d09b293e517dc193d268566b4ce8b67c9017e9bf10ef1fc1"
+      "documentation_sha256": "6bd3f97b668f408ac1d356fbdef10e073711f3898d96d70228c20a116a1eb545"
     },
     "ngeo_affine_grid_map": {
       "symbol": "ngeo_affine_grid_map",
@@ -490,7 +490,7 @@
         "adjacency": "NULL"
       },
       "condition_classes": [],
-      "documentation_sha256": "f7999119184260b57f183529ef5358c2da834e874c50f156b3a9a9d3f366a7ab"
+      "documentation_sha256": "0f1aa95d909a32572642df14709f1099d8b854aa1875525c1ccffb39da70fc11"
     },
     "ngeo_compose_support_map": {
       "symbol": "ngeo_compose_support_map",
@@ -660,7 +660,7 @@
         "connectivity": "6L"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_capability", "ngeo_error_dense_distance"],
-      "documentation_sha256": "591aab39bb08e2d2ab2f6d6d08378e0cb904ebcbc79121c65a50567b06e79e84"
+      "documentation_sha256": "e3a82d163fef281eae3ec87be06799773b84a1c46d9d18d27d3f827d48777231"
     },
     "ngeo_environment_snapshot": {
       "symbol": "ngeo_environment_snapshot",
@@ -1244,7 +1244,7 @@
         "...": ""
       },
       "condition_classes": "ngeo_error_capability",
-      "documentation_sha256": "5e834730c28458b40b99ab91eb09ab476bdc3caccd89a9081f4d190eb4d6cad1"
+      "documentation_sha256": "f1d546ef19f0fce51b5a1768b82ff17ee25e21d4e08ac9bb7a32ecb5893bfb92"
     },
     "ngeo_object_manifest": {
       "symbol": "ngeo_object_manifest",
