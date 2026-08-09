@@ -6,6 +6,9 @@
 ^benchmarks$
 ^CODE_OF_CONDUCT\.md$
 ^CONTRIBUTING\.md$
+^SECURITY\.md$
+^CITATION\.cff$
+^codemeta\.json$
 ^design$
 ^GOVERNANCE\.md$
 ^paper$
