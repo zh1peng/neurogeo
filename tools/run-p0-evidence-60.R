@@ -47,9 +47,21 @@ run <- function(command, arguments, wd = source_root, env = character()) {
   invisible(output)
 }
 
+archive <- file.path(work, "source.tar")
+snapshot <- file.path(work, "source", "neurogeo")
+dir.create(snapshot, recursive = TRUE)
+run(
+  "git",
+  c("archive", "--format=tar", paste0("--output=", archive), "HEAD")
+)
+utils::untar(archive, exdir = snapshot)
+
 run(
   r_binary,
-  c("CMD", "build", source_root, "--no-build-vignettes", "--no-manual"),
+  c(
+    "CMD", "build", snapshot, "--no-build-vignettes", "--no-manual",
+    "--no-resave-data"
+  ),
   wd = build_path
 )
 candidate <- list.files(
