@@ -234,7 +234,8 @@
 #' @param coordinate_space Optional `ngeo_coordinate_space`.
 #' @param coordinate_roles Optional roles for coordinate files.
 #' @param strict Whether to run strict validation.
-#' @param checksum Whether to record MD5 checksums.
+#' @param checksum Whether to record SHA-256 source identities. Legacy MD5
+#'   fields are retained through 6.x for history compatibility.
 #'
 #' @return An `ngeo_surface` object.
 #' @export

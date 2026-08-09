@@ -68,7 +68,9 @@ jobs:
         run: Rscript tools/check-inference-contracts-60.R
 
       - name: User-visible condition contracts
-        run: Rscript tools/check-condition-contracts-60.R
+        run: |
+          Rscript tools/check-condition-contracts-60.R
+          Rscript tools/check-options-reference-60.R
 
       - name: Documentation and teaching corpus freshness
         run: |

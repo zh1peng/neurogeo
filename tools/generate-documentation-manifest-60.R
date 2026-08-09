@@ -66,6 +66,7 @@ vignette_rows <- do.call(rbind, vignette_rows)
 static_sources <- c(
   "README.md",
   "website/index.md", "website/guide/index.md", "website/concepts/index.md",
+  "website/concepts/options.md",
   "website/guide/installation.md",
   "website/glossary/index.md", "website/tutorials/index.md", "website/modules/index.md",
   "website/en/index.md", "website/en/guide/index.md",
@@ -75,22 +76,22 @@ static_sources <- c(
   "_pkgdown.yml"
 )
 static_routes <- c(
-  "/readme", "/", "/guide/", "/concepts/", "/guide/installation", "/glossary/", "/tutorials/", "/modules/",
+  "/readme", "/", "/guide/", "/concepts/", "/concepts/options", "/guide/installation", "/glossary/", "/tutorials/", "/modules/",
   "/en/", "/en/guide/", "/en/guide/installation", "/en/glossary/", "/en/tutorials/", "/en/modules/",
   "/api/reference/"
 )
 static_locale <- c(
-  "neutral", rep("zh-CN", 7L), rep("en", 6L), "neutral"
+  "neutral", rep("zh-CN", 8L), rep("en", 6L), "neutral"
 )
 static_rows <- data.frame(
   document_id = c(
-    "readme", "home", "guide", "concepts-index", "installation", "glossary", "tutorial-index",
+    "readme", "home", "guide", "concepts-index", "options", "installation", "glossary", "tutorial-index",
     "module-index", "home", "guide", "installation", "glossary", "tutorial-index", "module-index",
     "api-index"
   ),
   locale = static_locale,
   content_type = c(
-    "start-here", "start-here", "start-here", "concept", "start-here", "concept", "navigation",
+    "start-here", "start-here", "start-here", "concept", "concept", "start-here", "concept", "navigation",
     "navigation", "start-here", "start-here", "start-here", "concept", "navigation", "navigation",
     "api-index"
   ),

@@ -63,6 +63,8 @@ test_that("upstream NIfTI preserves affine, indices, values, and history", {
   expect_equal(diag(x$base$geometry$affine)[1:3], c(-2.5, 2.5, 2.5))
   expect_equal(range(x$values), c(0, 2503))
   expect_identical(x$history$sources[[1L]]$importer, "read_ngeo_nifti")
+  expect_match(x$history$sources[[1L]]$source_id, "^file:.*#sha256:[0-9a-f]{16}$")
+  expect_match(x$history$sources[[1L]]$checksum_sha256, "^[0-9a-f]{64}$")
   expect_match(x$history$sources[[1L]]$checksum_md5, "^[0-9a-f]{32}$")
 
   directory <- tempfile("neurogeo-41-nifti-")

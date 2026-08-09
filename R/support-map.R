@@ -500,6 +500,7 @@ aggregate_to <- function(
     unmapped = c("error", "drop"),
     unknown = c("error", "intensive", "extensive"),
     budget = ngeo_resource_budget()) {
+  budget_context <- .ngeo_budget_context(budget)
   .ngeo_validate_support_bases(x, target, support_map)
   allocation <- match.arg(allocation)
   unmapped <- match.arg(unmapped)
@@ -512,12 +513,12 @@ aggregate_to <- function(
   }
   layer_index <- .ngeo_layer_selection(x, layers)
   .ngeo_budget_assert(
-    budget,
+    budget_context,
     "materialized_elements",
     nrow(target$base$elements) * length(layer_index)
   )
   .ngeo_budget_assert(
-    budget,
+    budget_context,
     "memory_bytes",
     8 * (
       nrow(x$base$elements) +
@@ -527,6 +528,7 @@ aggregate_to <- function(
   source_support <- support_map$source_support %||%
     .ngeo_support_vector(x)
   operator <- support_map$operator
+  .ngeo_budget_assert(budget_context, "blocks", length(layer_index))
   target_support <- as.numeric(operator %*% source_support)
   allocation_operator <- NULL
   output <- vector("list", length(layer_index))
@@ -535,6 +537,7 @@ aggregate_to <- function(
     layer_index
   )$support_behavior
   for (i in seq_along(layer_index)) {
+    .ngeo_budget_checkpoint(budget_context)
     map <- layer_index[[i]]
     values <- as.numeric(x$values[, map])
     if (any(!is.finite(values))) {

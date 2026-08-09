@@ -275,7 +275,8 @@
 #' @param coordinate_space Optional `ngeo_coordinate_space`.
 #' @param load_data Whether to retain volume data.
 #' @param strict Whether to run strict validation.
-#' @param checksum Whether to record MD5 checksums.
+#' @param checksum Whether to record SHA-256 source identities. Legacy MD5
+#'   fields are retained through 6.x for history compatibility.
 #'
 #' @return An `ngeo_surface` or `ngeo_volume` object.
 #' @export
