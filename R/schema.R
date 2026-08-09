@@ -773,6 +773,8 @@ ngeo_validate_manifest <- function(
 NULL
 
 #' @rdname ngeo_manifest_io
+#' @templateVar example_call write_ngeo_manifest(object_manifest, "object-manifest.json")
+#' @template stable-io
 #' @export
 write_ngeo_manifest <- function(manifest, path, overwrite = FALSE) {
   .ngeo_require("jsonlite", "NGCS manifest writing")

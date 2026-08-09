@@ -125,6 +125,8 @@
 #' @param overwrite Replace existing outputs.
 #'
 #' @return A file manifest with data, mask, and sidecar paths.
+#' @templateVar example_call write_ngeo_nifti(volume_data, "statmap.nii.gz")
+#' @template stable-io
 #' @export
 write_ngeo_nifti <- function(x,
                              path,
@@ -260,6 +262,8 @@ write_ngeo_nifti <- function(x,
 #' @param overwrite Replace existing outputs.
 #'
 #' @return A manifest of named geometry, data, label, and sidecar paths.
+#' @templateVar example_call write_ngeo_gifti(surface_data, "surface-output")
+#' @template stable-io
 #' @export
 write_ngeo_gifti <- function(x, path, overwrite = FALSE) {
   .ngeo_require("freesurferformats", "GIFTI writing")
@@ -401,6 +405,8 @@ write_ngeo_gifti <- function(x, path, overwrite = FALSE) {
 #' @param overwrite Replace existing outputs.
 #'
 #' @return A file manifest.
+#' @templateVar example_call write_ngeo_freesurfer(surface_data, "lh.output")
+#' @template stable-io
 #' @export
 write_ngeo_freesurfer <- function(x, path, overwrite = FALSE) {
   .ngeo_require("freesurferformats", "FreeSurfer format writing")
@@ -498,6 +504,8 @@ write_ngeo_freesurfer <- function(x, path, overwrite = FALSE) {
 #' @param ... Format-specific writer arguments.
 #'
 #' @return A writer manifest.
+#' @templateVar example_call write_ngeo(data, "output.nii.gz", format = "nifti")
+#' @template stable-io
 #' @export
 write_ngeo <- function(x,
                        path,

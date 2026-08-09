@@ -692,6 +692,8 @@ ngeo_replay <- function(
 NULL
 
 #' @rdname ngeo_replay_manifest_io
+#' @templateVar example_call write_ngeo_replay_manifest(replay_manifest, "replay.json")
+#' @template stable-io
 #' @export
 write_ngeo_replay_manifest <- function(
     manifest,
@@ -908,6 +910,8 @@ ngeo_validate_artifact_manifest <- function(
 NULL
 
 #' @rdname ngeo_artifact_manifest_io
+#' @templateVar example_call write_ngeo_artifact_manifest(artifact_manifest, "artifacts.json")
+#' @template stable-io
 #' @export
 write_ngeo_artifact_manifest <- function(
     manifest,
@@ -1064,6 +1068,8 @@ ngeo_validate_artifact_batch <- function(
 #' @param entities BIDS-related derivative entities.
 #' @param overwrite Whether to atomically replace an existing batch directory.
 #' @return A verified `ngeo_batch_manifest`.
+#' @templateVar example_call ngeo_write_artifact_batch(artifacts, "artifact-batch")
+#' @template stable-io
 #' @export
 ngeo_write_artifact_batch <- function(
     directory,
@@ -1170,6 +1176,8 @@ ngeo_write_artifact_batch <- function(
 #' @param directory Batch directory.
 #' @param manifest_name Batch manifest basename.
 #' @return A verified `ngeo_batch_manifest`.
+#' @templateVar example_call ngeo_read_artifact_batch("artifact-batch")
+#' @template stable-io
 #' @export
 ngeo_read_artifact_batch <- function(
     directory,

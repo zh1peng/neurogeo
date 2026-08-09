@@ -238,6 +238,8 @@
 #'   fields are retained through 6.x for history compatibility.
 #'
 #' @return An `ngeo_surface` object.
+#' @templateVar example_call read_ngeo_gifti("sub-01_hemi-L_pial.surf.gii")
+#' @template stable-io
 #' @export
 read_ngeo_gifti <- function(geometry,
                             data = NULL,

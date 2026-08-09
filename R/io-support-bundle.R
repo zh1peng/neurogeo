@@ -17,6 +17,8 @@
 #' @param chunk_size Number of ordered source columns per Matrix Market chunk.
 #' @param overwrite Whether to replace an existing complete bundle.
 #' @return Bundle path and manifest checksum.
+#' @templateVar example_call write_ngeo_support_bundle(support_map, "support-bundle")
+#' @template stable-io
 #' @export
 write_ngeo_support_bundle <- function(
     x,
@@ -242,6 +244,8 @@ ngeo_validate_support_bundle <- function(path) {
 #'
 #' @param path Bundle directory or manifest path.
 #' @return A verified `ngeo_support_map`.
+#' @templateVar example_call read_ngeo_support_bundle("support-bundle")
+#' @template stable-io
 #' @export
 read_ngeo_support_bundle <- function(path) {
   metadata <- ngeo_validate_support_bundle(path)

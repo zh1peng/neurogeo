@@ -210,6 +210,8 @@
 #'   field is retained through 6.x for history compatibility.
 #'
 #' @return An `ngeo_grayordinate` object.
+#' @templateVar example_call read_ngeo_cifti("sub-01_task-rest.dtseries.nii")
+#' @template stable-io
 #' @export
 read_ngeo_cifti <- function(path,
                             surfaces = NULL,

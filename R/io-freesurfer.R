@@ -279,6 +279,8 @@
 #'   fields are retained through 6.x for history compatibility.
 #'
 #' @return An `ngeo_surface` or `ngeo_volume` object.
+#' @templateVar example_call read_ngeo_freesurfer("lh.pial")
+#' @template stable-io
 #' @export
 read_ngeo_freesurfer <- function(x = NULL,
                                  geometry = NULL,

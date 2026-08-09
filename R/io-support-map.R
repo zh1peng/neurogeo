@@ -15,6 +15,8 @@
 #' @param overwrite Whether to replace existing sidecars.
 #'
 #' @return Paths to the written files, invisibly.
+#' @templateVar example_call write_ngeo_support_map(support_map, "support-map.json")
+#' @template stable-io
 #' @export
 write_ngeo_support_map <- function(x, path, overwrite = FALSE) {
   ngeo_validate_support_map(x)
@@ -118,6 +120,8 @@ write_ngeo_support_map <- function(x, path, overwrite = FALSE) {
 #' @param path Exchange prefix or JSON sidecar path.
 #'
 #' @return An `ngeo_support_map` bound to the stored ordered base IDs.
+#' @templateVar example_call read_ngeo_support_map("support-map.json")
+#' @template stable-io
 #' @export
 read_ngeo_support_map <- function(path) {
   if (dir.exists(path) ||
