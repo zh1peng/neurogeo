@@ -9,7 +9,9 @@ ngeo_measure(
   support_behavior = c("unknown", "intensive", "extensive", "count", "categorical"),
   unit = "unknown",
   missing_policy = c("preserve", "exclude"),
-  aggregation = NULL
+  aggregation = NULL,
+  measure_id = NULL,
+  name = NULL
 )
 }
 \arguments{
@@ -23,6 +25,10 @@ or unknown.}
 \item{missing_policy}{Missing-value policy.}
 
 \item{aggregation}{Default aggregation rule.}
+
+\item{measure_id}{Optional stable unique measure identifier.}
+
+\item{name}{Optional human-readable measure name.}
 }
 \value{
 A one-row measurement metadata data frame.

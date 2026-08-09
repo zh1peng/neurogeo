@@ -20,6 +20,13 @@ deprecation cycle.
   `ngeo_support_map()`, and `aggregate_to()`;
 - generic I/O: `read_ngeo()` and `write_ngeo()`.
 
+The preferred accessors are `ngeo_spatial_base()`, `ngeo_base_elements()`,
+`ngeo_values()`, `ngeo_layers()`, `ngeo_measures()`, `ngeo_history()`,
+`ngeo_base_type()`, and `ngeo_base_hash()`. Their unprefixed predecessors remain
+compatible for all 6.x releases. `ngeo_layer_index()` is the accurately named
+feature-index constructor; `ngeo_validate_layers()` remains a compatibility
+entry point.
+
 ### Stable analysis
 
 Documented statistics, modelling, resampling, temporal, reproducibility, and
@@ -36,8 +43,8 @@ minor releases. They must not be presented as part of the core stable surface.
 
 Specialized `ngeo_validate_*()` functions validate portable analysis-object
 contracts. `ngeo_validate()` is the preferred user entry point.
-`ngeo_validate_layers()` is retained as the established multilayer index
-constructor despite its historical name.
+`ngeo_validate_layers()` is retained as a 6.x compatibility entry point for
+`ngeo_layer_index()`.
 
 ## Naming rules
 

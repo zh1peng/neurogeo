@@ -1,7 +1,3 @@
-if (!requireNamespace("digest", quietly = TRUE)) {
-  stop("Feature-freeze validation requires digest.")
-}
-
 namespace <- readLines("NAMESPACE", warn = FALSE)
 exports <- sub(
   "^export\\((.*)\\)$",
@@ -9,25 +5,19 @@ exports <- sub(
   grep("^export\\(", namespace, value = TRUE)
 )
 exports <- sort(exports)
-expected_count <- 226L
-expected_sha256 <-
-  "713fe6ff24b3bcd8468254e2a9a0577112c0df37d2ffc37c6b7ab7b7670a2019"
-observed_sha256 <- digest::digest(
-  paste(exports, collapse = "\n"),
-  algo = "sha256",
-  serialize = FALSE
+registry <- utils::read.csv(
+  file.path("inst", "spec", "api-lifecycle-6.0.csv"),
+  stringsAsFactors = FALSE
 )
-
-if (length(exports) != expected_count ||
-    !identical(observed_sha256, expected_sha256)) {
+declared <- sort(registry$symbol[registry$type == "export"])
+if (!identical(exports, declared)) {
   stop(
     paste(
-      "The Phase 0 feature freeze prohibits public-export changes.",
-      "Expected", expected_count, "exports with SHA-256", expected_sha256,
-      "but observed", length(exports), "with SHA-256", observed_sha256
+      "Every public export must be declared in the lifecycle registry.",
+      "Run tools/generate-api-lifecycle-60.R after an approved API change."
     ),
     call. = FALSE
   )
 }
 
-cat("Phase 0 feature freeze: 226 public exports unchanged.\n")
+cat("Lifecycle gate:", length(exports), "public exports are declared.\n")

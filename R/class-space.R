@@ -24,7 +24,7 @@
 #' @export
 ngeo_coordinate_space <- function(space_id = "unknown",
                        kind = c("unknown", "surface", "volume", "hybrid"),
-                       unit = "mm",
+                       unit = "unknown",
                        structure = NULL,
                        template = NULL,
                        density = NULL,
