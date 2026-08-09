@@ -27,7 +27,7 @@
 "ngeo_boundary_sensitivity","core-api","man/ngeo_boundary_sensitivity.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
 "ngeo_boundary_test","core-api","man/ngeo_boundary_test.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
 "ngeo_build_resampling_map","neuroimaging-methods","man/ngeo_build_resampling_map.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"ngeo_capabilities","core-api","man/ngeo_capabilities.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_capabilities","core-api","man/ngeo_capabilities.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_car","statistical-methods","man/ngeo_car.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_car_iterative","statistical-methods","man/ngeo_car_iterative.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_car_uncertainty","statistical-methods","man/ngeo_car_uncertainty.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -67,8 +67,8 @@
 "ngeo_history_dag","core-api","man/ngeo_history_dag.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
 "ngeo_inference_contract","core-api","man/ngeo_inference_contract.Rd",TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
 "ngeo_invert_transform","core-api","man/ngeo_invert_transform.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"ngeo_iterative_solve","core-api","man/ngeo_iterative_solve.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
-"ngeo_kernel_regression","core-api","man/ngeo_kernel_regression.Rd",TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_iterative_solve","core-api","man/ngeo_iterative_solve.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_kernel_regression","core-api","man/ngeo_kernel_regression.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_kriging","statistical-methods","man/ngeo_kriging.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_kriging_uncertainty","statistical-methods","man/ngeo_kriging_uncertainty.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_label_overlap_map","core-api","man/ngeo_label_overlap_map.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -77,7 +77,7 @@
 "ngeo_layer_index","core-api","man/ngeo_layer_index.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_layers","core-api","man/ngeo_prefixed_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_local_moran","statistical-methods","man/ngeo_local_moran.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"ngeo_logdet_approx","core-api","man/ngeo_logdet_approx.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_logdet_approx","core-api","man/ngeo_logdet_approx.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_logical_hash","reproducibility-engineering","man/ngeo_logical_hash.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_longitudinal_change","core-api","man/ngeo_longitudinal_change.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_materialize_spatiotemporal_weights","core-api","man/ngeo_materialize_spatiotemporal_weights.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -113,7 +113,7 @@
 "ngeo_segmentation_ensemble","core-api","man/ngeo_segmentation_ensemble.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
 "ngeo_set_chart","core-api","man/ngeo_set_chart.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_set_time_axis","core-api","man/ngeo_set_time_axis.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"ngeo_solver_control","core-api","man/ngeo_solver_control.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_solver_control","core-api","man/ngeo_solver_control.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_spatial_base","statistical-methods","man/ngeo_prefixed_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_spatial_basis","statistical-methods","man/ngeo_spatial_basis.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_spatial_lm","statistical-methods","man/ngeo_spatial_lm.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -125,10 +125,10 @@
 "ngeo_spatiotemporal_moran","statistical-methods","man/ngeo_spatiotemporal_moran.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_spatiotemporal_variogram","statistical-methods","man/ngeo_spatiotemporal_variogram.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_spatiotemporal_weights","core-api","man/ngeo_spatiotemporal_weights.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"ngeo_stream_covariance","core-api","man/ngeo_stream_covariance.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
-"ngeo_stream_lm","core-api","man/ngeo_stream_lm.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_stream_covariance","core-api","man/ngeo_stream_covariance.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_stream_lm","core-api","man/ngeo_stream_lm.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_stream_moran","statistical-methods","man/ngeo_stream_moran.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"ngeo_stream_summary","core-api","man/ngeo_stream_summary.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_stream_summary","core-api","man/ngeo_stream_summary.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_subset","core-api","man/ngeo_subset.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_support_adjust","neuroimaging-methods","man/ngeo_support_adjust.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_support_condition","neuroimaging-methods","man/ngeo_support_condition.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -177,7 +177,7 @@
 "ngeo_validate_manifest","reproducibility-engineering","man/ngeo_validate_manifest.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_validate_replay_manifest","reproducibility-engineering","man/ngeo_validate_replay_manifest.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_validate_resampling_plan","neuroimaging-methods","man/ngeo_validate_resampling_plan.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"ngeo_validate_solver_control","core-api","man/ngeo_validate_solver_control.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_validate_solver_control","core-api","man/ngeo_validate_solver_control.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_validate_space_registry","core-api","man/ngeo_validate_space_registry.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_validate_spatiotemporal_weights","core-api","man/ngeo_validate_spatiotemporal_weights.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_validate_support_bundle","neuroimaging-methods","man/ngeo_validate_support_bundle.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE

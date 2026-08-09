@@ -7,6 +7,8 @@
 #' @param na_rm Whether to omit non-finite values.
 #'
 #' @return An `ngeo_stream_summary`.
+#' @templateVar example_call ngeo_stream_summary(file_backed_data, layer = "signal")
+#' @template stable-computation-core
 #' @export
 ngeo_stream_summary <- function(
     x,
@@ -69,6 +71,8 @@ ngeo_stream_summary <- function(
 #'
 #' @inheritParams ngeo_stream_summary
 #' @return A covariance matrix.
+#' @templateVar example_call ngeo_stream_covariance(file_backed_data, layers = c("x", "y"))
+#' @template stable-computation-core
 #' @export
 ngeo_stream_covariance <- function(
     x,
@@ -117,6 +121,8 @@ ngeo_stream_covariance <- function(
 #' @param chunk_size Row chunk size.
 #'
 #' @return An `ngeo_stream_lm`.
+#' @templateVar example_call ngeo_stream_lm(file_backed_data, response = "y", predictors = "x")
+#' @template stable-computation-core
 #' @export
 ngeo_stream_lm <- function(
     x,

@@ -259,6 +259,8 @@ ngeo_spatial_lm <- function(
 #' @param singular Whether singular local designs return `NA` or fail.
 #'
 #' @return An `ngeo_kernel_regression` data frame.
+#' @templateVar example_call ngeo_kernel_regression(data, "response", "predictor", bandwidth = 10)
+#' @template stable-computation-core
 #' @export
 ngeo_kernel_regression <- function(
     x,
