@@ -252,6 +252,8 @@ ngeo_validate_layers <- function(
 #' [ngeo_validate_layers()]. The older name remains available throughout 6.x.
 #'
 #' @inheritParams ngeo_validate_layers
+#' @param feature One map-table column identifying the feature.
+#' @param required_features Optional features required for every unit.
 #' @return An `ngeo_layer_index` that references, but does not copy, layers.
 #' @templateVar example_call ngeo_layer_index(data, unit = "subject_id", feature = "feature")
 #' @template stable-data-semantics-core

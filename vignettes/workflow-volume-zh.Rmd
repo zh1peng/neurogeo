@@ -17,9 +17,7 @@ base/layer/measure 语义，执行 QC、六邻域 Moran 分析和绘图，再做
 也不是因果效应。
 
 ```{r setup, include=FALSE}
-code <- file.path("..", "inst", "tutorial-code", "workflow-volume.R")
-if (!file.exists(code)) code <- system.file("tutorial-code", "workflow-volume.R", package = "neurogeo")
-knitr::read_chunk(code)
+knitr::read_chunk("inst/tutorial-code/workflow-volume.R")
 ```
 
 ```{r workflow-volume}

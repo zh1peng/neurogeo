@@ -17,9 +17,7 @@ adjacency 上分析其空间模式、绘图，并导出隐去路径的 history�
 只用于说明数据形状，不能支持 population 或 clinical claim。
 
 ```{r setup, include=FALSE}
-code <- file.path("..", "inst", "tutorial-code", "workflow-roi-cohort.R")
-if (!file.exists(code)) code <- system.file("tutorial-code", "workflow-roi-cohort.R", package = "neurogeo")
-knitr::read_chunk(code)
+knitr::read_chunk("inst/tutorial-code/workflow-roi-cohort.R")
 ```
 
 ```{r workflow-roi-cohort}

@@ -18,6 +18,10 @@ ngeo_layer_index(
 
 \item{unit}{One or more map-table columns forming the independent-unit key.}
 
+\item{feature}{One map-table column identifying the feature.}
+
+\item{required_features}{Optional features required for every unit.}
+
 \item{complete}{Whether incomplete unit are reported or rejected.}
 
 \item{require_consistent_measures}{Whether each layer must use one

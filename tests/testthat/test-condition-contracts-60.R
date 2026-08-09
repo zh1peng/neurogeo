@@ -59,8 +59,12 @@ test_that("layer and measure failures give task-specific recovery", {
 })
 
 test_that("condition message snapshots remain user-facing", {
+  snapshot_path <- system.file(
+    "spec", "condition-message-snapshots-6.0.csv",
+    package = "neurogeo", mustWork = TRUE
+  )
   snapshot <- utils::read.csv(
-    test_path("..", "..", "inst", "spec", "condition-message-snapshots-6.0.csv"),
+    snapshot_path,
     stringsAsFactors = FALSE,
     check.names = FALSE
   )

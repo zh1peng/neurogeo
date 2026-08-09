@@ -18,7 +18,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: zh1peng \email{zhipeng30@foxmail.com}
+\strong{Maintainer}:  zh1peng \email{zhipeng30@foxmail.com}
 
 }
 \keyword{internal}

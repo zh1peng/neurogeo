@@ -1,6 +1,10 @@
 test_that("documentation manifest covers current sources and route identities", {
+  manifest_path <- test_path(
+    "..", "..", "inst", "spec", "documentation-manifest-6.0.csv"
+  )
+  skip_if_not(file.exists(manifest_path), "repository-only documentation audit")
   manifest <- read.csv(
-    test_path("..", "..", "inst", "spec", "documentation-manifest-6.0.csv"),
+    manifest_path,
     stringsAsFactors = FALSE
   )
   expect_identical(anyDuplicated(manifest$source), 0L)
