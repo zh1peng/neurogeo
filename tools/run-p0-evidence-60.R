@@ -76,39 +76,52 @@ run(
   c("CMD", "INSTALL", paste0("--library=", library_path), candidate),
   wd = work
 )
-child_env <- c(
-  paste0("R_LIBS_USER=", normalizePath(library_path, winslash = "/")),
-  paste0("NEUROGEO_CANDIDATE_TAR=", candidate)
+previous_r_libs_user <- Sys.getenv("R_LIBS_USER", unset = NA_character_)
+previous_candidate <- Sys.getenv("NEUROGEO_CANDIDATE_TAR", unset = NA_character_)
+Sys.setenv(
+  R_LIBS_USER = normalizePath(library_path, winslash = "/"),
+  NEUROGEO_CANDIDATE_TAR = candidate
 )
+on.exit({
+  if (is.na(previous_r_libs_user)) {
+    Sys.unsetenv("R_LIBS_USER")
+  } else {
+    Sys.setenv(R_LIBS_USER = previous_r_libs_user)
+  }
+  if (is.na(previous_candidate)) {
+    Sys.unsetenv("NEUROGEO_CANDIDATE_TAR")
+  } else {
+    Sys.setenv(NEUROGEO_CANDIDATE_TAR = previous_candidate)
+  }
+}, add = TRUE)
 
 run(rscript_binary, c("tools/run-unit-60.R", file.path(
   output_dir, "unit-60.json"
-)), env = child_env)
+)))
 run(rscript_binary, c(
   "tools/run-audit-corpus-60.R", candidate,
   file.path(output_dir, "audit-corpus-60.json")
-), env = child_env)
+))
 run(rscript_binary, c(
   "tools/check-doc-entrypoints-60.R",
   file.path(output_dir, "doc-entrypoints-60.json")
-), env = child_env)
-run(rscript_binary, "tools/check-feature-freeze-60.R", env = child_env)
-run(rscript_binary, "tools/check-user-terminology-60.R", env = child_env)
+))
+run(rscript_binary, "tools/check-feature-freeze-60.R")
+run(rscript_binary, "tools/check-user-terminology-60.R")
 
 run(
   r_binary,
   c("CMD", "check", candidate, "--no-manual", "--no-build-vignettes"),
-  wd = check_path,
-  env = child_env
+  wd = check_path
 )
 check_log <- file.path(check_path, "neurogeo.Rcheck", "00check.log")
 run(rscript_binary, c(
   "tools/report-rcheck-60.R", candidate, check_log,
   file.path(output_dir, "r-cmd-check-60.json")
-), env = child_env)
+))
 run(rscript_binary, c(
   "tools/aggregate-p0-evidence-60.R", candidate, output_dir,
   file.path(output_dir, "attestation.json")
-), env = child_env)
+))
 
 cat("P0 attestation:", file.path(output_dir, "attestation.json"), "\n")
