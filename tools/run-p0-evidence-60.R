@@ -78,13 +78,17 @@ run(
 )
 previous_r_libs_user <- Sys.getenv("R_LIBS_USER", unset = NA_character_)
 previous_candidate <- Sys.getenv("NEUROGEO_CANDIDATE_TAR", unset = NA_character_)
-library_paths <- normalizePath(library_path, winslash = "/")
+library_paths <- c(
+  normalizePath(library_path, winslash = "/"),
+  normalizePath(.libPaths(), winslash = "/", mustWork = TRUE)
+)
 if (dir.exists(file.path(source_root, ".r-lib"))) {
   library_paths <- c(
     library_paths,
     normalizePath(file.path(source_root, ".r-lib"), winslash = "/")
   )
 }
+library_paths <- unique(library_paths)
 Sys.setenv(
   R_LIBS_USER = paste(library_paths, collapse = .Platform$path.sep),
   NEUROGEO_CANDIDATE_TAR = candidate

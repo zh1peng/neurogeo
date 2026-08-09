@@ -177,6 +177,10 @@ if (!nzchar(manifest_path) || !file.exists(manifest_path) ||
 manifest <- neurogeo:::.ngeo_conformance_manifest()
 formats <- paste(readLines(formats_path, warn = FALSE), collapse = "\n")
 reviewed_status <- if (
+  utils::compareVersion(package_version, "6.0.0") >= 0L
+) {
+  "Status: reviewed for neurogeo 6.0.0 audit candidate"
+} else if (
   utils::compareVersion(package_version, "4.4.2") >= 0L
 ) {
   "Status: reviewed for neurogeo 4.4.2"

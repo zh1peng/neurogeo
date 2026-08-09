@@ -34,7 +34,7 @@ test_that("each resource-budget dimension has a positive and negative gate", {
   expired <- neurogeo:::.ngeo_budget_context(ngeo_resource_budget(
     elapsed_seconds = 0.001
   ))
-  Sys.sleep(0.01)
+  expired$started_elapsed <- expired$started_elapsed - 1
   condition <- tryCatch(
     neurogeo:::.ngeo_budget_checkpoint(expired),
     error = identity
