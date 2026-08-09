@@ -1,4 +1,7 @@
 args <- commandArgs(trailingOnly = TRUE)
+if (dir.exists(".r-lib")) {
+  .libPaths(c(normalizePath(".r-lib"), .libPaths()))
+}
 if (length(args) < 3L) {
   stop("Usage: aggregate-p0-evidence-60.R CANDIDATE_TAR EVIDENCE_DIR OUTPUT",
        call. = FALSE)
