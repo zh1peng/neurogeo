@@ -58,8 +58,11 @@ jobs:
       - name: Stable 6.0 API contract
         run: Rscript tools/run-contract-60-audit.R
 
-      - name: Phase 0 public-export freeze
+      - name: Public API lifecycle registry
         run: Rscript tools/check-feature-freeze-60.R
+
+      - name: Stable API contract snapshots
+        run: Rscript tools/check-api-contracts-60.R
 
       - name: Controlled user terminology
         run: Rscript tools/check-user-terminology-60.R

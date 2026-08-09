@@ -62,8 +62,12 @@ freesurfer <- read_ngeo_freesurfer(
 
 ```{r workflow, eval=FALSE}
 ngeo_validate(surface, "strict")
-surface$measures$support_behavior <- "intensive"
-surface$measures$unit <- "mm"
+surface <- ngeo_update_measure(
+  surface,
+  measure_id = measures(surface)$measure_id[[1]],
+  support_behavior = "intensive",
+  unit = "mm"
+)
 w <- ngeo_spatial_weights(surface, method = "mesh_contiguity", style = "W")
 ngeo_moran(surface, w, "thickness", permutations = 999, seed = 2026)
 ```

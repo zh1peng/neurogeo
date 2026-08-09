@@ -7,7 +7,7 @@
 ngeo_coordinate_space(
   space_id = "unknown",
   kind = c("unknown", "surface", "volume", "hybrid"),
-  unit = "mm",
+  unit = "unknown",
   structure = NULL,
   template = NULL,
   density = NULL,

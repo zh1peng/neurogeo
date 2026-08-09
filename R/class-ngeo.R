@@ -134,6 +134,7 @@
       unit = character(),
       value_type = character(),
       support_behavior = character(),
+      missing_policy = character(),
       aggregation = character(),
       stringsAsFactors = FALSE
     ))
@@ -146,6 +147,7 @@
       unit = rep.int("unknown", length(measure_ids)),
       value_type = rep.int("unknown", length(measure_ids)),
       support_behavior = rep.int("unknown", length(measure_ids)),
+      missing_policy = rep.int("preserve", length(measure_ids)),
       aggregation = rep.int("unknown", length(measure_ids)),
       stringsAsFactors = FALSE
     ))
@@ -178,6 +180,7 @@
     unit = rep.int("unknown", nrow(measures)),
     value_type = rep.int("unknown", nrow(measures)),
     support_behavior = rep.int("unknown", nrow(measures)),
+    missing_policy = rep.int("preserve", nrow(measures)),
     aggregation = rep.int("unknown", nrow(measures))
   )
   for (field in names(defaults)) {
@@ -364,6 +367,48 @@ history <- function(x) {
   ngeo_validate(x, "basic")
   x$history
 }
+
+#' Prefixed accessors for core NGCS fields
+#'
+#' These are the preferred 6.x names. The original unprefixed accessors remain
+#' available throughout 6.x for compatibility.
+#'
+#' @inheritParams ngeo_accessors
+#' @return The requested field.
+#' @name ngeo_prefixed_accessors
+NULL
+
+#' @rdname ngeo_prefixed_accessors
+#' @export
+ngeo_spatial_base <- function(x) spatial_base(x)
+
+#' @rdname ngeo_prefixed_accessors
+#' @export
+ngeo_base_elements <- function(x) base_elements(x)
+
+#' @rdname ngeo_prefixed_accessors
+#' @export
+ngeo_values <- function(x, layers = NULL) values(x, layers = layers)
+
+#' @rdname ngeo_prefixed_accessors
+#' @export
+ngeo_layers <- function(x) layers(x)
+
+#' @rdname ngeo_prefixed_accessors
+#' @export
+ngeo_measures <- function(x) measures(x)
+
+#' @rdname ngeo_prefixed_accessors
+#' @export
+ngeo_history <- function(x) history(x)
+
+#' @rdname ngeo_prefixed_accessors
+#' @export
+ngeo_base_type <- function(x) base_type(x)
+
+#' @rdname ngeo_prefixed_accessors
+#' @export
+ngeo_base_hash <- function(x) base_hash(x)
 
 #' Compute an implementation base hash
 #'

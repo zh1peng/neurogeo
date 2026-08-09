@@ -25,8 +25,10 @@ ngeo_dependency_identity <- function() {
     "DESCRIPTION",
     fields = c("Depends", "Imports", "Suggests", "LinkingTo")
   )
+  description_fields <- description[1L, ]
+  description_fields <- description_fields[!is.na(description_fields)]
   declared <- unlist(strsplit(
-    paste(description[1L, ], collapse = ","),
+    paste(description_fields, collapse = ","),
     ",",
     fixed = TRUE
   ))

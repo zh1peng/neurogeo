@@ -237,6 +237,31 @@ ngeo_validate_layers <- function(
   result
 }
 
+#' Build an independent-unit by feature index
+#'
+#' This accurately named entry point is equivalent to
+#' [ngeo_validate_layers()]. The older name remains available throughout 6.x.
+#'
+#' @inheritParams ngeo_validate_layers
+#' @return An `ngeo_layer_index` that references, but does not copy, layers.
+#' @export
+ngeo_layer_index <- function(
+    x,
+    unit = "subject_id",
+    feature = "feature",
+    required_features = NULL,
+    complete = c("report", "error"),
+    require_consistent_measures = TRUE) {
+  ngeo_validate_layers(
+    x,
+    unit = unit,
+    layer = feature,
+    required_layers = required_features,
+    complete = match.arg(complete),
+    require_consistent_measures = require_consistent_measures
+  )
+}
+
 #' @export
 print.ngeo_layer_index <- function(x, ...) {
   cat(
