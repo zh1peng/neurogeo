@@ -14,6 +14,8 @@
 #' @param parameters Transform parameters.
 #'
 #' @return An `ngeo_transform` object.
+#' @templateVar example_call ngeo_transform(source_space, target_space, affine = affine_matrix)
+#' @template stable-transform-core
 #' @export
 ngeo_transform <- function(source_space,
                            target_space,
@@ -105,6 +107,8 @@ ngeo_transform <- function(source_space,
 #' @param transform An `ngeo_transform`.
 #'
 #' @return `transform`, invisibly.
+#' @templateVar example_call ngeo_validate_transform(transform)
+#' @template stable-transform-core
 #' @export
 ngeo_validate_transform <- function(transform) {
   if (!inherits(transform, "ngeo_transform")) {
@@ -236,6 +240,8 @@ ngeo_validate_transform <- function(transform) {
 #' @param transform A source-to-target affine `ngeo_transform`.
 #'
 #' @return A transformed copy of `x`.
+#' @templateVar example_call ngeo_apply_transform(data, transform, authorize = TRUE)
+#' @template stable-transform-core
 #' @export
 ngeo_apply_transform <- function(x, transform) {
   ngeo_validate(x, "strict")
@@ -285,6 +291,8 @@ ngeo_apply_transform <- function(x, transform) {
 #' @param second Intermediate-to-target transform.
 #'
 #' @return A composed source-to-target `ngeo_transform`.
+#' @templateVar example_call ngeo_compose_transform(source_to_mid, mid_to_target)
+#' @template stable-transform-core
 #' @export
 ngeo_compose_transform <- function(first, second) {
   ngeo_validate_transform(first)
@@ -322,6 +330,8 @@ ngeo_compose_transform <- function(first, second) {
 #' @param transform A valid affine `ngeo_transform`.
 #'
 #' @return An inverse source-to-target `ngeo_transform`.
+#' @templateVar example_call ngeo_invert_transform(transform)
+#' @template stable-transform-core
 #' @export
 ngeo_invert_transform <- function(transform) {
   ngeo_validate_transform(transform)

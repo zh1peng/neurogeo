@@ -17,3 +17,38 @@ The registered `ngeo_coordinate_space`.
 \description{
 Resolve a coordinate_space, exact hash, unique coordinate_space ID, or alias
 }
+\section{When to use and limitations}{
+
+Use these functions to declare and audit known coordinate spaces and
+transforms. Do not guess a transform from matching dimensions, labels, or
+filenames, and do not apply a path containing lossy or ambiguous edges
+without reviewing and explicitly authorizing it.
+}
+
+\section{Units and assumptions}{
+
+Coordinates and affine translations use the source and target space units;
+transform parameters must declare their convention and direction. Composition
+assumes exact endpoint-space identity and compatible coordinate conventions.
+Inversion is valid only for transforms whose declared inverse exists.
+}
+
+\section{Validation evidence}{
+
+Direction, composition, inversion, ambiguity, and path-history fixtures are
+declared in `inst/spec/validation-registry-6.0.csv`; claim status is linked in
+`inst/validation/claim-evidence-matrix-6.0.csv`.
+}
+
+\examples{
+\dontrun{
+ngeo_resolve_space(space_registry, "MNI152")
+}
+}
+\references{
+Avants, B. B. et al. (2011). A reproducible evaluation of ANTs similarity
+metric performance in brain image registration. *NeuroImage*, 54, 2033--2044.
+}
+\seealso{
+[ngeo_coordinate_space()], [ngeo_transform()]
+}
