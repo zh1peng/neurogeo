@@ -6,6 +6,8 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '23 3 * * 1'
 
 permissions:
   contents: read
@@ -15,6 +17,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  minimum-r-imports:
+    name: minimum R 4.2 with Imports only
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
+        with:
+          r-version: '4.2.0'
+          use-public-rspm: true
+
+      - name: Install declared hard dependencies only
+        shell: Rscript {0}
+        run: |
+          description <- read.dcf(
+            "DESCRIPTION", fields = c("Depends", "Imports")
+          )
+          imports <- trimws(unlist(strsplit(description, ",")))
+          imports <- sub("\\s*\\(.*$", "", imports)
+          imports <- setdiff(imports, c("R", rownames(installed.packages())))
+          if (length(imports)) install.packages(imports)
+
+      - name: Install and run Imports-only smoke
+        run: |
+          R CMD INSTALL .
+          Rscript tools/run-contract-60-audit.R check-output/imports-only-60.json
+
   R-CMD-check:
     name: ${{ matrix.config.os }} (R ${{ matrix.config.r }})
     runs-on: ${{ matrix.config.os }}
@@ -30,19 +60,19 @@ jobs:
           - {os: windows-latest, r: release}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
         with:
           r-version: ${{ matrix.config.r }}
           use-public-rspm: true
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
+      - uses: r-lib/actions/setup-r-dependencies@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
         with:
           extra-packages: any::rcmdcheck
           needs: check
 
-      - uses: r-lib/actions/check-r-package@v2
+      - uses: r-lib/actions/check-r-package@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
         with:
           args: 'c("--no-manual", "--as-cran")'
           error-on: '"warning"'
@@ -59,7 +89,9 @@ jobs:
         run: Rscript tools/run-contract-60-audit.R
 
       - name: Canonical validation registry
-        run: Rscript tools/check-validation-registry-60.R
+        run: |
+          Rscript tools/check-validation-registry-60.R
+          Rscript tools/check-supply-chain-60.R
 
       - name: Public API lifecycle registry
         run: Rscript tools/check-feature-freeze-60.R
@@ -94,14 +126,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
         with:
           r-version: release
           use-public-rspm: true
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
+      - uses: r-lib/actions/setup-r-dependencies@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
         with:
           extra-packages: |
             any::covr
@@ -111,7 +143,7 @@ jobs:
       - name: Measure tests and examples
         run: Rscript tools/run-coverage-421.R coverage-421.json
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: coverage-421
           path: coverage-421.json
@@ -121,14 +153,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
         with:
           r-version: release
           use-public-rspm: true
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
+      - uses: r-lib/actions/setup-r-dependencies@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
         with:
           extra-packages: |
             any::jsonlite
@@ -138,7 +170,7 @@ jobs:
       - name: Build and attest one clean source candidate
         run: Rscript tools/run-p0-evidence-60.R check-output/p0-evidence-60
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: p0-attestation-60
           path: check-output/p0-evidence-60
@@ -148,14 +180,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
         with:
           r-version: release
           use-public-rspm: true
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
+      - uses: r-lib/actions/setup-r-dependencies@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
         with:
           extra-packages: any::jsonlite
           needs: check
@@ -197,7 +229,7 @@ jobs:
           Rscript tools/run-multilayer-50-performance.R
           multilayer-50-performance.json
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: real-data-and-cartography-validation
           path: |
@@ -207,3 +239,43 @@ jobs:
             real-multilayer-50-validation.json
             multilayer-50-performance.json
             flatmap-431/*.png
+
+  full-performance:
+    name: weekly and release full performance
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
+        with:
+          extra-packages: any::jsonlite
+          needs: check
+
+      - name: Run all seven current 6.x scale gates
+        run: >-
+          Rscript tools/run-full-performance.R
+          check-output/full-performance-60.json
+
+      - name: Verify full-performance artifact
+        shell: Rscript {0}
+        run: |
+          result <- jsonlite::read_json(
+            "check-output/full-performance-60.json",
+            simplifyVector = TRUE
+          )
+          stopifnot(
+            identical(result$validation, "passed"),
+            length(result$cases) == 7L
+          )
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: full-performance-60
+          path: check-output/full-performance-60.json

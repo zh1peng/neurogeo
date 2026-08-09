@@ -48,10 +48,16 @@ Public functions require R documentation. User-facing workflows belong in a
 vignette and must be executable unless an external file is intentionally
 required. Update `NEWS.md` for every release-visible change.
 
-## Development workflow
+## Development and review workflow
 
-Keep changes narrow, test them locally, and commit them directly to `main`.
-Do not create a pull request, version tag, or GitHub Release unless the
-maintainer explicitly changes that policy. Explain scientific impact, user
-impact, validation, and migration in the commit and documentation. Do not mix
-unrelated cleanup with a scientific change.
+Keep changes narrow and submit them through a pull request; do not push a
+science or public-API change directly to protected `main`. Explain scientific
+impact, user impact, validation, and migration, and do not mix unrelated
+cleanup with a scientific change.
+
+Every science or public-API change requires approval from at least one reviewer
+who did not author the change. Scientific changes must update the inference
+contract and claim-evidence entry before results are inspected. A maintainer
+may merge documentation-only or CI-maintenance changes after the relevant
+automated gates pass. Version tags and GitHub Releases additionally require the
+release attestation and the release-owner approval.
