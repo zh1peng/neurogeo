@@ -44,6 +44,10 @@
 * Replaced row-index modulo GWR k-fold assignment with deterministic
   farthest-seed spatial Voronoi blocks. Bandwidth results now record element-ID
   keyed fold membership and are invariant to element row order.
+* Added frozen VAL-306 reference/calibration evidence across regular grids,
+  irregular points, and parcellations. Kriging prediction coverage passed;
+  SAR/SEM, GWR, and CAR base results remain restricted to matched point
+  estimates or descriptive diagnostics and do not acquire uncalibrated p-values.
 
 # neurogeo 5.0.0
 
