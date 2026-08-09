@@ -138,6 +138,13 @@
 #' @param level Interval level.
 #'
 #' @return An `ngeo_variogram_uncertainty`.
+#' @examples
+#' \dontrun{
+#' ngeo_variogram_uncertainty(
+#'   x, "signal", value_covariance, nsim = 199, seed = 2026
+#' )
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_variogram_uncertainty <- function(
     x,
@@ -234,6 +241,13 @@ ngeo_variogram_uncertainty <- function(
 #' @param level Interval level.
 #'
 #' @return An `ngeo_kriging_uncertainty` data frame.
+#' @examples
+#' \dontrun{
+#' ngeo_kriging_uncertainty(
+#'   x, "signal", fitted_variogram, value_covariance = value_covariance
+#' )
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_kriging_uncertainty <- function(
     x,
@@ -321,6 +335,14 @@ ngeo_kriging_uncertainty <- function(
 #' @param level Interval level.
 #'
 #' @return An `ngeo_gwr_uncertainty`.
+#' @examples
+#' \dontrun{
+#' ngeo_gwr_uncertainty(
+#'   x, "response", "predictor", bandwidth = 10,
+#'   value_covariance = value_covariance
+#' )
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_gwr_uncertainty <- function(
     x,
@@ -469,6 +491,14 @@ ngeo_gwr_uncertainty <- function(
 #' @param level Interval level.
 #'
 #' @return An `ngeo_spatial_regression_uncertainty`.
+#' @examples
+#' \dontrun{
+#' ngeo_spatial_regression_uncertainty(
+#'   x, "response", "predictor", spatial_weights,
+#'   value_covariance = value_covariance, seed = 2026
+#' )
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_spatial_regression_uncertainty <- function(
     x,
@@ -589,6 +619,14 @@ ngeo_spatial_regression_uncertainty <- function(
 #' @param level Interval level.
 #'
 #' @return An `ngeo_car_uncertainty`.
+#' @examples
+#' \dontrun{
+#' ngeo_car_uncertainty(
+#'   x, "response", spatial_weights, value_covariance,
+#'   type = "proper", precision = 1
+#' )
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_car_uncertainty <- function(
     x,
@@ -767,6 +805,12 @@ ngeo_support_model_ensemble <- function(
 #' @param residual_moran Optional residual Moran estimates.
 #'
 #' @return An `ngeo_model_calibration` data frame.
+#' @examples
+#' ngeo_model_calibration(
+#'   truth = c(1, 2, 3), estimate = c(0.9, 2.1, 2.8),
+#'   lower = c(0.5, 1.5, 2.3), upper = c(1.4, 2.6, 3.4)
+#' )
+#' @template stable-statistical-method
 #' @export
 ngeo_model_calibration <- function(
     truth,

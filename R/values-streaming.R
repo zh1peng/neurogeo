@@ -178,6 +178,11 @@ ngeo_stream_lm <- function(
 #' @param chunk_size Row chunk size.
 #'
 #' @return An `ngeo_stream_moran`.
+#' @examples
+#' \dontrun{
+#' ngeo_stream_moran(file_backed_data, spatial_weights, layer = "signal")
+#' }
+#' @template stable-statistical-method
 #' @export
 ngeo_stream_moran <- function(
     x, spatial_weights, layer = 1L, chunk_size = 65536L) {
