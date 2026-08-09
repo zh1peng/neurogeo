@@ -33,3 +33,14 @@ cat(
   "Frozen claim-evidence matrix:", nrow(claims), "claims;",
   sum(claims$evidence_status == "pending-preregistered"), "pending gates.\n"
 )
+phase3_status <- system2(
+  file.path(R.home("bin"), if (.Platform$OS.type == "windows") {
+    "Rscript.exe"
+  } else {
+    "Rscript"
+  }),
+  "tools/check-phase3-design-60.R"
+)
+if (!identical(phase3_status, 0L)) {
+  stop("Frozen Phase 3 machine-readable design is invalid.")
+}
