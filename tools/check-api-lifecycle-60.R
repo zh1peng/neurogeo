@@ -22,7 +22,7 @@ if (!identical(expected, observed)) {
     call. = FALSE
   )
 }
-if (!identical(sum(expected$type == "s3_method"), 96L)) {
+if (!identical(sum(expected$type == "s3_method"), 98L)) {
   stop("The registered S3 method count changed without an ADR.")
 }
 cat("Public API lifecycle registry is complete and current.\n")

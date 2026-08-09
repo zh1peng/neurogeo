@@ -33,6 +33,13 @@ Documented statistics, modelling, resampling, temporal, reproducibility, and
 inference functions are stable when their help page does not mark them
 experimental. They consume core objects but do not extend the core container.
 
+Stable scientific result classes are covered by
+`inference-contracts-6.0.csv`. Use `ngeo_inference_contract()` to inspect the
+estimand, sampling unit, null model, metric, support, and uncertainty target.
+The returned contract has one canonical representation shared by its print,
+summary, and portable object manifest. Experimental result classes do not
+receive a stable inference contract by implication.
+
 ### Experimental
 
 `ngeo_spatial_ordination()`, `ngeo_coregionalization()`, and `ngeo_mgwr()` are
