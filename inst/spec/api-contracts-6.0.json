@@ -695,7 +695,7 @@
         "unit_kind": "c(\"subject\", \"site\", \"spatial_block\", \"map_null\")"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_exchangeability", "ngeo_error_exchangeability_design"],
-      "documentation_sha256": "1c37de3d62208d66815318dc7980d489155421986d309130eadc1a03fb0f9407"
+      "documentation_sha256": "af5917e6e7160f716554683bcaa0edf712168c33933a1e0e7b3fe33f0ed70f59"
     },
     "ngeo_export_history": {
       "symbol": "ngeo_export_history",
@@ -1057,7 +1057,7 @@
         "require_consistent_measures": "TRUE"
       },
       "condition_classes": [],
-      "documentation_sha256": "c07b240c30f1d9524f6c97d75cba8077a9d4fc7536729a37f29befde1ad40428"
+      "documentation_sha256": "3fa5471cd057e840517adaa037f5379048505cdaf05234bf0dc141efbe3b6732"
     },
     "ngeo_layers": {
       "symbol": "ngeo_layers",

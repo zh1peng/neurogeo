@@ -489,6 +489,10 @@ ngeo_cross_atlas_consensus <- function(
   result
 }
 
+attr(ngeo_cross_atlas_consensus, "ngeo_condition_classes") <- c(
+  "ngeo_error_argument", "ngeo_error_inference"
+)
+
 #' @export
 print.ngeo_cross_atlas_consensus <- function(x, ...) {
   cat(
