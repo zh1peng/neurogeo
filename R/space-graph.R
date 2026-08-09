@@ -17,6 +17,8 @@ ngeo_coordinate_space_hash <- function(x) {
 #'
 #' @param left,right `ngeo_coordinate_space` objects.
 #' @return An `ngeo_coordinate_space_audit` data frame.
+#' @templateVar example_call ngeo_coordinate_space_audit(source_space, target_space)
+#' @template stable-transform-core
 #' @export
 ngeo_coordinate_space_audit <- function(left, right) {
   if (!inherits(left, "ngeo_coordinate_space") || !inherits(right, "ngeo_coordinate_space")) {
@@ -86,6 +88,8 @@ ngeo_coordinate_space_audit <- function(left, right) {
 #' @param aliases Optional named character aliases targeting a unique
 #'   `space_id` or exact coordinate_space hash.
 #' @return An `ngeo_coordinate_space_registry`.
+#' @templateVar example_call ngeo_coordinate_space_registry(list(MNI152 = mni_space))
+#' @template stable-transform-core
 #' @export
 ngeo_coordinate_space_registry <- function(spaces = list(), aliases = character()) {
   if (inherits(spaces, "ngeo_coordinate_space")) spaces <- list(spaces)
@@ -136,6 +140,8 @@ ngeo_coordinate_space_registry <- function(spaces = list(), aliases = character(
 #'
 #' @param x An `ngeo_coordinate_space_registry`.
 #' @return `x`, invisibly.
+#' @templateVar example_call ngeo_validate_space_registry(space_registry)
+#' @template stable-transform-core
 #' @export
 ngeo_validate_space_registry <- function(x) {
   valid_spaces <- inherits(x, "ngeo_coordinate_space_registry") &&
@@ -166,6 +172,8 @@ ngeo_validate_space_registry <- function(x) {
 #' @param coordinate_space An `ngeo_coordinate_space`.
 #' @param aliases Optional aliases for this exact coordinate_space.
 #' @return A new `ngeo_coordinate_space_registry`.
+#' @templateVar example_call ngeo_register_space(space_registry, mni_space, aliases = "MNI152")
+#' @template stable-transform-core
 #' @export
 ngeo_register_space <- function(registry, coordinate_space, aliases = character()) {
   ngeo_validate_space_registry(registry)
@@ -194,6 +202,8 @@ ngeo_register_space <- function(registry, coordinate_space, aliases = character(
 #' @param registry An `ngeo_coordinate_space_registry`.
 #' @param coordinate_space An `ngeo_coordinate_space` or one character identifier.
 #' @return The registered `ngeo_coordinate_space`.
+#' @templateVar example_call ngeo_resolve_space(space_registry, "MNI152")
+#' @template stable-transform-core
 #' @export
 ngeo_resolve_space <- function(registry, coordinate_space) {
   ngeo_validate_space_registry(registry)
@@ -292,6 +302,8 @@ ngeo_transform_hash <- function(x) {
 #' @param invertible Optional inversion eligibility flags.
 #' @param lossy Optional lossy-edge flags.
 #' @return An `ngeo_transform_graph`.
+#' @templateVar example_call ngeo_transform_graph(space_registry, transforms = list(native_to_mni))
+#' @template stable-transform-core
 #' @export
 ngeo_transform_graph <- function(
     registry,
@@ -361,6 +373,8 @@ ngeo_transform_graph <- function(
 #' @param invertible Whether graph search may explicitly invert this edge.
 #' @param lossy Whether the edge loses support or resolution information.
 #' @return A new `ngeo_transform_graph`.
+#' @templateVar example_call ngeo_add_transform(transform_graph, native_to_mni)
+#' @template stable-transform-core
 #' @export
 ngeo_add_transform <- function(
     graph,
@@ -414,6 +428,8 @@ ngeo_add_transform <- function(
 #'
 #' @param x An `ngeo_transform_graph`.
 #' @return `x`, invisibly.
+#' @templateVar example_call ngeo_validate_transform_graph(transform_graph)
+#' @template stable-transform-core
 #' @export
 ngeo_validate_transform_graph <- function(x) {
   valid <- inherits(x, "ngeo_transform_graph") &&
@@ -538,6 +554,8 @@ ngeo_validate_transform_graph <- function(x) {
 #' @param allow_inverse Whether eligible non-lossy affine edges may be inverted.
 #' @param selection Optional exact edge-token sequence resolving ambiguity.
 #' @return An `ngeo_transform_path`.
+#' @templateVar example_call ngeo_transform_path(transform_graph, "native", "MNI152")
+#' @template stable-transform-core
 #' @export
 ngeo_transform_path <- function(
     graph,
@@ -630,6 +648,8 @@ ngeo_transform_path <- function(
 #'
 #' @param graph An `ngeo_transform_graph`.
 #' @return An `ngeo_transform_graph_diagnostics`.
+#' @templateVar example_call ngeo_transform_graph_diagnostics(transform_graph)
+#' @template stable-transform-core
 #' @export
 ngeo_transform_graph_diagnostics <- function(graph) {
   ngeo_validate_transform_graph(graph)
@@ -704,6 +724,8 @@ ngeo_transform_graph_diagnostics <- function(graph) {
 #'
 #' @param path An `ngeo_transform_path`.
 #' @return A serializable history list.
+#' @templateVar example_call ngeo_transform_path_history(transform_path)
+#' @template stable-transform-core
 #' @export
 ngeo_transform_path_history <- function(path) {
   if (!inherits(path, "ngeo_transform_path")) {
@@ -731,6 +753,8 @@ ngeo_transform_path_history <- function(path) {
 #' @param path An `ngeo_transform_path`.
 #' @param authorize Must be explicitly `TRUE`.
 #' @return A geometry-transformed `ngeo` copy.
+#' @templateVar example_call ngeo_apply_transform_path(data, transform_path, authorize = TRUE)
+#' @template stable-transform-core
 #' @export
 ngeo_apply_transform_path <- function(x, path, authorize = FALSE) {
   if (!inherits(path, "ngeo_transform_path") || !isTRUE(authorize)) {

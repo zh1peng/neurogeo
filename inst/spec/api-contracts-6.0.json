@@ -111,7 +111,7 @@
         "lossy": "!identical(transform$interpolation, \"none\")"
       },
       "condition_classes": ["ngeo_error_coordinate_space_registry", "ngeo_error_transform_graph", "ngeo_error_transform_type"],
-      "documentation_sha256": "46ecfd89a082fcaffa3651df26adc3d448d1fd719f61e89eb9bc460554eef671"
+      "documentation_sha256": "90cd8819a5e745a09ff196deb178a7be63921069eb45e05f512cda77bd7349fc"
     },
     "ngeo_adjacency": {
       "symbol": "ngeo_adjacency",
@@ -164,7 +164,7 @@
         "transform": ""
       },
       "condition_classes": ["ngeo_error_coordinate_space_mismatch", "ngeo_error_transform_direction"],
-      "documentation_sha256": "1566af8fe2cef6e2e050c62a408f8869482f58b1d94c761bc334afd2ad543d15"
+      "documentation_sha256": "b2a37807c99dcf3cedca9e5388fb899d9bd912395a714a8217fc0c2848d08766"
     },
     "ngeo_apply_transform_path": {
       "symbol": "ngeo_apply_transform_path",
@@ -175,7 +175,7 @@
         "authorize": "FALSE"
       },
       "condition_classes": ["ngeo_error_authorization", "ngeo_error_transform_type"],
-      "documentation_sha256": "cc7b133dd2fbe2bdbfb5ac32727ed64c6ba1b44bc13ad2e12b95777d76a65b1b"
+      "documentation_sha256": "4c2b11d91e2a0e9f9855226cd26baef74ca88b9840a85c03409b75cf311df0af"
     },
     "ngeo_artifact_manifest": {
       "symbol": "ngeo_artifact_manifest",
@@ -510,7 +510,7 @@
         "second": ""
       },
       "condition_classes": ["ngeo_error_coordinate_space_mismatch", "ngeo_error_transform_direction"],
-      "documentation_sha256": "acedf97f3d73de34d6ebf11026f4ec2e71c06f76cbd21f21db7cb2ad2229a511"
+      "documentation_sha256": "b0e3887899d17ce54b404a359de6f238edf6206e4723843a6c7d59306c700c39"
     },
     "ngeo_coordinate_space": {
       "symbol": "ngeo_coordinate_space",
@@ -536,7 +536,7 @@
         "right": ""
       },
       "condition_classes": "ngeo_error_coordinate_space",
-      "documentation_sha256": "62e6e7b2f8936be53dcb17dd9cee7012468683da67ce8d3fa8fa42c11833dd2e"
+      "documentation_sha256": "95a51ffd1af75ce480b3225e0011d30fffe19bc156942a13545ae510e60a746d"
     },
     "ngeo_coordinate_space_hash": {
       "symbol": "ngeo_coordinate_space_hash",
@@ -555,7 +555,7 @@
         "aliases": "character()"
       },
       "condition_classes": ["ngeo_error_alias", "ngeo_error_coordinate_space"],
-      "documentation_sha256": "6ef99cd69938e9114d9328f4a7e864054a1aecad4b99c5d7337c32af087e20b2"
+      "documentation_sha256": "04086490874a3dedc7c0b0ba31d59dc90fdff16d8de73e523fe9181a3da7bb48"
     },
     "ngeo_correlogram": {
       "symbol": "ngeo_correlogram",
@@ -930,7 +930,7 @@
         "transform": ""
       },
       "condition_classes": [],
-      "documentation_sha256": "9bba2296888c86aecdddab8f846d95c64e6473fc3e76ecf108025b2bce734c4e"
+      "documentation_sha256": "c9cba6dc33d28d6f9c2b4c6a248e50d29374cee6760b97c4cf1a517b3bdbea7c"
     },
     "ngeo_iterative_solve": {
       "symbol": "ngeo_iterative_solve",
@@ -1417,7 +1417,7 @@
         "aliases": "character()"
       },
       "condition_classes": "ngeo_error_alias",
-      "documentation_sha256": "d385297ab1f71709b1a9a88ebb52f47c57b49cd1cd7b501061316e8a71b948bf"
+      "documentation_sha256": "1c609e807ec7c2515892159b42e62012ba8ede3c15fd6390107a58ea557e2d9a"
     },
     "ngeo_registration_ensemble": {
       "symbol": "ngeo_registration_ensemble",
@@ -1509,7 +1509,7 @@
         "coordinate_space": ""
       },
       "condition_classes": ["ngeo_error_coordinate_space_ambiguity", "ngeo_error_coordinate_space_registry"],
-      "documentation_sha256": "ec20a45810588cb63d5c9ff98975437b3417dadb7c9d8aeb61ae836344c6baa9"
+      "documentation_sha256": "dbe270838291b0c35436f06c0bfc44bb8775bd3e7dcc491275576dcf54d5bbaa"
     },
     "ngeo_resource_budget": {
       "symbol": "ngeo_resource_budget",
@@ -2219,7 +2219,7 @@
         "parameters": "list()"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_coordinate_space", "ngeo_error_transform"],
-      "documentation_sha256": "9d479be8101ea6cbc07a01e3c3097586c49953d23f16e507aa7fa6823b048124"
+      "documentation_sha256": "02393bfd5706336048676feec6e3abd92d480de3f9030288cad1ceb3faccf44e"
     },
     "ngeo_transform_graph": {
       "symbol": "ngeo_transform_graph",
@@ -2232,7 +2232,7 @@
         "lossy": "NULL"
       },
       "condition_classes": ["ngeo_error_alignment", "ngeo_error_transform_graph"],
-      "documentation_sha256": "6272fbd16bbf574249cc37ca7c82cdd299f3eddb428454d0964927207aa7eded"
+      "documentation_sha256": "80e22449e7e46ed145d845c4568c888827cc4178c68398e9ef0ed8f5030dc276"
     },
     "ngeo_transform_graph_diagnostics": {
       "symbol": "ngeo_transform_graph_diagnostics",
@@ -2241,7 +2241,7 @@
         "graph": ""
       },
       "condition_classes": [],
-      "documentation_sha256": "34ac7eb9fe536058146b5a1379af3c151b2f47525644a000a6f30322cb420b25"
+      "documentation_sha256": "9b8649b74d1020076294240447c16eb43ef2130add776fc2d5450eb0c1473318"
     },
     "ngeo_transform_hash": {
       "symbol": "ngeo_transform_hash",
@@ -2263,7 +2263,7 @@
         "selection": "NULL"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_transform_ambiguity", "ngeo_error_transform_path"],
-      "documentation_sha256": "f584aafeddd487d50b4234287a16ec6a635930b192145a432dc9ae5754bb3a1b"
+      "documentation_sha256": "3f7041e8db101ca6cdec84ba296bda17a19383d024e3e987192d547c69a8c7fc"
     },
     "ngeo_transform_path_history": {
       "symbol": "ngeo_transform_path_history",
@@ -2272,7 +2272,7 @@
         "path": ""
       },
       "condition_classes": "ngeo_error_transform_path",
-      "documentation_sha256": "cd55d42d625536cb665f9a1a84048e417bdc8f7d69643bcdf19e66bf4e4efc36"
+      "documentation_sha256": "857497ec813de18a63e2b20788186d9c3f8a373071bec979efb326aae02aa61d"
     },
     "ngeo_update_measure": {
       "symbol": "ngeo_update_measure",
@@ -2423,7 +2423,7 @@
         "x": ""
       },
       "condition_classes": "ngeo_error_coordinate_space_registry",
-      "documentation_sha256": "7827ba5824e0a98ed28cb438ebaa3805575d7b54f5635d851ec332e4ff728698"
+      "documentation_sha256": "eb1424f7f8f29908e3778f75e5ae0aa558ecc22f78aa1e0feca3cc41ceeb7041"
     },
     "ngeo_validate_spatiotemporal_weights": {
       "symbol": "ngeo_validate_spatiotemporal_weights",
@@ -2496,7 +2496,7 @@
         "transform": ""
       },
       "condition_classes": ["ngeo_error_transform", "ngeo_error_transform_type"],
-      "documentation_sha256": "2bf5025aef07c13c6dd62fff1f7d6754caab716e1de4e3ad623f054fdc7f27a5"
+      "documentation_sha256": "db7a50425219a9ac22f1c61bb121205acab760f3ac4c82dc00fd1c876eeee45f"
     },
     "ngeo_validate_transform_graph": {
       "symbol": "ngeo_validate_transform_graph",
@@ -2505,7 +2505,7 @@
         "x": ""
       },
       "condition_classes": ["ngeo_error_transform_graph", "ngeo_error_transform_graph_mutation"],
-      "documentation_sha256": "3016a7454f3fdcb8abbd8797754091e987249cc3f00d3354e3e4647fba389f16"
+      "documentation_sha256": "12b307fb72824117b45ff77a0b3b8b3389bf2dc175dc2e7786300a4b721fd466"
     },
     "ngeo_value_chunks": {
       "symbol": "ngeo_value_chunks",
