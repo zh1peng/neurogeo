@@ -263,6 +263,7 @@
 #' subset <- ngeo_subset(point, elements = c(1, 3), layers = "second")
 #' base_elements(subset)
 #' values(subset)
+#' @template stable-data-semantics-core
 #' @export
 ngeo_subset <- function(x, elements = NULL, layers = NULL) {
   ngeo_validate(x, "basic")

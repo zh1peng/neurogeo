@@ -127,6 +127,8 @@ as.matrix.ngeo_delayed_values <- function(x, ...) {
 #'   iterator closure is returned.
 #'
 #' @return An iterator or list of callback results.
+#' @templateVar example_call ngeo_value_chunks(file_backed_data, margin = "elements", chunk_size = 65536)
+#' @template stable-data-semantics-core
 #' @export
 ngeo_value_chunks <- function(x, chunk_size = 65536L, layers = NULL, FUN = NULL) {
   values <- if (inherits(x, "ngeo")) x$values else x

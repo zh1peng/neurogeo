@@ -18,11 +18,11 @@
 "ngeo_base_elements","core-api","man/ngeo_prefixed_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_base_hash","reproducibility-engineering","man/ngeo_prefixed_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_base_type","core-api","man/ngeo_prefixed_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"ngeo_basis_project","core-api","man/ngeo_basis_project.Rd",TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_basis_project","core-api","man/ngeo_basis_project.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_bids_build_name","io","man/ngeo_bids_build_name.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_bids_parse_name","io","man/ngeo_bids_parse_name.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_bids_sidecar","io","man/ngeo_bids_sidecar.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"ngeo_bind_layers","core-api","man/ngeo_bind_layers.Rd",TRUE,FALSE,FALSE,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_bind_layers","core-api","man/ngeo_bind_layers.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_boundary","core-api","man/ngeo_boundary.Rd",TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
 "ngeo_boundary_sensitivity","core-api","man/ngeo_boundary_sensitivity.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
 "ngeo_boundary_test","core-api","man/ngeo_boundary_test.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
@@ -72,9 +72,9 @@
 "ngeo_kriging","statistical-methods","man/ngeo_kriging.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_kriging_uncertainty","statistical-methods","man/ngeo_kriging_uncertainty.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_label_overlap_map","core-api","man/ngeo_label_overlap_map.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"ngeo_labels","core-api","man/ngeo_accessors.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
-"ngeo_layer_coupling","core-api","man/ngeo_layer_coupling.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
-"ngeo_layer_index","core-api","man/ngeo_layer_index.Rd",TRUE,FALSE,TRUE,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_labels","core-api","man/ngeo_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_layer_coupling","core-api","man/ngeo_layer_coupling.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_layer_index","core-api","man/ngeo_layer_index.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_layers","core-api","man/ngeo_prefixed_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_local_moran","statistical-methods","man/ngeo_local_moran.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_logdet_approx","core-api","man/ngeo_logdet_approx.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
@@ -129,7 +129,7 @@
 "ngeo_stream_lm","core-api","man/ngeo_stream_lm.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
 "ngeo_stream_moran","statistical-methods","man/ngeo_stream_moran.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_stream_summary","core-api","man/ngeo_stream_summary.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
-"ngeo_subset","core-api","man/ngeo_subset.Rd",TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,FALSE,FALSE,FALSE,FALSE
+"ngeo_subset","core-api","man/ngeo_subset.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_support_adjust","neuroimaging-methods","man/ngeo_support_adjust.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_support_condition","neuroimaging-methods","man/ngeo_support_condition.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_support_covariance","neuroimaging-methods","man/ngeo_support_covariance.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -166,7 +166,7 @@
 "ngeo_transform_hash","reproducibility-engineering","man/ngeo_transform_hash.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_transform_path","core-api","man/ngeo_transform_path.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_transform_path_history","core-api","man/ngeo_transform_path_history.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"ngeo_update_measure","core-api","man/ngeo_update_measure.Rd",TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_update_measure","core-api","man/ngeo_update_measure.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_validate","core-api","man/ngeo_validate.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_validate_artifact_batch","reproducibility-engineering","man/ngeo_validate_artifact_batch.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_validate_artifact_manifest","reproducibility-engineering","man/ngeo_validate_artifact_manifest.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -188,7 +188,7 @@
 "ngeo_validate_time_axis","core-api","man/ngeo_time_axis_validation.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_validate_transform","core-api","man/ngeo_validate_transform.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_validate_transform_graph","core-api","man/ngeo_validate_transform_graph.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
-"ngeo_value_chunks","core-api","man/ngeo_value_chunks.Rd",TRUE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE
+"ngeo_value_chunks","core-api","man/ngeo_value_chunks.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_values","core-api","man/ngeo_prefixed_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_variogram","statistical-methods","man/ngeo_variogram.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_variogram_uncertainty","statistical-methods","man/ngeo_variogram_uncertainty.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE

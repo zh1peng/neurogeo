@@ -550,6 +550,8 @@
 #' @param chunk_layers Maximum layers projected together.
 #'
 #' @return An `ngeo_subject_features` object.
+#' @templateVar example_call ngeo_layer_coupling(data, layer_index, estimands = "same_location")
+#' @template stable-data-semantics-core
 #' @export
 ngeo_layer_coupling <- function(
     x,

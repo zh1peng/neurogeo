@@ -53,7 +53,7 @@
         "x": ""
       },
       "condition_classes": [],
-      "documentation_sha256": "e7ed472e2e984de06864b480fdd1603e2df303523a4eb6851b5aafaa9cfc903d"
+      "documentation_sha256": "763dc9f68948a8485e37d794cefeea50b2f6f41a2ca0e4e963dbd2644123bc4a"
     },
     "base_hash": {
       "symbol": "base_hash",
@@ -80,7 +80,7 @@
         "x": ""
       },
       "condition_classes": [],
-      "documentation_sha256": "e7ed472e2e984de06864b480fdd1603e2df303523a4eb6851b5aafaa9cfc903d"
+      "documentation_sha256": "763dc9f68948a8485e37d794cefeea50b2f6f41a2ca0e4e963dbd2644123bc4a"
     },
     "layers": {
       "symbol": "layers",
@@ -89,7 +89,7 @@
         "x": ""
       },
       "condition_classes": [],
-      "documentation_sha256": "e7ed472e2e984de06864b480fdd1603e2df303523a4eb6851b5aafaa9cfc903d"
+      "documentation_sha256": "763dc9f68948a8485e37d794cefeea50b2f6f41a2ca0e4e963dbd2644123bc4a"
     },
     "measures": {
       "symbol": "measures",
@@ -98,7 +98,7 @@
         "x": ""
       },
       "condition_classes": [],
-      "documentation_sha256": "e7ed472e2e984de06864b480fdd1603e2df303523a4eb6851b5aafaa9cfc903d"
+      "documentation_sha256": "763dc9f68948a8485e37d794cefeea50b2f6f41a2ca0e4e963dbd2644123bc4a"
     },
     "ngeo_add_transform": {
       "symbol": "ngeo_add_transform",
@@ -297,7 +297,7 @@
         "chunk_layers": "32L"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_base_mismatch"],
-      "documentation_sha256": "f9ac629ee5d640cb10030c4c766d97b19ed1265d7015f8e30568983b202d9e9e"
+      "documentation_sha256": "99c05907e99b3c8f115e5cb3b0eab89a6f3f48503542e743a920128363109c5a"
     },
     "ngeo_bids_build_name": {
       "symbol": "ngeo_bids_build_name",
@@ -343,7 +343,7 @@
         "budget": "ngeo_resource_budget()"
       },
       "condition_classes": ["ngeo_error_alignment", "ngeo_error_base_mismatch", "ngeo_error_layer_conflict", "ngeo_error_values"],
-      "documentation_sha256": "5a7f2ba8299e31700c488e1e5f9efe25086ed58e7668a6043f30a4b8848e1aea"
+      "documentation_sha256": "e07877df99bb145b64e690a9bc441aa734a9ffc8a3486f6140e2f6b58ae76530"
     },
     "ngeo_boundary": {
       "symbol": "ngeo_boundary",
@@ -1021,7 +1021,7 @@
         "x": ""
       },
       "condition_classes": [],
-      "documentation_sha256": "e7ed472e2e984de06864b480fdd1603e2df303523a4eb6851b5aafaa9cfc903d"
+      "documentation_sha256": "763dc9f68948a8485e37d794cefeea50b2f6f41a2ca0e4e963dbd2644123bc4a"
     },
     "ngeo_layer_coupling": {
       "symbol": "ngeo_layer_coupling",
@@ -1040,7 +1040,7 @@
         "chunk_layers": "32L"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_layer_measure", "ngeo_error_null_target"],
-      "documentation_sha256": "65b9e9ae291609b374e2ae86bc360b0eba2713219b83e0bbfee39f414f3cc84b"
+      "documentation_sha256": "a50be3bc1fbbcf44e877ca67507ff05657d60f42598efee8c122e1641b40c474"
     },
     "ngeo_layer_index": {
       "symbol": "ngeo_layer_index",
@@ -1054,7 +1054,7 @@
         "require_consistent_measures": "TRUE"
       },
       "condition_classes": [],
-      "documentation_sha256": "1c6d3c90ee8550ff26857753edefeb1b8c1513dc9ca75af7346a83fd7fd4b353"
+      "documentation_sha256": "c07b240c30f1d9524f6c97d75cba8077a9d4fc7536729a37f29befde1ad40428"
     },
     "ngeo_layers": {
       "symbol": "ngeo_layers",
@@ -1795,7 +1795,7 @@
         "layers": "NULL"
       },
       "condition_classes": [],
-      "documentation_sha256": "99932e95be1bacec33e26472fbc9211fcebf8638bf2ed20c9d8a461d48efa3c5"
+      "documentation_sha256": "88ed0c2cfa94449b3f7983259c3497712e9146ccfd3681132686d5042efa5f9a"
     },
     "ngeo_support_adjust": {
       "symbol": "ngeo_support_adjust",
@@ -2288,7 +2288,7 @@
         "aggregation": "NULL"
       },
       "condition_classes": "ngeo_error_measure",
-      "documentation_sha256": "778ed53cd2bde81f1916fa0644b607ff0427e5eb56eeded427473bb0dbf3f177"
+      "documentation_sha256": "bdfb903dfaab270618d396d5be0c3ae4796a4a9a14cb0a5cc0fe8b43118f73b7"
     },
     "ngeo_validate": {
       "symbol": "ngeo_validate",
@@ -2517,7 +2517,7 @@
         "FUN": "NULL"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_values"],
-      "documentation_sha256": "11238d0f1c25f0400702c96e1cde6dfc7a1bb214c11c31acb64e711da577ef42"
+      "documentation_sha256": "f717797040af334a18a05bea24cc910af84b26dc50c6adf8bf25edfbc9cd525b"
     },
     "ngeo_values": {
       "symbol": "ngeo_values",
@@ -2842,7 +2842,7 @@
         "x": ""
       },
       "condition_classes": [],
-      "documentation_sha256": "e7ed472e2e984de06864b480fdd1603e2df303523a4eb6851b5aafaa9cfc903d"
+      "documentation_sha256": "763dc9f68948a8485e37d794cefeea50b2f6f41a2ca0e4e963dbd2644123bc4a"
     },
     "values": {
       "symbol": "values",
@@ -2852,7 +2852,7 @@
         "layers": "NULL"
       },
       "condition_classes": [],
-      "documentation_sha256": "e7ed472e2e984de06864b480fdd1603e2df303523a4eb6851b5aafaa9cfc903d"
+      "documentation_sha256": "763dc9f68948a8485e37d794cefeea50b2f6f41a2ca0e4e963dbd2644123bc4a"
     },
     "write_ngeo": {
       "symbol": "write_ngeo",

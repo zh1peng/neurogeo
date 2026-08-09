@@ -21,6 +21,29 @@ Domain elements and value rows are always changed together. Surface faces,
 volume masks, grayordinate component mappings, and region metadata are
 rebuilt as required.
 }
+\section{When to use and limitations}{
+
+Use these functions to inspect or change aligned values, layers, measures, or
+derived subject features after element identity has been verified. Do not
+treat layers as spatial elements, infer subject independence from column
+count, or combine measurements with incompatible units or support behavior.
+}
+
+\section{Units and assumptions}{
+
+Values retain the unit and intensive/extensive behavior declared by their
+measure. Rows remain aligned to base elements and columns to layer IDs.
+Binding, subsetting, projection, and coupling assume stable IDs, compatible
+bases, explicit missingness, and one measurement contract per selected layer.
+}
+
+\section{Validation evidence}{
+
+Alignment, layer-index, measure, chunking, projection, and coupling fixtures
+are declared in `inst/spec/validation-registry-6.0.csv`; claim status is in
+`inst/validation/claim-evidence-matrix-6.0.csv`.
+}
+
 \examples{
 point <- ngeo_point(
   matrix(c(0, 0, 1, 0, 2, 0, 3, 0), ncol = 2, byrow = TRUE),
@@ -29,4 +52,10 @@ point <- ngeo_point(
 subset <- ngeo_subset(point, elements = c(1, 3), layers = "second")
 base_elements(subset)
 values(subset)
+}
+\references{
+Wickham, H. (2014). Tidy data. *Journal of Statistical Software*, 59, 1--23.
+}
+\seealso{
+[ngeo_validate_layers()], [ngeo_measure()]
 }
