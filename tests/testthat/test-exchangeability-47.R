@@ -7,6 +7,7 @@ test_that("free schedules are unique, reproducible, and identity-free", {
     ids, scheme = "free", permutations = 40L, seed = 42L
   )
   expect_s3_class(first, "ngeo_exchangeability")
+  expect_identical(first$unit_kind, "subject")
   expect_identical(first$schedule, second$schedule)
   expect_identical(first$schedule_hash, second$schedule_hash)
   expect_identical(colnames(first$schedule), ids)
@@ -17,6 +18,27 @@ test_that("free schedules are unique, reproducible, and identity-free", {
   expect_true(all(apply(first$schedule, 1L, function(row) {
     identical(unname(sort(row)), seq_along(ids))
   })))
+})
+
+test_that("sampling-unit kind is explicit and map nulls are separate", {
+  sites <- ngeo_exchangeability(
+    paste0("site", 1:6), permutations = 10L, seed = 8L,
+    unit_kind = "site"
+  )
+  blocks <- ngeo_exchangeability(
+    paste0("block", 1:6), permutations = 10L, seed = 9L,
+    unit_kind = "spatial_block"
+  )
+  expect_identical(sites$unit_kind, "site")
+  expect_identical(blocks$unit_kind, "spatial_block")
+  expect_false(identical(sites$schedule_hash, blocks$schedule_hash))
+  expect_error(
+    ngeo_exchangeability(
+      paste0("map", 1:6), permutations = 10L,
+      unit_kind = "map_null"
+    ),
+    class = "ngeo_error_exchangeability"
+  )
 })
 
 test_that("within-block schedules never cross blocks", {

@@ -80,3 +80,10 @@ p-value fields. Use `covariance =` for covariance-aware fixed-effect GLS, or
 set `independence = TRUE` to reproduce the earlier fixed/DerSimonian--Laird
 analysis under an explicit independence assumption. A correlated random-effects
 model is not silently approximated and is rejected.
+
+## Sampling-unit declarations
+
+Existing `ngeo_exchangeability()` calls remain subject-level by default. New
+code should set `unit_kind = "subject"`, `"site"`, or `"spatial_block"`
+explicitly when that distinction matters. Map-level spatial nulls are not an
+exchangeability unit and now raise a typed error if passed as `map_null`.

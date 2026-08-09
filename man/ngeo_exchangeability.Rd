@@ -2,7 +2,7 @@
 % Please edit documentation in R/exchangeability-47.R
 \name{ngeo_exchangeability}
 \alias{ngeo_exchangeability}
-\title{Declare subject-level exchangeability transformations}
+\title{Declare independent-unit exchangeability transformations}
 \usage{
 ngeo_exchangeability(
   unit_id,
@@ -11,7 +11,8 @@ ngeo_exchangeability(
   schedule = NULL,
   permutations = 4999L,
   seed = NULL,
-  budget = ngeo_resource_budget()
+  budget = ngeo_resource_budget(),
+  unit_kind = c("subject", "site", "spatial_block", "map_null")
 )
 }
 \arguments{
@@ -28,12 +29,16 @@ ngeo_exchangeability(
 \item{seed}{Optional reproducible seed.}
 
 \item{budget}{Hard execution resource limits.}
+
+\item{unit_kind}{Scientific sampling unit represented by each column.
+Subject, site, and spatial-block units are supported. Map nulls belong to
+the spatial-null API and are rejected here.}
 }
 \value{
 An `ngeo_exchangeability` object.
 }
 \description{
-Transformations are stored in rows and independent unit in columns. The
+Transformations are stored in rows and independent units in columns. The
 observed identity transformation is kept outside the schedule.
 }
 \section{When to use and limitations}{
@@ -62,7 +67,7 @@ evidence is recorded in `inst/validation/claim-evidence-matrix-6.0.csv`.
 
 \examples{
 \dontrun{
-ngeo_exchangeability(subject_data, unit = "subject_id", blocks = "site")
+ngeo_exchangeability(subject_id, blocks = site, unit_kind = "subject")
 }
 }
 \references{

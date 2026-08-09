@@ -52,6 +52,8 @@ test_that("Freedman-Lane matches an explicit fixed-schedule calculation", {
     retain_null = TRUE
   )
   expect_s3_class(result, "ngeo_group_result")
+  expect_identical(result$sampling_unit, "subject")
+  expect_identical(ngeo_inference_contract(result)$sampling_unit, "subject")
   expect_equal(nrow(result$tests), 2L)
   expect_true(all(result$tests$statistic_type == "t"))
   expect_true(all(result$tests$p_maxT >= result$tests$p_raw))
@@ -76,6 +78,24 @@ test_that("Freedman-Lane matches an explicit fixed-schedule calculation", {
   expect_equal(result$tests$statistic[[1L]], observed, tolerance = 1e-10)
   expect_equal(result$tests$p_raw[[1L]], expected_p, tolerance = 1e-12)
   expect_equal(result$null$endpoint[, 1L], simulated, tolerance = 1e-10)
+})
+
+test_that("group results retain a declared non-subject sampling unit", {
+  ids <- paste0("site", 1:8)
+  group <- factor(rep(c("control", "case"), each = 4L))
+  features <- group_feature_fixture(cbind(endpoint = rnorm(8)), ids)
+  design <- data.frame(unit_id = ids, group = group)
+  exchangeability <- ngeo_exchangeability(
+    ids, permutations = 19L, seed = 47L, unit_kind = "site"
+  )
+  result <- ngeo_group_test(
+    features, design, ~ group, "group", exchangeability,
+    transform = "none"
+  )
+  expect_identical(result$sampling_unit, "site")
+  expect_identical(result$history$inference_unit, "independent_site")
+  expect_identical(ngeo_inference_contract(result)$sampling_unit, "site")
+  expect_match(result$claim, "independent sites")
 })
 
 test_that("permuco provides an independent Freedman-Lane reference", {

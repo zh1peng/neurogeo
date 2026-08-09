@@ -45,6 +45,10 @@ aligned atlas covariance matrix or sets `independence = TRUE`. Covariance-aware
 fixed-effect GLS is stable; a correlated random-effects approximation is not
 implemented and is rejected rather than silently reduced to independence.
 
+`ngeo_exchangeability()` records `unit_kind` as `subject`, `site`, or
+`spatial_block`. `map_null` is intentionally rejected because reference-map
+null transformations are not independent-unit group permutations.
+
 ### Experimental
 
 `ngeo_spatial_ordination()`, `ngeo_coregionalization()`, and `ngeo_mgwr()` are

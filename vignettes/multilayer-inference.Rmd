@@ -85,7 +85,8 @@ for every endpoint; no vertex-wise pseudo-replication occurs.
 ```{r inference}
 design <- data.frame(unit_id = unit_id, group = group, age = age)
 schedule <- ngeo_exchangeability(
-  unit_id, scheme = "free", permutations = 99L, seed = 5001L
+  unit_id, scheme = "free", permutations = 99L, seed = 5001L,
+  unit_kind = "subject"
 )
 result <- ngeo_group_test(
   features, design, model = ~ age + group, test = "group",
@@ -97,7 +98,8 @@ result$tests[, c(
 result$omnibus
 ```
 
-The valid inference unit is the independent subject. The result supports a
+`unit_kind = "subject"` makes the independent sampling unit machine-readable;
+it is not inferred from an ID prefix. The result supports a
 claim about the declared population only when residual exchangeability and the
 subject design are defensible. It does not establish causality, registration
 quality, equal physical scale across atlases, or parcellation invariance.
