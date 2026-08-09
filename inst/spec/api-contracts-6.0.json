@@ -1,7 +1,7 @@
 {
   "schema": "neurogeo/api-contracts/1",
   "package_version": "6.0.0",
-  "stable_count": 324,
+  "stable_count": 327,
   "contracts": {
     "aggregate_to": {
       "symbol": "aggregate_to",
@@ -913,6 +913,15 @@
       },
       "condition_classes": "ngeo_error_history_dag",
       "documentation_sha256": "ca874d0ee6b2757ee5b5c8a79323afb86b710b19e48e93be9c6c7174686b604f"
+    },
+    "ngeo_inference_contract": {
+      "symbol": "ngeo_inference_contract",
+      "type": "export",
+      "formals": {
+        "x": ""
+      },
+      "condition_classes": "ngeo_error_inference_contract",
+      "documentation_sha256": "116c9c1efedb69e17f5c0edc69b48108390530fdc6500c52f8e8e60e0f83db6f"
     },
     "ngeo_invert_transform": {
       "symbol": "ngeo_invert_transform",
@@ -3447,6 +3456,16 @@
       "condition_classes": [],
       "documentation_sha256": ""
     },
+    "print.ngeo_inference_contract": {
+      "symbol": "print.ngeo_inference_contract",
+      "type": "s3_method",
+      "formals": {
+        "x": "",
+        "...": ""
+      },
+      "condition_classes": [],
+      "documentation_sha256": ""
+    },
     "print.ngeo_iterative_car": {
       "symbol": "print.ngeo_iterative_car",
       "type": "s3_method",
@@ -3929,6 +3948,16 @@
     },
     "summary.ngeo": {
       "symbol": "summary.ngeo",
+      "type": "s3_method",
+      "formals": {
+        "object": "",
+        "...": ""
+      },
+      "condition_classes": [],
+      "documentation_sha256": ""
+    },
+    "summary.ngeo_inference_contract": {
+      "symbol": "summary.ngeo_inference_contract",
       "type": "s3_method",
       "formals": {
         "object": "",

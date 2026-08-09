@@ -119,6 +119,10 @@
     )),
     list("ngcs/resource-budget", "ngeo_resource_budget", c(
       "positive_limits", "explicit_materialization_limit"
+    )),
+    list("ngcs/inference-contract", "ngeo_inference_contract", c(
+      "explicit_estimand", "explicit_sampling_unit", "explicit_null",
+      "explicit_metric", "explicit_support", "explicit_uncertainty_target"
     ))
   )
   data.frame(
@@ -281,6 +285,7 @@
       }
       invisible(x)
     },
+    "ngcs/inference-contract" = .ngeo_validate_inference_contract(x),
     .ngeo_abort("Schema validator is not implemented.",
                 "ngeo_error_schema")
   )
@@ -444,6 +449,10 @@
 }
 
 .ngeo_object_manifest_metadata <- function(x, schema_id) {
+  if (inherits(x, "ngeo_inference_contract")) {
+    .ngeo_validate_inference_contract(x)
+    return(unclass(x))
+  }
   if (inherits(x, "ngeo")) {
     return(list(
       base_type = x$base$type,

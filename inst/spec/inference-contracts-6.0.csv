@@ -1,0 +1,41 @@
+result_class,estimand,sampling_unit,null_model,metric,support,uncertainty_target
+ngeo_atlas_robust_effect,effect stability across supplied atlases,source observations,common-source permutation,supplied support operators,target regions,permutation distribution of effect stability
+ngeo_boundary_test,effect dispersion across supplied boundaries,source observations,common-source unconstrained permutation,supplied support operators,target regions,permutation distribution of boundary dispersion
+ngeo_car,penalized spatial signal estimate,base elements,not applicable unless separately calibrated,declared spatial-weights graph,base elements,model residual variation
+ngeo_car_uncertainty,CAR estimate under declared perturbations,declared resampling unit,declared resampling procedure,declared spatial-weights graph,base elements,distribution of CAR estimates
+ngeo_common_support_test,effect under one common source null,source elements under declared exchangeability,recorded common-source null,supplied support operators,target regions,null distribution of the recorded statistic
+ngeo_correlogram,spatial association by distance lag,base-element pairs,recorded permutation null,recorded distance method,base elements,permutation distribution by lag
+ngeo_cross_atlas,effect sensitivity across supplied atlases,source observations,not applicable for descriptive sensitivity,supplied support operators,target regions,not applicable for descriptive sensitivity
+ngeo_cross_atlas_consensus,consensus under an independence approximation,atlas-specific estimates derived from one source analysis,independent-estimate meta-analysis approximation,supplied support operators,target regions,approximate meta-analytic standard error
+ngeo_getis,local concentration statistic,base elements,recorded permutation null,declared spatial-weights graph,base elements,permutation distribution of local statistics
+ngeo_global_stat,global spatial autocorrelation statistic,base elements,value-label permutation when requested,declared spatial-weights graph,base elements,permutation distribution of the global statistic
+ngeo_group_result,group-level effect,independent units declared by the design,recorded exchangeability schedule,not applicable unless the design declares one,feature support,confidence interval and permutation distribution of the group effect
+ngeo_gwr,location-specific regression coefficient,base elements,not applicable for descriptive local fit,recorded distance and kernel,local kernel support,local coefficient and fit uncertainty
+ngeo_gwr_bandwidth,predictive loss as a function of bandwidth,row-index validation folds,not applicable for bandwidth selection,recorded distance and kernel,local kernel support,cross-validation loss
+ngeo_gwr_uncertainty,GWR coefficient under declared perturbations,declared resampling unit,declared resampling procedure,recorded distance and kernel,local kernel support,distribution of local coefficients
+ngeo_iterative_car,penalized spatial signal estimate,base elements,not applicable unless separately calibrated,declared spatial-weights graph,base elements,solver and model approximation uncertainty
+ngeo_iterative_spatial_regression,spatial regression coefficient and dependence parameter,base elements,model likelihood assumptions,declared spatial-weights graph,base elements,optimization and stochastic log-determinant uncertainty
+ngeo_kernel_regression,location-specific kernel-smoothed mean,base elements,not applicable for descriptive smoother,recorded distance and kernel,local kernel support,local fitted-value uncertainty
+ngeo_kriging,conditional spatial prediction,observed base elements,Gaussian process model,recorded valid covariance metric,prediction targets,latent-process prediction variance
+ngeo_kriging_uncertainty,kriging prediction under declared perturbations,declared resampling unit,declared resampling procedure,recorded valid covariance metric,prediction targets,distribution of spatial predictions
+ngeo_lisa,local Moran statistic,base elements,recorded conditional or total randomization,declared spatial-weights graph,base elements,permutation distribution of local statistics
+ngeo_model_calibration,predictive calibration diagnostic,held-out observations,not applicable for calibration diagnostic,model-specific metric,held-out support,predictive error distribution
+ngeo_multiscale_inference,effect across declared support scales,source elements under declared exchangeability,recorded common-source null,supplied multiscale support operators,target regions by scale,joint null distribution across scales
+ngeo_parcellation_inference,effect sensitivity across parcellations,source elements resampled iid by the current implementation,recorded iid source-element bootstrap,supplied support operators,target regions,bootstrap distribution across declared parcellations
+ngeo_spatial_lm,linear-model coefficient,base elements,iid linear-model errors with residual spatial diagnostic,optional declared spatial-weights graph,base elements,coefficient standard error under recorded model
+ngeo_spatial_regression,spatial regression coefficient and dependence parameter,base elements,model likelihood assumptions,declared spatial-weights graph,base elements,model-based coefficient uncertainty
+ngeo_spatial_regression_uncertainty,spatial regression estimate under declared perturbations,declared resampling unit,declared resampling procedure,declared spatial-weights graph,base elements,distribution of spatial regression estimates
+ngeo_spatiotemporal_moran,global spatiotemporal autocorrelation,space-time observations,recorded permutation schedule,separable spatial and temporal weights,space-time support,permutation distribution of the statistic
+ngeo_stream_lm,linear-model coefficient over streamed values,base elements,iid linear-model errors,not applicable unless separately supplied,base elements,coefficient standard error under recorded model
+ngeo_stream_moran,global Moran statistic over streamed values,base elements,not applicable unless separately simulated,declared spatial-weights graph,base elements,not applicable for point estimate only
+ngeo_support_adjustment,multiplicity-adjusted support-scale evidence,hypotheses in the supplied result family,recorded familywise null,supplied support operators,target support,adjusted p-value family
+ngeo_support_model,model estimate under one supplied support map,base elements,model-specific null,supplied support operator,target support,model-specific coefficient uncertainty
+ngeo_support_model_ensemble,model estimate across supplied support alternatives,base elements,model-specific null,supplied support ensemble,target support,within and between-support model uncertainty
+ngeo_support_sensitivity,output variation across supplied support operators,source observations,not applicable for descriptive sensitivity,supplied support ensemble,target support,weighted between-operator distribution
+ngeo_support_test,effect after one declared change of support,source elements under declared exchangeability,recorded source-level null,supplied support operator,target support,null distribution of the target statistic
+ngeo_support_uncertainty,aggregated value under value and operator uncertainty,source elements,Gaussian value draws and recorded operator ensemble,supplied support operator,target support,variance of the aggregated value
+ngeo_temporal_moran,global temporal autocorrelation,time points,recorded temporal permutation,declared temporal weights,time support,permutation distribution of the statistic
+ngeo_temporal_variogram,temporal semivariance by lag,time-point pairs,not applicable for descriptive variogram,recorded temporal lag metric,time support,not applicable for empirical semivariance
+ngeo_variogram,empirical semivariance by distance bin,base-element pairs,not applicable for descriptive variogram,recorded distance method,base elements,not applicable for empirical semivariance
+ngeo_variogram_fit,covariance-model parameters,base-element pairs,model fitting assumptions,recorded valid covariance metric,base elements,parameter fit uncertainty
+ngeo_variogram_uncertainty,variogram parameter under declared perturbations,declared resampling unit,declared resampling procedure,recorded distance method,base elements,distribution of fitted variogram parameters

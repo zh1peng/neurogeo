@@ -7,8 +7,8 @@ Status: accepted for implementation, 2026-08-09.
 - Every namespace export, registered S3 method, public generic, and public
   `ngeo_*` class is listed in `api-lifecycle-6.0.csv` with one lifecycle state,
   owner, replacement, and earliest removal version.
-- The accepted Phase 1 baseline contains 237 exports and 96 registered S3
-  methods, including the migration report printer. Any later count change
+- The accepted Phase 1 baseline contains 238 exports and 98 registered S3
+  methods, including the migration report and inference-contract methods. Any later count change
   requires an ADR update together with regenerated lifecycle and contract
   registries.
 - The unprefixed accessors (`values()`, `layers()`, `measures()`, `history()`,
