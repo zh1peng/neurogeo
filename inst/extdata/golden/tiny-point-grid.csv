@@ -1,0 +1,10 @@
+element_id,x_mm,y_mm,signal
+point-01,0,0,1
+point-02,1,0,2
+point-03,2,0,3
+point-04,0,1,2
+point-05,1,1,4
+point-06,2,1,7
+point-07,0,2,3
+point-08,1,2,7
+point-09,2,2,9

@@ -1,0 +1,6 @@
+scenario,class,code,field,message,hint
+missing_backend,ngeo_error_backend,NGEO_ERROR_BACKEND_MISSING,definitelyNotANeurogeoPackage,"`definitelyNotANeurogeoPackage` is required for condition contract audit. Install it with install.packages(""definitelyNotANeurogeoPackage"").","Run install.packages(""definitelyNotANeurogeoPackage""), or use the documented native-data fallback."
+invalid_scalar_character,ngeo_error_argument,NGEO_ERROR_ARGUMENT_SCALAR_CHARACTER,unit,`unit` must be one non-missing character value.,"Supply `unit` as one non-missing, non-empty character value."
+missing_layer_metadata,ngeo_error_layer_metadata,NGEO_ERROR_LAYER_METADATA_MISSING,layers,"Map metadata is missing required layer columns: subject_id, feature.",Add the named metadata columns with ngeo layer construction or choose columns that exist in ngeo_layers(x).
+unknown_measure,ngeo_error_measure,NGEO_ERROR_MEASURE_UNKNOWN,measure_id,Unknown measure ID `absent`.,Choose an ID returned by ngeo_measures(x)$measure_id.
+failed_reader,ngeo_error_io,NGEO_ERROR_IO_READ,path,Failed to read NIfTI `missing.nii`: synthetic reader failure,"Verify that the file exists, matches the requested format, and is readable."

@@ -1,0 +1,164 @@
+---
+title: "15-minute quickstart: from a fixed fixture to interpretable Moran's I"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{15-minute quickstart: from a fixed fixture to interpretable Moran's I}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(neurogeo)
+```
+
+## Who is this for?
+
+Start here if you know MRI, fMRI, cortical surfaces, or ROI tables but are new to `neurogeo`. The tutorial takes about 10–15 minutes and less than 50 MB of memory. It runs in a clean R session with data installed in the package—there are no placeholder paths or downloads.
+
+By the end, you will be able to:
+
+1. distinguish a `base`, `values`, a `layer`, and a `measure`;
+2. construct and validate a spatial dataset;
+3. declare neighbors and spatial weights explicitly;
+4. run and interpret global Moran's I;
+5. inspect the null, metric, and sampling unit of the result.
+
+## Four terms first
+
+A neuroimaging array alone does not say where each row lives or whether values may be summed. `neurogeo` keeps four kinds of information separate:
+
+| Term | Question | This example |
+|---|---|---|
+| spatial base | Where does each value row live? | 9 two-dimensional points |
+| values | What was measured? | one `signal` column |
+| layer | Which values column is analysed? | `signal` |
+| measure | What are its unit and support semantics? | a.u. and intensive |
+
+`intensive` means aggregation should use a support-weighted mean. It differs from `extensive` or `count` values that may be summed. Coordinate space is also explicit: the default `unknown` does not mean millimetres.
+
+## 1. Read a fixed installed fixture
+
+The CSV is project-generated CC0 teaching data. Its licence, version, size, and SHA-256 are recorded in the installed `tutorial-fixtures-6.0.csv`.
+
+```{r read-fixture}
+fixture_path <- system.file(
+  "extdata", "golden", "tiny-point-grid.csv",
+  package = "neurogeo",
+  mustWork = TRUE
+)
+fixture <- read.csv(fixture_path)
+fixture
+```
+
+Do not infer row order from similar coordinates. `element_id` is the stable source identifier here; row *i* of `values` must always belong to element *i* of the base.
+
+## 2. Construct the object and declare measurement semantics
+
+```{r construct}
+point_data <- ngeo_point(
+  coordinates = as.matrix(fixture[c("x_mm", "y_mm")]),
+  values = cbind(signal = fixture$signal),
+  measures = ngeo_measure(
+    measure_id = "measure_signal",
+    name = "teaching signal",
+    value_type = "continuous",
+    support_behavior = "intensive",
+    unit = "a.u."
+  ),
+  coordinate_space = ngeo_coordinate_space(
+    space_id = "synthetic-grid",
+    kind = "unknown",
+    unit = "mm"
+  )
+)
+point_data
+```
+
+Inspect it through public accessors. A normal workflow should not mutate `$measures` or another internal table.
+
+```{r inspect}
+ngeo_base_type(point_data)
+head(ngeo_base_elements(point_data))
+ngeo_layers(point_data)
+ngeo_measures(point_data)
+ngeo_validate(point_data, "strict")
+```
+
+You should have 9 spatial elements and one layer referencing `measure_signal`.
+
+## 3. Declare the spatial relation
+
+Points have no intrinsic adjacency. Here Euclidean distance connects horizontal or vertical neighbors no more than 1.01 mm apart. This is an analysis choice, not a hidden property of the input.
+
+```{r weights}
+spatial_weights <- ngeo_spatial_weights(
+  point_data,
+  method = "distance_band",
+  threshold = 1.01,
+  distance_method = "euclidean",
+  style = "W"
+)
+spatial_weights
+```
+
+KNN, another threshold, or surface geodesic distance would define a different estimand and must be reported.
+
+## 4. Run global Moran's I
+
+```{r moran}
+global_result <- ngeo_moran(
+  point_data,
+  spatial_weights,
+  layer = "signal",
+  permutations = 199,
+  seed = 2026
+)
+global_result
+```
+
+A positive Moran's I means neighboring signal values tend to be similar. The permutation p-value asks how often an equally extreme statistic appears when the spatial weights stay fixed and value labels are exchangeable under the stated rule. It is not the probability that a biological mechanism exists.
+
+Check the common interpretation contract:
+
+```{r inference-contract}
+contract <- ngeo_inference_contract(global_result)
+contract
+```
+
+Before reporting, verify its estimand, sampling unit, null model, metric, support, and uncertainty target. If they do not match the study design, change the analysis—not only the prose.
+
+## 5. Inspect local patterns and history
+
+```{r local}
+local_result <- ngeo_local_moran(
+  point_data,
+  spatial_weights,
+  layer = "signal",
+  permutations = 199,
+  seed = 2026,
+  adjust = "BH",
+  null_model = "conditional"
+)
+local_result[c("element_id", "local_i", "p.adjusted", "cluster")]
+```
+
+`cluster` is a Moran-quadrant description; call a local pattern significant only with the adjusted permutation evidence. The object history records construction:
+
+```{r history}
+ngeo_history(point_data)$operations
+```
+
+## Common mistakes
+
+- **Treating the default space as millimetres:** `ngeo_coordinate_space()` defaults to `unknown`. Confirm units from a reliable header or user declaration before physical-distance analysis.
+- **Reordering values by similar names:** the package does not guess alignment. Preserve and check stable element IDs.
+- **Mutating the measure table:** use `ngeo_measure()` at construction and `ngeo_update_measure()` later.
+- **Treating a layer name as a permanent ID:** display names may repeat; store `layer_id` in reproducible scripts.
+- **Using an experimental null as stable inference:** surface spin and the Moran eigen-sign surrogate remain uncalibrated opt-in methods and do not replace this stable permutation path.
+
+## Reusable reporting sentence
+
+> We analysed an intensive signal on nine ordered spatial elements using row-standardized spatial weights from a 1.01 mm Euclidean distance band. Uncertainty for global Moran's I used 199 value-label permutations with a fixed seed. Interpretation is limited to the declared base, metric, support, and null.
+
+Next, choose the [NIfTI, surface, CIFTI, or ROI/cohort workflow](/en/tutorials/format-workflows), or continue to [neighbors, distances, and spatial weights](/en/tutorials/neighbors-and-weights).

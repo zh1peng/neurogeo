@@ -15,15 +15,16 @@ description: 用可直接运行的示例认识 neurogeo 6.0
 
 ## 安装
 
-需要 R 4.2 或更新版本。开发版本可从 GitHub 安装：
+需要 R 4.2 或更新版本。仓库目前没有 6.0 release tag；`main` 是明确标注的
+开发评估版本，不是稳定发布：
 
 ```r
 install.packages("remotes")
-remotes::install_github("zh1peng/neurogeo")
+remotes::install_github("zh1peng/neurogeo@main")
 ```
 
-读写特定格式时，再安装相应的 optional package，例如 `RNifti`、`gifti`、
-`cifti` 或 `freesurferformats`。
+本地源码安装命令、三平台差异、版本固定规则及每种格式/方法的替代路径见
+[安装与可选后端](/guide/installation)。
 
 ## 一个完整的小例子
 
@@ -48,9 +49,9 @@ x <- ngeo_point(
 )
 
 ngeo_validate(x, "strict")
-spatial_base(x)
-layers(x)
-measures(x)
+ngeo_spatial_base(x)
+ngeo_layers(x)
+ngeo_measures(x)
 
 w <- ngeo_spatial_weights(
   x,

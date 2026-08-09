@@ -15,10 +15,17 @@ experimental opt-in and must not be interpreted as calibrated null inference.
 
 ## Installation
 
+There is no 6.0 release tag yet. The following installs the moving development
+branch for evaluation; it is not a stable release:
+
 ```r
 install.packages("remotes")
-remotes::install_github("zh1peng/neurogeo")
+remotes::install_github("zh1peng/neurogeo@main")
 ```
+
+See [installation and optional backends](/en/guide/installation) for local
+source commands on Linux, macOS, and Windows, version pinning, dependencies,
+and fallback paths.
 
 ## Basic spatial object
 
@@ -32,9 +39,9 @@ x <- ngeo_point(
   measures = ngeo_measure(support_behavior = "intensive")
 )
 
-spatial_base(x)
-layers(x)
-measures(x)
+ngeo_spatial_base(x)
+ngeo_layers(x)
+ngeo_measures(x)
 ngeo_validate(x, "strict")
 w <- ngeo_spatial_weights(
   x,

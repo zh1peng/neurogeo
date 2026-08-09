@@ -30,10 +30,27 @@ ngeo
 
 ## Installation
 
+There is not yet a signed or tagged 6.0 release. Do not treat the moving
+`main` branch as a stable release. From a local source checkout, install the
+audited source currently in that checkout with:
+
+```sh
+R CMD build .
+R CMD INSTALL neurogeo_6.0.0.tar.gz
+```
+
+On Windows PowerShell, use `R.exe CMD ...` if `R` is an existing shell alias.
+The mutable development build is available only for evaluation:
+
 ```r
 install.packages("remotes")
-remotes::install_github("zh1peng/neurogeo")
+remotes::install_github("zh1peng/neurogeo@main")
 ```
+
+See the [platform commands and optional-backend
+matrix](https://zh1peng.github.io/neurogeo/en/guide/installation) before
+reading neuroimaging files. A stable command pinned to `v6.0.0` will be
+published only after that tag and its release evidence exist.
 
 ## Minimal workflow
 
@@ -55,11 +72,11 @@ x <- ngeo_point(
   )
 )
 
-spatial_base(x)
-values(x)
-layers(x)
-measures(x)
-history(x)
+ngeo_spatial_base(x)
+ngeo_values(x)
+ngeo_layers(x)
+ngeo_measures(x)
+ngeo_history(x)
 
 w <- ngeo_spatial_weights(
   x,

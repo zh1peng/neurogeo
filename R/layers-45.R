@@ -112,7 +112,10 @@ ngeo_validate_layers <- function(
         "Map metadata is missing required layer columns: %s.",
         paste(missing_columns, collapse = ", ")
       ),
-      "ngeo_error_layer_metadata"
+      "ngeo_error_layer_metadata",
+      code = "NGEO_ERROR_LAYER_METADATA_MISSING",
+      field = "layers",
+      hint = "Add the named metadata columns with ngeo layer construction or choose columns that exist in ngeo_layers(x)."
     )
   }
 
@@ -164,7 +167,10 @@ ngeo_validate_layers <- function(
           "Required layers are absent from the layer table: %s.",
           paste(globally_missing, collapse = ", ")
         ),
-        "ngeo_error_layer_missing"
+        "ngeo_error_layer_missing",
+        code = "NGEO_ERROR_LAYER_REQUIRED_ABSENT",
+        field = "required_layers",
+        hint = "Choose names present in ngeo_layers(x), or add the missing layer before indexing."
       )
     }
   }
@@ -185,7 +191,10 @@ ngeo_validate_layers <- function(
         "Required layers are missing for unit: %s.",
         paste(utils::head(incomplete, 10L), collapse = ", ")
       ),
-      "ngeo_error_layer_missing"
+      "ngeo_error_layer_missing",
+      code = "NGEO_ERROR_LAYER_INCOMPLETE_UNIT",
+      field = "required_layers",
+      hint = "Resolve missing unit-layer observations, or use complete = \"report\" to inspect them."
     )
   }
 
