@@ -55,6 +55,15 @@ the null model. The package validates declared structure but cannot infer from
 an identifier whether the biological sampling unit or block declaration is
 truthful.
 
+Spatial-model inference is method-specific. `ngeo_kriging()` returns a
+Gaussian conditional prediction variance for covariance-safe metric/kernel
+combinations. Base `ngeo_spatial_regression()` SAR/SEM results expose matched
+maximum-likelihood point estimates, `ngeo_gwr()` exposes local descriptive
+coefficients and conditioning diagnostics, and `ngeo_car()` is a penalized
+spatial smoother. Those three base paths do not return calibrated coefficient
+p-values or intervals; uncertainty requires a separately declared perturbation
+workflow.
+
 ### Experimental
 
 `ngeo_spatial_ordination()`, `ngeo_coregionalization()`, and `ngeo_mgwr()` are

@@ -35,3 +35,13 @@ declared blocks may not be silently supplied to `free` or `sign_flip`; users
 must choose within-block or a valid user schedule. The retained result status
 is `passed-with-restriction`, not an unqualified pass. This is internal
 simulation evidence, not external PALM execution or cohort validation.
+
+VAL-306 executes 45 registered method-by-geometry-by-dependence cells. Point
+estimates agree with gstat, GWmodel, spatialreg, or an analytic CAR precision
+solve within `1e-6`; GWR spatial-block CV differs by at most
+`3.89e-16` after reversing element order. Nine kriging cells each use 5,000
+attempted Gaussian-process replicates: coverage estimates range from 0.9464 to
+0.9550 and every Wilson interval lies within 0.93 to 0.97. The result status is
+`passed-with-inferential-restriction`: SAR/SEM, GWR, and CAR base results expose
+no calibrated p-value, so the frozen type-I metric is recorded as not
+applicable rather than borrowed from a reference implementation.
