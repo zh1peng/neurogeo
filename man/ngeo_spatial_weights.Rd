@@ -2,7 +2,7 @@
 % Please edit documentation in R/weights.R
 \name{ngeo_spatial_weights}
 \alias{ngeo_spatial_weights}
-\title{Construct sparse spatial spatial_weights}
+\title{Construct sparse spatial weights}
 \usage{
 ngeo_spatial_weights(
   x,
@@ -41,7 +41,7 @@ ngeo_spatial_weights(
 An `ngeo_spatial_weights` object.
 }
 \description{
-Construct sparse spatial spatial_weights
+Construct sparse spatial weights
 }
 \examples{
 point <- ngeo_point(

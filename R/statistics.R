@@ -595,7 +595,7 @@ ngeo_local_moran <- function(x,
 #'
 #' @param x An `ngeo` dataset.
 #' @param layer One layer name, ID, or index.
-#' @param distance_method Explicit distance distance_method.
+#' @param distance_method Explicit distance method.
 #' @param breaks Number of bins or a numeric vector of bin boundaries.
 #' @param max_distance Optional maximum pair distance.
 #' @param na_action Whether to fail or omit non-finite values.

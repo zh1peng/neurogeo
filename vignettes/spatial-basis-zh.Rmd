@@ -14,7 +14,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ## 科学问题
 
 如何把每张脑图分解为由 topology 决定、与组标签无关的空间尺度？4.5 使用
-固定 graph-Laplacian basis。它只依赖 base、raw spatial spatial_weights 和 support，
+固定 graph-Laplacian basis。它只依赖 base、原始空间权重和 support，
 不读取 group、clinical outcome 或 effect size。
 
 ```{r basis}

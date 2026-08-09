@@ -176,7 +176,7 @@ ngeo_validate_transform <- function(transform) {
       ]
       if (!length(selected)) {
         .ngeo_abort(
-          "Surface transform requires distance_method-eligible coordinates.",
+          "Surface transform requires metric-eligible coordinates.",
           "ngeo_error_capability"
         )
       }

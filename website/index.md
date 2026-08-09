@@ -1,43 +1,36 @@
 ---
 title: neurogeo
-description: Neuroimaging Geoinformatics Core Specification 的 R 参考实现
+description: 面向神经影像空间数据的 R 工具包
 ---
 
-<img class="ng-home-logo" src="/logo.png" alt="neurogeo：神经影像几何、空间关系与测量的标志">
+<img class="ng-home-logo" src="/logo.png" alt="neurogeo 标志">
 
 # neurogeo
 
-`neurogeo` 是 Neuroimaging Geoinformatics Core Specification（NGCS）的 R
-参考实现，用于表示神经影像空间数据、构造空间关系、执行空间统计并记录
-provenance。
+`neurogeo` 用统一的数据模型表示皮层表面、体素、CIFTI grayordinate、
+脑区和点数据，并显式记录空间、测量语义、空间支持和处理历史。
 
-## 对象约束
+> **6.0 审计状态：** 当前暂停新增公开 API，优先修复科学正确性、教程和
+> 发布证据。surface spin 与 Moran eigen-sign surrogate 尚未完成 type-I
+> 校准，只能在显式 opt-in 后用于方法评估，不能作为稳定推断。
 
-```text
-one spatial domain
-+ one aligned values block
-+ explicit space, topology, metric, measurement semantics, and provenance
-```
+## 我能用它做什么？
 
-支持 `surface`、`volume`、`points`、`grayordinates` 和 `regions` 五类基础
-domain。domain 元素索引与 values 行严格对齐。
+- 读取和写出 NIfTI、GIFTI、CIFTI 与 FreeSurfer 数据；
+- 检查值、空间元素、layer 和 measure 是否严格对齐；
+- 构造稀疏邻接、距离和空间权重；
+- 在 vertex、voxel 和 parcel 支持之间进行可审计转换；
+- 运行空间统计与模型，并保留 metric、support 和数值诊断；
+- 为多被试和多 atlas 工作流建立可复现的分析对象。
 
-## 功能范围
+本包不负责 MRI 预处理、配准、分割或表面重建，也不会在不兼容的空间间
+自动重采样。
 
-- NIfTI、GIFTI、CIFTI 和 FreeSurfer 标准格式输入；
-- surface、volume、points、grayordinates 和 regions 的几何诊断；
-- 稀疏邻接、距离、空间权重和分区；
-- Moran's I、LISA、variogram、GWR、kriging、SAR/SEM 和 CAR；
-- change of support、atlas overlap 和支持不确定性；
-- transform graph、manifest、artifact integrity 和 replay。
+## 从哪里开始？
 
-软件包不执行 raw MRI preprocessing、registration、segmentation 或 surface
-reconstruction，也不会在不兼容空间之间隐式重采样。
-
-## 文档
-
-- [安装与基本用法](/guide/)
-- [NGCS 数据模型](/concepts/)
-- [分析工作流](/tutorials/)
+- [安装与第一个可运行示例](/guide/)
+- [理解 base、layer、measure 和 support](/concepts/)
+- [按数据格式和任务选择教程](/tutorials/)
 - [功能模块](/modules/)
 - [函数参考](/api/reference/)
+- [English documentation](/en/)

@@ -232,7 +232,7 @@ read_ngeo_cifti <- function(path,
     ignore.case = TRUE
   )) {
     .ngeo_abort(
-      "MVP CIFTI input must be dscalar, dlabel, or dtseries.",
+      "CIFTI input must be dscalar, dlabel, or dtseries.",
       "ngeo_error_format"
     )
   }
@@ -261,7 +261,7 @@ read_ngeo_cifti <- function(path,
   brain_axis <- which(mapping_type == "CIFTI_INDEX_TYPE_BRAIN_MODELS")
   if (length(brain_axis) != 1L) {
     .ngeo_abort(
-      "CIFTI MVP requires exactly one brain-model axis.",
+      "CIFTI input requires exactly one brain-model axis.",
       "ngeo_error_format"
     )
   }

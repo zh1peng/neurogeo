@@ -224,10 +224,10 @@
   result
 }
 
-#' Read GIFTI geometry, distance_method, and labels
+#' Read GIFTI geometry, metric/shape data, and labels
 #'
 #' @param geometry One or more GIFTI surface paths.
-#' @param data Optional distance_method/shape/functional GIFTI paths.
+#' @param data Optional metric/shape/functional GIFTI paths.
 #' @param labels Optional label GIFTI paths.
 #' @param layers Optional layer metadata overriding generated names.
 #' @param measures Optional measurement semantics.

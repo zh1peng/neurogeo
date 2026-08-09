@@ -27,7 +27,7 @@ ngeo_vertex_area <- function(x, coordinates = "active") {
   if (!isTRUE(meta$metric_eligible)) {
     .ngeo_abort(
       sprintf(
-        "Coordinate set `%s` is not distance_method-eligible.",
+        "Coordinate set `%s` is not metric-eligible.",
         coordinates
       ),
       "ngeo_error_metric"

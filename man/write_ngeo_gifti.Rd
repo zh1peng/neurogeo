@@ -2,7 +2,7 @@
 % Please edit documentation in R/io-write.R
 \name{write_ngeo_gifti}
 \alias{write_ngeo_gifti}
-\title{Write a surface to GIFTI geometry, distance_method, and label files}
+\title{Write a surface to GIFTI geometry, metric, and label files}
 \usage{
 write_ngeo_gifti(x, path, overwrite = FALSE)
 }
@@ -17,5 +17,5 @@ write_ngeo_gifti(x, path, overwrite = FALSE)
 A manifest of named geometry, data, label, and sidecar paths.
 }
 \description{
-Write a surface to GIFTI geometry, distance_method, and label files
+Write a surface to GIFTI geometry, metric, and label files
 }

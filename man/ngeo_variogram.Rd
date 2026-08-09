@@ -18,7 +18,7 @@ ngeo_variogram(
 
 \item{layer}{One layer name, ID, or index.}
 
-\item{distance_method}{Explicit distance distance_method.}
+\item{distance_method}{Explicit distance method.}
 
 \item{breaks}{Number of bins or a numeric vector of bin boundaries.}
 

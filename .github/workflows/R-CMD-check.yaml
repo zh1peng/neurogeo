@@ -58,6 +58,12 @@ jobs:
       - name: Stable 6.0 API contract
         run: Rscript tools/run-contract-60-audit.R
 
+      - name: Phase 0 public-export freeze
+        run: Rscript tools/check-feature-freeze-60.R
+
+      - name: Controlled user terminology
+        run: Rscript tools/check-user-terminology-60.R
+
       - name: NGCS 2.0 support-map conformance
         if: matrix.config.os == 'ubuntu-latest' && matrix.config.r == 'release'
         run: Rscript tools/run-support-map-conformance.R
@@ -88,6 +94,33 @@ jobs:
         with:
           name: coverage-421
           path: coverage-421.json
+
+  p0-attestation:
+    name: Phase 0 candidate attestation
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            any::jsonlite
+            any::digest
+          needs: check
+
+      - name: Build and attest one clean source candidate
+        run: Rscript tools/run-p0-evidence-60.R check-output/p0-evidence-60
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p0-attestation-60
+          path: check-output/p0-evidence-60
 
   real-data-validation:
     name: real-data, cortical flatmap, and multilayer validation

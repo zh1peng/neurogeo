@@ -253,7 +253,7 @@ write_ngeo_nifti <- function(x,
   path
 }
 
-#' Write a surface to GIFTI geometry, distance_method, and label files
+#' Write a surface to GIFTI geometry, metric, and label files
 #'
 #' @param x An `ngeo_surface`.
 #' @param path Primary geometry `.surf.gii` path.
@@ -316,7 +316,7 @@ write_ngeo_gifti <- function(x, path, overwrite = FALSE) {
       )
       .ngeo_assert_output(output, overwrite)
       .ngeo_backend_write(
-        "GIFTI distance_method",
+        "GIFTI metric",
         output,
         function() freesurferformats::write.fs.morph.gii(
           output,

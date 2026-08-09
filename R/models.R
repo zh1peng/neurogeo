@@ -140,7 +140,7 @@ ngeo_spatial_lm <- function(
   matrix <- .ngeo_model_weights(x, spatial_weights, index, zero_policy)
   if (identical(model, "slx") && is.null(matrix)) {
     .ngeo_abort(
-      "An SLX model requires matching spatial spatial_weights.",
+      "An SLX model requires matching spatial weights.",
       "ngeo_error_weights"
     )
   }

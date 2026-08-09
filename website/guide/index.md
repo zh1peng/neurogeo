@@ -1,18 +1,33 @@
 ---
-title: 安装与基本用法
-description: 使用 spatial base、layers 与 measures 构造 neurogeo 对象
+title: 安装与第一个空间分析
+description: 用可直接运行的示例认识 neurogeo 6.0
 ---
 
-# 安装与基本用法
+# 安装与第一个空间分析
 
-`neurogeo` 把神经影像数据表示为定义在同一空间基座上的一个或多个数据图层。
+## 先理解三个词
+
+- **spatial base**：数值位于哪里，例如 vertex、voxel 或 parcel；
+- **layer**：同一个 base 上的一列观测，例如一名被试的 cortical thickness；
+- **measure**：这列数值表示什么，包括单位、数值类型和聚合规则。
+
+因此，`values(x)[i, j]` 总是对应第 `i` 个空间元素和第 `j` 个 layer。
+
+## 安装
+
+需要 R 4.2 或更新版本。开发版本可从 GitHub 安装：
 
 ```r
 install.packages("remotes")
 remotes::install_github("zh1peng/neurogeo")
 ```
 
-## 第一个对象
+读写特定格式时，再安装相应的 optional package，例如 `RNifti`、`gifti`、
+`cifti` 或 `freesurferformats`。
+
+## 一个完整的小例子
+
+下面构造 3 × 3 点网格、检查对象、建立空间权重，并计算 Moran's I。
 
 ```r
 library(neurogeo)
@@ -26,30 +41,17 @@ x <- ngeo_point(
     unit = "a.u."
   ),
   coordinate_space = ngeo_coordinate_space(
-    "example-grid",
+    space_id = "example-grid",
+    kind = "unknown",
     unit = "mm"
   )
 )
-```
 
-这个对象只有一个空间基座、一个 values 矩阵、一个 layer 和一个 measure。
-
-```r
+ngeo_validate(x, "strict")
 spatial_base(x)
-values(x)
 layers(x)
 measures(x)
-history(x)
-```
 
-始终满足两个对齐规则：`values[i, ]` 对应第 `i` 个 base element；
-`values[, j]` 对应 `layers(x)[j, ]`。
-
-## 空间分析
-
-空间权重是针对一次分析构造的对象，不是 base 的固有字段：
-
-```r
 w <- ngeo_spatial_weights(
   x,
   method = "distance_band",
@@ -58,8 +60,18 @@ w <- ngeo_spatial_weights(
   style = "W"
 )
 
-ngeo_moran(x, w, map = "signal", permutations = 999, seed = 2026)
+ngeo_moran(
+  x,
+  w,
+  layer = "signal",
+  permutations = 999,
+  seed = 2026
+)
 ```
 
-构造器只验证数据对齐；具体操作会在需要时检查 geometry、topology、support、
-coordinate space 或 transform 等能力。
+这里的 sampling unit 是网格点，邻居由 1.01 mm 的欧氏距离带定义。
+Moran's I 描述这张 layer 在该权重定义下的空间自相关，不表示因果关系。
+
+## 下一步
+
+先阅读[核心概念](/concepts/)，再按自己的数据格式进入[教程路线](/tutorials/)。

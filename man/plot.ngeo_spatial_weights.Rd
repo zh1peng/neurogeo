@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot.R
 \name{plot.ngeo_spatial_weights}
 \alias{plot.ngeo_spatial_weights}
-\title{Plot a spatial spatial_weights diagnostic}
+\title{Plot a spatial-weights diagnostic}
 \usage{
 \method{plot}{ngeo_spatial_weights}(x, ...)
 }
@@ -15,5 +15,5 @@
 `x`, invisibly.
 }
 \description{
-Plot a spatial spatial_weights diagnostic
+Plot a spatial-weights diagnostic
 }
