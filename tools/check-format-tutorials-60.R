@@ -1,3 +1,6 @@
+if (dir.exists(".r-lib")) {
+  .libPaths(c(normalizePath(".r-lib"), .libPaths()))
+}
 workflows <- c("volume", "surface", "cifti", "roi-cohort")
 for (workflow in workflows) {
   code <- file.path("inst", "tutorial-code", paste0("workflow-", workflow, ".R"))

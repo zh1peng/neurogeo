@@ -16,9 +16,7 @@ measure，严格验证后建立 mesh-contiguity weights，计算并解释 Moran'
 过的 viewing chart、绘图、写出 GIFTI，并检查恢复对象的 history。
 
 ```{r setup, include=FALSE}
-code <- file.path("..", "inst", "tutorial-code", "workflow-surface.R")
-if (!file.exists(code)) code <- system.file("tutorial-code", "workflow-surface.R", package = "neurogeo")
-knitr::read_chunk(code)
+knitr::read_chunk("inst/tutorial-code/workflow-surface.R")
 ```
 
 ```{r workflow-surface}

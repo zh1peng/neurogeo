@@ -17,9 +17,7 @@ interprets Moran's I, creates a declared viewing chart, plots, writes GIFTI,
 and checks the restored history.
 
 ```{r setup, include=FALSE}
-code <- file.path("..", "inst", "tutorial-code", "workflow-surface.R")
-if (!file.exists(code)) code <- system.file("tutorial-code", "workflow-surface.R", package = "neurogeo")
-knitr::read_chunk(code)
+knitr::read_chunk("inst/tutorial-code/workflow-surface.R")
 ```
 
 ```{r workflow-surface}

@@ -3,6 +3,7 @@
 if (dir.exists(".r-lib")) {
   .libPaths(c(normalizePath(".r-lib"), .libPaths()))
 }
+root <- normalizePath(".", winslash = "/", mustWork = TRUE)
 required <- c("digest", "jsonlite", "knitr", "rmarkdown", "neurogeo")
 missing <- required[!vapply(required, requireNamespace, logical(1), quietly = TRUE)]
 if (length(missing)) {
@@ -135,6 +136,7 @@ for (index in seq_len(nrow(documents))) {
     ),
     output_file = basename(target),
     output_dir = dirname(target),
+    knit_root_dir = root,
     quiet = TRUE,
     envir = new.env(parent = globalenv())
   )

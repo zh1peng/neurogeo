@@ -21,8 +21,8 @@ ngeo_exchangeability(
 \item{scheme}{Free, within-block, sign-flip, or user schedule.}
 
 \item{blocks}{Optional unit-aligned exchangeability blocks for
-\code{within_block} or user schedules. Supplying blocks to \code{free} or
-\code{sign_flip} is an error because those schemes would ignore them.}
+`within_block` or user schedules. Supplying blocks to `free` or
+`sign_flip` is an error because those schemes would ignore them.}
 
 \item{schedule}{User-supplied integer transformation matrix.}
 
