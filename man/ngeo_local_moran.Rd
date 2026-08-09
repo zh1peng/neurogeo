@@ -7,7 +7,7 @@
 ngeo_local_moran(
   x,
   spatial_weights,
-  map = 1L,
+  layer = 1L,
   permutations = 0L,
   alternative = c("two.sided", "greater", "less"),
   seed = NULL,
@@ -23,7 +23,7 @@ ngeo_local_moran(
 
 \item{spatial_weights}{Matching `ngeo_spatial_weights`.}
 
-\item{map}{One map name, ID, or index.}
+\item{layer}{One layer name, ID, or index.}
 
 \item{permutations}{Number of Monte Carlo permutations.}
 

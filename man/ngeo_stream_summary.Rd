@@ -9,7 +9,7 @@ ngeo_stream_summary(x, layers = NULL, chunk_size = 65536L, na_rm = FALSE)
 \arguments{
 \item{x}{An `ngeo` dataset or values block.}
 
-\item{layers}{Optional map selection.}
+\item{layers}{Optional layer selection.}
 
 \item{chunk_size}{Row chunk size.}
 

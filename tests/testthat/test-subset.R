@@ -109,3 +109,41 @@ test_that("subset rejects unknown or duplicated selections", {
   )
 })
 
+test_that("element-aligned labels follow element and layer subsets", {
+  x <- ngeo_point(
+    matrix(c(0, 0, 1, 0, 2, 0), ncol = 2, byrow = TRUE),
+    values = cbind(first = 1:3, second = 4:6),
+    labels = list(
+      atlas = list(values = c("A", "B", "C")),
+      first = list(table = data.frame(Key = 1), layer_id = "layer_0001")
+    )
+  )
+
+  y <- ngeo_subset(x, elements = c(3, 1), layers = "second")
+
+  expect_identical(y$base$labels$atlas$values, c("C", "A"))
+  expect_null(y$base$labels$first)
+  expect_silent(ngeo_validate(y, "strict"))
+})
+
+test_that("validation rejects misaligned label values", {
+  expect_error(
+    ngeo_point(
+      matrix(c(0, 0, 1, 0), ncol = 2, byrow = TRUE),
+      labels = list(atlas = list(values = "A"))
+    ),
+    class = "ngeo_error_alignment"
+  )
+  x <- ngeo_point(matrix(c(0, 0, 1, 0), ncol = 2, byrow = TRUE))
+  x$base$labels$atlas <- list(values = "A")
+
+  expect_error(ngeo_validate(x, "basic"), class = "ngeo_error_alignment")
+})
+
+test_that("base identity is independent of aligned labels", {
+  x <- ngeo_point(matrix(c(0, 0, 1, 0), ncol = 2, byrow = TRUE))
+  y <- x
+  y$base$labels$atlas <- list(values = c("A", "B"))
+
+  expect_identical(base_hash(x), base_hash(y))
+})

@@ -274,7 +274,7 @@ ngeo_qc <- function(
       "pass",
       nrow(x$base$elements),
       sprintf(
-        "%d element(s) and %d aligned map(s) passed strict validation.",
+        "%d element(s) and %d aligned layer(s) passed strict validation.",
         nrow(x$base$elements),
         nrow(x$layers)
       )
@@ -296,14 +296,14 @@ ngeo_qc <- function(
     "measurement_semantics",
     if (unknown_semantics) "warning" else "pass",
     unknown_semantics,
-    sprintf("%d map(s) have unknown spatial measurement semantics.", unknown_semantics)
+    sprintf("%d layer(s) have unknown spatial measurement semantics.", unknown_semantics)
   )
   unknown_units <- sum(x$measures$unit == "unknown")
   checks[[length(checks) + 1L]] <- .ngeo_qc_check(
     "measurement_units",
     if (unknown_units) "warning" else "pass",
     unknown_units,
-    sprintf("%d map(s) have unknown unit.", unknown_units)
+    sprintf("%d layer(s) have unknown unit.", unknown_units)
   )
 
   values <- .ngeo_qc_values(x, max_value_cells)
@@ -363,10 +363,10 @@ ngeo_qc <- function(
     } else {
       "pass"
     },
-    domain_type = x$base$type,
+    base_type = x$base$type,
     base_hash = base_hash(x),
     checks = checks,
-    map_summary = values$layers,
+    layer_summary = values$layers,
     topology_summary = topology$summary,
     chart_summary = charts$summary,
     support = support,
@@ -387,7 +387,7 @@ print.ngeo_qc <- function(x, ...) {
   ))
   cat(
     "<ngeo_qc>\n",
-    "  base: ", x$domain_type, "\n",
+    "  base: ", x$base_type, "\n",
     "  overall: ", x$overall_status, "\n",
     "  checks: ", nrow(x$checks), "\n",
     "  warnings: ", unname(count[["warning"]]), "\n",

@@ -22,7 +22,7 @@ aggregate_to(
 
 \item{support_map}{Matching `ngeo_support_map`.}
 
-\item{layers}{Optional source map selection.}
+\item{layers}{Optional source layer selection.}
 
 \item{allocation}{Normalize non-unit columns or reject them.}
 

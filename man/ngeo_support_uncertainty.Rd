@@ -30,7 +30,7 @@ ngeo_support_uncertainty(
 \item{value_covariance}{One covariance object shared across selected layers,
 or an aligned list.}
 
-\item{layers}{Optional source map selection.}
+\item{layers}{Optional source layer selection.}
 
 \item{method}{Analytic or Monte Carlo propagation.}
 

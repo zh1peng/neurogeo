@@ -11,7 +11,7 @@ ngeo_subset(x, elements = NULL, layers = NULL)
 
 \item{elements}{Element positions, stable element IDs, or a logical mask.}
 
-\item{layers}{Map positions, map IDs/names, or a logical mask.}
+\item{layers}{Layer positions, IDs/names, or a logical mask.}
 }
 \value{
 An object of the same `ngeo` subclass.

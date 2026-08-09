@@ -1393,9 +1393,14 @@ ngeo_spatiotemporal_variogram <- function(
     values = values,
     layers = layers,
     measures = measures,
-    labels = list(),
+    labels = .ngeo_subset_labels(
+      x$base$labels %||% list(),
+      seq_len(nrow(x$base$elements)),
+      nrow(x$base$elements),
+      character()
+    ),
     history = list(
-      spec_version = "3.3",
+      spec_version = "6.0",
       source_dataset = list(
         base_hash = base_hash(x),
         axis_hash = ngeo_get_time_axis(x)$axis_hash
@@ -1412,7 +1417,7 @@ ngeo_spatiotemporal_variogram <- function(
 #' @param from,to One time-map selector each.
 #' @param scale Difference, rate per time unit, or percent change.
 #' @param name Output map name.
-#' @param budget Resource limits for two input layers and one output map.
+#' @param budget Resource limits for two input layers and one output layer.
 #' @return One target-base `ngeo` map.
 #' @export
 ngeo_longitudinal_change <- function(

@@ -3,34 +3,34 @@ if (dir.exists(".r-lib")) {
   .libPaths(c(normalizePath(".r-lib"), .libPaths()))
 }
 output <- if (length(args)) args[[1L]] else
-  file.path("check-output", "release-evidence-50.json")
+  file.path("check-output", "release-evidence-60.json")
 if (!requireNamespace("jsonlite", quietly = TRUE) ||
     !requireNamespace("digest", quietly = TRUE)) {
-  stop("The 5.0 evidence audit requires jsonlite and digest.")
+  stop("The 6.0 evidence audit requires jsonlite and digest.")
 }
 read_report <- function(path) {
   if (!file.exists(path)) stop("Missing required evidence: ", path)
   jsonlite::read_json(path, simplifyVector = FALSE)
 }
 evidence_paths <- c(
-  unit = "check-output/unit-50.json",
-  api_freeze = "check-output/freeze-50-audit.json",
+  unit = "check-output/unit-60.json",
+  api_freeze = "check-output/freeze-60-audit.json",
   group_calibration = "check-output/group-inference-47-full-validation.json",
   support_calibration = "check-output/support-family-48-full-validation.json",
   real_data = "check-output/real-multilayer-50-validation.json",
   performance = "check-output/multilayer-50-performance.json",
-  validation_suite = "check-output/validation-suite-50.json",
-  installed = "check-output/installed-conformance-50.json"
+  validation_suite = "check-output/validation-suite-60.json",
+  installed = "check-output/installed-conformance-60.json"
 )
 reports <- lapply(evidence_paths, read_report)
 check_log <- file.path(
-  "check-output", "rcheck-50-final", "neurogeo.Rcheck", "00check.log"
+  "check-output", "rcheck-60-final", "neurogeo.Rcheck", "00check.log"
 )
 if (!file.exists(check_log)) stop("Missing R CMD check log: ", check_log)
 check_lines <- readLines(check_log, warn = FALSE)
 check_ok <- any(grepl("^Status: OK$", check_lines))
 as_cran_log <- file.path(
-  "check-output", "rcheck-50", "neurogeo.Rcheck", "00check.log"
+  "check-output", "rcheck-60", "neurogeo.Rcheck", "00check.log"
 )
 as_cran_status <- if (file.exists(as_cran_log)) {
   grep("^Status:", readLines(as_cran_log, warn = FALSE), value = TRUE)
@@ -45,13 +45,13 @@ site_files <- c(
   "docs/articles/multilayer-inference.html"
 )
 source_files <- c(
-  "inst/spec/API-5.0.md", "inst/spec/NGCS-5.0.md",
-  "inst/spec/migration-5.0.md", "inst/spec/validation-5.0.md",
+  "inst/spec/API-6.0.md", "inst/spec/NGCS-6.0.md",
+  "inst/spec/migration-6.0.md", "inst/spec/validation-6.0.md",
   "vignettes/multilayer-inference.Rmd",
   "vignettes/reference-vs-subject-inference-zh.Rmd"
 )
 checks <- list(
-  version = identical(as.character(utils::packageVersion("neurogeo")), "5.0.0"),
+  version = identical(as.character(utils::packageVersion("neurogeo")), "6.0.0"),
   unit = isTRUE(reports$unit$pass),
   api_freeze = isTRUE(reports$api_freeze$pass),
   full_group_calibration = isTRUE(reports$group_calibration$pass) &&
@@ -63,7 +63,7 @@ checks <- list(
     isTRUE(reports$performance$full_basis_matrix),
   complete_validation_suite = isTRUE(reports$validation_suite$pass),
   installed_conformance = identical(reports$installed$validation, "passed") &&
-    identical(reports$installed$package_version, "5.0.0"),
+    identical(reports$installed$package_version, "6.0.0"),
   r_cmd_check = check_ok,
   website = all(file.exists(site_files)),
   documentation_sources = all(file.exists(source_files)),
@@ -90,7 +90,7 @@ dependencies <- as.data.frame(utils::installed.packages()[, c("Package", "Versio
                               stringsAsFactors = FALSE)
 dependencies <- dependencies[order(dependencies$Package), , drop = FALSE]
 report <- list(
-  schema = "neurogeo/release-evidence-5.0",
+  schema = "neurogeo/release-evidence-6.0",
   package_version = as.character(utils::packageVersion("neurogeo")),
   generated_at_utc = format(Sys.time(), tz = "UTC", usetz = TRUE),
   policy = list(pull_request = FALSE, tag = FALSE, github_release = FALSE),
@@ -105,7 +105,7 @@ report <- list(
   checks = checks, artifacts = artifacts,
   dependency_versions = dependencies, pass = pass
 )
-if (!pass) stop("The 5.0 release evidence audit failed.", call. = FALSE)
+if (!pass) stop("The 6.0 release evidence audit failed.", call. = FALSE)
 dir.create(dirname(output), recursive = TRUE, showWarnings = FALSE)
 jsonlite::write_json(report, output, auto_unbox = TRUE, pretty = TRUE,
                      null = "null")

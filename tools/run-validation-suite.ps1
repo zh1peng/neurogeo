@@ -1,6 +1,6 @@
 param(
     [string]$StartAt = "",
-    [string]$Output = "check-output/validation-suite-50.json"
+    [string]$Output = "check-output/validation-suite-60.json"
 )
 
 $ErrorActionPreference = "Stop"
@@ -39,7 +39,7 @@ $scripts = @(
     "tools/run-group-inference-47-validation.R",
     "tools/run-support-family-48-validation.R",
     "tools/run-experimental-49-validation.R",
-    "tools/run-freeze-50-audit.R",
+    "tools/run-contract-60-audit.R",
     "tools/fetch-reference-50.R",
     "tools/run-real-multilayer-50-validation.R",
     "tools/run-multilayer-50-performance.R",
@@ -74,7 +74,7 @@ foreach ($script in $scripts) {
 $description = Get-Content -LiteralPath "DESCRIPTION"
 $version = ($description | Where-Object { $_ -match '^Version:' }) -replace '^Version:\s*', ''
 $report = [ordered]@{
-    schema = "neurogeo/validation-suite-5.0"
+    schema = "neurogeo/validation-suite-6.0"
     package_version = $version
     generated_at_utc = [DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")
     started_at_utc = $started.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")

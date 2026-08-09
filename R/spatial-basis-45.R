@@ -365,7 +365,7 @@ ngeo_spatial_basis <- function(
       zero_modes_by_component = observed_zero,
       max_residual = max_residual,
       max_orthogonality_error = max_orthogonality,
-      dense_full_domain_matrix = FALSE,
+      dense_full_base_matrix = FALSE,
       estimated_memory_bytes = estimated_bytes
     ),
     history = list(

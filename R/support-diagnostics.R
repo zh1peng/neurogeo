@@ -466,8 +466,8 @@ ngeo_support_monte_carlo <- function(
 #' @param x Source `ngeo` dataset.
 #' @param target Shared target template or a list of identical target
 #'   templates.
-#' @param support_maps Two or more layers with common source and target domains.
-#' @param layers Optional value-map selection.
+#' @param support_maps Two or more layers with common source and target bases.
+#' @param layers Optional value-layer selection.
 #' @param reference Reference support-map index.
 #' @param value_variance Optional source value variance propagated under each
 #'   support map.
@@ -530,7 +530,7 @@ ngeo_support_sensitivity <- function(
   if (length(unique(source_hash)) != 1L ||
       length(unique(target_hash)) != 1L) {
     .ngeo_abort(
-      "Sensitivity comparison requires common source and target domains.",
+      "Sensitivity comparison requires common source and target bases.",
       "ngeo_error_base_mismatch"
     )
   }
@@ -548,7 +548,7 @@ ngeo_support_sensitivity <- function(
     difference <- changed[[i]]$values - reference_values
     data.frame(
       support_map = i,
-      map = colnames(difference),
+      layer = colnames(difference),
       mean_difference = colMeans(difference, na.rm = TRUE),
       rmse = sqrt(colMeans(difference^2, na.rm = TRUE)),
       maximum_absolute_difference = apply(
@@ -605,7 +605,7 @@ ngeo_support_sensitivity <- function(
       data.frame(
         target_element_id =
           support_maps[[1L]]$target_element_id,
-        map = colnames(reference_values)[[map_column]],
+        layer = colnames(reference_values)[[map_column]],
         ensemble_mean = weighted_mean,
         between_operator_variance = between,
         mean_within_variance = within,

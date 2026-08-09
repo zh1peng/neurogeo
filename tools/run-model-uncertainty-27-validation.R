@@ -183,12 +183,12 @@ if (!worker_identical) {
   stop("Seeded SAR simulations changed across worker counts.")
 }
 
-wrong_domain <- ngeo_point(
+wrong_base <- ngeo_point(
   cbind(x = 1:4, y = 0),
   values = cbind(response = 1:4)
 )
 wrong_covariance <- ngeo_support_covariance(
-  wrong_domain, variance = rep(1, 4)
+  wrong_base, variance = rep(1, 4)
 )
 mutation_rejected <- inherits(tryCatch(
   {
@@ -198,7 +198,7 @@ mutation_rejected <- inherits(tryCatch(
     NULL
   },
   error = identity
-), "ngeo_error_domain_mismatch")
+), "ngeo_error_base_mismatch")
 if (!mutation_rejected) {
   stop("Model covariance base mutation was not rejected.")
 }
@@ -233,7 +233,7 @@ result <- list(
     successful_simulations = one_worker$successful_simulations
   ),
   boundaries = list(
-    covariance_domain_mutation_rejected = mutation_rejected,
+    covariance_base_mutation_rejected = mutation_rejected,
     sensitivity_is_confidence_interval = FALSE,
     deterministic_car_claimed_bayesian = FALSE
   ),

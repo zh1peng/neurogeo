@@ -562,7 +562,7 @@ ngeo_project_surface <- function(
   )
 }
 
-.ngeo_cortical_vertex_values <- function(x, map, values) {
+.ngeo_cortical_vertex_values <- function(x, layer, values) {
   if (!is.null(values)) {
     if (!is.atomic(values) || !is.null(dim(values)) ||
         length(values) != nrow(x$base$elements)) {
@@ -577,8 +577,8 @@ ngeo_project_surface <- function(
       type = if (is.numeric(values)) "continuous" else "categorical"
     ))
   }
-  selected <- .ngeo_plot_map(x, map)
-  index <- .ngeo_layer_selection(x, map)
+  selected <- .ngeo_plot_map(x, layer)
+  index <- .ngeo_layer_selection(x, layer)
   measure <- .ngeo_measures_for_layers(x, index)
   categorical <- measure$value_type %in% c("label", "categorical") ||
     measure$support_behavior == "categorical" ||
@@ -904,7 +904,7 @@ ngeo_project_surface <- function(
 #' uses the surface's own chart and never substitutes a fixed atlas drawing.
 #'
 #' @param x An `ngeo_surface` with a chart.
-#' @param map One aligned map when `values` is not supplied.
+#' @param layer One aligned layer when `values` is not supplied.
 #' @param values Optional arbitrary vertex-aligned values.
 #' @param chart Chart name.
 #' @param atlas Optional aligned labels or `ngeo_partition`.
@@ -938,7 +938,7 @@ ngeo_project_surface <- function(
 #' @export
 ngeo_cortical_map <- function(
     x,
-    map = 1L,
+    layer = 1L,
     values = NULL,
     chart = NULL,
     atlas = NULL,
@@ -998,7 +998,7 @@ ngeo_cortical_map <- function(
       type = "categorical"
     )
   } else {
-    .ngeo_cortical_vertex_values(x, map, values)
+    .ngeo_cortical_vertex_values(x, layer, values)
   }
   faces <- x$base$geometry$faces
   mask <- .ngeo_cortical_mask(x, mask)

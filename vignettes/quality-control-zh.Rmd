@@ -36,7 +36,7 @@ ngeo_validate(x, "strict")
 qc <- ngeo_qc(x)
 qc
 qc$checks
-qc$map_summary
+qc$layer_summary
 ```
 
 这个对象结构有效，但默认空间、测量语义和单位都是 `unknown`，而且

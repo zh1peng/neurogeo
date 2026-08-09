@@ -3,7 +3,7 @@ if (dir.exists(".r-lib")) {
   .libPaths(c(normalizePath(".r-lib"), .libPaths()))
 }
 output <- if (length(args)) args[[1L]] else
-  file.path("release", "maintenance-291-validation.json")
+  file.path("check-output", "installed-conformance-60.json")
 if (!requireNamespace("jsonlite", quietly = TRUE) ||
     !requireNamespace("digest", quietly = TRUE)) {
   stop("Installed conformance requires jsonlite and digest.")
@@ -159,6 +159,13 @@ if (utils::compareVersion(package_version, "5.0.0") >= 0L) {
     required_specs,
     "NGCS-5.0.md", "API-5.0.md", "migration-5.0.md",
     "validation-5.0.md"
+  )
+}
+if (utils::compareVersion(package_version, "6.0.0") >= 0L) {
+  required_specs <- c(
+    required_specs,
+    "NGCS-6.0.md", "API-6.0.md", "migration-6.0.md",
+    "validation-6.0.md"
   )
 }
 spec_paths <- system.file("spec", required_specs, package = "neurogeo")

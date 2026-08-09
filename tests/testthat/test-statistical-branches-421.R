@@ -149,7 +149,7 @@ test_that("variogram rejects undefined estimands and invalid pair bins", {
     coordinates,
     values = cbind(a = c(1, 2, 4, 8), b = 1:4)
   )
-  expect_error(ngeo_variogram(x, map = c(1, 2)), class = "ngeo_error_argument")
+  expect_error(ngeo_variogram(x, layer = c(1, 2)), class = "ngeo_error_argument")
   expect_error(ngeo_variogram(x, max_distance = 0), class = "ngeo_error_argument")
   expect_error(ngeo_variogram(x, breaks = 0), class = "ngeo_error_argument")
   expect_error(

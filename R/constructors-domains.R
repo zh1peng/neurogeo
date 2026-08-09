@@ -2,7 +2,7 @@
 #'
 #' @param coordinates A finite numeric matrix with two or three columns.
 #' @param values Optional point-aligned values.
-#' @param layers Optional map metadata.
+#' @param layers Optional layer metadata.
 #' @param measures Optional measurement semantics.
 #' @param labels Optional label tables.
 #' @param coordinate_space An `ngeo_coordinate_space`.
@@ -253,7 +253,7 @@ ngeo_point <- function(coordinates,
 #'
 #' @param components Ordered surface and volume component definitions.
 #' @param values Optional grayordinate-aligned values.
-#' @param layers Optional map metadata.
+#' @param layers Optional layer metadata.
 #' @param measures Optional measurement semantics.
 #' @param labels Optional label tables.
 #' @param coordinate_space A hybrid `ngeo_coordinate_space`.
@@ -364,7 +364,7 @@ ngeo_grayordinate <- function(components,
 #' @param centroid Optional region centroid matrix.
 #' @param support_size Optional region support sizes.
 #' @param adjacency Optional region adjacency matrix.
-#' @param layers Optional map metadata.
+#' @param layers Optional layer metadata.
 #' @param measures Optional measurement semantics.
 #' @param labels Optional label tables.
 #' @param coordinate_space An `ngeo_coordinate_space`.

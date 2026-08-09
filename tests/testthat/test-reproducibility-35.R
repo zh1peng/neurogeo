@@ -50,7 +50,7 @@ test_that("history DAGs reject cycles, missing parents, and mutation", {
   expect_s3_class(dag, "ngeo_history_dag")
   expect_invisible(ngeo_validate_history_dag(dag))
   expect_identical(
-    ngeo_object_manifest(dag)$object_schema_version, "3.5"
+    ngeo_object_manifest(dag)$object_schema_version, "6.0"
   )
   expect_error(
     ngeo_history_dag(
@@ -107,7 +107,7 @@ test_that("recorded workflows replay to identical logical output", {
   expect_length(manifest$dag$nodes, 3L)
   expect_length(manifest$dag$edges, 2L)
   expect_identical(
-    ngeo_object_manifest(manifest)$object_schema_version, "3.5"
+    ngeo_object_manifest(manifest)$object_schema_version, "6.0"
   )
 })
 
@@ -187,7 +187,7 @@ test_that("artifact manifests fail before corrupt or incomplete use", {
   expect_true(ngeo_validate_artifact_manifest(manifest, root)$valid)
   expect_identical(manifest$entries[[1L]]$path, "result.txt")
   expect_identical(
-    ngeo_object_manifest(manifest)$object_schema_version, "3.5"
+    ngeo_object_manifest(manifest)$object_schema_version, "6.0"
   )
 
   writeLines("corrupt", path)
@@ -255,7 +255,7 @@ test_that("artifact batches publish atomically with derivative-only scope", {
   expect_true(file.exists(file.path(directory, "manifest.json")))
   expect_true(file.exists(file.path(directory, "artifacts.json")))
   expect_identical(
-    ngeo_object_manifest(batch)$object_schema_version, "3.5"
+    ngeo_object_manifest(batch)$object_schema_version, "6.0"
   )
 
   unlink(file.path(directory, "artifacts.json"))

@@ -225,7 +225,7 @@ gwr <- ngeo_gwr(
   bandwidth = 3,
   targets = targets
 )
-variogram <- ngeo_fit_variogram(data, map = "sar", breaks = 4)
+variogram <- ngeo_fit_variogram(data, layer = "sar", breaks = 4)
 kriging <- ngeo_kriging(
   data, "sar", variogram, targets = targets, neighbors = 8
 )

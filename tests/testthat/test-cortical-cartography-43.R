@@ -246,7 +246,7 @@ test_that("cortical layers support vertex data, atlas boundaries, and exchange",
   )
   map <- ngeo_cortical_map(
     flat,
-    map = "signal",
+    layer = "signal",
     chart = "flat",
     atlas = partition
   )

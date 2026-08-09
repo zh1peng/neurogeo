@@ -18,7 +18,7 @@ ngeo_grayordinate(
 
 \item{values}{Optional grayordinate-aligned values.}
 
-\item{layers}{Optional map metadata.}
+\item{layers}{Optional layer metadata.}
 
 \item{measures}{Optional measurement semantics.}
 

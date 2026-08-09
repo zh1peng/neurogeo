@@ -64,16 +64,8 @@
 
 .ngeo_safe_name <- function(x) {
   result <- gsub("[^A-Za-z0-9._-]+", "_", x)
-  result[!nzchar(result)] <- "map"
+  result[!nzchar(result)] <- "layer"
   make.unique(result, sep = "_")
-}
-
-.ngeo_insert_suffix <- function(path, suffix, extension) {
-  pattern <- paste0(gsub("[.]", "[.]", extension), "$")
-  if (!grepl(pattern, path, ignore.case = TRUE)) {
-    return(paste0(path, suffix))
-  }
-  sub(pattern, paste0(suffix, extension), path, ignore.case = TRUE)
 }
 
 .ngeo_gifti_output <- function(path, suffix, extension) {
@@ -613,7 +605,7 @@ ngeo_export_history <- function(
     schema = "neurogeo-history-1.0",
     specification = x$history$spec_version,
     package_version = x$history$package_version,
-    domain_type = x$base$type,
+    base_type = x$base$type,
     base_hash = base_hash(x),
     element_count = nrow(x$base$elements),
     layers = x$layers,

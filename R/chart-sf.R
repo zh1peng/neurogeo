@@ -1,7 +1,7 @@
 .ngeo_chart_coordinates <- function(x, chart = NULL) {
   if (!inherits(x, "ngeo_surface")) {
     .ngeo_abort(
-      "Computational charts are currently defined for surface domains.",
+      "Computational charts are currently defined for surface bases.",
       "ngeo_error_capability"
     )
   }

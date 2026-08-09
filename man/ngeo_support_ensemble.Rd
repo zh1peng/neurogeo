@@ -13,7 +13,7 @@ ngeo_support_ensemble(
 }
 \arguments{
 \item{layers}{Two or more layers with identical ordered source and target
-domains.}
+bases.}
 
 \item{kind}{Operator, registration, or segmentation alternatives.}
 

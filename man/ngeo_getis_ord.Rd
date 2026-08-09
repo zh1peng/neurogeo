@@ -7,7 +7,7 @@
 ngeo_getis_ord(
   x,
   spatial_weights,
-  map = 1L,
+  layer = 1L,
   star = TRUE,
   permutations = 0L,
   alternative = c("two.sided", "greater", "less"),
@@ -23,7 +23,7 @@ ngeo_getis_ord(
 
 \item{spatial_weights}{Matching `ngeo_spatial_weights`.}
 
-\item{map}{One map name, ID, or index.}
+\item{layer}{One layer name, ID, or index.}
 
 \item{star}{Include the focal element to compute Gi-star.}
 

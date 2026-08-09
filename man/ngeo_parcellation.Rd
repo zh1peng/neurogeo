@@ -33,7 +33,7 @@ ngeo_parcellation(
 
 \item{adjacency}{Optional region adjacency matrix.}
 
-\item{layers}{Optional map metadata.}
+\item{layers}{Optional layer metadata.}
 
 \item{measures}{Optional measurement semantics.}
 

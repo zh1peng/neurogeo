@@ -60,6 +60,7 @@ support_fixture <- function() {
 
 test_that("crisp support layers preserve intensive and extensive semantics", {
   fixture <- support_fixture()
+  fixture$atlas_a$base$labels$region_class <- list(values = c("left", "right"))
   result <- aggregate_to(
     fixture$source,
     fixture$atlas_a,
@@ -75,7 +76,11 @@ test_that("crisp support layers preserve intensive and extensive semantics", {
   expect_equal(result$values[, "mass"], c(3, 7))
   expect_equal(result$values[, "category"], c(1, 2))
   expect_equal(sum(result$values[, "mass"]), sum(fixture$source$values[, "mass"]))
-  expect_identical(result$history$spec_version, "2.0")
+  expect_identical(result$history$spec_version, "6.0")
+  expect_identical(
+    result$base$labels$region_class$values,
+    c("left", "right")
+  )
 })
 
 test_that("probabilistic and overlapping operators enforce their invariants", {
@@ -243,7 +248,7 @@ test_that("global support inference is invariant to crisp parcellation", {
     fixture$source,
     support_maps = list(A = fixture$map_a, B = fixture$map_b),
     targets = list(fixture$atlas_a, fixture$atlas_b),
-    map = "intensity",
+    layer = "intensity",
     nsim = 49,
     seed = 2026
   )

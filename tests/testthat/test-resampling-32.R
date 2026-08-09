@@ -100,6 +100,7 @@ test_that("identity volume resampling agrees for every 3.2 method", {
     values = array(1:8, dim = c(2, 2, 2))
   )
   target <- resampling_volume(coordinate_space)
+  target$base$labels$region <- list(values = rep(c("A", "B"), 4L))
   path <- resampling_path(coordinate_space)
 
   for (method in c("nearest", "linear", "overlap")) {
@@ -111,6 +112,10 @@ test_that("identity volume resampling agrees for every 3.2 method", {
 
     expect_equal(as.matrix(map$operator), diag(8))
     expect_equal(result$data$values, source$values)
+    expect_identical(
+      result$data$base$labels$region$values,
+      target$base$labels$region$values
+    )
     expect_true(result$diagnostics$conservative)
     expect_false(result$diagnostics$registration_estimated)
     expect_identical(
@@ -373,7 +378,7 @@ test_that("plans reject mutation and resource overruns", {
   )
 })
 
-test_that("result history, schema manifests, and atomic output verify", {
+test_that("6.0 result history, manifests, and atomic output verify", {
   skip_if_not_installed("jsonlite")
   coordinate_space <- ngeo_coordinate_space("grid", kind = "volume")
   source <- resampling_volume(
@@ -403,7 +408,7 @@ test_that("result history, schema manifests, and atomic output verify", {
   expect_identical(result_manifest$object_schema, "ngcs/resampling-result")
   expect_invisible(ngeo_validate(plan))
   expect_invisible(ngeo_validate(result))
-  expect_identical(plan_manifest$specification, "NGCS 3.2")
+  expect_identical(plan_manifest$specification, "NGCS 6.0")
   expect_true(ngeo_validate_manifest(plan_manifest, plan)$valid)
   expect_true(ngeo_validate_manifest(result_manifest, result)$valid)
 

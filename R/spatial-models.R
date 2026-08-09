@@ -17,7 +17,7 @@
 #' Fit a bounded weighted least-squares variogram model
 #'
 #' @param x An empirical `ngeo_variogram` or an `ngeo` dataset.
-#' @param map,distance_method,breaks,max_distance Passed to `ngeo_variogram()`.
+#' @param layer,distance_method,breaks,max_distance Passed to `ngeo_variogram()`.
 #' @param model Spherical, exponential, or Gaussian model.
 #' @param start Optional named nugget, partial-sill, and range start.
 #'
@@ -34,7 +34,7 @@
 #' @export
 ngeo_fit_variogram <- function(
     x,
-    map = 1L,
+    layer = 1L,
     distance_method = NULL,
     breaks = 10L,
     max_distance = Inf,
@@ -45,7 +45,7 @@ ngeo_fit_variogram <- function(
     x
   } else {
     ngeo_variogram(
-      x, map = map, distance_method = distance_method, breaks = breaks,
+      x, layer = layer, distance_method = distance_method, breaks = breaks,
       max_distance = max_distance
     )
   }
@@ -152,7 +152,7 @@ print.ngeo_variogram_fit <- function(x, ...) {
 #' Bounded local ordinary or universal kriging
 #'
 #' @param x An `ngeo` dataset.
-#' @param map Response map.
+#' @param layer Response layer.
 #' @param variogram A fitted `ngeo_variogram_fit`.
 #' @param targets Target element selection or coordinate matrix.
 #' @param predictors Optional trend predictor layers for universal kriging.
@@ -180,7 +180,7 @@ print.ngeo_variogram_fit <- function(x, ...) {
 #' @export
 ngeo_kriging <- function(
     x,
-    map,
+    layer,
     variogram,
     targets = NULL,
     predictors = character(),
@@ -211,7 +211,7 @@ ngeo_kriging <- function(
   if (length(neighbors) != 1L || neighbors < 2L) {
     .ngeo_abort("`neighbors` must be at least two.", "ngeo_error_argument")
   }
-  layers <- .ngeo_model_maps(x, map, predictors)
+  layers <- .ngeo_model_maps(x, layer, predictors)
   coordinates <- .ngeo_element_coordinates(x)
   values <- as.numeric(x$values[, layers$response])
   design <- cbind(

@@ -40,7 +40,7 @@ x <- ngeo_point(
 spatial_weights <- ngeo_spatial_weights(
   x, method = "distance_band", threshold = 1.01, style = "W"
 )
-plot(x, map = "response", palette = "Inferno", cex = 2.2)
+plot(x, layer = "response", palette = "Inferno", cex = 2.2)
 ```
 
 ## Variogram 与 kriging

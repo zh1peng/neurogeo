@@ -76,7 +76,7 @@
 ngeo_getis_ord <- function(
     x,
     spatial_weights,
-    map = 1L,
+    layer = 1L,
     star = TRUE,
     permutations = 0L,
     alternative = c("two.sided", "greater", "less"),
@@ -102,7 +102,7 @@ ngeo_getis_ord <- function(
   input <- .ngeo_spatial_inputs(
     x,
     spatial_weights,
-    map,
+    layer,
     na_action,
     zero_policy
   )
@@ -219,7 +219,7 @@ ngeo_getis_ord <- function(
 ngeo_correlogram <- function(
     x,
     spatial_weights,
-    map = 1L,
+    layer = 1L,
     lags = 1:10,
     permutations = 0L,
     alternative = c("two.sided", "greater", "less"),
@@ -240,7 +240,7 @@ ngeo_correlogram <- function(
   input <- .ngeo_spatial_inputs(
     x,
     spatial_weights,
-    map,
+    layer,
     na_action,
     zero_policy
   )
@@ -314,7 +314,7 @@ print.ngeo_getis <- function(x, ...) {
     "<ngeo_getis>\n",
     "  statistic: ", attr(x, "statistic"), "\n",
     "  observations: ", nrow(x), "\n",
-    "  map: ", attr(x, "layer_name"), "\n",
+    "  layer: ", attr(x, "layer_name"), "\n",
     "  permutations: ", attr(x, "permutations"), "\n",
     sep = ""
   )
@@ -326,7 +326,7 @@ print.ngeo_correlogram <- function(x, ...) {
   cat(
     "<ngeo_correlogram>\n",
     "  lags: ", nrow(x), "\n",
-    "  map: ", attr(x, "layer_name"), "\n",
+    "  layer: ", attr(x, "layer_name"), "\n",
     "  permutations: ", attr(x, "permutations"), "\n",
     sep = ""
   )

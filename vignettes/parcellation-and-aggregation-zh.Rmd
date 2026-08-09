@@ -50,7 +50,7 @@ regional$values
 
 ```{r plots, fig.alt="surface 数值图与两个区域的元素数"}
 old_par <- par(mfrow = c(1, 2))
-plot(surface, map = "thickness", show_edges = TRUE, palette = "Viridis")
+plot(surface, layer = "thickness", show_edges = TRUE, palette = "Viridis")
 plot(partition, col = c("#3b82a0", "#e29b45"), border = NA)
 par(old_par)
 ```

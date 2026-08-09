@@ -23,7 +23,7 @@ read_ngeo_gifti(
 
 \item{labels}{Optional label GIFTI paths.}
 
-\item{layers}{Optional map metadata overriding generated names.}
+\item{layers}{Optional layer metadata overriding generated names.}
 
 \item{measures}{Optional measurement semantics.}
 

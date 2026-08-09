@@ -115,7 +115,7 @@ result <- list(
     family = "two atlases with BH adjustment",
     empirical_type_one_error = type_one_error,
     accepted_interval = type_one_limits,
-    permutation_domain = "common_source",
+    permutation_base = "common_source",
     spatial_constraint = FALSE
   ),
   effect_calibration = list(

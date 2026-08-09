@@ -51,7 +51,7 @@ spatial_weights <- ngeo_spatial_weights(
 ```{r model-input-map, fig.alt="A five by five point grid colored by response", fig.cap="Always inspect the response on its base before fitting a spatial model."}
 plot(
   x,
-  map = "response",
+  layer = "response",
   palette = "Inferno",
   cex = 2.2
 )

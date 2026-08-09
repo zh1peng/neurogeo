@@ -24,7 +24,7 @@ ngeo_basis_project(
 
 \item{index}{Optional `ngeo_layer_index`.}
 
-\item{layers}{Optional map selection.}
+\item{layers}{Optional layer selection.}
 
 \item{bands}{Optional named, non-overlapping retained-mode groups.}
 

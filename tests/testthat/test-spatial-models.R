@@ -92,7 +92,7 @@ test_that("Moran spectral nulls preserve variance and autocorrelation", {
   first <- ngeo_moran_null(
     fixture$x,
     fixture$spatial_weights,
-    map = "response",
+    layer = "response",
     nsim = 8,
     seed = 99,
     zero_policy = TRUE
@@ -100,7 +100,7 @@ test_that("Moran spectral nulls preserve variance and autocorrelation", {
   second <- ngeo_moran_null(
     fixture$x,
     fixture$spatial_weights,
-    map = "response",
+    layer = "response",
     nsim = 8,
     seed = 99,
     zero_policy = TRUE
@@ -133,7 +133,7 @@ test_that("simulation streams are reproducible across worker counts", {
   serial <- ngeo_moran_null(
     fixture$x,
     fixture$spatial_weights,
-    map = "response",
+    layer = "response",
     nsim = 3,
     seed = 123,
     zero_policy = TRUE,
@@ -142,7 +142,7 @@ test_that("simulation streams are reproducible across worker counts", {
   parallel <- ngeo_moran_null(
     fixture$x,
     fixture$spatial_weights,
-    map = "response",
+    layer = "response",
     nsim = 3,
     seed = 123,
     zero_policy = TRUE,

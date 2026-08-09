@@ -9,7 +9,7 @@ ngeo_stream_lm(x, response, predictors = character(), chunk_size = 65536L)
 \arguments{
 \item{x}{An `ngeo` dataset.}
 
-\item{response}{One response map.}
+\item{response}{One response layer.}
 
 \item{predictors}{Predictor layers.}
 

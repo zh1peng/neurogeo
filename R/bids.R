@@ -131,21 +131,21 @@ ngeo_bids_build_name <- function(entities, suffix, extension) {
 #' @export
 ngeo_validate_bids_sidecar <- function(sidecar, x = NULL, path = NULL) {
   required <- c(
-    "Specification", "SpatialReference", "DomainType", "DomainHash",
+    "Specification", "SpatialReference", "BaseType", "BaseHash",
     "Entities", "MeasurementSemantics", "Sources", "GeneratedBy",
-    "Provenance"
+    "History"
   )
   valid <- is.list(sidecar) && all(required %in% names(sidecar)) &&
     is.character(sidecar$SpatialReference) &&
     length(sidecar$SpatialReference) == 1L &&
-    is.character(sidecar$DomainType) &&
-    length(sidecar$DomainType) == 1L &&
-    is.character(sidecar$DomainHash) &&
-    length(sidecar$DomainHash) == 1L &&
+    is.character(sidecar$BaseType) &&
+    length(sidecar$BaseType) == 1L &&
+    is.character(sidecar$BaseHash) &&
+    length(sidecar$BaseHash) == 1L &&
     is.list(sidecar$Entities) &&
     is.list(sidecar$MeasurementSemantics) &&
     is.list(sidecar$GeneratedBy) &&
-    is.list(sidecar$Provenance)
+    is.list(sidecar$History)
   if (!valid) {
     .ngeo_abort("BIDS derivative sidecar structure is invalid.",
                 "ngeo_error_bids")
@@ -167,8 +167,8 @@ ngeo_validate_bids_sidecar <- function(sidecar, x = NULL, path = NULL) {
   }
   if (!is.null(x)) {
     ngeo_validate(x, "basic")
-    if (!identical(sidecar$DomainHash, base_hash(x)) ||
-        !identical(sidecar$DomainType, x$base$type) ||
+    if (!identical(sidecar$BaseHash, base_hash(x)) ||
+        !identical(sidecar$BaseType, x$base$type) ||
         length(sidecar$MeasurementSemantics) != nrow(x$layers)) {
       .ngeo_abort("BIDS sidecar does not match the dataset.",
                   "ngeo_error_base_mismatch")

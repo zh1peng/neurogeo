@@ -228,7 +228,7 @@ ngeo_cross_atlas <- function(
 #' @param x Source `ngeo` dataset.
 #' @param support_maps List of source-to-atlas support layers.
 #' @param targets List of matching target templates.
-#' @param map One map.
+#' @param layer One layer.
 #' @param nsim Shared source bootstrap replicates.
 #' @param seed Reproducible seed.
 #' @param tolerance Maximum cross-parcellation deviation.
@@ -240,7 +240,7 @@ ngeo_parcellation_inference <- function(
     x,
     support_maps,
     targets,
-    map = 1L,
+    layer = 1L,
     nsim = 999L,
     seed = NULL,
     tolerance = 1e-10,
@@ -254,10 +254,10 @@ ngeo_parcellation_inference <- function(
       "ngeo_error_argument"
     )
   }
-  layer_index <- .ngeo_layer_selection(x, map)
+  layer_index <- .ngeo_layer_selection(x, layer)
   if (length(layer_index) != 1L || is.null(x$values)) {
     .ngeo_abort(
-      "Inference requires one loaded map.",
+      "Inference requires one loaded layer.",
       "ngeo_error_values"
     )
   }

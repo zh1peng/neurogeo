@@ -1,4 +1,4 @@
-.ngeo_covariance_domain <- function(x) {
+.ngeo_covariance_base <- function(x) {
   if (!inherits(x, "ngeo")) {
     .ngeo_abort(
       "`x` must be an `ngeo` dataset.",
@@ -36,7 +36,7 @@ ngeo_support_covariance <- function(
     factor = NULL,
     tolerance = 1e-10,
     history = list()) {
-  base <- .ngeo_covariance_domain(x)
+  base <- .ngeo_covariance_base(x)
   if (!is.numeric(tolerance) || length(tolerance) != 1L ||
       is.na(tolerance) || !is.finite(tolerance) || tolerance < 0) {
     .ngeo_abort(
@@ -198,7 +198,7 @@ ngeo_validate_support_covariance <- function(x) {
   invisible(x)
 }
 
-.ngeo_validate_covariance_domain <- function(covariance, x) {
+.ngeo_validate_covariance_base <- function(covariance, x) {
   ngeo_validate_support_covariance(covariance)
   if (!identical(covariance$base_hash, base_hash(x)) ||
       !identical(
@@ -413,7 +413,7 @@ ngeo_support_uncertainty <- function(
     allocation = c("error", "normalize"),
     unmapped = c("error", "drop"),
     unknown = c("error", "intensive", "extensive")) {
-  .ngeo_validate_support_domains(x, target, support_map)
+  .ngeo_validate_support_bases(x, target, support_map)
   method <- match.arg(method)
   output <- match.arg(output)
   allocation <- match.arg(allocation)
@@ -424,7 +424,7 @@ ngeo_support_uncertainty <- function(
     value_covariance,
     length(layer_index)
   )
-  lapply(covariance, .ngeo_validate_covariance_domain, x = x)
+  lapply(covariance, .ngeo_validate_covariance_base, x = x)
   if (is.null(support_map$source_support)) {
     support_map$source_support <- .ngeo_support_vector(x)
   }
@@ -524,7 +524,7 @@ ngeo_support_uncertainty <- function(
         support_map$target_base_hash
       )) {
         .ngeo_abort(
-          "Operator ensemble domains do not match the support map.",
+          "Operator ensemble bases do not match the support map.",
           "ngeo_error_base_mismatch"
         )
       }
@@ -780,7 +780,7 @@ print.ngeo_support_condition <- function(x, ...) {
 #' Construct a validated support-map ensemble
 #'
 #' @param layers Two or more layers with identical ordered source and target
-#'   domains.
+#'   bases.
 #' @param kind Operator, registration, or segmentation alternatives.
 #' @param spatial_weights Optional non-negative ensemble spatial_weights.
 #' @param history Optional ensemble history.
@@ -879,7 +879,7 @@ ngeo_validate_support_ensemble <- function(x) {
   }, logical(1))
   if (!all(common)) {
     .ngeo_abort(
-      "Ensemble layers must share ordered source and target domains.",
+      "Ensemble layers must share ordered source and target bases.",
       "ngeo_error_base_mismatch"
     )
   }

@@ -122,7 +122,7 @@ test_that("layer validation supports explicit compound unit keys", {
     names(index$unit)))
 })
 
-test_that("map binding preserves exact order, semantics, and history", {
+test_that("layer binding preserves exact order, semantics, and history", {
   first <- layer_surface(
     matrix(1:8, 4L), c("s01", "s01"), c("thickness", "myelin")
   )
@@ -130,6 +130,8 @@ test_that("map binding preserves exact order, semantics, and history", {
     matrix(9:16, 4L), c("s02", "s02"), c("thickness", "myelin")
   )
   second$layers$layer_id <- c("second_1", "second_2")
+  first$base$labels$atlas <- list(values = c("A", "A", "B", "B"))
+  second$base$labels$network <- list(values = c("X", "Y", "Y", "X"))
 
   bound <- ngeo_bind_layers(first = first, second = second)
 
@@ -141,11 +143,12 @@ test_that("map binding preserves exact order, semantics, and history", {
     bound$layers$measure_id,
     c("measure_0001", "measure_0002", "measure_0001", "measure_0002")
   )
-  expect_length(bound$history$map_binding$sources, 2L)
-  expect_identical(bound$history$map_binding$storage, "memory")
+  expect_length(bound$history$layer_binding$sources, 2L)
+  expect_identical(bound$history$layer_binding$storage, "memory")
+  expect_named(bound$base$labels, c("atlas", "network"))
 })
 
-test_that("map binding keeps delayed sources lazy and chunk-equivalent", {
+test_that("layer binding keeps delayed sources lazy and chunk-equivalent", {
   first <- layer_surface(
     matrix(1:8, 4L), c("s01", "s01"), c("thickness", "myelin"),
     delayed = TRUE
@@ -163,7 +166,7 @@ test_that("map binding keeps delayed sources lazy and chunk-equivalent", {
   expect_equal(rbind(chunks()$values, chunks()$values), as.matrix(bound$values))
 })
 
-test_that("map binding rejects hidden alignment and ID conflicts", {
+test_that("layer binding rejects hidden alignment and ID conflicts", {
   first <- layer_surface(
     matrix(1:8, 4L), c("s01", "s01"), c("thickness", "myelin")
   )
@@ -173,7 +176,7 @@ test_that("map binding rejects hidden alignment and ID conflicts", {
 
   expect_error(
     ngeo_bind_layers(first, second),
-    class = "ngeo_error_map_conflict"
+    class = "ngeo_error_layer_conflict"
   )
   prefixed <- ngeo_bind_layers(
     first = first,

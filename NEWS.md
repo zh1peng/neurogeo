@@ -1,4 +1,4 @@
-# neurogeo 5.1.0
+# neurogeo 6.0.0
 
 * Replaced the core `domain / maps / provenance` schema with
   `base / layers / history`; objects now contain exactly the shared spatial
@@ -11,7 +11,22 @@
   `measure_id`.
 * Renamed user-facing coordinate-space, distance-method, spatial-weights, and
   aggregation APIs. This is an intentional breaking release with no migration
-  or compatibility layer for 5.0 serialized objects.
+  or compatibility layer for 5.x serialized objects. This major version
+  supersedes the incompatible 5.0 API freeze rather than weakening its
+  within-major compatibility promise.
+* Unified crisp partition aggregation with the canonical `aggregate_to()`
+  engine, including correct shared-measure metadata and per-layer history.
+* Made labels an enforced element-aligned contract across construction,
+  subsetting, layer binding, change of support, resampling, and temporal
+  derivation. Base identity hashes now exclude label resources.
+* Standardized public single-column selectors as `layer`, renamed public
+  BIDS/QC/history fields to base/layer terminology, and removed unused internal
+  helpers left behind by the 5.1 refactor.
+* Made PSOCK workers load from the caller's library paths before resolving the
+  neurogeo namespace and fail clearly if a worker loads another package
+  version.
+* Added canonical NGCS/API/migration/validation 6.0 specifications and fresh
+  unit, installed-conformance, API-contract, and package-check gates.
 
 # neurogeo 5.0.0
 

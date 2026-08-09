@@ -113,7 +113,7 @@ surfaces fail instead of producing an unauditable picture.
 ```{r continuous-map, eval=FALSE}
 continuous_map <- ngeo_cortical_map(
   left,
-  map = "distance_method",
+  layer = "distance_method",
   chart = "flat",
   atlas = "schaefer100",
   mask = left$values[, "atlasroi"] > 0,

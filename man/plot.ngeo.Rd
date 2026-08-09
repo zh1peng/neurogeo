@@ -6,7 +6,7 @@
 \usage{
 \method{plot}{ngeo}(
   x,
-  map = 1L,
+  layer = 1L,
   chart = NULL,
   slice = NULL,
   palette = "viridis",
@@ -17,7 +17,7 @@
 \arguments{
 \item{x}{An `ngeo` dataset.}
 
-\item{map}{One map name, ID, or index.}
+\item{layer}{One layer name, ID, or index.}
 
 \item{chart}{Optional surface chart.}
 

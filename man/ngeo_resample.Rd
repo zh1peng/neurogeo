@@ -17,7 +17,7 @@ ngeo_resample(
 \arguments{
 \item{plan}{A validated `ngeo_resampling_plan`.}
 
-\item{layers}{Optional source map selection.}
+\item{layers}{Optional source layer selection.}
 
 \item{value_variance}{Optional source-by-selected-map independent variance.}
 

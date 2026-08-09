@@ -81,7 +81,7 @@
 #' @param path NIfTI path.
 #' @param mask Optional mask path, logical array/vector, or `"nonzero"`.
 #' @param frames Optional frames passed to `RNifti::readNifti()`.
-#' @param layers Optional map metadata.
+#' @param layers Optional layer metadata.
 #' @param measures Optional measurement semantics.
 #' @param coordinate_space Optional `ngeo_coordinate_space`.
 #' @param affine Active affine choice.

@@ -229,7 +229,7 @@
 #' @param geometry One or more GIFTI surface paths.
 #' @param data Optional distance_method/shape/functional GIFTI paths.
 #' @param labels Optional label GIFTI paths.
-#' @param layers Optional map metadata overriding generated names.
+#' @param layers Optional layer metadata overriding generated names.
 #' @param measures Optional measurement semantics.
 #' @param coordinate_space Optional `ngeo_coordinate_space`.
 #' @param coordinate_roles Optional roles for coordinate files.

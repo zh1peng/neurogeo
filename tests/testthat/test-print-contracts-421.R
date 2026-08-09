@@ -200,7 +200,7 @@ test_that("support result print methods expose bounded summaries", {
           statistic = "correlation",
           estimates = estimates,
           nsim = 19L,
-          permutation_domain = "common_source"
+          permutation_base = "common_source"
         ),
         class = "ngeo_support_test"
       ),

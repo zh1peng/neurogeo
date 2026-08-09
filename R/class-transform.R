@@ -161,7 +161,7 @@ ngeo_validate_transform <- function(transform) {
   if (dimension == 2L) result[, 1:2, drop = FALSE] else result
 }
 
-.ngeo_apply_affine_domain <- function(base, matrix, target_space) {
+.ngeo_apply_affine_base <- function(base, matrix, target_space) {
   switch(
     base$type,
     point = {
@@ -212,7 +212,7 @@ ngeo_validate_transform <- function(transform) {
           component$affine <- matrix %*% component$affine
         } else if (!is.null(component$geometry)) {
           geometry <- component$geometry
-          geometry$base <- .ngeo_apply_affine_domain(
+          geometry$base <- .ngeo_apply_affine_base(
             geometry$base,
             matrix,
             geometry$base$coordinate_space
@@ -257,7 +257,7 @@ ngeo_apply_transform <- function(x, transform) {
   }
   result <- x
   source_hash <- base_hash(x)
-  result$base <- .ngeo_apply_affine_domain(
+  result$base <- .ngeo_apply_affine_base(
     result$base,
     transform$parameters$matrix,
     transform$target_space

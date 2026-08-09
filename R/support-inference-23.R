@@ -364,7 +364,7 @@ ngeo_common_support_test <- function(
     )
   }
   for (i in seq_along(support_maps)) {
-    .ngeo_validate_support_domains(
+    .ngeo_validate_support_bases(
       x, targets[[i]], support_maps[[i]]
     )
     if (!identical(support_maps[[i]]$coverage, "complete")) {
@@ -393,7 +393,7 @@ ngeo_common_support_test <- function(
       ngeo_moran_null(
         x,
         spatial_weights,
-        map = selected[["predictor"]],
+        layer = selected[["predictor"]],
         nsim = nsim,
         seed = seed,
         workers = workers
@@ -401,7 +401,7 @@ ngeo_common_support_test <- function(
     },
     spin = ngeo_spin_null(
       x,
-      map = selected[["predictor"]],
+      layer = selected[["predictor"]],
       coordinates = coordinates,
       nsim = nsim,
       seed = seed,

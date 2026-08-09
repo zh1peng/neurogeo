@@ -13,6 +13,8 @@ base_hash(x)
 A hexadecimal xxHash64 digest.
 }
 \description{
-The hash identifies an R base representation. It is not a replacement
-for language-independent conformance fixtures.
+The hash identifies the ordered spatial base while intentionally excluding
+`base$labels`. Label resources may therefore be added or merged without
+changing spatial compatibility. It is not a replacement for
+language-independent conformance fixtures.
 }

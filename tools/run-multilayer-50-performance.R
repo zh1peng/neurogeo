@@ -70,8 +70,8 @@ run_basis_case <- function(label, nrow, ncol, modes) {
     maximum_residual = basis$diagnostics$max_residual,
     maximum_orthogonality_error =
       basis$diagnostics$max_orthogonality_error,
-    dense_element_pair_matrix = basis$diagnostics$dense_full_domain_matrix,
-    pass = !basis$diagnostics$dense_full_domain_matrix &&
+    dense_element_pair_matrix = basis$diagnostics$dense_full_base_matrix,
+    pass = !basis$diagnostics$dense_full_base_matrix &&
       basis$diagnostics$max_residual < 1e-6 &&
       basis$diagnostics$max_orthogonality_error < 1e-6
   )

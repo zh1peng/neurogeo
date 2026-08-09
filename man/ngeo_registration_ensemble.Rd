@@ -8,7 +8,7 @@ ngeo_registration_ensemble(layers, spatial_weights = NULL, history = list())
 }
 \arguments{
 \item{layers}{Two or more layers with identical ordered source and target
-domains.}
+bases.}
 
 \item{spatial_weights}{Optional non-negative ensemble spatial_weights.}
 

@@ -1,4 +1,4 @@
-test_that("5.0 multilayer public surface remains bounded", {
+test_that("6.0 multilayer public surface remains bounded", {
   stable <- c(
     "ngeo_bind_layers", "ngeo_validate_layers", "ngeo_spatial_basis",
     "ngeo_basis_project", "ngeo_layer_coupling", "ngeo_exchangeability",
@@ -13,7 +13,7 @@ test_that("5.0 multilayer public surface remains bounded", {
   )
 })
 
-test_that("5.0 stable function signatures are frozen", {
+test_that("6.0 stable function signatures are frozen", {
   expected <- list(
     ngeo_bind_layers = c("...", "metadata", "source_id", "conflicts", "storage", "budget"),
     ngeo_validate_layers = c("x", "unit", "layer", "required_layers", "complete", "require_consistent_measures"),
@@ -29,7 +29,23 @@ test_that("5.0 stable function signatures are frozen", {
   }
 })
 
-test_that("5.0 scientific boundary failures keep typed conditions", {
+test_that("6.0 single-layer selectors use the layer argument", {
+  selectors <- c(
+    "ngeo_cortical_map", "ngeo_variogram_uncertainty",
+    "ngeo_kriging_uncertainty", "ngeo_spin_null", "ngeo_moran_null",
+    "ngeo_fit_variogram", "ngeo_kriging", "ngeo_getis_ord",
+    "ngeo_correlogram", "ngeo_moran", "ngeo_geary",
+    "ngeo_local_moran", "ngeo_variogram", "ngeo_parcellation_inference",
+    "ngeo_stream_moran"
+  )
+  for (name in selectors) {
+    arguments <- names(formals(getExportedValue("neurogeo", name)))
+    expect_true("layer" %in% arguments, info = name)
+    expect_false("map" %in% arguments, info = name)
+  }
+})
+
+test_that("6.0 scientific boundary failures keep typed conditions", {
   expect_error(
     ngeo_exchangeability(
       c("s1", "s2"), scheme = "within_block", blocks = c("site", "site"),

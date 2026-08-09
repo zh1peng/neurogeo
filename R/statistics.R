@@ -1,6 +1,6 @@
 .ngeo_spatial_inputs <- function(x,
                                  spatial_weights,
-                                 map,
+                                 layer,
                                  na_action,
                                  zero_policy) {
   ngeo_validate(x, "basic")
@@ -22,10 +22,10 @@
       "ngeo_error_values"
     )
   }
-  layer_index <- .ngeo_layer_selection(x, map)
+  layer_index <- .ngeo_layer_selection(x, layer)
   if (length(layer_index) != 1L) {
     .ngeo_abort(
-      "`map` must select exactly one map.",
+      "`layer` must select exactly one layer.",
       "ngeo_error_argument"
     )
   }
@@ -83,7 +83,7 @@
   }
   if (stats::var(values[index]) == 0) {
     .ngeo_abort(
-      "The selected map has zero variance.",
+      "The selected layer has zero variance.",
       "ngeo_error_statistic"
     )
   }
@@ -270,7 +270,7 @@ ngeo_permutation_control <- function(
 
 .ngeo_global_statistic <- function(x,
                                    spatial_weights,
-                                   map,
+                                   layer,
                                    permutations,
                                    alternative,
                                    seed,
@@ -293,7 +293,7 @@ ngeo_permutation_control <- function(
   input <- .ngeo_spatial_inputs(
     x,
     spatial_weights,
-    map,
+    layer,
     na_action,
     zero_policy
   )
@@ -359,7 +359,7 @@ ngeo_permutation_control <- function(
 #'
 #' @param x An `ngeo` dataset.
 #' @param spatial_weights Matching `ngeo_spatial_weights`.
-#' @param map One map name, ID, or index.
+#' @param layer One layer name, ID, or index.
 #' @param permutations Number of Monte Carlo permutations.
 #' @param alternative Permutation-test alternative.
 #' @param seed Optional reproducible random seed.
@@ -385,7 +385,7 @@ ngeo_permutation_control <- function(
 #' @export
 ngeo_moran <- function(x,
                        spatial_weights,
-                       map = 1L,
+                       layer = 1L,
                        permutations = 0L,
                        alternative = c("two.sided", "greater", "less"),
                        seed = NULL,
@@ -396,7 +396,7 @@ ngeo_moran <- function(x,
   .ngeo_global_statistic(
     x,
     spatial_weights,
-    map,
+    layer,
     permutations,
     alternative,
     seed,
@@ -423,7 +423,7 @@ ngeo_moran <- function(x,
 #' @export
 ngeo_geary <- function(x,
                        spatial_weights,
-                       map = 1L,
+                       layer = 1L,
                        permutations = 0L,
                        alternative = c("two.sided", "greater", "less"),
                        seed = NULL,
@@ -434,7 +434,7 @@ ngeo_geary <- function(x,
   .ngeo_global_statistic(
     x,
     spatial_weights,
-    map,
+    layer,
     permutations,
     alternative,
     seed,
@@ -463,7 +463,7 @@ ngeo_geary <- function(x,
 #' @export
 ngeo_local_moran <- function(x,
                              spatial_weights,
-                             map = 1L,
+                             layer = 1L,
                              permutations = 0L,
                              alternative = c(
                                "two.sided", "greater", "less"
@@ -489,7 +489,7 @@ ngeo_local_moran <- function(x,
   input <- .ngeo_spatial_inputs(
     x,
     spatial_weights,
-    map,
+    layer,
     na_action,
     zero_policy
   )
@@ -594,7 +594,7 @@ ngeo_local_moran <- function(x,
 #' Empirical semivariogram
 #'
 #' @param x An `ngeo` dataset.
-#' @param map One map name, ID, or index.
+#' @param layer One layer name, ID, or index.
 #' @param distance_method Explicit distance distance_method.
 #' @param breaks Number of bins or a numeric vector of bin boundaries.
 #' @param max_distance Optional maximum pair distance.
@@ -609,7 +609,7 @@ ngeo_local_moran <- function(x,
 #' ngeo_variogram(point, "signal", breaks = c(0, 1.5, 3, 5))
 #' @export
 ngeo_variogram <- function(x,
-                           map = 1L,
+                           layer = 1L,
                            distance_method = NULL,
                            breaks = 10L,
                            max_distance = Inf,
@@ -622,10 +622,10 @@ ngeo_variogram <- function(x,
       "ngeo_error_values"
     )
   }
-  layer_index <- .ngeo_layer_selection(x, map)
+  layer_index <- .ngeo_layer_selection(x, layer)
   if (length(layer_index) != 1L) {
     .ngeo_abort(
-      "`map` must select exactly one map.",
+      "`layer` must select exactly one layer.",
       "ngeo_error_argument"
     )
   }
@@ -805,7 +805,7 @@ print.ngeo_lisa <- function(x, ...) {
   cat(
     "<ngeo_lisa>\n",
     "  observations: ", nrow(x), "\n",
-    "  map: ", attr(x, "layer_name"), "\n",
+    "  layer: ", attr(x, "layer_name"), "\n",
     "  permutations: ", attr(x, "permutations"), "\n",
     sep = ""
   )

@@ -28,7 +28,7 @@ read_ngeo_nifti_filebacked(
 
 \item{elements}{Optional one-based active-base element selection.}
 
-\item{layers}{Optional map metadata.}
+\item{layers}{Optional layer metadata.}
 
 \item{measures}{Optional measurement semantics.}
 

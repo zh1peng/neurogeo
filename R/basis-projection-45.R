@@ -224,7 +224,7 @@
 #' @param x An aligned `ngeo` object.
 #' @param basis A matching `ngeo_spatial_basis`.
 #' @param index Optional `ngeo_layer_index`.
-#' @param layers Optional map selection.
+#' @param layers Optional layer selection.
 #' @param bands Optional named, non-overlapping retained-mode groups.
 #' @param center Whether to support-weight center each map.
 #' @param scale Whether to support-weight scale each centered map.

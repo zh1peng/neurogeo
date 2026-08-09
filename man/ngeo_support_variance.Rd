@@ -24,7 +24,7 @@ ngeo_support_variance(
 
 \item{value_variance}{Source element-by-map independent variances.}
 
-\item{layers}{Optional source map selection.}
+\item{layers}{Optional source layer selection.}
 
 \item{allocation}{Normalize non-unit columns or reject them.}
 
