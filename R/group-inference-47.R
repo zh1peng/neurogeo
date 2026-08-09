@@ -513,6 +513,113 @@
   )
 }
 
+.ngeo_assemble_group_result <- function(
+    aligned,
+    transformed,
+    design,
+    family_labels,
+    observed,
+    null_result,
+    omnibus,
+    exchangeability,
+    retain_null,
+    workers,
+    adjustment,
+    features,
+    model,
+    test) {
+  critical <- stats::qt(0.975, design$residual_df)
+  tests <- cbind(
+    aligned$endpoints,
+    data.frame(
+      transform = transformed$transform,
+      coefficient = observed$effect,
+      standard_error = observed$standard_error,
+      interval_low = observed$effect - critical * observed$standard_error,
+      interval_high = observed$effect + critical * observed$standard_error,
+      statistic = observed$statistic,
+      statistic_type = observed$statistic_type,
+      df_num = design$test$df,
+      df_den = design$residual_df,
+      partial_r2 = observed$partial_r2,
+      p_raw = null_result$raw,
+      p_maxT = null_result$adjusted,
+      maxT_family = family_labels,
+      stringsAsFactors = FALSE
+    )
+  )
+  group_summaries <- .ngeo_group_summaries(
+    aligned$values, aligned$endpoints, aligned$data, test
+  )
+  design_diagnostics <- .ngeo_design_diagnostics(design, group_summaries)
+  null_output <- list(
+    maxima = null_result$maxima,
+    omnibus = null_result$omnibus_null
+  )
+  if (retain_null) null_output$endpoint <- null_result$endpoint_null
+  unit_kind <- exchangeability$unit_kind %||% "subject"
+  unit_label <- switch(
+    unit_kind,
+    subject = "subjects",
+    site = "sites",
+    spatial_block = "spatial blocks"
+  )
+  result <- list(
+    tests = tests,
+    omnibus = data.frame(
+      omnibus = omnibus,
+      statistic = as.numeric(null_result$observed_omnibus),
+      p_value = as.numeric(null_result$omnibus_p),
+      stringsAsFactors = FALSE
+    ),
+    support = NULL,
+    design = list(
+      unit_id = aligned$unit_id,
+      model = paste(deparse(model), collapse = " "),
+      test = design$test$label,
+      full_columns = colnames(design$full),
+      nuisance_columns = colnames(design$reduced),
+      group_summaries = group_summaries
+    ),
+    exchangeability = exchangeability,
+    sampling_unit = unit_kind,
+    diagnostics = c(design_diagnostics, list(
+      dropped_incomplete_units = aligned$dropped,
+      complete_family = TRUE,
+      permutations = nrow(exchangeability$schedule),
+      monte_carlo_resolution = 1 / (nrow(exchangeability$schedule) + 1),
+      family_hash = null_result$family_hash,
+      permutation_block = null_result$block_size,
+      endpoint_chunk = null_result$endpoint_chunk,
+      workers = workers,
+      endpoint_null_retained = retain_null,
+      vertices_permuted = FALSE
+    )),
+    history = list(
+      method = "freedman_lane",
+      schedule_hash = exchangeability$schedule_hash,
+      feature_provenance = features$history,
+      transform = stats::setNames(
+        transformed$transform, aligned$endpoints$endpoint_id
+      ),
+      adjustment = adjustment,
+      omnibus = omnibus,
+      inference_unit = paste0("independent_", unit_kind),
+      endpoint_selection_refit = FALSE
+    ),
+    claim = paste(
+      paste0("Freedman-Lane inference over complete independent ", unit_label, ";"),
+      "validity assumes the declared exchangeability of residuals or sign symmetry,",
+      "and does not treat spatial elements as independent observations."
+    ),
+    raw_values = aligned$values,
+    analysis_values = transformed$values,
+    null = null_output
+  )
+  class(result) <- "ngeo_group_result"
+  result
+}
+
 #' Test subject-level spatial endpoints by Freedman--Lane permutation
 #'
 #' Complete independent-subject rows are transformed together across every
@@ -603,104 +710,11 @@ ngeo_group_test <- function(
     transformed$values, design, exchangeability, observed,
     family_labels, adjustment, omnibus, retain_null, workers, budget
   )
-  critical <- stats::qt(0.975, design$residual_df)
-  interval_low <- observed$effect - critical * observed$standard_error
-  interval_high <- observed$effect + critical * observed$standard_error
-  tests <- cbind(
-    aligned$endpoints,
-    data.frame(
-      transform = transformed$transform,
-      coefficient = observed$effect,
-      standard_error = observed$standard_error,
-      interval_low = interval_low,
-      interval_high = interval_high,
-      statistic = observed$statistic,
-      statistic_type = observed$statistic_type,
-      df_num = design$test$df,
-      df_den = design$residual_df,
-      partial_r2 = observed$partial_r2,
-      p_raw = null_result$raw,
-      p_maxT = null_result$adjusted,
-      maxT_family = family_labels,
-      stringsAsFactors = FALSE
-    )
+  .ngeo_assemble_group_result(
+    aligned, transformed, design, family_labels, observed, null_result,
+    omnibus, exchangeability, retain_null, workers, adjustment, features,
+    model, test
   )
-  group_summaries <- .ngeo_group_summaries(
-    aligned$values, aligned$endpoints, aligned$data, test
-  )
-  design_diagnostics <- .ngeo_design_diagnostics(design, group_summaries)
-  omnibus_table <- data.frame(
-    omnibus = omnibus,
-    statistic = as.numeric(null_result$observed_omnibus),
-    p_value = as.numeric(null_result$omnibus_p),
-    stringsAsFactors = FALSE
-  )
-  null_output <- list(
-    maxima = null_result$maxima,
-    omnibus = null_result$omnibus_null
-  )
-  if (retain_null) null_output$endpoint <- null_result$endpoint_null
-  unit_kind <- exchangeability$unit_kind %||% "subject"
-  unit_label <- switch(
-    unit_kind,
-    subject = "subjects",
-    site = "sites",
-    spatial_block = "spatial blocks"
-  )
-  result <- list(
-    tests = tests,
-    omnibus = omnibus_table,
-    support = NULL,
-    design = list(
-      unit_id = aligned$unit_id,
-      model = paste(deparse(model), collapse = " "),
-      test = design$test$label,
-      full_columns = colnames(design$full),
-      nuisance_columns = colnames(design$reduced),
-      group_summaries = group_summaries
-    ),
-    exchangeability = exchangeability,
-    sampling_unit = unit_kind,
-    diagnostics = c(design_diagnostics, list(
-      dropped_incomplete_units = aligned$dropped,
-      complete_family = TRUE,
-      permutations = nrow(exchangeability$schedule),
-      monte_carlo_resolution = 1 / (nrow(exchangeability$schedule) + 1),
-      family_hash = null_result$family_hash,
-      permutation_block = null_result$block_size,
-      endpoint_chunk = null_result$endpoint_chunk,
-      workers = workers,
-      endpoint_null_retained = retain_null,
-      vertices_permuted = FALSE
-    )),
-    history = list(
-      method = "freedman_lane",
-      schedule_hash = exchangeability$schedule_hash,
-      feature_provenance = features$history,
-      transform = stats::setNames(
-        transformed$transform, aligned$endpoints$endpoint_id
-      ),
-      adjustment = adjustment,
-      omnibus = omnibus,
-      inference_unit = paste0(
-        "independent_", unit_kind
-      ),
-      endpoint_selection_refit = FALSE
-    ),
-    claim = paste(
-      paste0(
-        "Freedman-Lane inference over complete independent ",
-        unit_label, ";"
-      ),
-      "validity assumes the declared exchangeability of residuals or sign symmetry,",
-      "and does not treat spatial elements as independent observations."
-    ),
-    raw_values = aligned$values,
-    analysis_values = transformed$values,
-    null = null_output
-  )
-  class(result) <- "ngeo_group_result"
-  result
 }
 
 #' @export
