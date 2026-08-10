@@ -8,7 +8,7 @@
     "docs:preview": "vitepress preview website"
   },
   "devDependencies": {
-    "markdown-it-mathjax3": "4.3.2",
+    "markdown-it-mathjax3": "5.2.0",
     "vitepress": "1.6.4"
   },
   "overrides": {
