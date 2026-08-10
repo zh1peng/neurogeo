@@ -49,11 +49,46 @@ first_existing <- function(candidates) {
   if (!length(existing)) return("")
   normalizePath(existing[[1L]], winslash = "/", mustWork = TRUE)
 }
+remote_capture <- function(host, command) {
+  if (!grepl("^[A-Za-z0-9._-]+$", host)) {
+    stop("Unsafe FreeSurfer validation host.")
+  }
+  output <- suppressWarnings(system2(
+    "ssh", c("-o", "BatchMode=yes", host, shQuote(command)),
+    stdout = TRUE, stderr = TRUE
+  ))
+  status <- attr(output, "status")
+  if (is.null(status)) status <- 0L
+  list(output = output, status = status)
+}
 resolve_tool <- function(row) {
+  remote_host <- if (startsWith(row$tool, "freesurfer_")) {
+    Sys.getenv("NEUROGEO_FREESURFER_HOST", unset = "")
+  } else {
+    ""
+  }
   override <- Sys.getenv(row$environment_variable, unset = "")
-  path_value <- unname(Sys.which(row$command))
-  path <- first_existing(c(override, row$local_hint, path_value))
-  available <- nzchar(path)
+  remote <- nzchar(remote_host)
+  path_value <- if (remote) "" else unname(Sys.which(row$command))
+  path <- if (remote) {
+    candidate <- c(override, row$local_hint)
+    candidate <- candidate[nzchar(candidate)]
+    if (length(candidate)) candidate[[1L]] else ""
+  } else {
+    first_existing(c(override, row$local_hint, path_value))
+  }
+  if (remote && nzchar(path) &&
+      !grepl("^/[A-Za-z0-9._/-]+$", path)) {
+    stop("Unsafe remote FreeSurfer executable path.")
+  }
+  available <- if (remote && nzchar(path)) {
+    identical(remote_capture(
+      remote_host,
+      paste("test -x", shQuote(path, type = "sh"))
+    )$status, 0L)
+  } else {
+    nzchar(path)
+  }
   version_args <- if (identical(row$tool, "connectome_workbench")) {
     "-version"
   } else {
@@ -62,18 +97,39 @@ resolve_tool <- function(row) {
   version_output <- character()
   version_exit <- NULL
   if (available) {
-    version_output <- suppressWarnings(system2(
-      path, version_args, stdout = TRUE, stderr = TRUE
-    ))
-    version_exit <- attr(version_output, "status")
-    if (is.null(version_exit)) version_exit <- 0L
+    if (remote) {
+      version <- remote_capture(
+        remote_host,
+        paste(shQuote(path, type = "sh"), version_args)
+      )
+      version_output <- version$output
+      version_exit <- version$status
+    } else {
+      version_output <- suppressWarnings(system2(
+        path, version_args, stdout = TRUE, stderr = TRUE
+      ))
+      version_exit <- attr(version_output, "status")
+      if (is.null(version_exit)) version_exit <- 0L
+    }
   }
   version_text <- paste(version_output, collapse = "\n")
   version_ok <- available && identical(version_exit, 0L) &&
     grepl(row$required_version, version_text, fixed = TRUE)
-  executable_hash <- if (available) digest::digest(
-    path, algo = "sha256", file = TRUE, serialize = FALSE
-  ) else NULL
+  executable_hash <- if (available && remote) {
+    hash <- remote_capture(
+      remote_host,
+      paste("sha256sum", shQuote(path, type = "sh"))
+    )
+    if (identical(hash$status, 0L) && length(hash$output)) {
+      strsplit(hash$output[[1L]], "[[:space:]]+")[[1L]][[1L]]
+    } else {
+      NULL
+    }
+  } else if (available) {
+    digest::digest(
+      path, algo = "sha256", file = TRUE, serialize = FALSE
+    )
+  } else NULL
   expected_executable_hash <- trimws(row$executable_sha256)
   executable_hash_ok <- available && (
     !nzchar(expected_executable_hash) ||
@@ -92,17 +148,42 @@ resolve_tool <- function(row) {
   )
   license_candidates <- c(
     Sys.getenv("FS_LICENSE", unset = ""),
-    if (nzchar(Sys.getenv("FREESURFER_HOME", unset = ""))) {
+    if (remote && nzchar(path)) {
+      file.path(dirname(dirname(path)), "license.txt")
+    } else if (nzchar(Sys.getenv("FREESURFER_HOME", unset = ""))) {
       file.path(Sys.getenv("FREESURFER_HOME"), "license.txt")
     } else ""
   )
-  license_path <- if (license_required) first_existing(license_candidates) else ""
+  license_path <- if (license_required && remote) {
+    candidate <- license_candidates[nzchar(license_candidates)]
+    candidate <- if (length(candidate)) candidate[[1L]] else ""
+    if (nzchar(candidate) && identical(remote_capture(
+      remote_host,
+      paste("test -s", shQuote(candidate, type = "sh"))
+    )$status, 0L)) candidate else ""
+  } else if (license_required) {
+    first_existing(license_candidates)
+  } else ""
   license_ok <- !license_required || nzchar(license_path)
+  license_hash <- if (remote && nzchar(license_path)) {
+    hash <- remote_capture(
+      remote_host,
+      paste("sha256sum", shQuote(license_path, type = "sh"))
+    )
+    if (identical(hash$status, 0L) && length(hash$output)) {
+      strsplit(hash$output[[1L]], "[[:space:]]+")[[1L]][[1L]]
+    } else NULL
+  } else if (nzchar(license_path)) {
+    digest::digest(
+      license_path, algo = "sha256", file = TRUE, serialize = FALSE
+    )
+  } else NULL
   ready <- available && version_ok && executable_hash_ok &&
     archive_hash_ok && license_ok
   list(
     tool = row$tool, command = row$command,
     required_version = row$required_version, platform = row$platform,
+    execution_host = if (remote) remote_host else "local",
     source_url = row$source_url, license_url = row$license_url,
     available = available, ready = ready,
     path = if (available) path else NULL,
@@ -116,7 +197,8 @@ resolve_tool <- function(row) {
     archive_hash_ok = archive_hash_ok,
     license_required = license_required,
     license_available = license_ok,
-    license_path = if (nzchar(license_path)) license_path else NULL
+    license_path = if (nzchar(license_path)) license_path else NULL,
+    license_sha256 = license_hash
   )
 }
 tools <- lapply(seq_len(nrow(manifest)), function(index) {
