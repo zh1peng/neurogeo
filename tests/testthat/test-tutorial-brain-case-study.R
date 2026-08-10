@@ -19,6 +19,7 @@ test_that("DK tutorial cohort preserves subject and parcel semantics", {
   expect_true(all(dk$adjacency == t(dk$adjacency)))
   expect_false(any(diag(dk$adjacency)))
   expect_silent(ngeo_validate(dk$cohort, "strict"))
+  expect_no_error(ggplot2::ggplot_build(ngeo_tutorial_plot_dk(dk$cohort)))
 })
 
 test_that("vertex tutorial data expose the declared support family", {

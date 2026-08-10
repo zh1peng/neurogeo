@@ -214,8 +214,11 @@ ngeo_tutorial_plot_dk <- function(x, layer = 1L, title = NULL,
     maximum <- max(abs(value_range - midpoint))
     limits <- midpoint + c(-maximum, maximum)
   }
-  plot <- ggplot2::ggplot(data, ggplot2::aes(fill = value)) +
-    ggseg::geom_brain(atlas = ggseg::dk(), colour = "white", size = 0.08) +
+  plot <- ggplot2::ggplot(data) +
+    ggseg::geom_brain(
+      ggplot2::aes(fill = value),
+      atlas = ggseg::dk(), colour = "white", size = 0.08
+    ) +
     ggplot2::labs(title = title, fill = NULL) +
     ggplot2::theme_void() +
     ggplot2::theme(
