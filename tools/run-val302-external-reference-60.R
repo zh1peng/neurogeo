@@ -19,6 +19,13 @@ suppressPackageStartupMessages(library(neurogeo))
 sha_file <- function(path) digest::digest(
   path, algo = "sha256", file = TRUE, serialize = FALSE
 )
+sha_canonical_text <- function(path) {
+  connection <- file(path, open = "rb")
+  on.exit(close(connection))
+  bytes <- readBin(connection, what = "raw", n = file.info(path)$size)
+  drop_cr <- bytes == as.raw(13L) & c(bytes[-1L] == as.raw(10L), FALSE)
+  digest::digest(bytes[!drop_cr], algo = "sha256", serialize = FALSE)
+}
 command_result <- function(command, arguments) {
   output <- suppressWarnings(system2(
     command, arguments, stdout = TRUE, stderr = TRUE
@@ -634,8 +641,13 @@ report <- list(
   ),
   checks = checks,
   artifacts = list(
-    cells = list(path = basename(cells_path), sha256 = sha_file(cells_path)),
-    receipts = list(path = basename(receipts_path), sha256 = sha_file(receipts_path))
+    hash_convention = "sha256-after-crlf-to-lf-normalization",
+    cells = list(
+      path = basename(cells_path), sha256 = sha_canonical_text(cells_path)
+    ),
+    receipts = list(
+      path = basename(receipts_path), sha256 = sha_canonical_text(receipts_path)
+    )
   ),
   evidence_boundary = paste(
     "FreeSurfer and Connectome Workbench are external validation comparators only",

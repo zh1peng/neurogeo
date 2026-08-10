@@ -18,6 +18,13 @@ if (any(!file.exists(c(report_path, cells_path, receipts_path)))) {
 sha_file <- function(path) digest::digest(
   path, algo = "sha256", file = TRUE, serialize = FALSE
 )
+sha_canonical_text <- function(path) {
+  connection <- file(path, open = "rb")
+  on.exit(close(connection))
+  bytes <- readBin(connection, what = "raw", n = file.info(path)$size)
+  drop_cr <- bytes == as.raw(13L) & c(bytes[-1L] == as.raw(10L), FALSE)
+  digest::digest(bytes[!drop_cr], algo = "sha256", serialize = FALSE)
+}
 report <- jsonlite::read_json(report_path, simplifyVector = FALSE)
 cells <- utils::read.csv(cells_path, stringsAsFactors = FALSE, check.names = FALSE)
 receipts <- utils::read.csv(receipts_path, stringsAsFactors = FALSE, check.names = FALSE)
@@ -66,8 +73,14 @@ checks <- list(
     unique(receipts$tool),
     c("connectome_workbench", "freesurfer_surface", "freesurfer_volume")
   ),
-  artifact_hashes = identical(report$artifacts$cells$sha256[[1L]], sha_file(cells_path)) &&
-    identical(report$artifacts$receipts$sha256[[1L]], sha_file(receipts_path)),
+  artifact_hashes = identical(
+    report$artifacts$hash_convention[[1L]],
+    "sha256-after-crlf-to-lf-normalization"
+  ) && identical(
+    report$artifacts$cells$sha256[[1L]], sha_canonical_text(cells_path)
+  ) && identical(
+    report$artifacts$receipts$sha256[[1L]], sha_canonical_text(receipts_path)
+  ),
   report_pass = isTRUE(report$validation_evidence[[1L]])
 )
 pass <- all(unlist(checks, use.names = FALSE))

@@ -123,13 +123,14 @@
     "freesurfer_volume_identity_verified": true
   },
   "artifacts": {
+    "hash_convention": "sha256-after-crlf-to-lf-normalization",
     "cells": {
       "path": "val302-external-reference-cells-6.0.csv",
-      "sha256": "0bfa39010b845d31dcdb769394f5df9c78a71b62b7adc2b8e1b109838412159f"
+      "sha256": "d6e57dce1ce9fbbd07d6127baeb3aa3b445cef3e078bcdf891ec0874909d1cd0"
     },
     "receipts": {
       "path": "val302-external-command-receipts-6.0.csv",
-      "sha256": "ce0d649433919d764fbcb33b08081415b9ff37776330e72147dc7a19b0d86f7b"
+      "sha256": "9e65db3dc2107ae77b1d3e2f0ccf9346bcece7accd6b364231f55098ec1c07b9"
     }
   },
   "evidence_boundary": "FreeSurfer and Connectome Workbench are external validation comparators only and are not package runtime dependencies. CIFTI-to-CIFTI and Workbench-style surface target-gather cells remain explicitly unsupported; neurogeo surface barycentric evidence applies only to its conservative source-scatter contract."
