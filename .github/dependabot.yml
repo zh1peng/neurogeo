@@ -1,12 +1,20 @@
 version: 2
+
+# Keep routine dependency maintenance visible without opening one PR per
+# package. Security updates remain managed by GitHub's Dependabot settings.
+multi-ecosystem-groups:
+  monthly-maintenance:
+    schedule:
+      interval: monthly
+
 updates:
   - package-ecosystem: github-actions
     directory: /
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+    patterns:
+      - "*"
+    multi-ecosystem-group: monthly-maintenance
   - package-ecosystem: npm
     directory: /
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+    patterns:
+      - "*"
+    multi-ecosystem-group: monthly-maintenance
