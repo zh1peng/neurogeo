@@ -14,6 +14,8 @@ test_that("DK tutorial cohort preserves subject and parcel semantics", {
   expect_equal(dim(ngeo_values(dk$cohort)), c(68L, 200L))
   expect_equal(as.integer(table(dk$design$group)), c(100L, 100L))
   expect_equal(nrow(ngeo_values(dk$difference)), 68L)
+  expect_true(all(is.finite(dk$centroids)))
+  expect_true(all(dk$support_size > 0L))
   expect_true(all(dk$adjacency == t(dk$adjacency)))
   expect_false(any(diag(dk$adjacency)))
   expect_silent(ngeo_validate(dk$cohort, "strict"))

@@ -35,6 +35,7 @@ Suggests:
     gstat,
     ggplot2,
     ggseg,
+    ggseg.formats,
     gifti,
     GWmodel,
     igraph,

@@ -12,8 +12,15 @@ ngeo_tutorial_dk_case_control <- function(n_per_group = 100L, seed = 20260810L) 
   stopifnot(length(n_per_group) == 1L, n_per_group > 1L)
 
   atlas <- ggseg::dk()
-  regions <- atlas$core
-  regions <- regions[regions$region != "corpus callosum", , drop = FALSE]
+  atlas_sf <- ggseg.formats::atlas_sf(atlas)
+  region_data <- sf::st_drop_geometry(atlas_sf)
+  region_data <- region_data[
+    !is.na(region_data$label) & !is.na(region_data$region) &
+      region_data$region != "corpus callosum",
+    ,
+    drop = FALSE
+  ]
+  regions <- unique(region_data[c("label", "hemi", "region", "lobe")])
   regions <- as.data.frame(regions, stringsAsFactors = FALSE)
   regions$region_id <- regions$label
   regions <- regions[c("region_id", "label", "hemi", "region", "lobe")]
@@ -22,7 +29,6 @@ ngeo_tutorial_dk_case_control <- function(n_per_group = 100L, seed = 20260810L) 
   # The graph is derived from nearest parcels in each atlas view. It is a
   # reproducible teaching graph, not a replacement for subject-surface
   # geodesic adjacency in a scientific analysis.
-  atlas_sf <- atlas$data$sf
   atlas_sf <- atlas_sf[atlas_sf$label %in% regions$label, , drop = FALSE]
   adjacency <- matrix(FALSE, n_region, n_region,
                       dimnames = list(regions$label, regions$label))
@@ -57,7 +63,7 @@ ngeo_tutorial_dk_case_control <- function(n_per_group = 100L, seed = 20260810L) 
   centroids <- centroid_sum / centroid_n
   colnames(centroids) <- c("atlas_x", "atlas_y")
 
-  support_lookup <- atlas$data$vertices
+  support_lookup <- ggseg.formats::atlas_vertices(atlas)
   support_size <- vapply(regions$label, function(label) {
     length(support_lookup$vertices[[match(label, support_lookup$label)]])
   }, integer(1))
