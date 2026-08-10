@@ -46,7 +46,7 @@ formative <- utils::read.csv(
 )
 phase3_paths <- stats::setNames(file.path(
   "check-output", "registry", c(
-    "val301-safe-boundary-60.json", "val302-external-prerequisites-60.json",
+    "val301-safe-boundary-60.json", "val302-external-evidence-60.json",
     "val303-sampling-unit-60.json", "val304-cross-atlas-60.json",
     "val305-operator-simplex-60.json", "val306-spatial-models-60.json",
     "val307-support-builder-60.json", "val308-coverage-audit-60.json"

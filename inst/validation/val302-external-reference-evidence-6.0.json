@@ -1,0 +1,136 @@
+{
+  "schema": "neurogeo/val302-external-reference/1",
+  "validation_id": "VAL-302",
+  "status": "passed-with-declared-unsupported-cells",
+  "validation_evidence": true,
+  "package_version": "6.0.0",
+  "source_commit": "c839870516a59d93a10b6145c3be572dab629fe4",
+  "design_sha256": "622bb892988d9ebfe051352991562026ff3460890a5a9c7673946949315a7243",
+  "generated_at_utc": "2026-08-10T01:39:20Z",
+  "external_environment": {
+    "freesurfer_host": "linux212",
+    "freesurfer_remote_work": "/home/zcao/neurogeo-val302-c839870516a5",
+    "tools": [
+      {
+        "tool": "connectome_workbench",
+        "command": "wb_command",
+        "required_version": "2.2.1",
+        "platform": "windows-x86_64",
+        "execution_host": "local",
+        "source_url": "https://www.humanconnectome.org/storage/app/media/workbench/workbench-windows64-v2.2.1.zip",
+        "license_url": "https://www.humanconnectome.org/software/connectome-workbench",
+        "available": true,
+        "ready": true,
+        "path": "E:/03_tools/neurogeo/.tools/workbench-2.2.1/workbench/bin_windows64/wb_command.exe",
+        "version_exit": 0,
+        "version_output": [
+          "Connectome Workbench",
+          "Type: Command Line Application",
+          "Version: 2.2.1",
+          "Qt Compiled Version: 5.7.0",
+          "Qt Runtime Version: 5.7.0",
+          "Commit: 01164ffa47f2778088bd6ff472ec9cd9a57f5b42",
+          "Commit Date: 2026-07-13 18:19:49 -0500",
+          "Compiler: cl.exe (C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/amd64)",
+          "Compiler Version: 19.0.24215.1",
+          "Compiled Debug: NO",
+          "Operating System: Windows",
+          "Compiled with OpenMP: YES"
+        ],
+        "version_ok": true,
+        "executable_sha256": "7a44bbad77609e1ba195833c3e7bee9db45c8e4c6d6814721fbc772ad8a2321d",
+        "executable_hash_ok": true,
+        "archive_path": "E:/03_tools/neurogeo/.tools/workbench-windows64-v2.2.1.zip",
+        "archive_sha256": "8ca7da7f00a31f81c5d93b63abf37210ba462592de4fb76e7f9ff6b059d43abb",
+        "archive_hash_ok": true,
+        "license_required": false,
+        "license_available": true,
+        "license_path": null,
+        "license_sha256": null
+      },
+      {
+        "tool": "freesurfer_surface",
+        "command": "mri_surf2surf",
+        "required_version": "7.4.1",
+        "platform": "linux-x86_64",
+        "execution_host": "linux212",
+        "source_url": "https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall",
+        "license_url": "https://surfer.nmr.mgh.harvard.edu/registration.html",
+        "available": true,
+        "ready": true,
+        "path": "/usr/local/freesurfer/7.4.1/bin/mri_surf2surf",
+        "version_exit": 0,
+        "version_output": "mri_surf2surf freesurfer 7.4.1",
+        "version_ok": true,
+        "executable_sha256": "572245cbe73e27898524d3b1f7bd38300287d37b4206295eebff0c44a65a0a25",
+        "executable_hash_ok": true,
+        "archive_path": null,
+        "archive_sha256": null,
+        "archive_hash_ok": true,
+        "license_required": true,
+        "license_available": true,
+        "license_path": "/usr/local/freesurfer/7.4.1/license.txt",
+        "license_sha256": "6eef2f560a7e7a11ef89c8fae8acb658a9939e762e2f03e434e7ee65308c1be3"
+      },
+      {
+        "tool": "freesurfer_volume",
+        "command": "mri_vol2vol",
+        "required_version": "7.4.1",
+        "platform": "linux-x86_64",
+        "execution_host": "linux212",
+        "source_url": "https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall",
+        "license_url": "https://surfer.nmr.mgh.harvard.edu/registration.html",
+        "available": true,
+        "ready": true,
+        "path": "/usr/local/freesurfer/7.4.1/bin/mri_vol2vol",
+        "version_exit": 0,
+        "version_output": "mri_vol2vol freesurfer 7.4.1",
+        "version_ok": true,
+        "executable_sha256": "262d7794b87ba4394fecd5edd9b9883d4f4100821d8dd5b7e8528847d9a1568c",
+        "executable_hash_ok": true,
+        "archive_path": null,
+        "archive_sha256": null,
+        "archive_hash_ok": true,
+        "license_required": true,
+        "license_available": true,
+        "license_path": "/usr/local/freesurfer/7.4.1/license.txt",
+        "license_sha256": "6eef2f560a7e7a11ef89c8fae8acb658a9939e762e2f03e434e7ee65308c1be3"
+      }
+    ],
+    "source_surface": {
+      "remote_path": "/usr/local/freesurfer/7.4.1/subjects/fsaverage6/surf/lh.sphere.reg",
+      "sha256": "9d1b6805f9e4831f903f358d7677d7c3378b6fca9b70300e3e72aeff503b001f",
+      "vertices": 40962,
+      "faces": 81920
+    }
+  },
+  "summary": {
+    "attempted_cells": 108,
+    "executed_cells": 60,
+    "unsupported_cells": 48,
+    "failed_cells": 0,
+    "command_receipts": 90
+  },
+  "checks": {
+    "frozen_grid_complete": true,
+    "every_cell_attempted": true,
+    "declared_unsupported_retained": true,
+    "supported_cells_pass": true,
+    "no_supported_failures": true,
+    "command_receipts_complete": true,
+    "workbench_identity_verified": true,
+    "freesurfer_surface_identity_verified": true,
+    "freesurfer_volume_identity_verified": true
+  },
+  "artifacts": {
+    "cells": {
+      "path": "val302-external-reference-cells-6.0.csv",
+      "sha256": "0bfa39010b845d31dcdb769394f5df9c78a71b62b7adc2b8e1b109838412159f"
+    },
+    "receipts": {
+      "path": "val302-external-command-receipts-6.0.csv",
+      "sha256": "ce0d649433919d764fbcb33b08081415b9ff37776330e72147dc7a19b0d86f7b"
+    }
+  },
+  "evidence_boundary": "FreeSurfer and Connectome Workbench are external validation comparators only and are not package runtime dependencies. CIFTI-to-CIFTI and Workbench-style surface target-gather cells remain explicitly unsupported; neurogeo surface barycentric evidence applies only to its conservative source-scatter contract."
+}
