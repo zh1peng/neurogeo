@@ -204,6 +204,7 @@ reference:
   - plot.ngeo_support_diagnostics
 - title: Spatial statistics
   contents:
+  - ngeo_inference_contract
   - ngeo_moran
   - ngeo_geary
   - ngeo_local_moran
@@ -233,6 +234,7 @@ reference:
   contents:
   - ngeo_bind_layers
   - ngeo_validate_layers
+  - ngeo_layer_index
   - ngeo_spatial_basis
   - ngeo_basis_project
   - ngeo_layer_coupling
@@ -269,10 +271,12 @@ reference:
 - title: Validation and accessors
   contents:
   - ngeo_accessors
+  - ngeo_prefixed_accessors
   - ngeo_capabilities
   - base_hash
   - base_type
   - ngeo_subset
+  - ngeo_update_measure
   - ngeo_validate
   - ngeo_qc
   - plot.ngeo_qc
@@ -317,6 +321,7 @@ reference:
   - plot.ngeo_cortical_layout
 - title: Interoperability
   contents:
+  - ngeo_migrate_5x
   - as_igraph
   - as_spdep_nb
   - as_spdep_listw
