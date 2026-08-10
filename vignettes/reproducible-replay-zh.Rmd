@@ -1,69 +1,76 @@
 ---
-title: "可审计 replay 与 derivative artifact"
+title: "DK case-control cortical selection 的可复现 replay"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{可审计 replay 与 derivative artifact}
+  %\VignetteIndexEntry{DK case-control cortical selection 的可复现 replay}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-## 基础背景
-
-可复现性不仅是保存 final numbers。replay record 应识别 exact input、ordered
-operation、parameter、intermediate hash、execution environment 和 expected
-output。限制可用 operation vocabulary 能让记录被审阅，也避免 manifest 变成
-任意 R code 的容器。
-
-## 记录并验证分析
-
-```{r}
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
-x <- ngeo_point(
-  cbind(x = 1:4, y = 0, z = 0),
-  values = cbind(t0 = 1:4, t1 = 2 * (1:4), t2 = 3 * (1:4))
-)
-x <- ngeo_set_time_axis(
-  x,
-  ngeo_time_axis(start = 0, step = 1, n = 3, unit = "day"),
-  temporal_semantics = "instantaneous"
-)
-steps <- list(
-  ngeo_replay_step(
-    "window", "ngeo_time_slice", c(x = "source"),
-    list(index = 1:2)
-  ),
-  ngeo_replay_step(
-    "trend", "ngeo_temporal_trend", c(x = "window")
-  )
-)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+dk <- ngeo_tutorial_dk_case_control()
+```
+
+## 记录数据 identity 与预先声明的 cortical subset
+
+可复现不只是保存最终数字。replay record 必须识别准确的 68 × 200 input、顺序
+operations、parameters、environment 与 expected hashes。本例预先声明的 cortical
+set 包含双侧 superior temporal、insula、anterior cingulate 与 medial orbitofrontal
+parcels。
+
+```{r selection}
+selected <- which(dk$regions$region %in% c(
+  "superior temporal", "insula", "caudal anterior cingulate",
+  "rostral anterior cingulate", "medial orbitofrontal"
+))
+steps <- list(ngeo_replay_step(
+  "cortical_set", "ngeo_subset", c(x="source"),
+  list(elements=selected, layers=seq_len(200))
+))
 manifest <- ngeo_record_replay(
-  list(source = x), steps, outputs = "trend"
+  list(source=dk$cohort), steps, outputs="cortical_set"
 )
-verified <- ngeo_replay(manifest, list(source = x))
+verified <- ngeo_replay(manifest, list(source=dk$cohort))
 verified$verified
+manifest$canonical_sha256
 ```
 
-## Logical identity
+## 在脑图上验证 output
 
-logical hash 覆盖 ordered base、aligned values、measurement semantics、
-layers、labels 和 file identity；execution timestamp 不改变该 identity。
-replay 在返回结果前检查 environment 以及每个 input、intermediate 和 final
-hash。
+replayed object 保留全部 200 个 subject layers，但只保留声明的 parcels。未选择的
+DK cortex 显示为灰色，因此 recorded spatial scope 可以直接检查。
 
-## 发布相关 artifacts
-
-```{r eval=FALSE}
-ngeo_write_artifact_batch(
-  "derivatives/neurogeo/sub-01",
-  c("sub-01_metric.tsv", "sub-01_metric.json"),
-  list(
-    function(path) write.table(distance_method, path, sep = "\t"),
-    function(path) jsonlite::write_json(sidecar, path)
-  ),
-  roles = c("distance_method", "sidecar"),
-  entities = list(subject = "01", datatype = "anat")
+```{r replay-brain, fig.width=9, fig.height=4.6, fig.alt="一名 HC 的 replayed preregistered DK cortical subset", fig.cap="replay hash 验证 identity；脑图验证选择的 spatial scope 是否符合预期。"}
+replayed <- verified$outputs$cortical_set
+ngeo_tutorial_plot_dk(
+  replayed, "sub-001", title="Verified replay：预先声明的 cortical set"
 )
 ```
 
-artifact 使用 root-relative path 和 SHA-256；batch scope 只覆盖指定 derivative，
-不会发现或运行整个 BIDS dataset。
+logical hash 覆盖有序 base elements、values、layer/measure metadata、labels 与 file
+identity；timestamp 不改变它。replay 在返回 `verified = TRUE` 前检查 input、
+intermediate 与 output hash。受限 operation vocabulary 防止 manifest 变成任意代码
+容器。
+
+## 发布相关 derivatives
+
+```{r publish, eval=FALSE}
+batch <- ngeo_write_artifact_batch(
+  "derivatives/neurogeo/group-scz-vs-hc",
+  c("group_desc-SCZminusHC_thickness.tsv", "group_desc-SCZminusHC_thickness.json"),
+  list(
+    function(path) write.table(parcel_effects, path, sep="\t", row.names=FALSE),
+    function(path) jsonlite::write_json(sidecar, path, auto_unbox=TRUE)
+  ),
+  roles=c("effect_map", "sidecar"),
+  entities=list(analysis="SCZminusHC", datatype="anat")
+)
+```
+
+artifacts 使用 root-relative paths 与 SHA-256 content hashes。`neurogeo` 发布声明的
+derivative batch，不发现或编排整个 BIDS dataset。

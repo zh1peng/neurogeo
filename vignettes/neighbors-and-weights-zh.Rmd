@@ -1,68 +1,94 @@
 ---
-title: "邻接关系与空间权重"
+title: "DK68 case-control 脑图上的皮层邻接与权重"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{邻接关系与空间权重}
+  %\VignetteIndexEntry{DK68 case-control 脑图上的皮层邻接与权重}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>",
-                      fig.width = 7, fig.height = 5)
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+dk <- ngeo_tutorial_dk_case_control()
+x <- dk$difference
 ```
 
-## 基础背景
+## 先看要定义邻接的脑图
 
-空间统计首先需要回答“哪些位置可以相互影响”。空间权重矩阵 \(W\) 把这个选择
-写成稀疏矩阵：\(w_{ij}>0\) 表示元素 \(j\) 是元素 \(i\) 的邻居。邻域规则是
-模型假设，不是无关紧要的实现细节。
+`x` 是 DK68 上的 SCZ-minus-HC 皮层厚度 contrast。neighborhood 是 estimand
+的一部分：皮层 contiguity、centroid KNN 与 surface geodesic distance 回答的是
+不同问题。
 
-surface 常由 mesh edge 定义邻接，volume 可使用 mask 内的 6/18/26 邻接，
-points 可使用距离带或 KNN；grayordinates 默认保持不同结构之间 block diagonal。
+```{r input-map, fig.width=9, fig.height=4.6, fig.alt="DK68 上的 SCZ 减 HC 皮层厚度", fig.cap="先在将要分析的脑图上定位空间关系。"}
+ngeo_tutorial_plot_dk(x, title="SCZ 减 HC 皮层厚度（mm）")
+```
 
-## 构造距离带权重
+## 使用显式 DK graph
 
-```{r}
-coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
-x <- ngeo_point(
-  coordinates,
-  values = cbind(signal = c(1, 2, 3, 2, 4, 7, 3, 7, 9)),
-  measures = ngeo_measure(support_behavior = "intensive")
+教学对象保存了由 atlas 图形局部邻近构造的对称 graph，并保持左右半球断开。
+真实 surface 分析应从已配准 mesh faces 或有记录的 geodesic rule 构建 topology。
+
+```{r weights}
+binary <- ngeo_spatial_weights(x, method="region_contiguity", style="B")
+row_standardized <- ngeo_spatial_weights(
+  x, method="region_contiguity", style="W"
 )
-w <- ngeo_spatial_weights(
-  x, method = "distance_band", threshold = 1.01, style = "W"
+c(
+  parcels=nrow(ngeo_values(x)),
+  undirected_edges=sum(binary$raw_matrix != 0) / 2,
+  isolated_parcels=sum(Matrix::rowSums(binary$raw_matrix != 0) == 0)
 )
-w$diagnostics
+summary(Matrix::rowSums(binary$raw_matrix != 0))
 ```
 
-`style = "W"` 使每行权重和为 1，`"B"` 仅保留是否邻接，`"none"` 保留原始
-edge 或 kernel weight。
+binary weights 让每条相邻边权重相同；row-standardized weights 让每个 parcel
+的 outgoing weight 总和为 1，因此邻居多的 parcel 单条边贡献更小。这个选择会
+改变统计量，必须报告。
 
-## 可视化检查
-
-矩阵打印不容易发现断开的 component 或意外对角线；应直接检查空间图。
-
-```{r network, fig.alt="三乘三点网格及其水平和垂直邻接边"}
-W <- as.matrix(w$matrix)
-edges <- which(upper.tri(W) & ((W > 0) | (t(W) > 0)), arr.ind = TRUE)
-plot(coordinates, type = "n", asp = 1, xlab = "x", ylab = "y",
-     main = "距离带邻接")
-segments(coordinates[edges[, 1], 1], coordinates[edges[, 1], 2],
-         coordinates[edges[, 2], 1], coordinates[edges[, 2], 2],
-         col = "#8aa6a3", lwd = 2)
-points(coordinates, pch = 21, bg = "#26a69a", col = "white", cex = 2.5)
-text(coordinates, labels = seq_len(nrow(coordinates)))
+```{r weight-diagnostic, fig.width=7, fig.height=4, fig.alt="DK parcel 邻居数直方图", fig.cap="degree diagnostic 与脑图配套使用，不能替代脑图。"}
+plot(binary)
 ```
 
-## 用于空间统计
+## 全局与局部空间关联
 
-```{r}
-ngeo_distance(x, from = 1, to = c(2, 5, 9), distance_method = "euclidean")
-ngeo_moran(x, w, "signal")
-head(ngeo_local_moran(x, w, "signal"))
+```{r inference}
+global <- ngeo_moran(
+  x, row_standardized, "SCZ_minus_HC",
+  permutations=499, seed=2026
+)
+local <- ngeo_local_moran(
+  x, row_standardized, "SCZ_minus_HC",
+  permutations=499, seed=2026, adjust="BH",
+  null_model="conditional"
+)
+global
 ```
 
-解释结果时必须同时报告构造方法、threshold 或 \(k\)、symmetry policy 和
-standardization style。
+把 local Moran's I 放回原来的 cortical support，而不是阅读一个没有空间位置的
+数值向量。
+
+```{r local-map, fig.width=9, fig.height=4.6, fig.alt="DK68 上的 case-control contrast local Moran I", fig.cap="局部统计量返回对应皮层分区后再解释。"}
+local_map <- ngeo_parcellation(
+  dk$regions, values=cbind(local_I=local$local_i),
+  centroid=dk$centroids,
+  support_size=dk$support_size, adjacency=dk$adjacency,
+  measures=ngeo_measure(name="local Moran I", support_behavior="intensive",
+                        unit="dimensionless"),
+  coordinate_space=ngeo_spatial_base(dk$cohort)$coordinate_space
+)
+ngeo_tutorial_plot_dk(local_map, title="SCZ 减 HC 的 local Moran's I")
+```
+
+这里的 permutation null 在固定 graph 上重新分配 parcel values；它刻画 contrast
+的空间结构，不是 diagnosis 的 subject-level 检验。后者必须按照 case-control
+设计交换完整 subjects。
+
+## 应报告的 specification
+
+记录 base（DK68）、graph 来源、metric、neighborhood rule、normalization、island
+处理、diagonal convention、permutation 数、seed 与独立 sampling unit。改变任何
+一项都可能改变科学结论。

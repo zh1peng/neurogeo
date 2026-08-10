@@ -1,58 +1,91 @@
 ---
-title: "Unified scientific quality control"
+title: "Quality control for DK68 and vertex case-control data"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Unified scientific quality control}
+  %\VignetteIndexEntry{Quality control for DK68 and vertex case-control data}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+dk <- ngeo_tutorial_dk_case_control()
+vertex <- ngeo_tutorial_vertex_case_control()
 ```
 
 ## Validation and QC answer different questions
 
-`ngeo_validate()` enforces NGCS structural invariants. `ngeo_qc()` reports
-conditions that can be valid but require a scientific decision. QC does not
-repair data or infer missing metadata.
+`ngeo_validate()` checks structural invariants: 68 DK rows align across all 200
+subjects, layer metadata align with columns, and measure semantics are valid.
+`ngeo_qc()` reports scientifically relevant conditions without repairing them.
 
-```{r basic}
-x <- ngeo_point(
-  matrix(c(0, 0, 1, 0, 2, 0), ncol = 2, byrow = TRUE),
-  values = cbind(signal = c(1, 2, 3), constant = c(5, 5, 5))
-)
-
-qc <- ngeo_qc(x)
-qc
+```{r validate}
+ngeo_validate(dk$cohort, "strict")
+qc <- ngeo_qc(dk$cohort)
+qc$summary
 qc$checks
-qc$layer_summary
+head(qc$layer_summary)
 ```
 
-```{r plot, fig.width=6, fig.height=4}
+## QC remains spatially oriented
+
+Inspect a subject map and the case-control contrast alongside the tabular QC
+report. A global pass cannot reveal a localized but anatomically implausible
+pattern.
+
+```{r brain-qc, fig.width=9, fig.height=4.6, fig.alt="One simulated HC cortical thickness map on DK68 for visual QC", fig.cap="Structural validation and a brain plot answer complementary QC questions."}
+ngeo_tutorial_plot_dk(
+  dk$cohort, "sub-001", title="Visual QC: sub-001 cortical thickness"
+)
+```
+
+```{r qc-plot, fig.width=7, fig.height=4, fig.alt="Summary plot of neurogeo QC statuses", fig.cap="The status plot summarizes machine-readable checks; it does not localize values on cortex."}
 plot(qc)
 ```
 
-The status vocabulary is `pass`, `info`, `warning`, `not_evaluated`, and
-`not_applicable`. A large values block is never read beyond
-`max_value_cells`:
+## Bound the values scan explicitly
+
+For a large cohort, `max_value_cells` limits how many cells QC may inspect. A
+bounded scan reports what was not evaluated; it never silently treats an
+unread block as passing.
 
 ```{r budget}
-ngeo_qc(x, max_value_cells = 2)$checks
+bounded_qc <- ngeo_qc(dk$cohort, max_value_cells=1000)
+bounded_qc$checks
 ```
 
-An aligned support map adds sparse coverage and conservation checks:
+## Audit support coverage on vertex data
+
+The complete Schaefer200-sized teaching map assigns every one of 672 vertices
+to exactly one target parcel. We then remove an anterior-temporal subset to
+show partial coverage on the brain and in sparse diagnostics.
 
 ```{r support}
-atlas <- ngeo_atlas_map(
-  x,
-  c("A", "A", NA),
-  source_support = rep(1, 3)
+complete_map <- ngeo_atlas_map(
+  vertex$difference, vertex$supports$Schaefer200,
+  source_support=ngeo_vertex_area(vertex$difference)
 )
-ngeo_qc(x, support_map = atlas)$checks
+partial_labels <- vertex$supports$Schaefer200
+partial_labels[vertex$truth < -0.10] <- NA_character_
+partial_map <- ngeo_atlas_map(
+  vertex$difference, partial_labels,
+  source_support=ngeo_vertex_area(vertex$difference)
+)
+ngeo_qc(vertex$difference, support_map=partial_map)$checks
 ```
 
-QC does not perform registration, resampling, preprocessing, outlier
-removal, or statistical inference. A passing report is not a substitute for
-the study design and measurement assumptions.
+```{r coverage-brain, fig.width=9, fig.height=4.5, fig.alt="Vertex coverage mask with an anterior temporal missing region on bilateral cortex", fig.cap="The missing support is visible on the brain and quantified by the support-map QC."}
+coverage_surface <- ngeo_tutorial_surface_map(
+  vertex$difference, as.numeric(!is.na(partial_labels)),
+  "support coverage", unit="binary"
+)
+plot(coverage_surface, chart="flat", show_edges=FALSE, palette="Blues 3")
+```
+
+QC does not perform registration, preprocessing, outlier removal, or
+inference. A passing report is evidence about the checks that ran, not proof
+that the study design or anatomy is correct.

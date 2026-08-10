@@ -1,166 +1,143 @@
 ---
-title: "15 分钟快速开始：从固定教学数据到可解释的 Moran's I"
+title: "15 分钟快速开始：DK68 的 SCZ--HC 皮层研究"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{15 分钟快速开始：从固定教学数据到可解释的 Moran's I}
+  %\VignetteIndexEntry{15 分钟快速开始：DK68 的 SCZ--HC 皮层研究}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", message = FALSE,
+                      warning = FALSE, fig.align = "center")
 library(neurogeo)
-```
-
-## 这篇教程适合谁？
-
-如果你熟悉 MRI、fMRI、皮层表面或 ROI 表格，但第一次使用 `neurogeo`，请从这里开始。完成本页通常需要 10–15 分钟，内存低于 50 MB。你只需要一个干净的 R 会话；示例数据随包安装，不需要下载，也没有伪路径。
-
-完成后，你将能够：
-
-1. 说清 `base`、`values`、`layer` 和 `measure` 的区别；
-2. 构造并检查一个空间数据对象；
-3. 显式定义邻接关系和空间权重；
-4. 运行并解释 global Moran's I；
-5. 查看本次推断的 null、metric 和 sampling unit。
-
-## 先理解四个词
-
-神经影像数组本身不说明“每一行在哪里”或“数值能否求和”。`neurogeo` 因此把四类信息分开：
-
-| 术语 | 回答的问题 | 本例 |
-|---|---|---|
-| spatial base | 每一行数值属于哪里？ | 9 个二维点 |
-| values | 实际测量值是什么？ | 一列 `signal` |
-| layer | 哪一列 values 正在被分析？ | `signal` |
-| measure | 单位和 support 语义是什么？ | a.u.、intensive |
-
-`intensive` 表示聚合时应求 support-weighted mean；它不同于可以直接求和的 `extensive` 或 `count`。坐标空间也必须显式声明。默认的 `unknown` 不等于毫米。
-
-## 1. 读取包内固定 fixture
-
-这个 CSV 是项目自生成的 CC0 教学数据。其许可、版本、大小和 SHA-256 记录在包内的 `tutorial-fixtures-6.0.csv`。
-
-```{r read-fixture}
-fixture_path <- system.file(
-  "extdata", "golden", "tiny-point-grid.csv",
-  package = "neurogeo",
+source(system.file(
+  "tutorial-code", "brain-case-study.R", package = "neurogeo",
   mustWork = TRUE
-)
-fixture <- read.csv(fixture_path)
-fixture
+))
+dk <- ngeo_tutorial_dk_case_control(n_per_group = 100, seed = 20260810)
 ```
 
-不要根据坐标“猜”行顺序。这里的 `element_id` 是源表中的稳定标识；`values` 第 *i* 行必须始终属于 base 的第 *i* 个元素。
+## 先说研究问题，再说对象
 
-## 2. 构造对象并声明测量语义
+我们模拟 100 名健康对照（HC）和 100 名精神分裂症被试（SCZ）的皮层厚度，
+空间 support 是 68 个 Desikan--Killiany（DK）皮层分区。年龄、性别与中心是
+受试者层面的协变量。模拟中预设 SCZ 在双侧颞上回、岛叶、前扣带和内侧眶额
+皮层厚度较低，并让相邻分区带有较弱效应。这是教学数据，不是临床证据。
 
-```{r construct}
-point_data <- ngeo_point(
-  coordinates = as.matrix(fixture[c("x_mm", "y_mm")]),
-  values = cbind(signal = fixture$signal),
-  measures = ngeo_measure(
-    measure_id = "measure_signal",
-    name = "teaching signal",
-    value_type = "continuous",
-    support_behavior = "intensive",
-    unit = "a.u."
-  ),
-  coordinate_space = ngeo_coordinate_space(
-    space_id = "synthetic-grid",
-    kind = "unknown",
-    unit = "mm"
-  )
-)
-point_data
+```{r study-design}
+with(dk$design, table(group, site))
+summary(dk$design$age)
+dim(ngeo_values(dk$cohort))
 ```
 
-使用公开访问器检查对象；正常工作流不应直接修改 `$measures` 或其他内部表。
+独立 sampling unit 是受试者。68 个 DK parcel 是空间元素，不能当成 68 个额外
+被试。
+
+## 先看脑图，再计算统计量
+
+第一幅图是一名 HC 的厚度图，第二幅图是描述性的 SCZ 减 HC contrast。后面每个
+数值都应能回到这两幅脑图上解释。
+
+```{r subject-brain, fig.width=9, fig.height=4.6, fig.alt="一名模拟健康对照的双侧 DK 皮层厚度脑图", fig.cap="一个 subject 是一个 layer；DK parcels 构成共享 spatial base。"}
+ngeo_tutorial_plot_dk(
+  dk$cohort, layer = "sub-001",
+  title = "模拟皮层厚度：sub-001（HC）"
+)
+```
+
+```{r contrast-brain, fig.width=9, fig.height=4.6, fig.alt="DK atlas 上的模拟 SCZ 减 HC 皮层厚度差异脑图", fig.cap="先查看 case-control contrast 的空间形态，再进行空间推断。"}
+ngeo_tutorial_plot_dk(
+  dk$difference,
+  title = "SCZ 减 HC 皮层厚度（mm）",
+  midpoint = 0
+)
+```
+
+## 数据模型：base、values、layers 与 measure
+
+| 术语 | 本例中的神经影像含义 | 形状 |
+|---|---|---|
+| base | DK 皮层分区 | 68 行 |
+| values | 皮层厚度 | 68 × 200 |
+| layer | 一名被试的一张脑图 | 200 列 |
+| measure | thickness、intensive、mm | 共享语义 |
 
 ```{r inspect}
-ngeo_base_type(point_data)
-head(ngeo_base_elements(point_data))
-ngeo_layers(point_data)
-ngeo_measures(point_data)
-ngeo_validate(point_data, "strict")
+ngeo_base_type(dk$cohort)
+head(ngeo_base_elements(dk$cohort)[c("region_id", "hemi", "region", "lobe")])
+head(ngeo_layers(dk$cohort)[c("layer_id", "subject_id", "group", "age", "site")])
+ngeo_measures(dk$cohort)
+ngeo_validate(dk$cohort, "strict")
 ```
 
-此时应有 9 个空间元素、1 个 layer，并且该 layer 引用 `measure_signal`。
+所有 200 列中的第 *i* 行始终属于同一 DK parcel。group、age、site 属于 layer
+metadata；毫米单位和 intensive support 语义属于 measure。单独一个数值矩阵并不
+携带这种对齐契约。
 
-## 3. 显式定义空间关系
+## 显式声明皮层空间关系
 
-点数据没有天然邻接。这里选择欧氏距离，并把相距不超过 1.01 mm 的水平或垂直邻居连接起来。这个选择属于分析设计，不是原始数据的隐藏属性。
+教学数据带有固定、对称的 DK 邻接图，它由 atlas 图形的局部邻近关系构造；
+`region_contiguity` 直接使用该图。真实研究应从已经配准的 cortical surface
+构建邻接或 geodesic weights，并记录来源，不能把教学图形推导的邻接冒充为
+科学分析中的表面邻接。
 
 ```{r weights}
-spatial_weights <- ngeo_spatial_weights(
-  point_data,
-  method = "distance_band",
-  threshold = 1.01,
-  distance_method = "euclidean",
+weights <- ngeo_spatial_weights(
+  dk$difference,
+  method = "region_contiguity",
   style = "W"
 )
-spatial_weights
+weights
+summary(Matrix::rowSums(weights$raw_matrix != 0))
 ```
 
-换成 KNN、不同阈值或 surface geodesic 会改变 estimand，应在方法部分报告。
+## 对 group contrast 提出空间问题
 
-## 4. 运行 global Moran's I
+下面的 global Moran's I 问的是：在固定 DK 图上进行 value-label permutation
+时，描述性的组间差值图是否比随机情况更聚集。它**不是** SCZ 与 HC 的组间检验；
+组间推断必须使用 200 名独立被试。
 
 ```{r moran}
-global_result <- ngeo_moran(
-  point_data,
-  spatial_weights,
-  layer = "signal",
-  permutations = 199,
+spatial_result <- ngeo_moran(
+  dk$difference,
+  weights,
+  layer = "SCZ_minus_HC",
+  permutations = 499,
   seed = 2026
 )
-global_result
+spatial_result
+ngeo_inference_contract(spatial_result)
 ```
 
-Moran's I 为正，表示相邻位置的 signal 倾向相似。置换 p 值回答的是：在当前空间权重保持不变、并允许按所声明规则交换数值标签时，至少同样极端的统计量出现得多频繁。它不是“存在生物学机制”的概率。
+契约把两者区分开：这里的 sampling units 是空间随机化 null 下的 parcels；
+case-control 模型的 sampling units 是 subjects，exchangeability 只能作用于完整
+受试者，不能作用于 vertex 或 parcel。
 
-用统一契约核对结果解释：
-
-```{r inference-contract}
-contract <- ngeo_inference_contract(global_result)
-contract
-```
-
-报告前至少确认 `estimand`、`sampling unit`、`null model`、`metric`、`support` 和 `uncertainty target`。如果这些内容与研究设计不一致，应更改分析，而不是只改文字。
-
-## 5. 查看局部模式和历史
+## 定位描述性空间模式
 
 ```{r local}
-local_result <- ngeo_local_moran(
-  point_data,
-  spatial_weights,
-  layer = "signal",
-  permutations = 199,
-  seed = 2026,
-  adjust = "BH",
+local <- ngeo_local_moran(
+  dk$difference, weights, layer = "SCZ_minus_HC",
+  permutations = 499, seed = 2026, adjust = "BH",
   null_model = "conditional"
 )
-local_result[c("element_id", "local_i", "p.adjusted", "cluster")]
+head(local[order(local$p.adjusted),
+  c("element_id", "local_i", "p.adjusted", "cluster")], 10)
 ```
 
-`cluster` 只是 Moran quadrant 描述；只有结合调整后的置换证据才能称为显著局部模式。对象历史记录了构造步骤：
-
-```{r history}
-construction <- ngeo_history(point_data)$operations[[1L]]
-construction$timestamp_utc <- NULL
-construction
-```
-
-## 常见错误
-
-- **把默认空间当作毫米：** `ngeo_coordinate_space()` 的默认 unit 是 `unknown`。物理距离分析前必须由可靠 header 或用户确认单位。
-- **按相似名字重排 values：** 包不会猜测对齐。保存并核对稳定 element ID。
-- **直接修改内部 measure 表：** 创建时使用 `ngeo_measure()`；之后使用 `ngeo_update_measure()`。
-- **把 layer 名称当成永久 ID：** 显示名称可以重复；可复现脚本优先保存 `layer_id`。
-- **把实验 null 当作稳定推断：** surface spin 和 Moran eigen-sign surrogate 尚未完成 type-I 校准，需要显式 opt-in，不能替代本页的稳定置换路径。
+Moran quadrant 描述相似 contrast 值聚集在哪里；只有结合调整后的 permutation
+证据才能称局部模式显著。脑图负责空间定位，表格负责提供精确 parcel 数值，两者
+不能互相替代。
 
 ## 可复用的报告句式
 
-> 我们在 9 个有序空间元素上分析 intensive signal，使用 1.01 mm 欧氏距离阈值构造 row-standardized spatial weights。Global Moran's I 的不确定性由 199 次固定 seed 的 value-label permutations 估计。结果仅支持所声明 base、metric、support 和 null 下的空间自相关解释。
+> 我们模拟了 100 名 HC 与 100 名 SCZ 的 DK68 皮层厚度。描述性的 SCZ 减 HC
+> 脑图在预先声明的 row-standardized DK 邻接图上使用 499 次 value-label
+> permutation 评估。该空间检验刻画 contrast map 的聚集性，不是诊断效应的
+> 受试者层面检验。总体推断必须保持 subject 为独立 sampling unit，并调整预先
+> 指定的协变量。
 
-下一步请按数据格式进入 [NIfTI、surface、CIFTI 或 ROI/cohort 工作流](/tutorials/format-workflows)，或阅读[邻接、距离与空间权重](/modules/neighbors-and-weights)。
+下一步可进入 [ROI/cohort 数据与 I/O](/tutorials/workflow-roi-cohort)、
+[邻接与权重](/modules/neighbors-and-weights)、[support 转换](/modules/change-of-support)
+或 [多层受试者推断](/modules/group-inference)。

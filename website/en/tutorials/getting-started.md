@@ -1,268 +1,221 @@
 ---
-title: "15-minute quickstart: from a fixed fixture to interpretable Moran's I"
+title: "15-minute quickstart: a DK68 SCZ-control cortical study"
 outline: [2, 3]
 editLink: false
-sourceSha256: "dd3a2b0378644009ddf8d9c29198ab47ef891ccdb09147770a1a9f8b78edf773"
+sourceSha256: "749c8b7f92578dda610e576cd7f468e722b14b40429ddb135df3699fd516c88c"
 ---
 
 **Language:** [简体中文](/tutorials/getting-started)
 **Edit source:** [Edit on GitHub](https://github.com/zh1peng/neurogeo/edit/main/vignettes/getting-started.Rmd)
 
 
-## Who is this for?
+## The question, before the object
 
-Start here if you know MRI, fMRI, cortical surfaces, or ROI tables but
-are new to `neurogeo`. The tutorial takes about 10–15 minutes and less
-than 50 MB of memory. It runs in a clean R session with data installed
-in the package—there are no placeholder paths or downloads.
-
-By the end, you will be able to:
-
-1.  distinguish a `base`, `values`, a `layer`, and a `measure`;
-2.  construct and validate a spatial dataset;
-3.  declare neighbors and spatial weights explicitly;
-4.  run and interpret global Moran’s I;
-5.  inspect the null, metric, and sampling unit of the result.
-
-## Four terms first
-
-A neuroimaging array alone does not say where each row lives or whether
-values may be summed. `neurogeo` keeps four kinds of information
-separate:
-
-| Term | Question | This example |
-|----|----|----|
-| spatial base | Where does each value row live? | 9 two-dimensional points |
-| values | What was measured? | one `signal` column |
-| layer | Which values column is analysed? | `signal` |
-| measure | What are its unit and support semantics? | a.u. and intensive |
-
-`intensive` means aggregation should use a support-weighted mean. It
-differs from `extensive` or `count` values that may be summed.
-Coordinate space is also explicit: the default `unknown` does not mean
-millimetres.
-
-## 1. Read a fixed installed fixture
-
-The CSV is project-generated CC0 teaching data. Its licence, version,
-size, and SHA-256 are recorded in the installed
-`tutorial-fixtures-6.0.csv`.
+We simulate cortical thickness for 100 healthy controls (HC) and 100
+people with schizophrenia (SCZ), measured in the 68 cortical
+Desikan–Killiany (DK) parcels. Age, sex, and site are subject-level
+covariates. The simulation embeds lower SCZ thickness in bilateral
+superior temporal, insular, anterior cingulate, and medial orbitofrontal
+cortex, with weaker effects in neighboring parcels. It is teaching data,
+not clinical evidence.
 
 ``` r
-fixture_path <- system.file(
-  "extdata", "golden", "tiny-point-grid.csv",
-  package = "neurogeo",
-  mustWork = TRUE
-)
-fixture <- read.csv(fixture_path)
-fixture
-#>   element_id x_mm y_mm signal
-#> 1   point-01    0    0      1
-#> 2   point-02    1    0      2
-#> 3   point-03    2    0      3
-#> 4   point-04    0    1      2
-#> 5   point-05    1    1      4
-#> 6   point-06    2    1      7
-#> 7   point-07    0    2      3
-#> 8   point-08    1    2      7
-#> 9   point-09    2    2      9
+with(dk$design, table(group, site))
+#>      site
+#> group site-a site-b
+#>   HC      50     50
+#>   SCZ     50     50
+summary(dk$design$age)
+#>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+#>   18.00   29.20   36.65   36.22   43.48   59.10
+dim(ngeo_values(dk$cohort))
+#> [1]  68 200
 ```
 
-Do not infer row order from similar coordinates. `element_id` is the
-stable source identifier here; row *i* of `values` must always belong to
-element *i* of the base.
+The independent sampling unit is the subject. DK parcels are spatial
+elements; they are not 68 additional subjects.
 
-## 2. Construct the object and declare measurement semantics
+## See the brain before computing a statistic
+
+The first map is one HC participant. The second is the descriptive
+SCZ-minus-HC contrast. Every subsequent number in this tutorial refers
+back to these maps.
 
 ``` r
-point_data <- ngeo_point(
-  coordinates = as.matrix(fixture[c("x_mm", "y_mm")]),
-  values = cbind(signal = fixture$signal),
-  measures = ngeo_measure(
-    measure_id = "measure_signal",
-    name = "teaching signal",
-    value_type = "continuous",
-    support_behavior = "intensive",
-    unit = "a.u."
-  ),
-  coordinate_space = ngeo_coordinate_space(
-    space_id = "synthetic-grid",
-    kind = "unknown",
-    unit = "mm"
-  )
+ngeo_tutorial_plot_dk(
+  dk$cohort, layer = "sub-001",
+  title = "Simulated cortical thickness: sub-001 (HC)"
 )
-point_data
-#> <ngeo_point>
-#>   base: point
-#>   elements: 9
-#>   layers: 1
-#>   coordinate_space: synthetic-grid
 ```
 
-Inspect it through public accessors. A normal workflow should not mutate
-`$measures` or another internal table.
+<div class="figure" style="text-align: center">
+
+<img src="./getting-started_files/figure-gfm/subject-brain-1.png" alt="DK cortical thickness for one simulated healthy control shown on bilateral cortical views"  />
+<p class="caption">
+
+One subject is one layer; DK parcels form the shared spatial base.
+</p>
+
+</div>
 
 ``` r
-ngeo_base_type(point_data)
-#> [1] "point"
-head(ngeo_base_elements(point_data))
-#>         element_id source_index source_index_base included
-#> 1 element_00000001            1                 1     TRUE
-#> 2 element_00000002            2                 1     TRUE
-#> 3 element_00000003            3                 1     TRUE
-#> 4 element_00000004            4                 1     TRUE
-#> 5 element_00000005            5                 1     TRUE
-#> 6 element_00000006            6                 1     TRUE
-ngeo_layers(point_data)
-#>     layer_id   name     measure_id
-#> 1 layer_0001 signal measure_signal
-ngeo_measures(point_data)
-#>       measure_id            name unit value_type support_behavior
-#> 1 measure_signal teaching signal a.u. continuous        intensive
+ngeo_tutorial_plot_dk(
+  dk$difference,
+  title = "SCZ minus HC cortical thickness (mm)",
+  midpoint = 0
+)
+```
+
+<div class="figure" style="text-align: center">
+
+<img src="./getting-started_files/figure-gfm/contrast-brain-1.png" alt="Simulated SCZ minus HC cortical thickness difference on the DK atlas"  />
+<p class="caption">
+
+The case-control contrast is spatially structured and is plotted before
+spatial inference.
+</p>
+
+</div>
+
+## Data model: base, values, layers, and measure
+
+| Term    | Neuroimaging meaning here | Shape            |
+|---------|---------------------------|------------------|
+| base    | DK cortical parcels       | 68 rows          |
+| values  | cortical thickness        | 68 × 200         |
+| layer   | one subject map           | 200 columns      |
+| measure | thickness, intensive, mm  | shared semantics |
+
+``` r
+ngeo_base_type(dk$cohort)
+#> [1] "parcellation"
+head(ngeo_base_elements(dk$cohort)[c("region_id", "hemi", "region", "lobe")])
+#>                    region_id hemi                            region      lobe
+#> 1                lh_bankssts left banks of superior temporal sulcus  temporal
+#> 2 lh_caudalanteriorcingulate left         caudal anterior cingulate cingulate
+#> 3     lh_caudalmiddlefrontal left             caudal middle frontal   frontal
+#> 4                  lh_cuneus left                            cuneus occipital
+#> 5              lh_entorhinal left                        entorhinal  temporal
+#> 6                lh_fusiform left                          fusiform  temporal
+head(ngeo_layers(dk$cohort)[c("layer_id", "subject_id", "group", "age", "site")])
+#>   layer_id subject_id group  age   site
+#> 1  sub-001    sub-001    HC 20.5 site-a
+#> 2  sub-002    sub-002    HC 25.0 site-b
+#> 3  sub-003    sub-003    HC 44.3 site-a
+#> 4  sub-004    sub-004    HC 25.2 site-b
+#> 5  sub-005    sub-005    HC 29.9 site-a
+#> 6  sub-006    sub-006    HC 48.0 site-b
+ngeo_measures(dk$cohort)
+#>           measure_id               name unit value_type support_behavior
+#> 1 cortical_thickness cortical thickness   mm continuous        intensive
 #>   missing_policy           aggregation
 #> 1       preserve support_weighted_mean
-ngeo_validate(point_data, "strict")
+ngeo_validate(dk$cohort, "strict")
 ```
 
-You should have 9 spatial elements and one layer referencing
-`measure_signal`.
+Row *i* always means the same DK parcel across all 200 columns. Subject
+metadata belongs to layers; millimetres and intensive support semantics
+belong to the measure. This alignment is the core contract that a
+numeric matrix alone does not carry.
 
-## 3. Declare the spatial relation
+## Declare a cortical spatial relation
 
-Points have no intrinsic adjacency. Here Euclidean distance connects
-horizontal or vertical neighbors no more than 1.01 mm apart. This is an
-analysis choice, not a hidden property of the input.
+The teaching fixture includes a fixed symmetric DK neighborhood graph
+derived from the atlas drawing. `region_contiguity` uses that graph
+directly. For a real study, build adjacency or geodesic weights from the
+registered cortical surface and record that provenance; do not infer
+scientific adjacency from a figure.
 
 ``` r
-spatial_weights <- ngeo_spatial_weights(
-  point_data,
-  method = "distance_band",
-  threshold = 1.01,
-  distance_method = "euclidean",
+weights <- ngeo_spatial_weights(
+  dk$difference,
+  method = "region_contiguity",
   style = "W"
 )
-spatial_weights
+weights
 #> <ngeo_spatial_weights>
-#>   method: distance_band
-#>   elements: 9
-#>   nonzero: 24
+#>   method: region_contiguity
+#>   elements: 68
+#>   nonzero: 424
 #>   normalization: W
-#>   components: 1
+#>   components: 2
+summary(Matrix::rowSums(weights$raw_matrix != 0))
+#>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+#>   3.000   5.000   6.000   6.235   7.000   9.000
 ```
 
-KNN, another threshold, or surface geodesic distance would define a
-different estimand and must be reported.
+## Ask a spatial question about the group contrast
 
-## 4. Run global Moran’s I
+Global Moran’s I below asks whether the *descriptive group-difference
+map* is more spatially clustered than expected under value-label
+permutation on the fixed DK graph. It does **not** test whether SCZ and
+HC differ: that requires subject-level inference with the 200
+independent subjects.
 
 ``` r
-global_result <- ngeo_moran(
-  point_data,
-  spatial_weights,
-  layer = "signal",
-  permutations = 199,
+spatial_result <- ngeo_moran(
+  dk$difference,
+  weights,
+  layer = "SCZ_minus_HC",
+  permutations = 499,
   seed = 2026
 )
-global_result
+spatial_result
 #> <ngeo_global_stat>
 #>   statistic: Moran's I
-#>   estimate: 0.532491
-#>   expectation: -0.125
-#>   observations: 9
-#>   permutations: 199
-#>   p-value: 0.015
-```
-
-A positive Moran’s I means neighboring signal values tend to be similar.
-The permutation p-value asks how often an equally extreme statistic
-appears when the spatial weights stay fixed and value labels are
-exchangeable under the stated rule. It is not the probability that a
-biological mechanism exists.
-
-Check the common interpretation contract:
-
-``` r
-contract <- ngeo_inference_contract(global_result)
-contract
+#>   estimate: 0.189658
+#>   expectation: -0.0149254
+#>   observations: 68
+#>   permutations: 499
+#>   p-value: 0.014
+ngeo_inference_contract(spatial_result)
 #> <ngeo_inference_contract> ngeo_global_stat
 #>   estimand: global spatial autocorrelation statistic
 #>   sampling unit: base elements
 #>   null model: value-label permutation when requested
-#>   metric: distance_band
+#>   metric: region_contiguity
 #>   support: base elements
 #>   uncertainty target: permutation distribution of the global statistic
 ```
 
-Before reporting, verify its estimand, sampling unit, null model,
-metric, support, and uncertainty target. If they do not match the study
-design, change the analysis—not only the prose.
+The contract makes the distinction auditable: its sampling units are
+parcels under a spatial randomization null. In a case-control model, the
+sampling units are subjects and the exchangeability rule acts on
+subjects, never vertices or parcels.
 
-## 5. Inspect local patterns and history
+## Localize the descriptive pattern
 
 ``` r
-local_result <- ngeo_local_moran(
-  point_data,
-  spatial_weights,
-  layer = "signal",
-  permutations = 199,
-  seed = 2026,
-  adjust = "BH",
+local <- ngeo_local_moran(
+  dk$difference, weights, layer = "SCZ_minus_HC",
+  permutations = 499, seed = 2026, adjust = "BH",
   null_model = "conditional"
 )
-local_result[c("element_id", "local_i", "p.adjusted", "cluster")]
+head(local[order(local$p.adjusted),
+  c("element_id", "local_i", "p.adjusted", "cluster")], 10)
 #> <ngeo_lisa>
-#>   observations: 9
+#>   observations: 10
 #>   layer:
 #>   permutations:
 ```
 
-`cluster` is a Moran-quadrant description; call a local pattern
-significant only with the adjusted permutation evidence. The object
-history records construction:
+Local Moran quadrants describe where similar contrast values cluster;
+adjusted permutation evidence is required before calling a local pattern
+significant. The brain map remains the primary orientation, while this
+table supplies exact parcel-level values.
 
-``` r
-construction <- ngeo_history(point_data)$operations[[1L]]
-construction$timestamp_utc <- NULL
-construction
-#> $operation
-#> [1] "ngeo_point"
-#>
-#> $software
-#> $software$package
-#> [1] "neurogeo"
-#>
-#> $software$version
-#> [1] "6.0.0"
-#>
-#>
-#> $parameters
-#> $parameters$source_index_base
-#> [1] 1
-```
+## What to report
 
-## Common mistakes
+> We simulated DK68 cortical thickness in 100 HC and 100 SCZ
+> participants. A descriptive SCZ-minus-HC map was evaluated on a
+> declared row-standardized DK adjacency graph using 499 value-label
+> permutations. This spatial test characterizes clustering of the
+> contrast map; it is not a subject-level test of diagnosis. Population
+> inference must preserve subjects as the independent sampling unit and
+> adjust the prespecified covariates.
 
-- **Treating the default space as millimetres:**
-  `ngeo_coordinate_space()` defaults to `unknown`. Confirm units from a
-  reliable header or user declaration before physical-distance analysis.
-- **Reordering values by similar names:** the package does not guess
-  alignment. Preserve and check stable element IDs.
-- **Mutating the measure table:** use `ngeo_measure()` at construction
-  and `ngeo_update_measure()` later.
-- **Treating a layer name as a permanent ID:** display names may repeat;
-  store `layer_id` in reproducible scripts.
-- **Using an experimental null as stable inference:** surface spin and
-  the Moran eigen-sign surrogate remain uncalibrated opt-in methods and
-  do not replace this stable permutation path.
-
-## Reusable reporting sentence
-
-> We analysed an intensive signal on nine ordered spatial elements using
-> row-standardized spatial weights from a 1.01 mm Euclidean distance
-> band. Uncertainty for global Moran’s I used 199 value-label
-> permutations with a fixed seed. Interpretation is limited to the
-> declared base, metric, support, and null.
-
-Next, choose the [NIfTI, surface, CIFTI, or ROI/cohort
-workflow](/en/tutorials/format-workflows), or continue to [neighbors,
-distances, and spatial weights](/en/tutorials/neighbors-and-weights).
+Continue with [ROI/cohort data and
+I/O](/en/tutorials/workflow-roi-cohort), [neighbors and
+weights](/en/tutorials/neighbors-and-weights), [change of
+support](/en/tutorials/change-of-support), or [multilayer subject-level
+inference](/en/modules/multilayer-inference).

@@ -1,56 +1,63 @@
 ---
-title: "有界科学计算"
+title: "Vertex 与 DK case-control 数据的 bounded execution"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{有界科学计算}
+  %\VignetteIndexEntry{Vertex 与 DK case-control 数据的 bounded execution}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
 ```
 
-## 基础背景
+## Chunked execution 不改变科学脑图
 
-whole-brain matrix 可能远大于内存，即使目标统计量很简单。有界执行把 memory、
-materialization 和 iteration limit 放在真正消耗资源的科学操作上。resource
-budget 可以决定操作是否运行，但不能静默改变统计方法。
+672 × 10 vertex matrix 包含 5 名 HC 与 5 名 SCZ。真实 32k 或 164k surface cohort
+可能超过内存。resource budget 只决定 operation 能否运行，不能静默改变 estimator。
 
-## Streaming summary
-
-```{r}
-backing <- cbind(signal = seq_len(12), predictor = 0:11)
-x <- ngeo_point(
-  cbind(x = 0:11, y = 0),
-  values = backing,
-  measures = rbind(
-    ngeo_measure(support_behavior = "intensive"),
-    ngeo_measure(support_behavior = "intensive")
-  )
-)
-ngeo_stream_summary(x, chunk_size = 4)
-ngeo_stream_lm(x, "signal", "predictor", chunk_size = 4)
+```{r brain, fig.width=9, fig.height=4.5, fig.alt="vertex-level case-control 皮层厚度 contrast", fig.cap="Chunking 改变执行方式，不改变 spatial map 或 support。"}
+plot(vertex$difference, chart="flat", show_edges=FALSE, palette="Blue-Red 3")
 ```
 
-chunk size 影响执行方式，不应影响 summary 或 model estimate。
+## 分块计算 cortical vertex summaries
 
-## 有界 support change
+```{r streaming}
+streamed <- ngeo_stream_summary(vertex$surface, chunk_size=96)
+streamed
+direct <- apply(ngeo_values(vertex$surface), 2L, function(value) {
+  c(mean=mean(value), sd=stats::sd(value))
+})
+all.equal(unname(streamed$mean), unname(direct["mean", ]))
+```
 
-```{r}
+chunk size 是 execution parameter；element order、subject layers、measurement
+units 与数值 summary 都不改变。
+
+## 限制 sparse support change
+
+```{r support}
 map <- ngeo_atlas_map(
-  x, rep(c("A", "B", "C"), each = 4),
-  source_support = rep(1, 12)
+  vertex$difference, vertex$supports$Schaefer300,
+  source_support=ngeo_vertex_area(vertex$difference)
 )
-aggregate_to(
-  x, map$target, map,
-  budget = ngeo_resource_budget(
-    memory_bytes = 1024^2,
-    materialized_elements = 6
-  )
+budget <- ngeo_resource_budget(
+  memory_bytes=8 * 1024^2,
+  materialized_elements=300
 )
+regional <- aggregate_to(vertex$difference, map$target, map, budget=budget)
+regional
 ```
 
-稀疏 operator 被直接消费；在 materialize values 前先检查预算。可审计工作流由
-replay manifest 表示，format writer 负责 atomic filesystem publication。
+```{r diagnostic, fig.width=7, fig.height=4, fig.alt="672 vertex 到 300 parcel support map 的 sparse membership diagnostic", fig.cap="bounded operation 直接使用 sparse operator，不 materialize dense whole-brain matrix。"}
+plot(map, type="membership", col="#2a9d8f", border="white")
+```
+
+如果声明的 limit 太小，operation 会抛出 resource error，而不是切换 atlas scale、
+丢弃 subjects 或换一个 statistic。resource budget 应与 analysis history 和 replay
+manifest 一起保存。

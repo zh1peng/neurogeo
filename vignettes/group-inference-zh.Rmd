@@ -1,130 +1,103 @@
 ---
-title: "从多图层脑图到组间置换推断"
+title: "100 名 HC 与 100 名 SCZ 的 subject-level multilayer inference"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{从多图层脑图到组间置换推断}
+  %\VignetteIndexEntry{100 名 HC 与 100 名 SCZ 的 subject-level multilayer inference}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
+library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
+multi <- ngeo_tutorial_dk_multilayer(dk)
+x <- multi$object
 ```
 
-## 完整工作流
+## 科学问题与数据契约
 
-这个示例从普通 `ngeo` map columns 开始，依次完成 layer index、固定空间基、
-多尺度 coupling endpoint 和受试者级组间检验。空间 element 从不充当独立样本。
+每名 subject 在同一个 DK68 base 上有 cortical thickness 与模拟 myelin proxy。
+我们询问：调整 age、sex 与 site 后，两种 modality 的 within-subject spatial
+coupling 是否在 SCZ 与 HC 之间不同。独立 sampling unit 是 subject；68 个 parcels
+与两种 modalities 是重复空间测量，不是独立重复。
 
-```{r data}
-library(neurogeo)
+```{r maps, fig.width=9, fig.height=4.5, fig.alt="模拟 SCZ 减 HC thickness 与 myelin proxy 的 DK 脑图", fig.cap="coupling inference 前先在共享 cortical support 上查看两种 modalities。"}
+ngeo_tutorial_plot_dk(dk$difference,
+                      title="Thickness：SCZ 减 HC（mm）")
+ngeo_tutorial_plot_dk(multi$myelin_difference,
+                      title="Myelin proxy：SCZ 减 HC（a.u.）")
+```
 
-set.seed(47)
-n_element <- 10L
-n_subject <- 16L
-subject_id <- paste0("sub-", sprintf("%02d", 1:n_subject))
-group <- factor(rep(c("control", "case"), each = n_subject / 2))
-age <- seq(20, 55, length.out = n_subject)
-layer <- rep(c("thickness", "myelin"), n_subject)
-subject <- rep(subject_id, each = 2L)
-
-base <- sin((1:n_element) / 2)
-values <- matrix(NA_real_, n_element, 2L * n_subject)
-for (i in seq_len(n_subject)) {
-  noise_x <- rnorm(n_element, sd = 0.12)
-  noise_y <- rnorm(n_element, sd = 0.12)
-  values[, 2L * i - 1L] <- base + noise_x
-  coupling <- if (group[[i]] == "case") 0.85 else 0.45
-  values[, 2L * i] <- coupling * base + noise_y
-}
-
-x <- ngeo_point(
-  cbind(x = 1:n_element, y = 0),
-  values = values,
-  layers = data.frame(
-    layer_id = paste0("map-", seq_len(ncol(values))),
-    name = paste(subject, layer, sep = "_"),
-    subject_id = subject,
-    feature = layer
-  ),
-  measures = do.call(rbind, replicate(
-    ncol(values),
-    ngeo_measure(support_behavior = "intensive", unit = "a.u."),
-    simplify = FALSE
-  ))
+```{r data-contract}
+dim(ngeo_values(x))
+table(ngeo_layers(x)$feature, ngeo_layers(x)$group)
+index <- ngeo_validate_layers(
+  x, required_layers=c("thickness", "myelin"), complete="error"
 )
-index <- ngeo_validate_layers(x, complete = "error")
-spatial_weights <- ngeo_spatial_weights(
-  x, method = "distance_band", threshold = 1.01, style = "B"
-)
+index
+```
+
+对象有 68 rows 与 400 layers：200 名 subjects 各两张严格对齐的脑图。layer index
+验证没有 subject 或 modality 被静默丢失。
+
+## 在组间检验前固定 spatial estimand
+
+```{r features}
+weights <- ngeo_spatial_weights(x, method="region_contiguity", style="B")
 basis <- ngeo_spatial_basis(
-  x, spatial_weights, support = "identity", n_modes = n_element - 1L
+  x, weights, support="identity", n_modes=60
 )
 features <- ngeo_layer_coupling(
-  x,
-  index,
-  basis = basis,
-  bands = list(low = 1:4, high = 5:9),
-  estimands = c("same_location", "spectral_coupling")
+  x, index, basis=basis,
+  bands=list(low_rank=1:8, mid_rank=9:20, high_rank=21:33),
+  estimands=c("same_location", "spectral_coupling", "band_energy")
 )
-features
+dim(features$values)
+features$values[1:6, 1:6, drop=FALSE]
 ```
 
-## 一次声明受试者交换结构
+graph basis 只依赖 DK support 与 graph，不依赖 diagnosis 或 values。rank bands 是
+保留的 graph modes，不自动等于毫米 wavelength。`spectral_coupling` 与 marginal
+`band_energy` 是不同 endpoints，不能把 energy change 错称为 coupling change。
 
-```{r schedule}
-schedule <- ngeo_exchangeability(
-  subject_id,
-  scheme = "free",
-  permutations = 99L,
-  seed = 2026L,
-  unit_kind = "subject"
-)
-schedule
-```
-
-`unit_kind = "subject"` 声明每一列是独立受试者。schedule 的每一行移动完整受试者
-残差记录；同一行同时用于所有 layer pair、band 与 endpoint。它不置换 vertex，
-也不为每个 endpoint 重新抽 seed。
-
-## 协变量调整、max-T 与 omnibus
+## 交换完整 subjects
 
 ```{r inference}
 design <- data.frame(
-  unit_id = subject_id,
-  group = group,
-  age = age
+  unit_id=dk$design$subject_id,
+  group=dk$design$group,
+  age=dk$design$age,
+  sex=dk$design$sex,
+  site=dk$design$site
+)
+schedule <- ngeo_exchangeability(
+  design$unit_id, scheme="within_block", blocks=design$site,
+  permutations=199, seed=5001, unit_kind="subject"
 )
 result <- ngeo_group_test(
-  features,
-  design,
-  model = ~ age + group,
-  test = "group",
-  exchangeability = schedule,
-  transform = "auto",
-  adjustment = "maxT"
+  features, design, model=~ age + sex + site + group, test="group",
+  exchangeability=schedule, transform="auto", adjustment="maxT"
 )
-result
 result$tests[, c(
-  "endpoint_id", "transform", "coefficient", "statistic",
-  "partial_r2", "p_raw", "p_maxT"
+  "estimand", "band", "coefficient", "partial_r2", "p_raw", "p_maxT"
 )]
 result$omnibus
 ```
 
-默认只保存 exceedance counts、family maxima 与 omnibus null，不保存完整
-`permutations × endpoints` 矩阵。`p_maxT` 控制预声明 endpoint family 的
-single-step family-wise error。
+一个 schedule 在 site 内移动完整 subject records，并复用于所有 bands 与 endpoints；
+它从不 permutation parcels。`p_maxT` 控制声明的 endpoint family，omnibus 检验在
+同一 schedule 下 family 中是否有任一 endpoint 存在 group difference。
 
-## 有效推断单位与 non-claim
+## 扩展到 support family
 
-结果适用于独立受试者及声明的 residual exchangeability。它没有解决任意
-heteroscedasticity、family/twin exchangeability tree 或 repeated-session mixed model。
-复杂设计应由外部工具生成合法 user schedule；重复 session 必须先变为一个受试者
-summary 或 paired contrast。
+在已经配准的 DK68、Schaefer100/200/300 或其它预先声明 atlas 上分别构造
+features，再把 named feature list 传给一次 `ngeo_group_test()`。必须共享 subject
+schedule 并进行 full-family max-T adjustment。atlas dispersion 描述 sensitivity，
+不证明 parcellation invariance。
 
-如果 site、family 或其他已知结构限制了可交换性，应使用 `scheme = "within_block"`
-并把该结构传给 `blocks`，或提供经过验证且不跨 block 的 user schedule。VAL-303 在
-site-confounded 设计中发现 free residual permutation 的 type-I error 偏高；因此把
-`blocks` 与 `scheme = "free"` 或 `"sign_flip"` 同时传入会报错，不会静默忽略 block。
-软件只能检查声明的结构，不能从 ID 名称判断用户声明的生物学采样单位是否真实。
+simulator 的 Schaefer-sized boundaries 只用于 operator 教学。科学 cross-atlas claim
+需要 published labels 配准到相同 subjects，并记录 physical scale。

@@ -1,68 +1,66 @@
 ---
-title: "Bounded scientific execution"
+title: "Bounded execution on vertex and DK case-control data"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Bounded scientific execution}
+  %\VignetteIndexEntry{Bounded execution on vertex and DK case-control data}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
 ```
 
-## Background
+## The scientific map does not change when execution is chunked
 
-Whole-brain matrices can exceed memory even when the intended statistic is
-simple. Bounded execution makes memory, materialization, and iteration limits
-explicit at the scientific operation that consumes them. A resource budget
-changes whether an operation may run; it must not silently change the
-statistical method.
+The 672-by-10 vertex matrix contains five HC and five SCZ subjects. In a real
+32k or 164k surface cohort, the same element-by-subject contract can exceed
+memory. A resource budget changes whether an operation may run; it must never
+silently change the estimator.
 
-Resource limits stay attached to scientific operations rather than exposing
-a second generic workflow engine.
-
-## Streaming summaries
-
-```{r}
-backing <- cbind(signal = seq_len(12), predictor = 0:11)
-x <- ngeo_point(
-  cbind(x = 0:11, y = 0),
-  values = backing,
-  measures = rbind(
-    ngeo_measure(support_behavior = "intensive"),
-    ngeo_measure(support_behavior = "intensive")
-  )
-)
-ngeo_stream_summary(x, chunk_size = 4)
-ngeo_stream_lm(x, "signal", "predictor", chunk_size = 4)
+```{r brain, fig.width=9, fig.height=4.5, fig.alt="Vertex-level case-control cortical thickness contrast", fig.cap="Chunking changes execution, not the spatial map or its support."}
+plot(vertex$difference, chart="flat", show_edges=FALSE, palette="Blue-Red 3")
 ```
 
-## Bounded support change
+## Stream summaries over cortical vertices
 
-Change of support consumes its sparse operator directly and checks the
-declared materialization budget before computing values.
+```{r streaming}
+streamed <- ngeo_stream_summary(vertex$surface, chunk_size=96)
+streamed
+direct <- apply(ngeo_values(vertex$surface), 2L, function(value) {
+  c(mean=mean(value), sd=stats::sd(value))
+})
+all.equal(unname(streamed$mean), unname(direct["mean", ]))
+```
 
-```{r}
+The chunk size is an execution parameter. Element order, subject layers,
+measurement units, and the numerical summary are unchanged.
+
+## Bound a sparse support change
+
+```{r support}
 map <- ngeo_atlas_map(
-  x,
-  rep(c("A", "B", "C"), each = 4),
-  source_support = rep(1, 12)
+  vertex$difference, vertex$supports$Schaefer300,
+  source_support=ngeo_vertex_area(vertex$difference)
 )
-target <- aggregate_to(
-  x,
-  map$target,
-  map,
-  budget = ngeo_resource_budget(
-    memory_bytes = 1024^2,
-    materialized_elements = 6
-  )
+budget <- ngeo_resource_budget(
+  memory_bytes=8 * 1024^2,
+  materialized_elements=300
 )
-target
+regional <- aggregate_to(vertex$difference, map$target, map, budget=budget)
+regional
 ```
 
-## Scope
+```{r diagnostic, fig.width=7, fig.height=4, fig.alt="Sparse membership diagnostic for a 672 vertex by 300 parcel support map", fig.cap="The bounded operation consumes the sparse operator without materializing a dense whole-brain matrix."}
+plot(map, type="membership", col="#2a9d8f", border="white")
+```
 
-Auditable supported workflows use replay manifests; atomic filesystem
-publication remains an internal responsibility of the format writers.
+If the declared limit is too small, the operation fails with a resource error
+instead of switching atlas scale, dropping subjects, or choosing another
+statistic. Record resource budgets with the analysis history and replay
+manifest so execution decisions remain auditable.

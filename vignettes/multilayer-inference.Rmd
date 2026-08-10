@@ -1,96 +1,91 @@
 ---
-title: "Multilayer spatial inference"
+title: "Subject-level multilayer inference in 100 HC and 100 SCZ"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Multilayer spatial inference}
+  %\VignetteIndexEntry{Subject-level multilayer inference in 100 HC and 100 SCZ}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
+library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
+multi <- ngeo_tutorial_dk_multilayer(dk)
+x <- multi$object
 ```
 
 ## Scientific question and data contract
 
-This workflow asks whether two aligned cortical layers are coupled, at which
-retained spatial scales that coupling occurs, and whether coupling differs
-between subject groups. Every map belongs to one independent subject and one
-layer. Vertices or regions are spatial elements, not replicated subjects.
+For every subject, the same DK68 base carries cortical thickness and a
+simulated myelin proxy. We ask whether their within-subject spatial coupling
+differs between SCZ and HC after adjusting age, sex, and site. One subject is
+one independent sampling unit; 68 parcels and two modalities are repeated
+spatial measurements, not replication.
 
-```{r data}
-library(neurogeo)
-
-set.seed(50)
-n_element <- 10L
-n_subject <- 16L
-unit_id <- sprintf("sub-%02d", seq_len(n_subject))
-group <- factor(rep(c("control", "case"), each = n_subject / 2L))
-age <- seq(20, 55, length.out = n_subject)
-feature <- rep(c("thickness", "myelin"), n_subject)
-subject <- rep(unit_id, each = 2L)
-base <- sin(seq_len(n_element) / 2)
-values <- matrix(NA_real_, n_element, 2L * n_subject)
-for (i in seq_len(n_subject)) {
-  values[, 2L * i - 1L] <- base + rnorm(n_element, sd = 0.12)
-  strength <- if (group[[i]] == "case") 0.8 else 0.4
-  values[, 2L * i] <- strength * base + rnorm(n_element, sd = 0.12)
-}
-layers <- data.frame(
-  layer_id = sprintf("map-%03d", seq_len(ncol(values))),
-  name = paste(subject, feature, sep = "_"),
-  subject_id = subject, feature = feature
-)
-measure <- ngeo_measure(support_behavior = "intensive", unit = "a.u.")
-x <- ngeo_point(
-  cbind(x = seq_len(n_element), y = 0), values = values, layers = layers,
-  measures = measure[rep.int(1L, ncol(values)), , drop = FALSE]
-)
-index <- ngeo_validate_layers(
-  x, required_layers = c("thickness", "myelin"), complete = "error"
-)
+```{r maps, fig.width=9, fig.height=4.5, fig.alt="DK brain maps of simulated SCZ minus HC thickness and myelin proxy", fig.cap="Both modalities are inspected on their shared cortical support before coupling inference."}
+ngeo_tutorial_plot_dk(dk$difference,
+                      title="Thickness: SCZ minus HC (mm)")
+ngeo_tutorial_plot_dk(multi$myelin_difference,
+                      title="Myelin proxy: SCZ minus HC (a.u.)")
 ```
 
-## Fixed spatial estimand
+```{r data-contract}
+dim(ngeo_values(x))
+table(ngeo_layers(x)$feature, ngeo_layers(x)$group)
+index <- ngeo_validate_layers(
+  x, required_layers=c("thickness", "myelin"), complete="error"
+)
+index
+```
 
-The graph basis below depends on coordinates, topology, and declared support,
-not on the values that will later be tested. The two named bands are
-rank-matched retained modes; they are not automatically physical wavelengths.
+There are 68 rows and 400 layers: two aligned maps for each of 200 subjects.
+The layer index verifies that neither a subject nor a modality is silently
+missing.
+
+## Fix the spatial estimand before testing groups
 
 ```{r features}
-spatial_weights <- ngeo_spatial_weights(
-  x, method = "distance_band", threshold = 1.01, style = "B"
+weights <- ngeo_spatial_weights(
+  x, method="region_contiguity", style="B"
 )
 basis <- ngeo_spatial_basis(
-  x, spatial_weights, support = "identity", n_modes = n_element - 1L
+  x, weights, support="identity", n_modes=60
 )
 features <- ngeo_layer_coupling(
-  x, index, basis = basis,
-  bands = list(low_rank = 1:4, high_rank = 5:9),
-  estimands = c("same_location", "spectral_coupling", "band_energy")
+  x, index, basis=basis,
+  bands=list(low_rank=1:8, mid_rank=9:20, high_rank=21:33),
+  estimands=c("same_location", "spectral_coupling", "band_energy")
 )
-features
+dim(features$values)
+features$values[1:6, 1:6, drop=FALSE]
 ```
 
-`spectral_coupling` is normalized cross-layer covariance in a band.
-`band_energy_x` and `band_energy_y` are marginal layer structure. Keeping them
-as separate endpoints prevents an energy change from being described as a
-coupling change.
+The graph basis depends only on the DK support and graph, not diagnosis or
+values. Rank bands are retained graph modes; they are not automatically
+millimetre wavelengths. `spectral_coupling` and marginal `band_energy` remain
+separate endpoints so an energy change is not mislabeled as coupling.
 
-## Subject-level inference
-
-The exchangeability object transforms whole subjects. One schedule is reused
-for every endpoint; no vertex-wise pseudo-replication occurs.
+## Exchange whole subjects
 
 ```{r inference}
-design <- data.frame(unit_id = unit_id, group = group, age = age)
+design <- data.frame(
+  unit_id=dk$design$subject_id,
+  group=dk$design$group,
+  age=dk$design$age,
+  sex=dk$design$sex,
+  site=dk$design$site
+)
 schedule <- ngeo_exchangeability(
-  unit_id, scheme = "free", permutations = 99L, seed = 5001L,
-  unit_kind = "subject"
+  design$unit_id, scheme="within_block", blocks=design$site,
+  permutations=199, seed=5001, unit_kind="subject"
 )
 result <- ngeo_group_test(
-  features, design, model = ~ age + group, test = "group",
-  exchangeability = schedule, transform = "auto", adjustment = "maxT"
+  features, design, model=~ age + sex + site + group, test="group",
+  exchangeability=schedule, transform="auto", adjustment="maxT"
 )
 result$tests[, c(
   "estimand", "band", "coefficient", "partial_r2", "p_raw", "p_maxT"
@@ -98,49 +93,19 @@ result$tests[, c(
 result$omnibus
 ```
 
-`unit_kind = "subject"` makes the independent sampling unit machine-readable;
-it is not inferred from an ID prefix. The result supports a
-claim about the declared population only when residual exchangeability and the
-subject design are defensible. It does not establish causality, registration
-quality, equal physical scale across atlases, or parcellation invariance.
+One schedule moves complete subject records within site and is reused for all
+bands and endpoints. It never permutes parcels. `p_maxT` controls the declared
+endpoint family; the omnibus test asks whether any endpoint in that family
+differs by group under the same schedule.
 
-If site, family, or another known structure limits exchangeability, declare it
-instead of using a free schedule:
+## Extend to a support family
 
-```{r blocked-schedule}
-site <- factor(rep(c("site-a", "site-b"), length.out = length(unit_id)))
-blocked_design <- transform(design, site = site)
-blocked_schedule <- ngeo_exchangeability(
-  unit_id,
-  scheme = "within_block",
-  blocks = blocked_design$site,
-  permutations = 4999L,
-  seed = 5001L,
-  unit_kind = "subject"
-)
-blocked_schedule
-```
+Run the feature construction independently on registered DK68,
+Schaefer100/200/300, or another prespecified atlas, then pass the named feature
+list to one `ngeo_group_test()` call. A common subject schedule and full-family
+max-T adjustment are essential. Atlas dispersion describes sensitivity; it
+does not prove parcellation invariance.
 
-VAL-303 found free residual permutation anti-conservative in its
-site-confounded cell. Passing `blocks` to `scheme = "free"` is therefore an
-error rather than a request that can be silently ignored. For more complex
-PALM-style exchangeability trees, supply a validated user schedule and report
-the external tool and schedule construction.
-
-## Declared support family
-
-Construct features independently on every atlas or support, then pass the
-named list to the same group call. This produces one common schedule and one
-full-family max-T calculation. Support dispersion remains descriptive.
-
-```{r support-family, eval=FALSE}
-family_result <- ngeo_group_test(
-  features = list(DK68 = dk_features, Schaefer100 = schaefer_features),
-  data = design, model = ~ age + group, test = "group",
-  exchangeability = schedule
-)
-family_result$support$stability
-```
-
-Use `ngeo_qc()` on the inputs and inspect basis diagnostics, missing endpoints,
-schedule hashes, and support scale labels before interpreting the tests.
+The simulator's Schaefer-sized boundaries are for operator teaching only.
+Scientific cross-atlas claims require the published labels registered to the
+same subjects and documented physical scale.

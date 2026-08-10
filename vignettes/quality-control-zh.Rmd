@@ -1,119 +1,87 @@
 ---
-title: "统一科学质量控制：从有效对象到可分析对象"
+title: "DK68 与 vertex case-control 数据的质量控制"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{统一科学质量控制：从有效对象到可分析对象}
+  %\VignetteIndexEntry{DK68 与 vertex case-control 数据的质量控制}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+dk <- ngeo_tutorial_dk_case_control()
+vertex <- ngeo_tutorial_vertex_case_control()
 ```
 
-## 为什么 validation 之后还需要 QC
+## Validation 与 QC 回答不同问题
 
-`ngeo_validate()` 回答“对象结构是否符合 NGCS 不变量”。例如 base 与
-values 是否严格对齐、surface face 索引是否有效、affine 是否可逆。
+`ngeo_validate()` 检查 structural invariants：68 个 DK rows 在 200 名 subjects
+间对齐，layer metadata 与 columns 对齐，measure semantics 合法。`ngeo_qc()`
+报告需要科学判断的情况，但不会自动修复。
 
-`ngeo_qc()` 回答另一类问题：“对象虽然有效，但直接分析是否存在科学风险”。
-例如空间名称未知、测量语义未知、某张 map 全部为常数、atlas 覆盖不完整，或者
-flatmap 含有折叠 face。QC 不修改数据，也不会猜测缺失的语义。
-
-## 最小工作流
-
-```{r basic-qc}
-x <- ngeo_point(
-  matrix(c(0, 0, 1, 0, 2, 0), ncol = 2, byrow = TRUE),
-  values = cbind(
-    signal = c(1, 2, 3),
-    constant = c(5, 5, 5)
-  )
-)
-
-ngeo_validate(x, "strict")
-qc <- ngeo_qc(x)
-qc
+```{r validate}
+ngeo_validate(dk$cohort, "strict")
+qc <- ngeo_qc(dk$cohort)
+qc$summary
 qc$checks
-qc$layer_summary
+head(qc$layer_summary)
 ```
 
-这个对象结构有效，但默认空间、测量语义和单位都是 `unknown`，而且
-`constant` 没有空间变异。因此 QC 返回 warning。正确做法是回到数据来源补充
-元数据，而不是让 QC 自动填写。
+## QC 必须保持空间导向
 
-```{r qc-plot, fig.width=6, fig.height=4}
+subject map、case-control contrast 与 tabular QC 应一起检查。global pass 无法显示
+局部但解剖上不合理的 pattern。
+
+```{r brain-qc, fig.width=9, fig.height=4.6, fig.alt="用于 visual QC 的一名模拟 HC DK68 皮层厚度图", fig.cap="Structural validation 与脑图回答互补的 QC 问题。"}
+ngeo_tutorial_plot_dk(
+  dk$cohort, "sub-001", title="Visual QC：sub-001 皮层厚度"
+)
+```
+
+```{r qc-plot, fig.width=7, fig.height=4, fig.alt="neurogeo QC statuses summary plot", fig.cap="status plot 汇总 machine-readable checks，但不能在 cortex 上定位异常。"}
 plot(qc)
 ```
 
-## 状态的含义
+## 显式限制 values scan
 
-- `pass`：该项没有发现已声明的风险；
-- `info`：描述性结果，可能完全合理；
-- `warning`：继续分析前需要作出明确决定；
-- `not_evaluated`：检查超过资源预算，没有偷偷加载大数据；
-- `not_applicable`：当前 base 没有该能力。
-
-## 明确测量语义
-
-```{r known-semantics}
-y <- ngeo_point(
-  matrix(c(0, 0, 1, 0, 2, 0), ncol = 2, byrow = TRUE),
-  values = cbind(signal = c(1, 2, 3)),
-  measures = ngeo_measure(
-    support_behavior = "intensive",
-    unit = "a.u."
-  ),
-  coordinate_space = ngeo_coordinate_space(
-    space_id = "study_native",
-    kind = "unknown",
-    unit = "mm"
-  )
-)
-
-ngeo_qc(y)$checks
-```
-
-## 大 values block 不会被隐式物化
-
-`max_value_cells` 是 QC 可以读取的最大 element-by-map 单元数。超过预算时，
-base 和其他元数据仍会检查，但 map missingness 会标记为
-`not_evaluated`。
+大 cohort 可用 `max_value_cells` 限制 QC 读取的 cells。bounded scan 会明确报告
+未评估的内容，不会把未读取 block 静默当作 pass。
 
 ```{r budget}
-ngeo_qc(y, max_value_cells = 2)$checks
+bounded_qc <- ngeo_qc(dk$cohort, max_value_cells=1000)
+bounded_qc$checks
 ```
 
-对于 file-backed CIFTI 或其他大型对象，应根据机器资源显式提高预算；不要为了
-得到一个 QC 数字而无条件加载完整数据。
+## 在 vertex 数据上检查 support coverage
 
-## atlas 与 change of support
+完整 Schaefer200-sized 教学 map 把 672 个 vertices 各自分给一个 target parcel。
+随后移除一部分前颞 vertices，同时在脑图和 sparse diagnostics 中查看 partial coverage。
 
-```{r support-qc}
-atlas <- ngeo_atlas_map(
-  y,
-  c("A", "A", NA),
-  source_support = rep(1, 3)
+```{r support}
+complete_map <- ngeo_atlas_map(
+  vertex$difference, vertex$supports$Schaefer200,
+  source_support=ngeo_vertex_area(vertex$difference)
 )
-support_qc <- ngeo_qc(y, support_map = atlas)
-support_qc$checks[
-  support_qc$checks$check %in%
-    c("support_coverage", "support_conservation"),
-]
+partial_labels <- vertex$supports$Schaefer200
+partial_labels[vertex$truth < -0.10] <- NA_character_
+partial_map <- ngeo_atlas_map(
+  vertex$difference, partial_labels,
+  source_support=ngeo_vertex_area(vertex$difference)
+)
+ngeo_qc(vertex$difference, support_map=partial_map)$checks
 ```
 
-覆盖不完整与质量不守恒是两件不同的事。partial atlas 可以是有意设计，但必须在
-结果中保留 coverage 决策。
+```{r coverage-brain, fig.width=9, fig.height=4.5, fig.alt="双侧 cortex 上前颞区域缺失的 vertex coverage mask", fig.cap="脑图显示 missing support，support-map QC 给出定量诊断。"}
+coverage_surface <- ngeo_tutorial_surface_map(
+  vertex$difference, as.numeric(!is.na(partial_labels)),
+  "support coverage", unit="binary"
+)
+plot(coverage_surface, chart="flat", show_edges=FALSE, palette="Blues 3")
+```
 
-## 皮层 chart
-
-对带有 flat chart 的 surface，QC 会汇总 charted face 比例、fold 数量、面积比
-有限性和最大角度误差。Viewing projection 出现重叠并不自动等于对象无效，但它
-说明这张图不能被解释为度量保持的皮层展开。
-
-## 边界
-
-`ngeo_qc()` 不执行 registration、resampling、surface reconstruction、异常值
-删除或统计推断。它也不是“绿色就一定科学正确”的认证。最终判断仍依赖研究设计、
-数据来源、测量语义和分析假设。
+QC 不执行 registration、preprocessing、outlier removal 或 inference。passing report
+只是已执行 checks 的证据，不证明 study design 或 anatomy 正确。

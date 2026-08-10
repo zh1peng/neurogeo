@@ -1,143 +1,99 @@
 ---
-title: "Neighbors and spatial_weights"
+title: "Cortical neighbors and weights on a DK68 case-control map"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Neighbors and spatial_weights}
+  %\VignetteIndexEntry{Cortical neighbors and weights on a DK68 case-control map}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  fig.width = 7,
-  fig.height = 5,
-  fig.retina = 2,
-  out.width = "100%"
-)
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+dk <- ngeo_tutorial_dk_case_control()
+x <- dk$difference
 ```
 
-## Background
+## The map whose neighborhood we are defining
 
-Spatial statistics require a declared answer to “which locations can
-influence one another?” A spatial_weights matrix \(W\) encodes that answer: row \(i\)
-contains the influence assigned to neighbors of element \(i\). Different
-construction rules imply different scientific neighborhoods and can change
-the result even when the observed values are unchanged.
+`x` is the SCZ-minus-HC cortical-thickness contrast on DK68. A neighborhood is
+part of the estimand: cortical contiguity, centroid KNN, and surface geodesic
+distance answer different questions.
 
-Topology-derived relationships are sparse. Surface adjacency follows mesh
-edges, volume adjacency uses active-mask-limited 6/18/26 connectivity, and
-grayordinate adjacency remains block diagonal by default.
+```{r input-map, fig.width=9, fig.height=4.6, fig.alt="SCZ minus HC cortical thickness on DK68", fig.cap="Always orient the spatial relation on the brain map it will analyze."}
+ngeo_tutorial_plot_dk(x, title="SCZ minus HC cortical thickness (mm)")
+```
 
-## Construct and inspect spatial_weights
+## Use the declared DK graph
 
-```{r}
-coordinates <- as.matrix(expand.grid(x = 0:2, y = 0:2))
-x <- ngeo_point(
-  coordinates,
-  values = cbind(signal = c(1, 2, 3, 2, 4, 7, 3, 7, 9)),
-  measures = ngeo_measure(support_behavior = "intensive")
+The teaching object stores a symmetric local graph derived from the atlas
+drawing. It keeps hemispheres disconnected. A real surface analysis should
+derive topology from registered mesh faces or a documented geodesic rule.
+
+```{r weights}
+binary <- ngeo_spatial_weights(
+  x, method="region_contiguity", style="B"
 )
-w <- ngeo_spatial_weights(
-  x,
-  method = "distance_band",
-  threshold = 1.01,
-  style = "W"
+row_standardized <- ngeo_spatial_weights(
+  x, method="region_contiguity", style="W"
 )
-w
-w$diagnostics
-```
-
-Inspect the graph before using it in a statistic. The node fill shows the
-signal while each segment shows one distance-band connection.
-
-```{r distance-network, fig.alt="A three by three spatial graph with horizontal and vertical neighbor connections", fig.cap="The distance-band graph. A visual check catches missing components and unintended diagonal links more quickly than a matrix printout."}
-W <- as.matrix(w$matrix)
-edges <- which(
-  upper.tri(W) & ((W > 0) | (t(W) > 0)),
-  arr.ind = TRUE
+c(
+  parcels = nrow(ngeo_values(x)),
+  undirected_edges = sum(binary$raw_matrix != 0) / 2,
+  isolated_parcels = sum(Matrix::rowSums(binary$raw_matrix != 0) == 0)
 )
-node_colors <- grDevices::hcl.colors(9, "YlOrRd", rev = TRUE)[
-  cut(x$values[, "signal"], breaks = 9, labels = FALSE, include.lowest = TRUE)
-]
-plot(coordinates, type = "n", asp = 1, xlab = "x", ylab = "y",
-     main = "Distance-band neighbors")
-segments(
-  coordinates[edges[, 1], 1], coordinates[edges[, 1], 2],
-  coordinates[edges[, 2], 1], coordinates[edges[, 2], 2],
-  col = "#8aa6a3", lwd = 2
+summary(Matrix::rowSums(binary$raw_matrix != 0))
+```
+
+Binary weights count every neighboring parcel equally. Row-standardized
+weights give every parcel total outgoing weight one, so a parcel with many
+neighbors contributes less per edge. This normalization changes the statistic
+and must be reported.
+
+```{r weight-diagnostic, fig.width=7, fig.height=4, fig.alt="Histogram of DK parcel neighbor counts", fig.cap="A degree diagnostic accompanies the brain map; it does not replace it."}
+plot(binary)
+```
+
+## Global and local spatial association
+
+```{r inference}
+global <- ngeo_moran(
+  x, row_standardized, "SCZ_minus_HC",
+  permutations=499, seed=2026
 )
-points(coordinates, pch = 21, bg = node_colors, col = "white", cex = 2.8)
-text(coordinates, labels = seq_len(nrow(coordinates)), font = 2)
-```
-
-## Weight styles and symmetry
-
-`style = "W"` row-standardizes the relation, `style = "B"` makes it binary,
-and `style = "none"` retains raw edge or kernel spatial_weights. KNN construction
-requires an explicit symmetry policy.
-
-```{r}
-knn <- ngeo_spatial_weights(
-  x,
-  method = "knn",
-  k = 2,
-  symmetry = "union",
-  style = "B"
+local <- ngeo_local_moran(
+  x, row_standardized, "SCZ_minus_HC",
+  permutations=499, seed=2026, adjust="BH",
+  null_model="conditional"
 )
-knn
+global
 ```
 
-The degree distributions make the consequences of the two construction
-rules visible. Boundary nodes have fewer distance-band neighbors, whereas KNN
-starts from a requested neighbor count and then applies the symmetry policy.
+Put local Moran's I back on the same cortical support instead of reading it as
+an unlocated vector.
 
-```{r compare-degrees, fig.width=8, fig.height=4.5, fig.alt="Side-by-side bar charts comparing node degree under distance-band and K nearest-neighbor spatial_weights", fig.cap="Neighbor count is a model choice, not a harmless implementation detail."}
-old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
-barplot(
-  Matrix::rowSums(w$raw_matrix != 0),
-  names.arg = seq_len(nrow(coordinates)),
-  col = "#26a69a",
-  border = NA,
-  xlab = "Element",
-  ylab = "Neighbor count",
-  main = "Distance band"
+```{r local-map, fig.width=9, fig.height=4.6, fig.alt="Local Moran I for the case-control contrast plotted on DK68", fig.cap="Local statistics are returned to their cortical parcels for interpretation."}
+local_map <- ngeo_parcellation(
+  dk$regions, values=cbind(local_I=local$local_i),
+  centroid=dk$centroids,
+  support_size=dk$support_size, adjacency=dk$adjacency,
+  measures=ngeo_measure(name="local Moran I", support_behavior="intensive",
+                        unit="dimensionless"),
+  coordinate_space=ngeo_spatial_base(dk$cohort)$coordinate_space
 )
-barplot(
-  Matrix::rowSums(knn$raw_matrix != 0),
-  names.arg = seq_len(nrow(coordinates)),
-  col = "#e29b45",
-  border = NA,
-  xlab = "Element",
-  ylab = "Neighbor count",
-  main = "KNN union"
-)
-par(old_par)
+ngeo_tutorial_plot_dk(local_map, title="Local Moran's I of SCZ minus HC")
 ```
 
-## Distance and spatial association
+The permutation null randomizes values over parcels while holding the graph
+fixed. It characterizes spatial structure of the contrast and is not a
+subject-level diagnosis test. For that, exchange whole subjects under the
+declared case-control design.
 
-Distances require explicit sources and targets; the API guards against
-accidental dense all-pairs allocation.
+## Reportable specification
 
-```{r}
-ngeo_distance(x, from = 1, to = c(2, 5, 9), distance_method = "euclidean")
-```
-
-The same spatial_weights object can drive global and local statistics.
-
-```{r}
-moran <- ngeo_moran(x, w, "signal")
-lisa <- ngeo_local_moran(x, w, "signal")
-moran
-head(lisa)
-```
-
-```{r association-plots, fig.width=8, fig.height=4.5, fig.alt="Side-by-side Moran and local Moran scatterplots", fig.cap="Global and local association diagnostics use the same declared spatial_weights object."}
-old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
-plot(moran, pch = 21, bg = "#26a69a", col = "white", cex = 1.4)
-plot(lisa, pch = 21, bg = "#e29b45", col = "white", cex = 1.4)
-par(old_par)
-```
+Record the base (DK68), graph source, metric, neighborhood rule, normalization,
+island handling, diagonal convention, permutation count, seed, and independent
+sampling unit. Changing any of these can change the scientific result.

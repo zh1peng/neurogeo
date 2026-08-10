@@ -1,21 +1,23 @@
 ---
-title: "ROI by cohort: subjects are layers, parcels are the base"
+title: "DK68 case-control cohort: subjects are layers, parcels are the base"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{ROI by cohort: subjects are layers, parcels are the base}
+  %\VignetteIndexEntry{DK68 case-control cohort: subjects are layers, parcels are the base}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-For an ROI-by-subject table, parcels are spatial elements and subjects are
-layers—not the reverse. Group and subject identifiers belong in layer metadata;
-measurement units and support behavior belong in the deduplicated measure.
+This workflow uses the common tutorial cohort: DK68 cortical thickness for 100
+HC and 100 SCZ subjects. Parcels are spatial elements and subjects are
+layers--not the reverse. Group, age, sex, site, and subject identifiers belong
+in layer metadata; millimetres and intensive support behavior belong in the
+measure.
 
-The workflow reads a bundled cohort table, constructs and validates that model,
-runs QC, derives a case-minus-control descriptive map without internal
-mutation, analyzes its spatial pattern on declared parcel adjacency, plots it,
-and exports redacted history. This six-subject fixture demonstrates data shape;
-it cannot support a population or clinical claim.
+The code validates the full 68-by-200 object, runs QC, derives a descriptive
+SCZ-minus-HC map, evaluates that map on declared parcel adjacency, draws the
+effect on the brain, and exports redacted history. The spatial Moran test
+describes the contrast map; a population diagnosis claim still requires a
+subject-level model and defensible subject exchangeability.
 
 ```{r setup, include=FALSE}
 knitr::read_chunk(system.file(
@@ -23,9 +25,10 @@ knitr::read_chunk(system.file(
 ))
 ```
 
-```{r workflow-roi-cohort}
+```{r workflow-roi-cohort, fig.width=9, fig.height=4.6, message=FALSE, warning=FALSE, fig.alt="Simulated SCZ minus HC cortical thickness on the DK atlas", fig.cap="ROI-by-cohort data stay interpretable because the 68 parcel rows and 200 subject layers remain explicit."}
 ```
 
-For confirmatory group inference, create a subject-level exchangeability
-schedule and state the estimand, independent unit, null, family, support, and
-uncertainty target before running `ngeo_group_test()`.
+For confirmatory inference, preserve the 200 subjects as independent units,
+adjust the prespecified covariates, declare the exchangeability scheme, and
+state the estimand, null, family, support, and uncertainty target before using
+`ngeo_group_test()` or an external mass-univariate model.

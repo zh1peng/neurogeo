@@ -1,77 +1,86 @@
 ---
-title: "Scalable values, CIFTI, and BIDS derivatives"
+title: "Scalable I/O for vertex case-control surfaces"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Scalable values, CIFTI, and BIDS derivatives}
+  %\VignetteIndexEntry{Scalable I/O for vertex case-control surfaces}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
 ```
 
-## Background
+## One logical brain matrix, bounded access
 
-Dense neuroimaging matrices can exceed available memory even when an analysis
-needs only a few layers or a block of elements. Chunking changes how values are
-accessed, not what the dataset means: element order, map metadata, base
-identity, and measurement semantics must remain identical to an in-memory
-object.
+The teaching matrix has 672 cortical vertices by 10 subjects; the same
+contract applies to 32k/164k surfaces and dense CIFTI cohorts. Chunking changes
+how values are accessed, not vertex order, subject metadata, base identity, or
+measurement semantics.
 
-Chunked access operates on the same logical element-by-map values block.
-Standard neuroimaging files use the format-specific file-backed readers.
+```{r brain, fig.width=9, fig.height=4.5, fig.alt="Vertex case-control thickness contrast on a bilateral cortical surface", fig.cap="The spatial meaning stays fixed while value access is chunked."}
+plot(vertex$difference, chart="flat", show_edges=FALSE, palette="Blue-Red 3")
+```
 
-## Chunked computation
-
-```{r}
-backing <- matrix(seq_len(30), nrow = 10, ncol = 3)
-colnames(backing) <- c("a", "b", "c")
-x <- ngeo_point(
-  cbind(x = 1:10, y = 0),
-  values = backing,
-  measures = do.call(
-    rbind,
-    replicate(
-      3,
-      ngeo_measure(support_behavior = "intensive"),
-      simplify = FALSE
-    )
-  )
-)
+```{r chunks}
 chunks <- ngeo_value_chunks(
-  x, chunk_size = 4,
-  FUN = function(block, rows) colSums(block)
+  vertex$surface, chunk_size=96,
+  FUN=function(block, rows) {
+    c(first_vertex=min(rows), last_vertex=max(rows),
+      HC_sum=sum(block[, vertex$group == "HC", drop=FALSE]),
+      SCZ_sum=sum(block[, vertex$group == "SCZ", drop=FALSE]))
+  }
 )
 chunks
 ```
 
-## Bounded support operations
+The callback receives aligned cortical rows. Never reorder a chunk by value or
+join subjects by an approximate name: element IDs and layer IDs are the stable
+keys.
 
-One sparse support map is used directly. Resource budgets bound the values
-materialized by the scientific operation; there is no second block-map class.
+## Sparse support operations under a budget
 
-```{r}
+```{r support}
 atlas <- ngeo_atlas_map(
-  x,
-  rep(c("A", "B"), each = 5),
-  source_support = rep(1, 10)
+  vertex$difference, vertex$supports$Schaefer200,
+  source_support=ngeo_vertex_area(vertex$difference)
 )
-aggregate_to(
-  x,
-  atlas$target,
-  atlas,
-  budget = ngeo_resource_budget(
-    memory_bytes = 1024^2,
-    materialized_elements = 6
+regional <- aggregate_to(
+  vertex$difference, atlas$target, atlas,
+  budget=ngeo_resource_budget(
+    memory_bytes=8 * 1024^2,
+    materialized_elements=200
+  )
+)
+regional
+```
+
+The sparse 200-by-672 operator is consumed directly. The budget cannot silently
+downsample the cortex or select another atlas.
+
+## Neuroimaging derivative output
+
+`write_ngeo_cifti()` writes dscalar, dlabel, and dtseries as CIFTI-2/NIfTI-2.
+`write_ngeo_bids_derivative()` adds a scoped JSON sidecar containing spatial
+entities, measure semantics, and history. For surfaces, use the format-specific
+GIFTI/FreeSurfer writers and preserve the vertex-index contract.
+
+```{r derivative, eval=FALSE}
+write_ngeo_bids_derivative(
+  vertex$difference,
+  path="derivatives/neurogeo/group_scz-vs-hc_desc-thickness.dscalar.nii",
+  sidecar=list(
+    Analysis="SCZ minus HC",
+    SamplingUnit="subject",
+    Support="registered cortical vertices"
   )
 )
 ```
 
-## Derivative output
-
-`write_ngeo_cifti()` writes dscalar, dlabel, and dtseries directly as
-CIFTI-2/NIfTI-2 without Workbench. `write_ngeo_bids_derivative()` adds a
-scoped JSON sidecar with spatial entities, measurement semantics, and
-history; it does not index or run a BIDS dataset.
+The writers publish declared derivatives; they do not discover, preprocess, or
+run a complete BIDS dataset.

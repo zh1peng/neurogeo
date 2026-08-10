@@ -1,64 +1,89 @@
 ---
-title: "Support uncertainty 与 operator ensemble"
+title: "Vertex SCZ--HC cortical map 的 support uncertainty"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Support uncertainty 与 operator ensemble}
+  %\VignetteIndexEntry{Vertex SCZ--HC cortical map 的 support uncertainty}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
 ```
 
-## 基础背景
+## value 与 uncertainty 共享同一个 cortical base
 
-改变空间支持时，不仅 point estimate 会改变，measurement uncertainty 也会通过
-support operator 传播。如果 source error 相关，target variance 取决于完整
-covariance 和 operator，而不是只取决于每个元素的 standard error。
+source 是 672-vertex SCZ-minus-HC thickness map。value uncertainty 与 operator
+uncertainty 不同：前者描述 vertex effects 的噪声，后者描述 vertices 到 parcels
+assignment 的不确定性。
 
-value uncertainty 与 operator uncertainty 是不同来源，应分别报告。
+```{r brain, fig.width=9, fig.height=4.5, fig.alt="双侧 cortex 上的 vertex-level SCZ 减 HC thickness contrast", fig.cap="uncertainty 必须与 plotted effect 使用同一 ordered cortical base。"}
+plot(vertex$difference, chart="flat", show_edges=FALSE, palette="Blue-Red 3")
+```
 
-## 传播 value uncertainty
+## 把相关 vertex uncertainty 传播到 DK68-sized parcels
 
-```{r}
-source <- ngeo_point(
-  cbind(x = 1:6, y = 0),
-  values = cbind(signal = c(2, 4, 3, 8, 6, 10)),
-  measures = ngeo_measure(support_behavior = "intensive"),
-  coordinate_space = ngeo_coordinate_space("uncertainty-example")
+```{r analytic}
+vertex_area <- ngeo_vertex_area(vertex$difference)
+hard <- ngeo_atlas_map(
+  vertex$difference, vertex$supports$DK68,
+  source_support=vertex_area
 )
-atlas <- ngeo_atlas_map(
-  source, c("A", "A", "B", "B", "C", "C"),
-  source_support = c(1, 2, 1, 2, 1, 2)
-)
-covariance <- ngeo_support_covariance(
-  source,
-  variance = rep(0.5, 6),
-  factor = matrix(rep(0.2, 6), ncol = 1)
+value_covariance <- ngeo_support_covariance(
+  vertex$difference,
+  variance=rep(0.0025, length(vertex_area)),
+  factor=matrix(rep(0.01, length(vertex_area)), ncol=1)
 )
 analytic <- ngeo_support_uncertainty(
-  source, atlas$target, atlas, covariance,
-  output = "covariance"
+  vertex$difference, hard$target, hard, value_covariance,
+  output="covariance"
 )
 analytic
 ```
 
-intensive measurement 使用 support-normalized ratio 的 derivative 传播误差。
-完整 target covariance 有大小保护；只需标准误时应优先返回 diagonal。
+对 intensive thickness，传播使用 area-normalized ratio 的 derivative。low-rank
+factor 表示 shared uncertainty，因此会产生 target covariance；只提供 672 个独立
+standard errors 会遗漏它。
 
-## Monte Carlo 检查
-
-```{r}
-ngeo_support_uncertainty(
-  source, atlas$target, atlas, covariance,
-  method = "monte_carlo", nsim = 200, seed = 2202
+```{r monte-carlo}
+monte_carlo <- ngeo_support_uncertainty(
+  vertex$difference, hard$target, hard, value_covariance,
+  method="monte_carlo", nsim=200, seed=2202
 )
+monte_carlo
 ```
 
-## Operator ensemble
+## 比较 hard 与 uncertain parcel boundaries
 
-多个 operator 只有在有序 source 和 target base 完全相同时才能比较。
-between-operator variance 衡量对给定 atlas/segmentation 替代方案的敏感性，
-不应自动解释为已校准的 registration confidence interval。
+soft operator 保留 90% hard parcel membership，并把 10% 移到相邻 target。这是
+透明的 boundary-sensitivity scenario，不是 calibrated segmentation probability。
+
+```{r ensemble}
+hard_probability <- as.matrix(Matrix::t(hard$operator))
+soft_probability <- 0.9 * hard_probability +
+  0.1 * hard_probability[, c(2:ncol(hard_probability), 1L)]
+target_id <- ngeo_base_elements(hard$target)$region_id
+soft <- ngeo_probabilistic_atlas_map(
+  vertex$difference, soft_probability, region_id=target_id,
+  target=hard$target, source_support=vertex_area
+)
+ensemble <- ngeo_segmentation_ensemble(list(hard=hard, soft=soft))
+sensitivity <- ngeo_support_sensitivity(
+  vertex$difference, hard$target, ensemble
+)
+sensitivity$summary
+```
+
+```{r operator-plot, fig.width=7, fig.height=4, fig.alt="soft cortical support operator 的 membership-sum diagnostic", fig.cap="probabilistic operator 在 boundary 上分配 membership，同时保持 complete。"}
+plot(soft, type="membership", col="#e76f51", border="white")
+```
+
+between-operator variance 只衡量 supplied hard/soft alternatives 的 sensitivity，
+不会自动成为 registration confidence interval。应报告 value covariance assumptions、
+operator alternatives、target support、simulation count、seed，以及 interval 属于
+analytic、Monte Carlo 还是 between-operator sensitivity range。

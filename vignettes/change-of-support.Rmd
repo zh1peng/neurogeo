@@ -1,154 +1,118 @@
 ---
-title: "Change of support and cross-atlas analysis"
+title: "Change of support: vertex SCZ-control maps across DK and Schaefer scales"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Change of support and cross-atlas analysis}
+  %\VignetteIndexEntry{Change of support: vertex SCZ-control maps across DK and Schaefer scales}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  fig.width = 7,
-  fig.height = 5,
-  fig.retina = 2,
-  out.width = "100%"
-)
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
 ```
 
-## Background
+## Start from a vertex-level brain map
 
-Spatial support is the area, volume, vertex set, or other footprint over which
-a value is defined. Changing support is therefore not a simple rename: it is
-a linear or normalized transfer from source elements to target elements. Let
-\(A\) be a target-by-source sparse operator. For extensive variables the
-transfer is based on \(A x\); for intensive variables the weighted numerator
-must be divided by transferred support.
+The sample contains five HC and five SCZ surface maps. The bilateral teaching
+mesh has 672 vertices and a flat chart, so support operators remain small
+enough to inspect. The simulated SCZ effect is anterior-temporal and smooth.
 
-`neurogeo` represents this relationship with one sparse operator whose rows
-are target elements and columns are source elements.
-
-## Build and audit a support map
-
-```{r}
-source <- ngeo_point(
-  cbind(x = 1:4, y = 0),
-  values = cbind(intensity = c(10, 20, 30, 40)),
-  measures = ngeo_measure(support_behavior = "intensive")
-)
-target <- ngeo_parcellation(
-  data.frame(region_id = c("A", "B")),
-  support_size = c(3, 3)
-)
-support_map <- ngeo_support_map(
-  source,
-  target,
-  operator = c("A", "A", "B", "B"),
-  source_support = c(1, 2, 1, 2)
-)
-regional <- aggregate_to(source, target, support_map)
-regional
+```{r vertex-map, fig.width=9, fig.height=4.5, fig.alt="Vertex-level SCZ minus HC cortical thickness on a bilateral surface", fig.cap="Change of support starts from a spatially located vertex map, not an anonymous vector."}
+plot(vertex$difference, chart="flat", layer="SCZ_minus_HC",
+     show_edges=FALSE, palette="Blue-Red 3")
 ```
 
-The operator is easier to audit when the source elements and target summaries
-are shown together. Point size below represents source support, not intensity.
+The included DK68, Schaefer100/200/300, and Glasser360 memberships match atlas
+*sizes* for operator teaching. Their borders are synthetic and must not be
+reported as the published anatomical atlases.
 
-```{r support-flow, fig.width=8, fig.height=4.5, fig.alt="Source points assigned to two colored regions alongside target regional intensity bars", fig.cap="A visual support audit separates source value, source support, and target membership."}
-membership <- c("A", "A", "B", "B")
-region_colors <- c(A = "#3b82a0", B = "#e29b45")
-old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 3, 1))
-plot(
-  source$base$geometry$coordinates,
-  type = "n",
-  asp = 1,
-  xlab = "x",
-  ylab = "y",
-  ylim = c(-0.5, 0.5),
-  main = "Source support"
-)
-points(
-  source$base$geometry$coordinates,
-  pch = 21,
-  bg = unname(region_colors[membership]),
-  col = "white",
-  cex = 1.5 + source$base$geometry$support_size
-)
-text(
-  source$base$geometry$coordinates,
-  labels = source$values[, "intensity"],
-  pos = 3
-)
-barplot(
-  regional$values[, "intensity"],
-  names.arg = target$base$elements$region_id,
-  col = unname(region_colors[target$base$elements$region_id]),
-  border = NA,
-  ylab = "Support-weighted intensity",
-  main = "Target support"
-)
-par(old_par)
+```{r support-family}
+vertex$support_note
+vapply(vertex$supports, function(labels) length(unique(labels)), integer(1))
 ```
 
-The bounded built-in diagnostic shows whether each source column has the
-expected membership sum. It does not materialize or draw a whole-brain dense
-operator.
+## Build sparse vertex-to-parcel operators
 
-```{r support-diagnostic, fig.alt="Histogram of source membership column sums", fig.cap="Every source element in this crisp complete map has membership sum one."}
-plot(support_map, type = "membership", col = "#26a69a", border = "white")
-```
+For cortical thickness, vertex area is the source support and the correct
+parcel summary is an area-weighted mean. Each operator has target parcels in
+rows and source vertices in columns.
 
-## Intensive and extensive variables
-
-Intensive layers use source-support weighted means. Extensive layers and counts
-use conservative allocation. Overlapping operators therefore require
-explicit column normalization before they can conserve totals.
-
-## Compare atlases
-
-Two atlas layers with a common source base can be compared by physical
-support overlap:
-
-```{r}
-target2 <- ngeo_parcellation(
-  data.frame(region_id = c("C", "D")),
-  support_size = c(3, 3)
-)
-support_map2 <- ngeo_support_map(
-  source,
-  target2,
-  operator = c("C", "D", "D", "C"),
-  source_support = c(1, 2, 1, 2)
-)
-overlap <- as.matrix(
-  ngeo_atlas_overlap(support_map, support_map2, distance_method = "dice")
-)
-overlap
-```
-
-```{r atlas-overlap, fig.width=6, fig.height=5, fig.alt="Heatmap of Dice overlap between two pairs of atlas regions", fig.cap="Cross-atlas overlap is a relationship between supports, not a claim that one atlas reconstructs the other."}
-image(
-  seq_len(nrow(overlap)),
-  seq_len(ncol(overlap)),
-  overlap,
-  col = grDevices::hcl.colors(32, "Teal"),
-  axes = FALSE,
-  xlab = "Second atlas",
-  ylab = "First atlas",
-  main = "Dice overlap"
-)
-axis(1, at = seq_len(ncol(overlap)), labels = colnames(overlap))
-axis(2, at = seq_len(nrow(overlap)), labels = rownames(overlap))
-text(
-  rep(seq_len(nrow(overlap)), times = ncol(overlap)),
-  rep(seq_len(ncol(overlap)), each = nrow(overlap)),
-  labels = sprintf("%.2f", as.vector(overlap))
+```{r build-maps}
+vertex_area <- ngeo_vertex_area(vertex$difference)
+maps <- lapply(vertex$supports, function(labels) {
+  ngeo_atlas_map(
+    vertex$difference, labels,
+    source_support=vertex_area
+  )
+})
+diagnostics <- lapply(maps, ngeo_support_diagnostics)
+data.frame(
+  support=names(maps),
+  targets=vapply(maps, function(map) nrow(map$operator), integer(1)),
+  sources=vapply(maps, function(map) ncol(map$operator), integer(1)),
+  coverage=vapply(maps, function(map) map$coverage, character(1))
 )
 ```
 
-`ngeo_cross_atlas()` is deliberately model based. It declares a
-piecewise-constant source-parcel model and exposes the resulting transfer
-operator and propagated variance. It is not described as an inverse
-reconstruction.
+```{r operator-diagnostic, fig.width=7, fig.height=4, fig.alt="Membership column sums for the vertex to DK68 support operator", fig.cap="Every included vertex contributes to exactly one parcel in a complete crisp atlas map."}
+plot(maps$DK68, type="membership", col="#2a9d8f", border="white")
+```
+
+## Aggregate, then return the result to the brain
+
+`aggregate_to()` uses the measure semantics: thickness is intensive, so the
+operator transfers an area-weighted numerator and denominator. The parcel
+result is lifted back to its source vertices only for visualization; it remains
+a parcel-supported estimate.
+
+```{r aggregate}
+dk_result <- aggregate_to(vertex$difference, maps$DK68$target, maps$DK68)
+dk_id <- ngeo_base_elements(dk_result)$region_id
+dk_value <- ngeo_values(dk_result)[, "SCZ_minus_HC"]
+dk_lift <- dk_value[match(vertex$supports$DK68, dk_id)]
+dk_surface <- ngeo_tutorial_surface_map(
+  vertex$difference, dk_lift, "DK68-supported SCZ minus HC"
+)
+```
+
+```{r aggregate-brain, fig.width=9, fig.height=4.5, fig.alt="DK68 aggregated case-control thickness lifted to the bilateral surface", fig.cap="Piecewise-constant color makes the change from vertex support to parcel support visible."}
+plot(dk_surface, chart="flat", show_edges=FALSE, palette="Blue-Red 3")
+```
+
+The block-like map is not a reconstructed vertex effect. Every vertex in a DK
+parcel is displaying the same parcel estimate.
+
+## Compare declared atlas supports
+
+```{r family-aggregation}
+family_results <- lapply(maps, function(map) {
+  aggregate_to(vertex$difference, map$target, map)
+})
+data.frame(
+  support=names(family_results),
+  n_parcel=vapply(family_results, function(x) nrow(ngeo_values(x)), integer(1)),
+  contrast_sd=vapply(family_results, function(x) {
+    stats::sd(ngeo_values(x)[, 1L])
+  }, numeric(1))
+)
+```
+
+```{r overlap, fig.width=8, fig.height=5, fig.alt="Dice overlap heatmap between synthetic DK68 and Schaefer100-sized supports", fig.cap="Atlas overlap is a relationship between supports, not evidence that one atlas reconstructs the other."}
+overlap <- as.matrix(ngeo_atlas_overlap(
+  maps$DK68, maps$Schaefer100, distance_method="dice"
+))
+image(t(overlap[nrow(overlap):1, ]), axes=FALSE,
+      col=grDevices::hcl.colors(40, "Teal"),
+      xlab="Schaefer100-sized parcels", ylab="DK68-sized parcels",
+      main="Cross-support Dice overlap")
+```
+
+Cross-atlas agreement must be evaluated over the declared support family. A
+result consistent across these synthetic scales demonstrates operator behavior
+only; scientific atlas robustness requires registered published labels and the
+same subject-level design on every support.

@@ -1,120 +1,92 @@
 ---
-title: "Support uncertainty and operator ensembles"
+title: "Support uncertainty on a vertex SCZ-control cortical map"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Support uncertainty and operator ensembles}
+  %\VignetteIndexEntry{Support uncertainty on a vertex SCZ-control cortical map}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
 ```
 
-## Background
+## The value and its uncertainty share one cortical base
 
-Changing spatial support propagates uncertainty as well as point estimates.
-If source errors are correlated, regional variance depends on the full
-covariance structure and on the support operator, not only on element-wise
-standard errors. Uncertainty in the operator itself is a separate source of
-variation.
+The source is a 672-vertex SCZ-minus-HC thickness map. Value uncertainty and
+operator uncertainty are different: the first describes noisy vertex effects;
+the second describes uncertain assignment of vertices to parcels.
 
-Uncertainty must be aligned to the same ordered base as the values it
-describes. Independent variance, sparse or full covariance, and low-rank
-shared variation are represented without creating a second assay in the
-dataset.
+```{r brain, fig.width=9, fig.height=4.5, fig.alt="Vertex-level SCZ minus HC thickness contrast on bilateral cortex", fig.cap="Uncertainty must stay aligned to the same ordered cortical base as the plotted effect."}
+plot(vertex$difference, chart="flat", show_edges=FALSE, palette="Blue-Red 3")
+```
 
-## Propagate value uncertainty
+## Propagate correlated vertex uncertainty to DK68-sized parcels
 
-```{r}
-source <- ngeo_point(
-  cbind(x = 1:6, y = 0),
-  values = cbind(signal = c(2, 4, 3, 8, 6, 10)),
-  measures = ngeo_measure(support_behavior = "intensive"),
-  coordinate_space = ngeo_coordinate_space("uncertainty-example")
+```{r analytic}
+vertex_area <- ngeo_vertex_area(vertex$difference)
+hard <- ngeo_atlas_map(
+  vertex$difference, vertex$supports$DK68,
+  source_support=vertex_area
 )
-atlas <- ngeo_atlas_map(
-  source,
-  c("A", "A", "B", "B", "C", "C"),
-  source_support = c(1, 2, 1, 2, 1, 2)
-)
-covariance <- ngeo_support_covariance(
-  source,
-  variance = rep(0.5, 6),
-  factor = matrix(rep(0.2, 6), ncol = 1)
+value_covariance <- ngeo_support_covariance(
+  vertex$difference,
+  variance=rep(0.0025, length(vertex_area)),
+  factor=matrix(rep(0.01, length(vertex_area)), ncol=1)
 )
 analytic <- ngeo_support_uncertainty(
-  source,
-  atlas$target,
-  atlas,
-  covariance,
-  output = "covariance"
+  vertex$difference, hard$target, hard, value_covariance,
+  output="covariance"
 )
 analytic
 ```
 
-For intensive measurements, analytic propagation uses the derivative of
-the support-normalized ratio. The returned diagonal is scalable; full
-target covariance has a configurable size guard.
+For intensive thickness, propagation uses the derivative of the
+area-normalized ratio. The low-rank factor represents shared uncertainty and
+therefore creates target covariance; 672 independent standard errors alone
+would miss it.
 
-```{r}
+```{r monte-carlo}
 monte_carlo <- ngeo_support_uncertainty(
-  source,
-  atlas$target,
-  atlas,
-  covariance,
-  method = "monte_carlo",
-  nsim = 200,
-  seed = 2202
+  vertex$difference, hard$target, hard, value_covariance,
+  method="monte_carlo", nsim=200, seed=2202
 )
 monte_carlo
 ```
 
-## Compare operator alternatives
+## Compare hard and uncertain parcel boundaries
 
-Alternative operators must have identical ordered source and target
-domains:
+The soft operator retains 90% membership in the hard parcel and moves 10% to a
+neighboring target. This is a transparent boundary-sensitivity scenario, not a
+calibrated segmentation probability.
 
-```{r}
-probability <- matrix(
-  c(
-    1, 0, 0,
-    0.8, 0.2, 0,
-    0.2, 0.8, 0,
-    0, 1, 0,
-    0, 0.2, 0.8,
-    0, 0, 1
-  ),
-  nrow = 6,
-  byrow = TRUE,
-  dimnames = list(NULL, c("A", "B", "C"))
-)
+```{r ensemble}
+hard_probability <- as.matrix(Matrix::t(hard$operator))
+soft_probability <- 0.9 * hard_probability +
+  0.1 * hard_probability[, c(2:ncol(hard_probability), 1L)]
+target_id <- ngeo_base_elements(hard$target)$region_id
 soft <- ngeo_probabilistic_atlas_map(
-  source,
-  probability,
-  target = atlas$target,
-  source_support = c(1, 2, 1, 2, 1, 2)
+  vertex$difference, soft_probability, region_id=target_id,
+  target=hard$target, source_support=vertex_area
 )
-ensemble <- ngeo_segmentation_ensemble(list(hard = atlas, soft = soft))
+ensemble <- ngeo_segmentation_ensemble(list(hard=hard, soft=soft))
 sensitivity <- ngeo_support_sensitivity(
-  source,
-  atlas$target,
-  ensemble
+  vertex$difference, hard$target, ensemble
 )
-sensitivity
+sensitivity$summary
 ```
 
-## Interpretation
-
-Between-operator variance measures sensitivity to the supplied alternatives.
-It is not automatically a calibrated registration or segmentation
-confidence interval.
-
-```{r}
-ngeo_support_condition(soft)
-ngeo_support_diagnostics(
-  soft,
-  source_structure = rep(c("left", "right"), each = 3)
-)
+```{r operator-plot, fig.width=7, fig.height=4, fig.alt="Membership-sum diagnostic for the soft cortical support operator", fig.cap="The probabilistic operator remains complete while distributing membership across boundaries."}
+plot(soft, type="membership", col="#e76f51", border="white")
 ```
+
+Between-operator variance measures sensitivity to the supplied hard/soft
+alternatives. It is not automatically a registration confidence interval.
+Report value covariance assumptions, operator alternatives, target support,
+simulation count, seed, and whether intervals are analytic, Monte Carlo, or
+between-operator sensitivity ranges.

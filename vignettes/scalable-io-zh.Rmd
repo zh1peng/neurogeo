@@ -1,65 +1,82 @@
 ---
-title: "可扩展 values、CIFTI 与 BIDS derivatives"
+title: "Vertex case-control surfaces 的 scalable I/O"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{可扩展 values、CIFTI 与 BIDS derivatives}
+  %\VignetteIndexEntry{Vertex case-control surfaces 的 scalable I/O}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
 ```
 
-## 基础背景
+## 一个 logical brain matrix，bounded access
 
-高分辨率 surface、volume 和 dense grayordinate 数据可能超过内存。分块访问
-只改变 values 的读取方式，不能改变 element order、map metadata、base
-identity 或 measurement semantics。
+教学矩阵有 672 cortical vertices × 10 subjects；同一 contract 适用于 32k/164k
+surface 与 dense CIFTI cohort。chunking 只改变 values access，不改变 vertex order、
+subject metadata、base identity 或 measurement semantics。
 
-## 分块计算
-
-```{r}
-backing <- matrix(seq_len(30), nrow = 10, ncol = 3)
-colnames(backing) <- c("a", "b", "c")
-x <- ngeo_point(
-  cbind(x = 1:10, y = 0),
-  values = backing,
-  measures = do.call(
-    rbind,
-    replicate(3, ngeo_measure(support_behavior = "intensive"),
-              simplify = FALSE)
-  )
-)
-ngeo_value_chunks(
-  x, chunk_size = 4,
-  FUN = function(block, rows) colSums(block)
-)
+```{r brain, fig.width=9, fig.height=4.5, fig.alt="双侧 cortical surface 上的 vertex case-control thickness contrast", fig.cap="value access 分块时，spatial meaning 保持不变。"}
+plot(vertex$difference, chart="flat", show_edges=FALSE, palette="Blue-Red 3")
 ```
 
-`chunk_size` 是执行参数，不产生第二套空间对象模型。不同 chunk size 应得到
-同一逻辑结果。
+```{r chunks}
+chunks <- ngeo_value_chunks(
+  vertex$surface, chunk_size=96,
+  FUN=function(block, rows) {
+    c(first_vertex=min(rows), last_vertex=max(rows),
+      HC_sum=sum(block[, vertex$group == "HC", drop=FALSE]),
+      SCZ_sum=sum(block[, vertex$group == "SCZ", drop=FALSE]))
+  }
+)
+chunks
+```
 
-## 资源预算
+callback 接收严格对齐的 cortical rows。不能按 value 重排 chunk，也不能用近似名称
+join subjects；element IDs 与 layer IDs 才是 stable keys。
 
-```{r}
+## budget 下的 sparse support operations
+
+```{r support}
 atlas <- ngeo_atlas_map(
-  x, rep(c("A", "B"), each = 5), source_support = rep(1, 10)
+  vertex$difference, vertex$supports$Schaefer200,
+  source_support=ngeo_vertex_area(vertex$difference)
 )
-aggregate_to(
-  x, atlas$target, atlas,
-  budget = ngeo_resource_budget(
-    memory_bytes = 1024^2,
-    materialized_elements = 6
+regional <- aggregate_to(
+  vertex$difference, atlas$target, atlas,
+  budget=ngeo_resource_budget(
+    memory_bytes=8 * 1024^2,
+    materialized_elements=200
+  )
+)
+regional
+```
+
+sparse 200 × 672 operator 被直接使用。budget 不能静默 downsample cortex 或换 atlas。
+
+## 神经影像 derivative output
+
+`write_ngeo_cifti()` 把 dscalar、dlabel 与 dtseries 写为 CIFTI-2/NIfTI-2；
+`write_ngeo_bids_derivative()` 添加包含 spatial entities、measure semantics 与 history
+的 scoped JSON sidecar。surface 数据使用相应 GIFTI/FreeSurfer writers，并保持
+vertex-index contract。
+
+```{r derivative, eval=FALSE}
+write_ngeo_bids_derivative(
+  vertex$difference,
+  path="derivatives/neurogeo/group_scz-vs-hc_desc-thickness.dscalar.nii",
+  sidecar=list(
+    Analysis="SCZ minus HC",
+    SamplingUnit="subject",
+    Support="registered cortical vertices"
   )
 )
 ```
 
-预算在分配内存前检查。超出预算应明确失败，而不是悄悄切换统计方法。
-
-## Derivative 输出
-
-`write_ngeo_cifti()` 可写出 dscalar、dlabel 和 dtseries；
-`write_ngeo_bids_derivative()` 添加限定范围的 JSON sidecar。两者都不负责运行
-或索引完整 BIDS dataset。
+writers 只发布声明的 derivatives，不发现、预处理或运行完整 BIDS dataset。

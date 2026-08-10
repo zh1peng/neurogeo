@@ -33,6 +33,8 @@ Suggests:
     dbscan,
     freesurferformats,
     gstat,
+    ggplot2,
+    ggseg,
     gifti,
     GWmodel,
     igraph,
