@@ -67,7 +67,7 @@ if (length(missing_evidence)) {
 critical <- stats::setNames(tasks$status, tasks$task_id)
 stopifnot(
   identical(critical[["VAL-301"]], "design-amendment-required"),
-  identical(critical[["VAL-302"]], "blocked-external-prerequisites"),
+  identical(critical[["VAL-302"]], "external-validated"),
   identical(critical[["VAL-308"]], "partial-internal"),
   identical(critical[["UX-301"]], "external-evidence-pending"),
   all(critical[paste0("PUB-40", 1:7)] == "blocked-by-prerequisite")

@@ -46,13 +46,16 @@ attempted Gaussian-process replicates: coverage estimates range from 0.9464 to
 no calibrated p-value, so the frozen type-I metric is recorded as not
 applicable rather than borrowed from a reference implementation.
 
-VAL-302 remains externally blocked on the current candidate machine:
-`wb_command`, `mri_surf2surf`, and `mri_vol2vol` are not installed. The
-machine-readable prerequisite checker and external reference protocol are
-registered, but neither is parity evidence. C03 therefore remains pending.
-The stable documentation now distinguishes target-gather interpolation from
-the implemented conservative surface source-scatter barycentric remap, and
-CIFTI resampling remains runtime-rejected rather than implicitly assembled.
+VAL-302 has committed external reference evidence from Connectome Workbench
+2.2.1 and FreeSurfer 7.4.1. The run attempted the complete frozen 108-cell
+grid: all 60 declared, semantically matched cells passed; 48 CIFTI-to-CIFTI or
+incompatible surface target-gather cells remain explicit unsupported results.
+The evidence includes 90 successful command receipts with versioned executable,
+input, output, and console hashes and passes the offline evidence checker. C03
+is therefore externally replicated within this declared boundary. Workbench
+and FreeSurfer remain validation-only comparators, not package dependencies or
+runtime backends. CIFTI resampling remains runtime-rejected rather than
+implicitly assembled.
 
 VAL-301 is blocked before primary result generation because the frozen grid
 does not name a procedure/statistic or map non-zero spatial autocorrelation to

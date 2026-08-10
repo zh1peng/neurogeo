@@ -1,8 +1,9 @@
 # VAL-302 external reference protocol
 
-Status: blocked until Connectome Workbench and FreeSurfer executables are
-available in the validation environment. This protocol is not validation
-evidence by itself.
+Status: externally validated for the declared 6.0 API boundary. The committed
+evidence was generated from source commit `c839870516a59d93a10b6145c3be572dab629fe4`
+with Connectome Workbench 2.2.1 and FreeSurfer 7.4.1, then verified offline by
+`tools/check-val302-external-evidence-60.R`.
 
 The external run must use the frozen `VAL-302` factor grid and record:
 
@@ -24,18 +25,22 @@ overrides, and project-local hints frozen in
 `inst/validation/val302-tool-manifest-6.0.csv`. It verifies versions, available
 archive/executable hashes, and the FreeSurfer license before reporting ready.
 A successful prerequisite check still means only that the execution
-environment is ready. The later parity runner must consume the frozen design,
-verify fixture hashes, and pass the registered error, conservation, coverage,
-and candidate-miss gates before C03 can change from `pending-preregistered`.
+environment is ready. `tools/run-val302-external-reference-60.R` consumes the
+frozen design and writes the complete cell table, command receipts, and result
+report. The committed run attempted all 108 cells: 60 declared and
+semantically matched cells passed, while 48 CIFTI-to-CIFTI or incompatible
+surface target-gather cells were retained as explicit unsupported results.
+All 90 external command receipts completed successfully and bind their input
+and output hashes.
 
-The Windows Workbench 2.2.1 archive is pinned in the tool manifest and may be
-expanded under `.tools/workbench-2.2.1`. FreeSurfer has no native Windows
-distribution: use an approved WSL2 or container environment, freeze the two
-executable hashes after installation, and supply a real `FS_LICENSE` obtained
-from the official registration process. Do not create or share a synthetic
-license file.
+The Windows Workbench 2.2.1 archive and the FreeSurfer 7.4.1 Linux executable
+hashes are pinned in the tool manifest. The recorded FreeSurfer execution host
+is `linux212`; its license was checked by hash and existence only. Do not
+create, commit, or share a synthetic or real license file.
 
 Current API boundary: CIFTI-to-CIFTI resampling is rejected rather than
 assembled implicitly from cortical and volume components. Surface
 `barycentric` is a conservative source-scatter remap and is not claimed to
-match Workbench area-aware target-gather resampling.
+match Workbench area-aware target-gather resampling. FreeSurfer and Workbench
+are external validation comparators only: neither is an `Imports` dependency,
+a stable API backend, nor a requirement for ordinary neurogeo execution.
