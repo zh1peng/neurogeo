@@ -1,8 +1,8 @@
 ---
-title: "真实皮层表面上的分区与聚合"
+title: "从顶点到脑区：在皮层表面上完成分区与聚合"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{真实皮层表面上的分区与聚合}
+  %\VignetteIndexEntry{从顶点到脑区：在皮层表面上完成分区与聚合}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -16,21 +16,44 @@ source(system.file(
   mustWork=TRUE
 ))
 vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5, seed=20260811)
-maps <- ngeo_tutorial_support_maps(vertex$difference)
+maps <- lapply(vertex$supports, function(labels) {
+  ngeo_atlas_map(
+    vertex$difference,
+    labels,
+    source_support=vertex$vertex_area
+  )
+})
 ```
 
-## 从 5 名 HC 与 5 名 SCZ 的 vertex maps 开始
+## 先看顶点尺度的组间差异
 
-本页不再用四个顶点的方形说明 aggregation。输入是同一双侧 flat surface 上的
-5 名 HC 与 5 名 SCZ；每一行是一个 cortical vertex，每一列是一名受试者。
-下面先画描述性的 SCZ-minus-HC thickness，再讨论怎样改变 support。
+皮层表面分析常从数万个顶点开始，但统计模型和结果报告往往需要脑区尺度的数值。本页
+用 5 名精神分裂症患者和 5 名健康对照的皮层厚度图，完整走一遍从顶点到脑区的过程。
+数据矩阵的每一行对应一个皮层顶点，每一列对应一名受试者。
 
-```{r vertex-map, fig.width=10, fig.height=4.8, fig.alt="双侧 flat surface 上的 vertex-level SCZ 减 HC 皮层厚度", fig.cap="分区前先检查连续 vertex effect 与 medial-wall mask。"}
-ngeo_tutorial_plot_flat(
+下图是患者组均值减去对照组均值。连续的颜色变化保留了顶点尺度的细节。我们先把它当作
+参照，然后观察不同分区方案会怎样概括同一张图。
+
+```{r vertex-map, fig.width=10, fig.height=4.8, fig.alt="双侧平坦化皮层表面上的顶点尺度患者组减对照组皮层厚度", fig.cap="分区前的顶点尺度组间差异；内侧壁未纳入分析。"}
+vertex_limit <- max(abs(ngeo_values(vertex$difference)[, 1L]), na.rm=TRUE)
+vertex_map <- ngeo_cortical_map(
   vertex$difference,
+  chart="flat",
   atlas="DK68",
-  title="Vertex-level SCZ minus HC cortical thickness",
-  diverging=TRUE
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-vertex_limit, vertex_limit),
+  na_color=NA_character_
+)
+plot(
+  vertex_map,
+  main="Vertex-level SCZ minus HC cortical thickness",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
@@ -43,18 +66,43 @@ c(
 table(vertex$group)
 ```
 
-## 同一 surface 上声明多个 atlas support
+维度和分组表是第一道检查：顶点数应与 Conte69 表面一致，两组各有 5 名受试者。聚合
+以后行数会变成脑区数，但受试者数量和身份都不会变化。
 
-DK68、Schaefer100/200/300 与 Glasser360 都是与同一 ordered
-vertex base 对齐的 label support。atlas 改变的是区域边界和 operator，不会替换
-surface geometry，也不会改变 10 名受试者的身份。
+## 在同一皮层上比较四种分区方案
 
-```{r atlas-layout, fig.width=11, fig.height=8, fig.alt="同一双侧 flat surface 上的 DK68 与 Schaefer 多尺度 atlas", fig.cap="每个 atlas 都在同一 vertex geometry 上显示自己的边界。"}
-atlas_layout <- ngeo_tutorial_atlas_layout(
-  vertex,
-  atlases=c("DK68", "Schaefer100", "Schaefer200", "Schaefer300")
+DK68 与 Schaefer100/200/300 都给同一批顶点贴上区域标签。它们共享皮层几何，却用
+不同边界把皮层切分成 68、100、200 或 300 个区域。下图把四套边界放在同一个视图中，
+可以预先判断聚合后会保留多少空间细节。
+
+```{r atlas-layout, fig.width=11, fig.height=8, fig.alt="同一双侧皮层表面上的 DK68 与多尺度 Schaefer 图谱", fig.cap="四套图谱使用相同顶点和几何，但以不同边界划分皮层。"}
+atlas_names <- c("DK68", "Schaefer100", "Schaefer200", "Schaefer300")
+atlas_maps <- lapply(atlas_names, function(atlas) {
+  ngeo_cortical_map(
+    vertex$surface,
+    chart="flat",
+    atlas=atlas,
+    fill="atlas",
+    underlay=vertex$underlay,
+    underlay_palette="Grays",
+    overlay_alpha=0.78,
+    palette="Dynamic",
+    na_color=NA_character_
+  )
+})
+atlas_layout <- ngeo_cortical_layout(
+  atlas_maps,
+  ncol=2L,
+  labels=atlas_names,
+  shared_scale=FALSE
 )
-plot(atlas_layout, show_legend=FALSE)
+plot(
+  atlas_layout,
+  boundary_color=grDevices::adjustcolor("white", 0.65),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=FALSE
+)
 ```
 
 ```{r support-table}
@@ -66,10 +114,15 @@ data.frame(
 )
 ```
 
-## intensive thickness 使用 vertex-area weighted mean
+表格中的顶点数应在各图谱间一致，脑区数则随图谱而变。覆盖率一栏帮助我们确认没有在
+转换时意外丢掉属于分析掩膜的顶点。
 
-`ngeo_atlas_map()` 把 vertex area 写入 support operator；`aggregate_to()` 根据
-thickness 的 intensive measure semantics 计算 area-weighted parcel mean。
+## 用表面积加权平均汇总皮层厚度
+
+皮层厚度是强度型变量：一个脑区的厚度应表示该区域内的平均厚度。所有顶点厚度之和
+没有相应的物理含义。由于网格顶点代表的皮层面积并不完全相同，我们用顶点面积作为权重。函数
+`ngeo_atlas_map()` 建立“顶点属于哪个脑区”的稀疏映射，`aggregate_to()` 再据此计算
+每个脑区的面积加权平均值。
 
 ```{r aggregate-family}
 regional <- lapply(
@@ -85,8 +138,14 @@ data.frame(
 )
 ```
 
-下面对 DK68 的第一个 parcel 手工核对一次 area-weighted mean。该检查把数值
-结果、atlas membership 与 source support 联系起来，而不是只相信矩阵维度。
+结果表中的标准差描述组间差异在各脑区之间的离散程度。图谱越细，局部高低值通常保留
+得越多；图谱越粗，同一区域内的变化会被平均。
+
+## 手工核对一个 DK68 脑区
+
+为了确认聚合规则与研究问题一致，我们挑出 DK68 的第一个脑区，直接从原始顶点值和
+顶点面积计算加权平均，再与 `aggregate_to()` 的结果比较。两者之差应接近数值精度范围
+内的零。这个小检查很适合放进真实分析的质量控制流程。
 
 ```{r weighted-check}
 dk_id <- ngeo_base_elements(regional$DK68)$region_id
@@ -100,26 +159,42 @@ computed <- ngeo_values(regional$DK68)[match(first_id, dk_id), 1L]
 c(manual=manual, aggregate_to=computed, difference=manual-computed)
 ```
 
-## 聚合结果必须回到 flat surface
+## 把 Schaefer100 结果放回皮层阅读
 
-parcel estimate lift 回 vertices 只是为了绘图；同一 parcel 内的颜色相同，结果
-仍然是 parcel-supported，而不是重建的 vertex effect。
+一列 100 个数很难呈现解剖位置。下面把每个 Schaefer100 脑区的估计值复制给该区域的
+顶点，以便在平坦化皮层表面上显示。图中同一脑区颜色完全一致，这正是脑区聚合后的
+块状外观；它帮助定位结果，但不会恢复聚合前的顶点细节。
 
-```{r schaefer-map, fig.width=10, fig.height=4.8, fig.alt="Schaefer100 support 上的 SCZ 减 HC 聚合结果", fig.cap="Schaefer100 parcel estimate 显示在原始 flat surface 上。"}
-schaefer_id <- ngeo_base_elements(regional$Schaefer100)$region_id
-schaefer_value <- ngeo_values(regional$Schaefer100)[, 1L]
-schaefer_lift <- schaefer_value[
-  match(vertex$supports$Schaefer100, schaefer_id)
-]
-ngeo_tutorial_plot_flat(
+```{r schaefer-map, fig.width=10, fig.height=4.8, fig.alt="Schaefer100 脑区上的患者组减对照组聚合结果", fig.cap="每种颜色代表一个 Schaefer100 脑区的面积加权平均组间差异。"}
+schaefer_limit <- max(
+  abs(ngeo_values(regional$Schaefer100)[, 1L]),
+  na.rm=TRUE
+)
+schaefer_map <- ngeo_cortical_map(
   vertex$difference,
-  values=schaefer_lift,
+  values=regional$Schaefer100,
+  chart="flat",
   atlas="Schaefer100",
-  title="Schaefer100-supported SCZ minus HC",
-  diverging=TRUE
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-schaefer_limit, schaefer_limit),
+  na_color=NA_character_
+)
+plot(
+  schaefer_map,
+  main="Schaefer100-supported SCZ minus HC",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
-对 extensive quantity（例如 cortical area），聚合目标应是总和；对 categorical
-label 应使用明确的 mode rule。本页的 thickness 是 intensive，因此不能把 parcel
-sum 当作厚度，也不能把 parcels 当作额外的独立受试者。
+## 根据测量含义选择聚合规则
+
+面积、体积这类总量型变量通常应在区域内求和；分区标签这类类别变量需要事先规定多数
+规则；皮层厚度这类强度型变量则适合求加权平均。聚合方法必须由测量的科学含义决定。
+无论采用哪套图谱，统计推断中的独立观测仍是那 10 名受试者；聚合后的脑区属于同一人的
+重复空间测量。

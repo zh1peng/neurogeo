@@ -1,8 +1,8 @@
 ---
-title: "核心概念：用 DK cohort 与 Conte69 surface 理解对象契约"
+title: "从一张皮层厚度表到一幅可以分析的脑图"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{核心概念：用 DK cohort 与 Conte69 surface 理解对象契约}
+  %\VignetteIndexEntry{从一张皮层厚度表到一幅可以分析的脑图}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -17,16 +17,15 @@ dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
 vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
 ```
 
-## neuroimaging object 不只是 matrix
+这一页从两份皮层厚度数据出发。第一份采用 Desikan--Killiany 68 分区
+（DK68），包括 100 名健康对照者和 100 名精神分裂症患者；第二份把同类测量放在
+Conte69 表面的 64,984 个顶点上，每组各有 5 人。我们会沿着一个简单的问题往下走：
+为什么一张数值表还不足以成为可以可靠分析的神经影像数据？
 
-本教程始终使用两份对齐的数据：
+## 先看看两张表有多大
 
-- `dk$cohort`：真实 DK68 support 上 100 HC + 100 SCZ 的 68×200 thickness；
-- `vertex$surface`：真实 bilateral Conte69 geometry 上 5 HC + 5 SCZ 的
-  64,984×10 thickness。
-
-矩阵第 *i* 行必须始终对应同一个 region/vertex。只重排 values、不重排 geometry，
-数字虽没变，脑区含义已经错了。
+先只查看矩阵维度和表面网格的规模。此时我们知道有多少行、多少列，却还不知道
+每一行位于哪个半球、属于哪个脑区，也不知道哪些顶点在皮层上相邻。
 
 ```{r dimensions}
 dim(ngeo_values(dk$cohort))
@@ -37,7 +36,16 @@ c(
 )
 ```
 
-## base、values、layers、measures 各自回答什么
+DK68 数据的 68 行对应皮层分区，200 列对应被试；顶点数据的 64,984 行对应左右
+半球的表面顶点，10 列对应被试。若把两行悄悄交换，矩阵维度不会改变，但这两行
+代表的解剖位置已经互换。这就是我们需要在数值之外保存空间信息的原因。
+
+## 把数值重新放回脑的位置和被试
+
+在 neurogeo 中，空间基底（`base`）记录“这一行在哪里”，数值块（`values`）记录
+“这里测到了什么”，图层（`layers`）说明“这一列来自谁”，测量描述
+（`measures`）则保存单位和测量类型。我们先把这些部分逐一打开，看看它们是否与
+研究设计相符。
 
 ```{r contracts}
 ngeo_base_type(dk$cohort)
@@ -52,25 +60,68 @@ ngeo_validate(dk$cohort, "strict")
 ngeo_validate(vertex$surface, "strict")
 ```
 
-- base 回答“观测定义在哪里”；
-- values 回答“每个位置测到了什么”；
-- layers 说明每一列属于哪名 subject、哪次 acquisition 或哪种 modality；
-- measures 声明 unit、value type 与 change-of-support behavior。
+输出中，`region_id`、半球和脑叶信息与 68 个分区逐行对应；`subject_id`、组别、
+年龄和中心则与 200 列逐列对应。严格验证通过，表示这些表的长度、顺序和必要信息
+彼此一致。它并不判断疾病效应是否真实，只确认接下来的计算没有从一开始就把脑区
+或被试放错位置。
 
-```{r two-supports, fig.width=10, fig.height=4.8, fig.alt="The same SCZ minus HC cortical effect represented at DK68 and vertex support", fig.cap="同一个科学量可以存在于不同 support；转换 support 必须有显式 operator。"}
-ngeo_tutorial_plot_flat(
-  dk$difference, title="DK68 effect: SCZ - HC", diverging=TRUE
+同一个模拟组间差值可以放在 DK68 分区，也可以保留在顶点水平。把两幅图并排看，
+有助于区分“研究量相同”和“空间表示相同”这两件事。
+
+```{r two-supports, fig.width=10, fig.height=4.8, fig.alt="同一组间皮层厚度差值分别显示在 DK68 分区和 Conte69 顶点上", fig.cap="同一个组间差值可以用不同空间单位表示；二者之间的转换需要明确的映射。"}
+dk_limit <- max(abs(ngeo_values(dk$difference)), na.rm=TRUE)
+dk_effect_map <- ngeo_cortical_map(
+  dk$surface,
+  values=dk$difference,
+  chart="flat",
+  atlas="DK68",
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-dk_limit, dk_limit),
+  na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  vertex$difference, atlas="DK68",
-  title="Vertex effect: SCZ - HC", diverging=TRUE
+plot(
+  dk_effect_map,
+  main="DK68 effect: SCZ - HC",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+
+vertex_limit <- max(abs(ngeo_values(vertex$difference)), na.rm=TRUE)
+vertex_effect_map <- ngeo_cortical_map(
+  vertex$difference,
+  layer="SCZ_minus_HC",
+  chart="flat",
+  atlas="DK68",
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-vertex_limit, vertex_limit),
+  na_color=NA_character_
+)
+plot(
+  vertex_effect_map,
+  main="Vertex effect: SCZ - HC",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## surface topology 与 flat chart 是两件事
+两幅图的颜色都表示精神分裂症组减健康对照组的厚度差值，但左图每个数代表一个
+DK 分区，右图每个数代表一个表面顶点。若要在两者之间聚合或比较，我们还需要知道
+顶点如何归入分区，而不能只因它们画在同一张皮层图上就逐行运算。
 
-Conte69 的 3D coordinates 与 triangular faces 定义 cortical geometry/topology；
-`flat` chart 只负责显示。统计 distance 不能从屏幕上的 flat x/y 偷偷计算。
+## 平面图上的距离等于皮层距离吗？
+
+为了便于观察，我们把折叠皮层展开成平面图。但展开会拉伸某些区域，所以屏幕上
+两点的远近不再等于它们沿皮层表面的距离。真正的邻接和测地距离来自 Conte69 的
+三维坐标与三角网格；平面坐标只用于绘图。下面先从网格得到每个顶点的邻居，再从
+第一个顶点计算一组沿网格边行走的距离。
 
 ```{r topology}
 mesh_adjacency <- ngeo_adjacency(vertex$surface, method="mesh")
@@ -82,7 +133,12 @@ geodesic <- ngeo_distance(
 head(geodesic)
 ```
 
-`base_hash()` 把 ordered elements、geometry、coordinate space 等信息压成稳定 identity：
+邻接数摘要告诉我们每个顶点与多少条网格边相连；`geodesic` 的结果是沿皮层网格的
+路径长度，而不是平面图上的直线长度。选择距离方法时，应先问研究问题针对折叠皮层、
+展开图，还是分区中心。
+
+我们还需要一种简洁方法判断两个对象是否确实引用同一空间基底。`base_hash()` 把
+有序元素、几何和坐标空间等信息合成稳定标识：
 
 ```{r identity}
 c(
@@ -92,32 +148,68 @@ c(
 identical(base_hash(vertex$surface), base_hash(vertex$difference))
 ```
 
-## atlas 是绑定到 vertex order 的 label resource
+最后一个结果为真，说明原始顶点数据和组间差值仍使用完全相同的顶点顺序与表面
+几何，因此差值可以安全地画回原来的皮层。
 
-同一个 Conte69 base 上内置真实 DK、Schaefer 与 Glasser labels；它们不是按 vertex
-序号切成条带的伪分区。
+## 同一张表面怎样承载不同分区图谱？
 
-```{r atlases, fig.width=10, fig.height=8, fig.alt="Five real atlas label sets on the same Conte69 flat surface", fig.cap="DK68、Schaefer100/200/300 与 Glasser360 共用同一 vertex order，但 parcel boundary 和 support size 不同。"}
+DK、Schaefer 和 Glasser 图谱都可以附着在 Conte69 顶点上，但它们对皮层的切分方式
+不同。先把五套图谱画在同一张展开表面上，直观看看分区数量与边界怎样变化。
+
+```{r atlases, fig.width=10, fig.height=8, fig.alt="DK68、Schaefer100、Schaefer200、Schaefer300 和 Glasser360 显示在同一 Conte69 展开表面上", fig.cap="五套图谱共用同一顶点顺序，但分区边界和分区数量不同。"}
+atlas_names <- c(
+  "DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360"
+)
+atlas_maps <- lapply(atlas_names, function(atlas) {
+  ngeo_cortical_map(
+    vertex$surface,
+    chart="flat",
+    atlas=atlas,
+    fill="atlas",
+    underlay=vertex$underlay,
+    underlay_palette="Grays",
+    overlay_alpha=0.78,
+    palette="Dynamic",
+    na_color=NA_character_
+  )
+})
+atlas_layout <- ngeo_cortical_layout(
+  atlas_maps,
+  ncol=2L,
+  labels=atlas_names,
+  shared_scale=FALSE
+)
 plot(
-  ngeo_tutorial_atlas_layout(
-    vertex,
-    c("DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360")
-  ),
+  atlas_layout,
+  show_boundaries=TRUE,
+  boundary_lwd=0.35,
+  show_outline=TRUE,
+  outline_lwd=1.1,
   show_legend=FALSE
 )
 ```
 
 ```{r support-map}
-support_maps <- ngeo_tutorial_support_maps(vertex)
+support_maps <- lapply(vertex$supports, function(labels) {
+  ngeo_atlas_map(
+    vertex$surface,
+    labels,
+    source_support=vertex$vertex_area
+  )
+})
 support_maps$Schaefer200
 ngeo_support_diagnostics(support_maps$Schaefer200)
 ```
 
-support map 明确声明 source vertex、target parcels、coverage、source/target support 与
-base hashes。没有这个 operator，相同坐标空间也不能证明两个 matrices 可以逐行
-相加。
+`support_maps$Schaefer200` 保存从 64,984 个源顶点到 200 个目标分区的对应关系。
+诊断结果还会报告是否有顶点未被覆盖。这样，从顶点平均到分区时，程序依据的是
+明确的分区成员关系，而不是分区名称或矩阵尺寸上的猜测。
 
-## 子集操作必须同步更新整个契约
+## 只保留左半球时，还要带走哪些信息？
+
+现在做一个常见操作：只取左半球，并只保留前两名被试。如果我们只截取数值矩阵，
+剩余的面片、标签和被试信息就可能仍指向原对象。`ngeo_subset()` 会让这些部分一起
+更新。
 
 ```{r subset}
 left_vertices <- ngeo_subset(
@@ -130,6 +222,9 @@ ngeo_history(left_vertices)$operations
 ngeo_validate(left_vertices, "strict")
 ```
 
-子集会同步更新 base、values、labels、faces、mask、layers 与 history。核心原则是：
-任何计算结果都必须能无歧义地回到原始 cortex；不能回填成 brain map 的“空间结果”
-通常意味着 alignment、support 或 provenance 尚未说清楚。
+结果应有 32,492 行和 2 列，操作记录中也能找到这次选择。严格验证再次通过，说明
+顶点、面片、标签和图层仍彼此对齐。
+
+做实际分析时，可以据此作出三个决定：先确认每行和每列的身份，再选择与问题相符
+的皮层距离，最后才进行分区转换或子集选择。下一页处理多种测量同时出现在同一批
+被试上时，如何保持这种对齐关系。

@@ -1,8 +1,8 @@
 ---
-title: "15 分钟快速开始：DK68 的 SCZ--HC 皮层研究"
+title: "快速开始：从 200 名被试到一张皮层差值图"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{15 分钟快速开始：DK68 的 SCZ--HC 皮层研究}
+  %\VignetteIndexEntry{快速开始：从 200 名被试到一张皮层差值图}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -19,13 +19,19 @@ dk <- ngeo_tutorial_dk_case_control(n_per_group = 100, seed = 20260810)
 vertex <- ngeo_tutorial_vertex_case_control(n_per_group = 5)
 ```
 
-## 先说研究问题，再说对象
+假设我们正在准备一项病例—对照研究。数据包括 100 名健康对照者（HC）和 100 名
+精神分裂症患者（SCZ），每人的皮层厚度已经汇总到 68 个 Desikan--Killiany
+（DK68）分区，另有年龄、性别和采集中心。我们想先回答两个描述性问题：两组平均
+厚度相差多少，这些差值在皮层上是否呈现连续的空间图样？
 
-我们模拟 100 名健康对照（HC）和 100 名精神分裂症被试（SCZ）的皮层厚度，
-空间 support 是 68 个 Desikan--Killiany（DK）皮层分区。年龄、性别与中心是
-受试者层面的协变量。模拟中预设 SCZ 在双侧颞上回、岛叶、前扣带和内侧眶额
-皮层厚度较低，让相邻分区带有较弱效应，并叠加一个小的前后向平滑梯度。
-这是教学数据，不是临床证据。
+数据是模拟的。患者组在双侧颞上回、岛叶、前扣带和内侧眶额皮层被设定为较薄，
+相邻分区带有较弱效应，并叠加轻微的前后梯度。因此，本页的数值用于学习分析步骤，
+不应当作精神分裂症的临床结论。
+
+## 先数清被试、分区和协变量
+
+开始画图之前，先核对研究设计。下面的交叉表显示两组在各采集中心的人数，年龄
+摘要帮助发现明显异常，矩阵维度则应对应 68 个分区和 200 名被试。
 
 ```{r study-design}
 with(dk$design, table(group, site))
@@ -33,37 +39,88 @@ summary(dk$design$age)
 dim(ngeo_values(dk$cohort))
 ```
 
-独立 sampling unit 是受试者。68 个 DK parcel 是空间元素，不能当成 68 个额外
-被试。
+这里的独立观测单位是被试。68 个分区是每名被试脑内反复测量的空间位置；它们增加
+了每张脑图的分辨率，却没有把样本量从 200 变成 13,600。
 
-## 先看脑图，再计算统计量
+## 一名被试和组间平均差值分别长什么样？
 
-第一幅图是一名 HC 的厚度图，第二幅图是描述性的 SCZ 减 HC contrast。后面每个
-数值都应能回到这两幅脑图上解释。
+先画第一名健康对照者的厚度图。每种颜色对应一个 DK 分区的厚度值，左右两张展开
+表面分别显示两个半球。
 
-```{r subject-brain, fig.width=9, fig.height=4.6, fig.alt="DK cortical thickness for one simulated healthy control shown on bilateral cortical views", fig.cap="One subject is one layer; DK parcels form the shared spatial base."}
-ngeo_tutorial_plot_flat(
-  dk$cohort, layer = "sub-001",
-  title = "sub-001 cortical thickness (HC)"
+```{r subject-brain, fig.width=9, fig.height=4.6, fig.alt="一名模拟健康对照者的 DK68 皮层厚度显示在双侧展开表面上", fig.cap="每名被试对应一张厚度图，68 个 DK 分区在所有被试间保持相同顺序。"}
+subject_values <- setNames(
+  ngeo_values(dk$cohort)[, "sub-001"],
+  ngeo_base_elements(dk$cohort)$region_id
+)
+subject_map <- ngeo_cortical_map(
+  dk$surface,
+  values = subject_values,
+  chart = "flat",
+  atlas = dk$atlas,
+  underlay = dk$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.82,
+  palette = "viridis",
+  na_color = NA_character_,
+  atlas_coverage = "auto"
+)
+plot(
+  subject_map,
+  main = "sub-001 cortical thickness (HC)",
+  boundary_color = grDevices::adjustcolor("white", 0.55),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1
 )
 ```
 
-```{r contrast-brain, fig.width=9, fig.height=4.6, fig.alt="Simulated SCZ minus HC cortical thickness difference on the DK atlas", fig.cap="The case-control contrast is spatially structured and is plotted before spatial inference."}
-ngeo_tutorial_plot_flat(
-  dk$difference,
-  title = "SCZ - HC cortical thickness (mm)",
-  diverging = TRUE
+接下来对每个分区分别计算患者组均值减健康对照组均值。负值表示模拟患者组在该分区
+较薄。先看整张差值图，往往比先读 68 行表格更容易发现半球错误、孤立极值或大尺度
+梯度。
+
+```{r contrast-brain, fig.width=9, fig.height=4.6, fig.alt="模拟患者组减健康对照组的 DK68 皮层厚度差值", fig.cap="负值表示患者组平均皮层厚度较低；这是一张描述性组间差值图。"}
+contrast_values <- setNames(
+  ngeo_values(dk$difference)[, "SCZ_minus_HC"],
+  ngeo_base_elements(dk$difference)$region_id
+)
+contrast_limit <- max(abs(contrast_values), na.rm = TRUE)
+contrast_map <- ngeo_cortical_map(
+  dk$surface,
+  values = contrast_values,
+  chart = "flat",
+  atlas = dk$atlas,
+  underlay = dk$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.82,
+  palette = "Blue-Red 3",
+  limits = c(-contrast_limit, contrast_limit),
+  na_color = NA_character_,
+  atlas_coverage = "auto"
+)
+plot(
+  contrast_map,
+  main = "SCZ - HC cortical thickness (mm)",
+  boundary_color = grDevices::adjustcolor("white", 0.55),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1
 )
 ```
 
-## 数据模型：base、values、layers 与 measure
+图中预设脑区附近应出现较明显负值，相邻区域的变化更弱。若颜色完全左右颠倒或边界
+与 DK 图谱不一致，应先检查数据对齐，而不是继续做空间检验。
+
+## 这张图由对象中的哪些部分组成？
+
+为了让 68 × 200 个数值始终能回到正确脑区和被试，neurogeo 将它们与几张说明表
+放在一起。下表先把四个名称翻译成当前研究中的具体内容。
 
 | 术语 | 本例中的神经影像含义 | 形状 |
 |---|---|---|
-| base | DK 皮层分区 | 68 行 |
-| values | 皮层厚度 | 68 × 200 |
-| layer | 一名被试的一张脑图 | 200 列 |
-| measure | thickness、intensive、mm | 共享语义 |
+| `base` | DK68 皮层分区及其顺序 | 68 行 |
+| `values` | 每个分区、每名被试的皮层厚度 | 68 × 200 |
+| `layers` | 每列对应的被试、组别、年龄和中心 | 200 行 |
+| `measures` | 厚度、毫米、分区平均值 | 1 条测量说明 |
+
+下面直接查看这些表的前几行，并运行严格验证。
 
 ```{r inspect}
 ngeo_base_type(dk$cohort)
@@ -73,15 +130,15 @@ ngeo_measures(dk$cohort)
 ngeo_validate(dk$cohort, "strict")
 ```
 
-所有 200 列中的第 *i* 行始终属于同一 DK parcel。group、age、site 属于 layer
-metadata；毫米单位和 intensive support 语义属于 measure。单独一个数值矩阵并不
-携带这种对齐契约。
+输出应显示相同的第 *i* 行在所有 200 列中都代表同一个 DK 分区；组别、年龄和中心
+随被试列变化；厚度单位则对所有图层共享。严格验证通过表示这些长度和顺序彼此
+一致，但不会替我们判断研究设计是否合理。
 
-## 显式声明皮层空间关系
+## 哪些 DK 分区在皮层上彼此相邻？
 
-数据带有固定、对称的 DK 邻接图，它直接由 Conte69 triangular mesh 上跨 parcel
-boundary 的 edges 构造；`region_contiguity` 使用该图。flat chart 只负责显示，
-不会参与 adjacency 或 distance 计算。
+现在回到空间问题。两个分区在展开图上靠得近，不一定表示它们在折叠皮层上共享
+边界。`region_contiguity` 根据 Conte69 三角网格，寻找跨越 DK 分区边界的网格边，
+由此建立邻接关系。`style = "W"` 再把每个分区的邻居权重标准化为和为 1。
 
 ```{r weights}
 weights <- ngeo_spatial_weights(
@@ -93,24 +150,53 @@ weights
 summary(Matrix::rowSums(weights$raw_matrix != 0))
 ```
 
-同一个 vertex base 还对齐了多套 published atlas labels。快速开始先把它们画出来，
-后续 change-of-support 教程再构造显式 sparse operators。
+摘要给出每个 DK 分区拥有多少邻居。若某分区没有邻居，或邻居数异常大，应回查
+图谱标签和网格。平面图在这里帮助观察，真正参与计算的是原始表面拓扑。
 
-```{r atlas-family, fig.width=10, fig.height=8, fig.alt="DK68 Schaefer100 Schaefer200 Schaefer300 and Glasser360 on Conte69 flat cortex", fig.cap="All atlases are strictly aligned to the same 64,984-vertex Conte69 base."}
+同一个 Conte69 顶点空间还可以承载不同分区图谱。下面把 DK68、三种 Schaefer
+分辨率和 Glasser360 放在一起，直观看到“空间位置相同”并不等于“分区边界相同”。
+
+```{r atlas-family, fig.width=10, fig.height=8, fig.alt="五套皮层图谱显示在同一 Conte69 展开表面上", fig.cap="DK68、Schaefer100/200/300 与 Glasser360 共用顶点空间，但具有不同分区边界。"}
+atlas_names <- c(
+  "DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360"
+)
+atlas_maps <- lapply(atlas_names, function(atlas_name) {
+  ngeo_cortical_map(
+    vertex$surface,
+    chart = "flat",
+    atlas = vertex$supports[[atlas_name]],
+    fill = "atlas",
+    underlay = vertex$underlay,
+    underlay_palette = "Grays",
+    overlay_alpha = 0.78,
+    palette = "Dynamic",
+    na_color = NA_character_,
+    atlas_coverage = "auto"
+  )
+})
+atlas_layout <- ngeo_cortical_layout(
+  atlas_maps,
+  ncol = 2L,
+  labels = atlas_names,
+  shared_scale = FALSE
+)
 plot(
-  ngeo_tutorial_atlas_layout(
-    vertex,
-    c("DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360")
-  ),
-  show_legend=FALSE
+  atlas_layout,
+  show_legend = FALSE,
+  boundary_lwd = 0.35,
+  outline_lwd = 1.1
 )
 ```
 
-## 对 group contrast 提出空间问题
+选择图谱会改变后续分析的空间单位。若研究问题关注经典解剖区，可以继续使用 DK68；
+若需要更细的网络分区，应明确选择相应 Schaefer 或 Glasser 版本，并建立顶点到分区
+的映射。
 
-下面的 global Moran's I 问的是：在固定 DK 图上进行 value-label permutation
-时，描述性的组间差值图是否比随机情况更聚集。它**不是** SCZ 与 HC 的组间检验；
-组间推断必须使用 200 名独立被试。
+## 组间差值是否比随机排列更成片？
+
+差值图看起来有空间结构，但视觉印象需要一个可重复的描述。全局 Moran's I 比较
+相邻分区的差值是否相似。置换时保持 DK 邻接图不变，只随机打乱 68 个分区上的
+差值标签，从而得到“差值与空间位置无关”时的参照分布。
 
 ```{r moran}
 spatial_result <- ngeo_moran(
@@ -125,11 +211,15 @@ contract <- ngeo_inference_contract(spatial_result)
 contract
 ```
 
-契约把两者区分开：这里的 sampling units 是空间随机化 null 下的 parcels；
-case-control 模型的 sampling units 是 subjects，exchangeability 只能作用于完整
-受试者，不能作用于 vertex 或 parcel。
+正的 Moran's I 表示相邻分区往往有相似差值；置换 *p* 值说明这种聚集在当前空间
+随机化参照下有多罕见。它检验的是一张已经算好的差值图的空间排列，不是患者与
+对照的总体组间效应。后者需要以 200 名被试为独立单位建立模型。
 
-## 定位描述性空间模式
+## 哪些脑区推动了局部聚集？
+
+全局指标把全脑压缩成一个数。若想知道聚集位于哪里，可以计算局部 Moran's I。
+这里对 68 个分区的置换结果使用 Benjamini--Hochberg 方法校正，并按校正后 *p* 值
+列出最靠前的脑区。
 
 ```{r local}
 local <- ngeo_local_moran(
@@ -141,18 +231,12 @@ head(local[order(local$p.adjusted),
   c("element_id", "local_i", "p.adjusted", "cluster")], 10)
 ```
 
-Moran quadrant 描述相似 contrast 值聚集在哪里；只有结合调整后的 permutation
-证据才能称局部模式显著。脑图负责空间定位，表格负责提供精确 parcel 数值，两者
-不能互相替代。
+`cluster` 描述一个分区与邻域分别处于高值还是低值，`p.adjusted` 则帮助判断局部
+模式是否超出多重比较下的随机波动。表格提供精确脑区名称和统计量，脑图用于判断
+这些脑区是否形成解剖上连贯的范围。
 
-## 可复用的报告句式
-
-> 我们模拟了 100 名 HC 与 100 名 SCZ 的 DK68 皮层厚度。描述性的 SCZ 减 HC
-> 脑图在预先声明的 row-standardized DK 邻接图上使用 499 次 value-label
-> permutation 评估。该空间检验刻画 contrast map 的聚集性，不是诊断效应的
-> 受试者层面检验。总体推断必须保持 subject 为独立 sampling unit，并调整预先
-> 指定的协变量。
-
-下一步可进入 [ROI/cohort 数据与 I/O](/tutorials/workflow-roi-cohort)、
-[邻接与权重](/modules/neighbors-and-weights)、[support 转换](/modules/change-of-support)
-或 [多层受试者推断](/modules/group-inference)。
+到这里，我们已经把数据检查、脑图、邻接和空间描述连成一条路线。接下来的选择取决
+于研究目标：若要检验患者与对照的总体差异，进入[多层被试推断](/modules/group-inference)，
+以被试为独立单位并调整年龄、性别和中心；若要研究不同图谱间的结果，进入
+[空间支撑转换](/modules/change-of-support)；若输入仍是磁盘上的 ROI 表或影像文件，
+先完成 [ROI/队列数据读写](/tutorials/workflow-roi-cohort)。

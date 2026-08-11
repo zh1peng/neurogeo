@@ -1,8 +1,8 @@
 ---
-title: "显式时间与时空分析：DK68 SCZ--HC longitudinal contrast"
+title: "同一张组间差异图怎样随时间变化"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{显式时间与时空分析：DK68 SCZ--HC longitudinal contrast}
+  %\VignetteIndexEntry{同一张组间差异图怎样随时间变化}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -16,11 +16,14 @@ source(system.file("tutorial-code", "brain-case-study.R",
 dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
 ```
 
-## 从 200 名 subjects 的 baseline contrast 构造 longitudinal case study
+## 从基线差异图开始一次随访
 
-空间 elements 固定为真实 DK68 regions，时间 layers 是 baseline、6 个月、1 年、
-2 年的 SCZ-minus-HC group contrast。这里模拟 follow-up evolution，但 baseline 来自
-同一组 100 HC + 100 SCZ；没有为每个时间点复制 geometry。
+横断面分析告诉我们基线时患者与健康对照在哪些脑区存在厚度差异，但它没有回答这些差异
+之后会扩大、缩小，还是保持稳定。为展示时空分析的完整过程，我们沿用 100 名健康对照与
+100 名患者的基线 DK68 差异图，再模拟 6 个月、1 年和 2 年的组间差异。
+
+四个时间点共享同一套 68 个脑区和相邻关系，变化的只有每个脑区的数值。把时间写成
+对象的一条明确坐标轴，可以避免把“第 2 列”误当作“第 2 年”这类隐含假设。
 
 ```{r longitudinal-object}
 set.seed(3301)
@@ -55,19 +58,39 @@ longitudinal <- ngeo_set_time_axis(
 )
 ```
 
-```{r baseline-followup, fig.width=10, fig.height=4.8, fig.alt="Baseline and two-year SCZ minus HC effects on DK68 flat cortex", fig.cap="相同 DK geometry 与对称色阶让时间变化可直接比较。"}
+```{r baseline-followup, fig.width=10, fig.height=4.8, fig.alt="DK68 平坦化皮层上的基线与两年组间厚度差异", fig.cap="两幅图使用相同脑区边界和对称色阶，颜色变化可直接表示两年间的效应改变。"}
 shared_limit <- max(abs(longitudinal_values))
-ngeo_tutorial_plot_flat(
-  longitudinal, layer="baseline", title="Baseline: SCZ - HC",
-  diverging=TRUE, limits=c(-shared_limit, shared_limit)
+baseline_map <- ngeo_cortical_map(
+  dk$surface, values=longitudinal, layer="baseline",
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-shared_limit, shared_limit), na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  longitudinal, layer="year_2", title="Year 2: SCZ - HC",
-  diverging=TRUE, limits=c(-shared_limit, shared_limit)
+plot(
+  baseline_map, main="Baseline: SCZ - HC",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+year_2_map <- ngeo_cortical_map(
+  dk$surface, values=longitudinal, layer="year_2",
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-shared_limit, shared_limit), na_color=NA_character_
+)
+plot(
+  year_2_map, main="Year 2: SCZ - HC",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## 时间切片不改变 spatial identity
+两幅图使用同一色阶，因此颜色的变化可以直接比较。这里逐渐增强的负差异是模拟设定，
+用来说明方法如何追踪变化，不代表真实精神分裂症病程的经验结论。
+
+## 取出两个时间点时，脑区身份仍应保持不变
+
+有时只需要比较基线和 1 年。时间切片会减少数值矩阵的列数，但不应重新排列 DK68
+脑区，也不应改变它们的坐标系或相邻关系。下面用空间基底的哈希确认这一点。
 
 ```{r time-slice}
 slice <- ngeo_time_slice(longitudinal, index=c(1, 3))
@@ -75,10 +98,15 @@ identical(base_hash(slice), base_hash(longitudinal))
 ngeo_get_time_axis(slice)$time
 ```
 
-切片只改变 aligned map dimension；DK region order、surface-derived adjacency 与
-coordinate-space hash 保持不变。
+结果为 `TRUE`，说明切片前后的空间基底完全一致；随后打印的时间坐标则表明保留的是
+基线和 1 年，而不是靠列名猜测。
 
-## Spatial、temporal 与 space-time operators 分开声明
+## 同时描述“邻近脑区”和“邻近时间”
+
+时空自相关有两个来源：相邻脑区在同一时间可能相似，同一脑区在相邻时间也可能相似。
+我们先分别建立 DK68 空间权重和四个随访时点的时间权重，再把它们组合成时空权重。
+`spatial_scale=0.5` 明确规定空间关系相对于时间关系的权重；改变它，就改变了要检测的
+相似性定义。
 
 ```{r operators}
 spatial <- ngeo_spatial_weights(
@@ -91,8 +119,8 @@ space_time <- ngeo_spatiotemporal_weights(
 space_time
 ```
 
-对象保存 Kronecker-sum contract，而不是 materialize 272×272 以上的任意 dense
-matrix。两个 operators 的 normalization 与 time unit 都属于 estimand。
+对象保存的是组合规则，无需先展开成一个稠密的 272×272 矩阵。这在更长随访或更细
+分区下尤其重要，也让空间权重、时间单位和标准化方式仍可追溯。
 
 ```{r spacetime-statistic}
 st_moran <- ngeo_spatiotemporal_moran(
@@ -101,10 +129,15 @@ st_moran <- ngeo_spatiotemporal_moran(
 st_moran
 ```
 
-这个 p value 针对一张 group-level longitudinal reference stack 的声明 null；它不是
-200 名 subjects 的 population-level longitudinal inference。
+这里的 Moran 统计量回答一个描述性问题：这四张组间差异图在空间和时间上是否呈现
+超出随机排列的聚集。它随机置换的是组水平差异图中的位置；总体层面的纵向组间检验
+仍需以 200 名受试者为抽样单位。
 
-## Change、rate 与 trend 是不同 temporal quantities
+## 总变化、年变化率和趋势斜率回答不同问题
+
+“两年后变化了多少”是终点减去起点；“平均每年变化多少”还要除以两年的时间间隔；
+“四次测量的线性趋势”则利用全部时间点拟合斜率。三者可能看起来相似，但单位和使用的
+观测不同，分析对象中应明确保存各自的含义和单位。
 
 ```{r derived}
 change <- ngeo_longitudinal_change(
@@ -119,14 +152,35 @@ trend <- ngeo_temporal_trend(longitudinal)
 dim(ngeo_values(trend))
 ```
 
-```{r derived-maps, fig.width=10, fig.height=4.8, fig.alt="Two-year change and annual temporal trend on DK68 flat cortex", fig.cap="difference 与 slope 的 unit 不同；两者都保留 exact DK support。"}
-ngeo_tutorial_plot_flat(
-  change, title="Two-year contrast change", diverging=TRUE
+```{r derived-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 平坦化皮层上的两年总变化与年度趋势", fig.cap="左图显示两年终点减基线的总变化，右图使用四个时间点估计每年的线性趋势。"}
+change_limit <- max(abs(ngeo_values(change)))
+change_map <- ngeo_cortical_map(
+  dk$surface, values=change,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-change_limit, change_limit), na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  trend, layer="slope", title="Annual contrast slope", diverging=TRUE
+plot(
+  change_map, main="Two-year contrast change",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+trend_limit <- max(abs(ngeo_values(trend, "slope")))
+trend_map <- ngeo_cortical_map(
+  dk$surface, values=trend, layer="slope",
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-trend_limit, trend_limit), na_color=NA_character_
+)
+plot(
+  trend_map, main="Annual contrast slope",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
+
+两图若呈现相似空间模式，说明变化大致接近线性；局部颜色明显不一致时，则提示中间时点
+影响了趋势估计。两年总变化与年度斜率的单位不同，比较数值幅度前需要先统一时间尺度。
 
 ```{r temporal-diagnostics}
 ngeo_temporal_variogram(longitudinal, breaks=3, max_pairs=500)
@@ -136,7 +190,10 @@ ngeo_spatiotemporal_variogram(
 )
 ```
 
-若输入是 interval total，必须提供 start/end boundary，并选择 sum/integral-compatible
-operation。真正的 subject-level longitudinal study 还需要把 subject 作为 exchange
-unit、visit 作为 within-subject layer，并显式处理 missing visits；不能把这里的
-68×4 group contrast stack 当成 272 个独立 observations。
+最后两个变异函数分别从纯时间距离和“空间距离 × 时间间隔”查看差异图的变化规律。
+若数据记录的是一段时间内的累计量，而不是某一时点的瞬时测量，还需要保存每段区间的
+起止边界，并使用与求和或积分相容的运算。
+
+本页使用组水平差异图，是为了把时空对象和算子讲清楚。真正的纵向组间推断还应把
+受试者作为独立抽样单位，把多次访视放在受试者内部，并处理失访。68 个脑区乘 4 个
+时间点形成相关的重复测量结构，并非 272 个独立样本。

@@ -1,8 +1,8 @@
 ---
-title: "参考脑图推断与 200-subject case-control 推断"
+title: "两张平均脑图能回答组间问题吗？"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{参考脑图推断与 200-subject case-control 推断}
+  %\VignetteIndexEntry{两张平均脑图能回答组间问题吗？}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -19,30 +19,49 @@ dk <- ngeo_tutorial_dk_case_control(n_per_group=100, seed=20260810)
 multi <- ngeo_tutorial_dk_multilayer(dk, seed=20260812)
 ```
 
-## 两种零假设使用同一批脑数据，但随机单位不同
+## 同样两张图，可以引出两个完全不同的问题
 
-第一类问题把 SCZ-minus-HC thickness 与 myelin-proxy contrast 当作两张固定 reference
-maps，询问它们的空间 coupling。第二类问题保留 100 名 HC 与 100 名 SCZ，为每名
-subject 生成 coupling endpoint，再检验总体组间差异。reference-map p 值不能替代
-subject-level p 值。
+下图是厚度和模拟髓鞘指标的患者组减健康对照组平均差异。我们可以问：“这两张固定脑图在
+空间上有多相似？”也可以问：“在受试者总体中，两种指标的耦合是否存在组间差异？”
+前一个问题只有两张参考图；后一个问题有 100 名健康对照和 100 名患者。两者使用相同
+脑区，却有不同的随机单位和零假设。
 
-```{r contrast-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 上的 thickness 与 myelin proxy SCZ 减 HC flatmaps", fig.cap="两种 regime 使用相同 cortical support，但 sampling unit 完全不同。"}
-ngeo_tutorial_plot_flat(
-  dk$difference,
-  title="Thickness: SCZ minus HC",
-  diverging=TRUE
+本页把两条分析路线并排走一遍，重点是看清每个概率值究竟由什么随机性产生。
+
+```{r contrast-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 图谱上的皮层厚度与模拟髓鞘指标组间差异", fig.cap="两张参考图使用同一 DK68 分区；空间图分析与受试者总体推断采用不同的随机单位。"}
+thickness_limit <- max(abs(ngeo_values(dk$difference)))
+thickness_map <- ngeo_cortical_map(
+  dk$surface, values=dk$difference, chart="flat", atlas="DK68",
+  underlay=dk$underlay, overlay_alpha=0.82,
+  palette="Blue-Red 3", limits=c(-thickness_limit, thickness_limit),
+  na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  multi$myelin_difference,
-  title="Myelin proxy: SCZ minus HC",
-  diverging=TRUE
+plot(
+  thickness_map, main="Thickness: SCZ minus HC",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+myelin_limit <- max(abs(ngeo_values(multi$myelin_difference)))
+myelin_map <- ngeo_cortical_map(
+  dk$surface, values=multi$myelin_difference,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-myelin_limit, myelin_limit), na_color=NA_character_
+)
+plot(
+  myelin_map, main="Myelin proxy: SCZ minus HC",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## Reference-map regime：只有一个 map unit
+两张图可以显示空间位置是否相似，却没有保留每名受试者的组内变异。后面两条路线使用
+相同图谱和空间基底，差别在于随机化时究竟移动空间位置还是完整受试者。
 
-先把两张 DK68 contrast maps 组成一个明确的 `reference × feature` layer index。
-固定 graph basis 不读取 diagnosis 或 map values。
+## 路线一：只描述两张固定参考图
+
+先把厚度差异和髓鞘差异视为同一个“参考对象”的两个指标。图层索引明确记录它们
+属于同一参考对象，图基底则只从 DK 邻接计算，不利用诊断标签或图上数值。
 
 ```{r reference-object}
 reference_layers <- data.frame(
@@ -110,14 +129,15 @@ reference_features$values
 reference_features$endpoints[, c("estimand", "band", "component")]
 ```
 
-这里只有一行 `reference`。这些数值描述两张固定 maps 的 coupling；若随后加入
-spin/Moran spectral transformations，其随机性仍来自空间变换，结果必须标记
-`population_inference=FALSE`，不能声称患者总体与对照总体不同。
+结果只有一行，因为这里没有 200 名可交换受试者。它描述两张固定图在相同位置和
+不同空间尺度上的耦合。如果再加入旋转或 Moran 频谱随机化，概率来自“固定图经过
+空间变换后会怎样”。患者总体与对照总体的差异需要第二条路线中的受试者层面分析。
 
-## Subject-level regime：完整 subject records 才能交换
+## 路线二：回到每一名受试者
 
-`multi$object` 有 68 rows × 400 layers：200 名 subjects 各有 thickness 与 myelin
-proxy。每名 subject 先生成一行 endpoint，再进入协变量调整和 permutation。
+总体问题需要保留个体数据。这里有 68 个脑区和 400 个图层，即 200 名受试者各自
+拥有厚度与髓鞘图。我们用与参考图相同的图基底和频带，为每名受试者计算一行耦合
+特征，然后才进入包含年龄、性别和采集中心的组间模型。
 
 ```{r subject-features}
 subject_maps <- multi$object
@@ -178,22 +198,29 @@ population_result$tests[, c(
 population_result$omnibus
 ```
 
-Freedman--Lane schedule 在 site 内移动完整 subject residual records；它从不移动
-vertices、DK parcels、modalities 或 individual endpoints。
+Freedman--Lane 置换在采集中心内部移动完整的受试者残差记录。一名受试者的所有
+频带和两种指标始终一起移动。这样得到的概率才对应“在控制协变量后，组别标签与
+个体耦合是否有关”。
 
-## Support-family regime 仍共享同一 subject schedule
+## 换一种脑区划分时，受试者仍是同一批人
 
-若同一 200-subject cohort 在 DK68、Schaefer100/200/300 和 Glasser360 上分别生成
-endpoint，五个 support 必须一次进入 `ngeo_group_test()`，并共享同一 schedule。
+我们还可以在 DK68、Schaefer100/200/300 和 Glasser360 上重复个体特征计算。下图
+先展示五种分区的边界差异。分区改变的是如何汇总顶点，不会产生新的受试者，因此
+五套结果应共用同一份受试者置换表。
 
-```{r support-family, fig.width=11, fig.height=11, fig.alt="subject-level inference 的 DK Schaefer 和 Glasser support family", fig.cap="atlas choice 改变 support，不改变 200 个 independent subjects。"}
+```{r support-family, fig.width=11, fig.height=11, fig.alt="受试者层面推断所比较的 DK、Schaefer 与 Glasser 图谱", fig.cap="五套图谱以不同边界汇总同一批皮层数据；统计推断始终基于原来的 200 名受试者。"}
 family_names <- c(
   "DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360"
 )
+atlas_maps <- lapply(family_names, function(atlas) {
+  ngeo_cortical_map(
+    dk$surface, chart="flat", atlas=atlas, fill="atlas",
+    underlay=dk$underlay, overlay_alpha=0.78,
+    palette="Dynamic", na_color=NA_character_
+  )
+})
 plot(ngeo_cortical_layout(
-  lapply(family_names, function(atlas) {
-    ngeo_tutorial_atlas_map(dk$surface, atlas=atlas, title=atlas)
-  }),
+  atlas_maps,
   ncol=2L,
   labels=family_names,
   shared_scale=FALSE
@@ -206,6 +233,7 @@ data.frame(
 )
 ```
 
-跨 support effect range 与方向一致性是对声明 family 的敏感度描述，不是 atlas
-sampling variance。任何 regime 都要明确 sampling unit、null、support family、
-multiple-testing adjustment，以及可以和不可以声称的结论。
+跨分区的效应范围与方向一致性属于敏感性分析，与额外抽样方差具有不同含义。阅读任何
+一个概率值时，都可以用一个简单问题自检：如果重新随机一次，究竟是空间图发生变换，
+还是完整受试者被重新分组？回答清楚这一点，才能知道结果是在描述两张图，还是在
+推断一个人群。

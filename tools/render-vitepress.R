@@ -209,6 +209,44 @@ replace_front_matter <- function(path, document) {
     }
   }
   lines <- gsub("\\$`([^`]*)`\\$", "$\\1$", lines, perl = TRUE)
+
+  # Pandoc wraps prose with ASCII spaces. Those spaces are visible when a
+  # Chinese sentence happens to wrap between two Han characters, so normalize
+  # prose while leaving executable code fences byte-for-byte unchanged.
+  in_fence <- FALSE
+  normalized <- character()
+  for (line in lines) {
+    if (grepl("^[[:space:]]*```", line)) {
+      in_fence <- !in_fence
+      normalized <- c(normalized, line)
+      next
+    }
+    if (!in_fence) {
+      line <- gsub(
+        "(?<=\\p{Han})[[:blank:]]+(?=\\p{Han})",
+        "", line, perl = TRUE
+      )
+      line <- gsub(
+        "[[:blank:]]+([，。；：！？、）】》”’])", "\\1", line,
+        perl = TRUE
+      )
+      line <- gsub(
+        "([（【《“‘，。；：！？、])[[:blank:]]+", "\\1", line,
+        perl = TRUE
+      )
+      if (length(normalized) && nzchar(line) &&
+          nzchar(normalized[[length(normalized)]]) &&
+          grepl("\\p{Han}$", normalized[[length(normalized)]], perl = TRUE) &&
+          grepl("^\\p{Han}", line, perl = TRUE)) {
+        normalized[[length(normalized)]] <- paste0(
+          normalized[[length(normalized)]], line
+        )
+        next
+      }
+    }
+    normalized <- c(normalized, line)
+  }
+  lines <- normalized
   if (length(lines) && identical(lines[[1L]], "---")) {
     closing <- which(lines[-1L] == "---")
     if (length(closing)) lines <- lines[-seq_len(closing[[1L]] + 1L)]
@@ -226,7 +264,7 @@ replace_front_matter <- function(path, document) {
     }
   } else if (identical(document$translation_status, "source-only")) {
     translation_note <- if (identical(document$locale, "zh-CN")) {
-      paste(
+      paste0(
         "> **翻译状态：** 本页目前没有经过审校的英文译文；",
         "这里展示简体中文原文。"
       )

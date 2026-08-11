@@ -19,7 +19,8 @@ ngeo_cortical_map(
   underlay_palette = "Grays",
   underlay_limits = NULL,
   colors = NULL,
-  overlay_alpha = 1
+  overlay_alpha = 1,
+  atlas_coverage = c("auto", "surface", "labeled")
 )
 }
 \arguments{
@@ -27,7 +28,12 @@ ngeo_cortical_map(
 
 \item{layer}{One aligned layer when `values` is not supplied.}
 
-\item{values}{Optional arbitrary vertex-aligned values.}
+\item{values}{Optional arbitrary vertex-aligned values, a named atomic
+atlas-region vector, or an `ngeo_parcellation` whose `region_id` values
+exactly match `atlas`. Parcel values are lifted piecewise-constantly to the
+cortical vertices. A named vector must contain exactly one uniquely named
+value for every non-missing atlas region; use an `ngeo_parcellation` when
+coordinate-space and source-base provenance must travel with the values.}
 
 \item{chart}{Chart name.}
 
@@ -43,6 +49,13 @@ ngeo_cortical_map(
 
 \item{mask}{Optional logical vertex mask. By default the base mask is used.
 A face is visible only when all three vertices are included.}
+
+\item{atlas_coverage}{How atlas-unlabelled vertices are displayed. `"auto"`
+uses `"labeled"` for atlas fills and parcel values, but `"surface"`
+when vertex values merely use an atlas for boundaries. `"surface"` keeps
+the surface mask, so a transparent missing overlay can reveal the
+anatomical underlay outside atlas coverage. `"labeled"` intersects the
+surface mask with non-missing atlas membership.}
 
 \item{underlay}{Optional numeric vertex vector or map selector used as a
 grayscale or colored anatomical underlay.}
@@ -99,6 +112,11 @@ surface <- ngeo_flatten_surface(
 )
 map <- ngeo_cortical_map(surface, atlas = c("A", "A", "B", "B"))
 ngeo_cortical_map_data(map)$faces
+parcel_map <- ngeo_cortical_map(
+  surface,
+  values = c(B = 2, A = 1),
+  atlas = c("A", "A", "B", "B")
+)
 }
 \references{
 Fischl, B. (2012). FreeSurfer. *NeuroImage*, 62, 774--781.

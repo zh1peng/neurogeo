@@ -1,8 +1,8 @@
 ---
-title: "多图层空间耦合：200 名受试者的 thickness--myelin 分析"
+title: "一名受试者的两张脑图怎样形成耦合指标"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{多图层空间耦合：200 名受试者的 thickness--myelin 分析}
+  %\VignetteIndexEntry{一名受试者的两张脑图怎样形成耦合指标}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -18,11 +18,13 @@ multi <- ngeo_tutorial_dk_multilayer(dk)
 x <- multi$object
 ```
 
-## 科学问题与数据形状
+## 从“看起来相似”变成每人一个可比较的数值
 
-每名 HC/SCZ subject 都有两张严格对齐到真实 DK68 support 的脑图：cortical
-thickness 与模拟 myelin proxy。我们要为每名受试者生成 coupling endpoints，再在
-下一步进行 subject-level group inference；68 个 parcels 从来不是独立样本。
+每名健康对照或患者都有两张对齐到 DK68 的脑图：皮层厚度和模拟髓鞘指标。
+如果两张图在额叶同时偏高、在枕叶同时偏低，我们会说它们在空间上有耦合。但要在
+两组之间比较，需要先为每名受试者计算同样的耦合指标；组平均图只提供空间背景。
+
+第一步是确认 200 名受试者都各有两张图，并且两张图的第 *i* 行指向同一个脑区。
 
 ```{r contract}
 dim(ngeo_values(x))
@@ -34,19 +36,50 @@ index <- ngeo_validate_layers(
 index$availability[1:8, ]
 ```
 
-68×400 的 values block 对应 200 subjects × 2 modalities。`layers` 恢复
-`subject_id × feature`，不会把数据塞进另一个隐藏 tensor。
+结果应为 68×400：68 个脑区，200 名受试者各两列。配对索引把每一列还原成
+“哪名受试者、哪种指标”，以后即使改变列顺序也不会把不同人的脑图配在一起。
 
-```{r modality-maps, fig.width=10, fig.height=4.8, fig.alt="Thickness and myelin SCZ minus HC effects on DK68 flat cortex", fig.cap="在计算一个全脑 coupling number 前，先检查两种 modality 的空间分布。"}
-ngeo_tutorial_plot_flat(
-  dk$difference, title="Thickness: SCZ - HC", diverging=TRUE
+## 先看看两种指标的组间差异分布
+
+下面两张图帮助我们观察厚度和髓鞘差异各自分布在哪里，并为
+后面的多尺度分析建立直觉：大块平滑变化和相邻区域间的快速变化可能反映不同的
+空间过程。
+
+```{r modality-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 图谱上的皮层厚度与髓鞘指标组间差异", fig.cap="两张图分别显示患者组减去健康对照组的厚度与髓鞘指标差异。"}
+thickness_limit <- max(abs(ngeo_values(dk$difference)))
+thickness_map <- ngeo_cortical_map(
+  dk$surface, values=dk$difference, chart="flat", atlas="DK68",
+  underlay=dk$underlay, overlay_alpha=0.82,
+  palette="Blue-Red 3", limits=c(-thickness_limit, thickness_limit),
+  na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  multi$myelin_difference, title="Myelin proxy: SCZ - HC", diverging=TRUE
+plot(
+  thickness_map, main="Thickness: SCZ - HC",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+myelin_limit <- max(abs(ngeo_values(multi$myelin_difference)))
+myelin_map <- ngeo_cortical_map(
+  dk$surface, values=multi$myelin_difference,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-myelin_limit, myelin_limit), na_color=NA_character_
+)
+plot(
+  myelin_map, main="Myelin proxy: SCZ - HC",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## 用与组别无关的 DK graph 固定尺度
+如果两张图在相同脑区呈现相似的颜色变化，可能产生较强的同位置耦合；若相似性只在
+较大空间范围内出现，则更可能体现在低阶空间模态中。
+
+## 用皮层邻接把“大尺度”和“小尺度”分开
+
+DK 分区的邻接图可以分解出一组从平滑到起伏的空间模态。前几个模态描述跨越较大
+皮层范围的变化，后面的模态描述更局部的变化。这个基底只由分区边界决定，在计算时
+不读取组别或脑图数值，避免让我们想检验的组间差异反过来定义分析尺度。
 
 ```{r basis}
 w_binary <- ngeo_spatial_weights(
@@ -59,11 +92,14 @@ basis <- ngeo_spatial_basis(
 basis$diagnostics
 ```
 
-basis 只读取 atlas topology 和 support，不读取 diagnosis 或 effect。左右半球是两个
-connected components；rank band 因此是 component-local graph scale，不自动等于
-毫米波长。
+左右半球在 DK 邻接图中是两个独立部分，所以模态序号是在每个连通部分内定义的。
+这里的低、中、高频带表示图模态的相对顺序，并不自动对应某个固定的毫米波长。
 
-## 同位置与频谱耦合
+## 为每名受试者计算三种互补的耦合描述
+
+同位置相关比较两种指标在相同脑区是否一起变化；频谱耦合比较它们在某个空间尺度
+上的变化方向是否一致；频带能量则记录每种指标在该尺度上有多少变异。三者回答的
+问题不同，但都为每名受试者产生一行结果，随后可以进入标准的组间模型。
 
 ```{r coupling}
 features <- ngeo_layer_coupling(
@@ -77,15 +113,14 @@ dim(features$values)
 features$endpoints[, c("estimand", "layer_x", "layer_y", "component", "band")]
 ```
 
-`spectral_coupling` 必须和 `band_energy_x`、`band_energy_y`、
-`spectral_cross_energy` 一起读。某个 band 能量不足时，标准化 coupling 可以是
-`NA`；这不是可以静默删除 subject 的理由。
+如果某名受试者在某个频带几乎没有信号，标准化耦合可能无法定义。此时应回到该人的
+频带能量判断原因，并在组间分析前说明缺失规则；随意剔除这些受试者会改变分析样本。
 
-## coupling 差异发生在 cortex 的哪里
+## 哪些脑区可能推动了全脑耦合差异？
 
-全局 endpoint 不能告诉我们由哪些 parcels 驱动。下面用每名 subject 的
-standardized thickness×myelin product 形成一个描述性 regional contribution，
-再比较 SCZ 与 HC；它是诊断图，不替代上面的预声明 endpoint。
+全脑耦合把 68 个脑区概括成少数数值，代价是失去位置。为了帮助解释，我们把每名
+受试者的两张图分别标准化，再计算同一区域的乘积，最后比较患者与健康对照的平均贡献。
+这张图用于定位可能的驱动区域；它没有为 68 个脑区分别做显著性检验。
 
 ```{r contribution}
 layer_table <- ngeo_layers(x)
@@ -101,14 +136,32 @@ contribution_difference <-
   rowMeans(contribution[, group == "HC", drop=FALSE])
 ```
 
-```{r contribution-map, fig.width=9.5, fig.height=4.8, fig.alt="SCZ minus HC local thickness-myelin coupling contribution on DK68 flat cortex", fig.cap="该脑图用于定位全脑 coupling endpoint 的可能驱动区，不提供 parcel-wise p values。"}
-ngeo_tutorial_plot_flat(
-  dk$difference, values=contribution_difference,
-  title="Local coupling contribution: SCZ - HC", diverging=TRUE
+```{r contribution-map, fig.width=9.5, fig.height=4.8, fig.alt="DK68 图谱上局部厚度—髓鞘耦合贡献的组间差异", fig.cap="颜色显示哪些脑区可能推动全脑耦合差异；本图未对 68 个脑区分别进行显著性检验。"}
+contribution_values <- setNames(
+  contribution_difference, ngeo_base_elements(dk$difference)$region_id
+)
+contribution_limit <- max(abs(contribution_values))
+contribution_map <- ngeo_cortical_map(
+  dk$surface, values=contribution_values,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-contribution_limit, contribution_limit),
+  na_color=NA_character_
+)
+plot(
+  contribution_map, main="Local coupling contribution: SCZ - HC",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## 方向性不是可忽略的标签
+颜色绝对值较大的区域对全脑耦合差异贡献更多，正负号表示两组贡献差异的方向。它适合
+帮助定位后续假设。单个脑区的可靠组间效应需要另行建立并校正局部检验。
+
+## 邻区影响还带有方向
+
+如果问题改成“厚度较高的区域是否邻近髓鞘较高的区域”，就需要对其中一张图做
+空间滞后。从厚度指向髓鞘，与从髓鞘指向厚度使用不同计算，输出会分别保留两个方向。
 
 ```{r directional}
 w_row <- ngeo_spatial_weights(
@@ -125,6 +178,6 @@ directional$endpoints[, c(
 )]
 ```
 
-`x_to_y` 与 `y_to_x` 不会被平均。这里仅生成 200 行 subject endpoints；真正的
-SCZ--HC 推断必须移动完整 subject record，并把 age、sex、site 作为 design-level
-covariates，而不能 permutation parcels。
+输出保留两个方向及其标准化方式。到这里我们只完成了“每人得到相同的一组耦合
+特征”。下一步比较患者与健康对照时，应移动完整受试者记录，并在模型中处理年龄、
+性别和采集中心；脑区仍然是同一人的重复空间测量，不参与组标签置换。

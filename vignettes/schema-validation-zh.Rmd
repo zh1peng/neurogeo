@@ -1,8 +1,8 @@
 ---
-title: "DK68 与 Conte69 对象的 schema、alignment 和 manifest"
+title: "分析开始前，怎样确认脑区、顶点和被试仍然对齐"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{DK68 与 Conte69 对象的 schema、alignment 和 manifest}
+  %\VignetteIndexEntry{分析开始前，怎样确认脑区、顶点和被试仍然对齐}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -25,12 +25,16 @@ vertex <- ngeo_tutorial_vertex_case_control(
 )
 ```
 
-## Schema validation 先保护神经影像 alignment
+这一页从一次“重新打开项目”开始。DK68 数据包含 100 名健康对照者和 100 名精神分裂症
+患者，Conte69 顶点样本每组各 5 人。文件经过复制、缓存或写出后，我们想知道的不仅
+是对象能否载入，还包括 68 个分区、64,984 个顶点和所有被试图层是否仍按原顺序对应。
+我们先验证对象结构，再检查图谱映射，最后用对象清单（manifest）识别内容是否发生
+变化。
 
-Schema 不只是检查一个 class 名称。对 DK68 cohort，它要验证 68 个 ordered
-parcels、200 个 subject layers、measure metadata 与 region support；对
-Conte69 vertex cohort，它还要验证 coordinates、faces、flat chart、
-vertex values 和 atlas labels 逐行一致。
+## 这两份对象的行列关系完整吗？
+
+严格验证会检查 DK68 的分区行与 200 个被试图层，也会检查 Conte69 的坐标、面片、
+平面图、顶点数值和图谱标签。先运行验证并查看关键维度。
 
 ```{r strict-validation}
 stopifnot(
@@ -49,22 +53,41 @@ list(
 )
 ```
 
-结构通过后仍要看 cortical pattern。schema 可以阻止错位 matrix 进入计算，
-但不能单独判断模拟效应是否位于预期脑区。
+验证通过说明对象内部的长度、类型和引用彼此一致。它无法判断模拟疾病效应是否出现在
+合理脑区，因此结构检查之后仍要把结果画回皮层。下面显示顶点水平的患者组减健康
+对照组差值。
 
-```{r schema-brain, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上通过 strict validation 的 vertex SCZ 减 HC contrast", fig.cap="Schema 证明 geometry/value alignment；brain map 提供空间解释。"}
-ngeo_tutorial_plot_flat(
+```{r schema-brain, fig.width=10, fig.height=4.8, fig.alt="通过严格验证的组间皮层厚度差值显示在 Conte69 展开表面上", fig.cap="结构验证检查几何与数值的对应关系，脑图帮助发现异常空间图样。"}
+validated_limit <- max(abs(ngeo_values(vertex$difference)), na.rm = TRUE)
+validated_map <- ngeo_cortical_map(
   vertex$difference,
   layer = "SCZ_minus_HC",
-  title = "Validated object: SCZ - HC thickness",
-  diverging = TRUE
+  chart = "flat",
+  atlas = "DK68",
+  underlay = vertex$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.82,
+  palette = "Blue-Red 3",
+  limits = c(-validated_limit, validated_limit),
+  na_color = NA_character_
+)
+plot(
+  validated_map,
+  main = "Validated object: SCZ - HC thickness",
+  boundary_color = grDevices::adjustcolor("white", 0.55),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1
 )
 ```
 
-## Atlas support 也有独立 schema
+若图上出现半球镜像、跨边界条纹或内侧壁异常值，应继续追查输入对齐；结构验证通过
+不能替代视觉质量控制。
 
-Schaefer300 operator 的 rows 是 target parcels，columns 是 ordered source
-vertices。这个方向、support size 与 normalization 都不能靠矩阵尺寸猜测。
+## 从顶点到 Schaefer300 的映射方向正确吗？
+
+接下来检查图谱映射。这里的稀疏矩阵应该把 64,984 个源顶点汇总到 300 个
+Schaefer 分区，并按顶点面积加权。验证函数会检查源、目标、归一化方式和矩阵方向，
+而不是只看它是不是一个稀疏矩阵。
 
 ```{r support-schema}
 schaefer300_map <- ngeo_atlas_map(
@@ -85,19 +108,36 @@ list(
 )
 ```
 
-```{r support-brain, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上通过 schema 检查的 Schaefer300 support", fig.cap="Manifest 绑定 operator identity；flat map 检查 target support 的空间排列。"}
-ngeo_tutorial_plot_atlas(
-  vertex,
+输出维度应为 300 × 64,984。映射哈希把标签、权重和两端空间身份合在一起，可用于
+后来判断是否仍是同一个转换。我们也把图谱画出来，观察 300 个分区在左右半球的
+覆盖。
+
+```{r support-brain, fig.width=10, fig.height=4.8, fig.alt="通过验证的 Schaefer300 分区显示在 Conte69 展开表面上", fig.cap="映射哈希识别转换内容，展开图检查 300 个分区的空间覆盖。"}
+validated_atlas_map <- ngeo_cortical_map(
+  vertex$surface,
+  chart = "flat",
   atlas = "Schaefer300",
-  title = "Validated Schaefer300 support"
+  fill = "atlas",
+  underlay = vertex$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.78,
+  palette = "Dynamic",
+  na_color = NA_character_
+)
+plot(
+  validated_atlas_map,
+  main = "Validated Schaefer300 support",
+  boundary_lwd = 0.35,
+  outline_lwd = 1.1,
+  show_legend = FALSE
 )
 ```
 
-## Portable manifest round trip
+## 保存一份内容指纹，日后还能认出同一对象吗？
 
-manifest 使用 canonical JSON 与 SHA-256 绑定规范化 metadata。它不重复
-保存完整 values block，也不代替原始数据；它用来回答“恢复后还是不是
-同一个对象”。
+对象清单把规范化元数据写成 JSON，并用 SHA-256 生成内容指纹。它不是数据备份，
+而是一张核对单：当对象从缓存或归档中恢复后，可以据此判断空间基底、图层和内容
+是否仍与原来一致。下面连续生成两次清单，再写出并读回一次。
 
 ```{r manifest-round-trip}
 vertex_manifest <- ngeo_object_manifest(vertex$surface)
@@ -123,11 +163,13 @@ if (requireNamespace("jsonlite", quietly = TRUE)) {
 }
 ```
 
-## 失败应该暴露，而不是绕过
+相同对象生成的两个哈希应完全一致，JSON 回环后的验证也应通过。时间戳或文件所在
+目录不应随意改变科学内容标识；真正改变顶点顺序、图层或数值时，验证则应失败。
 
-如果 ordered elements、metadata 或 content identity 发生改变，旧 manifest
-不能继续被视为证据。下面只修改 manifest 副本来展示 validator 的行为，
-不破坏原始 neurogeo 对象。
+## 如果清单中的元素数被改动，会发生什么？
+
+为了看清失败信息，我们只修改清单副本中的元素数，不触碰原始对象。验证器应报告
+清单内部不一致，而不是继续给出有效结论。
 
 ```{r manifest-mismatch}
 corrupted <- vertex_manifest
@@ -138,6 +180,7 @@ stopifnot(!mismatch$valid)
 mismatch$issues
 ```
 
-Schema validation 不能证明 study design、SCZ diagnosis 或 registration
-科学上正确；它的职责是确保结构错误、support 错位和 identity 漂移不会
-静默进入后续统计。
+实际工作中，若严格验证失败，应先修复对象结构；若映射验证失败，应重新确认图谱
+版本和顶点顺序；若清单不匹配，应查明文件是否被重新生成。三项都通过后，仍需单独
+审查研究设计、诊断标签、配准和空间图样。下一步可以进入质量控制，用分布摘要和
+脑图寻找结构验证无法发现的科学异常。

@@ -1,8 +1,8 @@
 ---
-title: "多 atlas 皮层数据的 support-aware inference"
+title: "同一空间问题跨越多套图谱：共同零分布与综合效应"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{多 atlas 皮层数据的 support-aware inference}
+  %\VignetteIndexEntry{同一空间问题跨越多套图谱：共同零分布与综合效应}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -51,20 +51,36 @@ support_maps <- lapply(family_names, function(atlas) {
 names(support_maps) <- family_names
 ```
 
-## 一个 source，多个 atlas，只有一个 null realization
+## 提出一个会受图谱选择影响的问题
 
-我们研究 vertex-level SCZ-minus-HC thickness contrast 与 HC mean thickness 的空间
-关系。两张图共享同一个 ordered bilateral surface。若 DK68、Schaefer100/200/300
-分别独立 permutation，就会把 atlas choice 与不同的随机 null draw 混在一起；
-common-support test 应先在 source vertices 上生成一次 null realization，再用所有
-support operators 聚合同一 realization。
+假设我们想知道：健康对照中皮层较厚的位置，是否也呈现更大的患者组与对照组厚度差异？
+这个问题可以在 DK68 上分析，也可以在 Schaefer100、200 或 300 上分析。因为区域边界
+不同，四套图谱给出的回归斜率不会完全相同。
 
-```{r source-brain, fig.width=10, fig.height=4.8, fig.alt="vertex-level SCZ 减 HC thickness contrast flatmap", fig.cap="support-aware inference 的 source outcome 始终是同一张 vertex brain map。"}
-ngeo_tutorial_plot_flat(
+我们从两张逐顶点地图开始：一张是患者组均值减去对照组均值，另一张是健康对照的平均
+皮层厚度。两张图使用完全相同的双侧顶点顺序。下面先查看作为回归结果变量的组间差异图；
+蓝色区域表示患者组更薄。
+
+```{r source-brain, fig.width=10, fig.height=4.8, fig.alt="顶点尺度患者组减对照组皮层厚度差异图", fig.cap="四套图谱都从这张顶点尺度组间差异图开始。"}
+source_limit <- max(abs(ngeo_values(vertex$difference)[, 1L]), na.rm=TRUE)
+source_brain <- ngeo_cortical_map(
   vertex$difference,
+  chart="flat",
   atlas="DK68",
-  title="Source outcome: SCZ minus HC thickness",
-  diverging=TRUE
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-source_limit, source_limit),
+  na_color=NA_character_
+)
+plot(
+  source_brain,
+  main="Source outcome: SCZ minus HC thickness",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
@@ -74,14 +90,40 @@ dim(ngeo_values(source_complete))
 ngeo_validate(source_complete, "strict")
 ```
 
-## 预先声明 support family
+图层表和维度输出用于确认两个变量共用相同顶点，并且对象通过严格验证。此处检验的是
+两张固定皮层地图之间的空间关系；它与受试者层面的患者—对照总体检验是两类问题。
 
-下面的 layout 不是装饰图：每个 boundary 对应一个随后实际进入 inference 的 sparse
-operator。所有 operator 共享 source base，但 target parcel 数不同。
+## 在检验之前选定要比较的图谱
 
-```{r family-atlases, fig.width=11, fig.height=8, fig.alt="support-aware inference 使用的 DK68 和 Schaefer atlas family", fig.cap="四个 atlas 在同一 flat surface 上明确显示各自 boundaries。"}
+为了避免看到结果后再挑图谱，我们先声明 DK68 与三种尺度的 Schaefer 图谱。下图显示
+每套图谱实际采用的边界。随后，每一套边界都会生成一个顶点到脑区的稀疏转换矩阵，
+把同一对顶点地图汇总到对应的脑区尺度。
+
+```{r family-atlases, fig.width=11, fig.height=8, fig.alt="用于跨图谱推断的 DK68 与三种 Schaefer 图谱", fig.cap="四套图谱覆盖同一皮层顶点，但采用不同数量和位置的区域边界。"}
+family_atlas_maps <- lapply(family_names, function(atlas) {
+  ngeo_cortical_map(
+    vertex$surface,
+    chart="flat",
+    atlas=atlas,
+    fill="atlas",
+    underlay=vertex$underlay,
+    underlay_palette="Grays",
+    overlay_alpha=0.78,
+    palette="Dynamic",
+    na_color=NA_character_
+  )
+})
+family_atlas_layout <- ngeo_cortical_layout(
+  family_atlas_maps,
+  ncol=2L,
+  labels=family_names,
+  shared_scale=FALSE
+)
 plot(
-  ngeo_tutorial_atlas_layout(vertex, atlases=family_names),
+  family_atlas_layout,
+  boundary_color=grDevices::adjustcolor("white", 0.65),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
   show_legend=FALSE
 )
 ```
@@ -98,11 +140,15 @@ data.frame(
 )
 ```
 
-## 共同 source permutation 与 joint max-T
+表格应显示四个转换矩阵具有相同的源顶点数和完整覆盖率，目标脑区数则随图谱变化。哈希
+保存了每个转换的精确身份，便于复现和排查顶点顺序错误。
 
-`ngeo_common_support_test()` 在每个 replicate 中只重排一次 predictor vertices；同一个
-重排结果随后经过四个 atlas operators。这里的 p 值描述两张固定 reference maps 在
-声明 null 下的关系，不是 100 HC 与 100 SCZ 的 population-level diagnosis test。
+## 让四套图谱共享同一次置换
+
+如果四套图谱各自随机置换，图谱差异会与四组不同的随机抽样误差混在一起。更清楚的做法
+是每次只在源顶点上重排一次健康对照平均图，再把同一重排结果分别聚合到四套图谱。
+`ngeo_common_support_test()` 正是按这个顺序工作，并用联合最大统计量（max-T）控制四项
+检验的多重比较。
 
 ```{r common-null}
 family_test <- ngeo_common_support_test(
@@ -121,15 +167,16 @@ family_test$estimates
 family_test[c("null", "null_status", "nsim", "adjustment", "claim")]
 ```
 
-这里使用 19 次 permutation 只为让网页中的全 vertex、四 atlas 示例保持有界；其
-Monte Carlo 分辨率不足以支持研究报告。正式分析应在同一预注册 schedule 下提高到
-足够的 permutation 数，并报告由此得到的最小可达 p 值。
+`estimates` 给出每套图谱上的回归斜率；随后的输出记录零假设、置换次数和校正方式。
+网页为控制运行时间只做 19 次置换，因此可达到的最小 p 值很粗。实际研究应事先确定更高
+的置换次数，并报告最小可达 p 值。这里的 p 值只描述两张固定空间地图的关系，不能用来
+代替 200 名受试者的组间推断。
 
-## covariance-aware cross-atlas summary
+## 综合四个彼此相关的效应估计
 
-四个 estimates 来自相同 source maps，通常强相关，不能当作四项独立研究。
-`ngeo_atlas_robust_effect()` 首先保留每个 atlas 的 effect；默认 consensus 是描述性
-summary，不会从四个 point estimates 猜测 covariance。
+四个斜率都来自同一对源地图，所以它们通常高度相关。`ngeo_atlas_robust_effect()` 先保留
+每套图谱的估计值，再给出描述性汇总。若要计算有标准误的综合效应，还需要估计图谱之间
+的协方差，不能把四个斜率当成四项独立研究。
 
 ```{r robust-effect}
 effect <- ngeo_atlas_robust_effect(
@@ -143,9 +190,12 @@ effect$estimates
 effect$meta_analysis$inference_mode
 ```
 
+下面进行 49 次配对自助抽样。每次都抽取同一组源顶点，并同时计算四个图谱的斜率，因此
+得到的协方差保留了它们共享数据所产生的相关性。为提高网页运行效率，代码直接复用前面
+建立的稀疏转换矩阵。
+
 ```{r covariance-aware}
-# 49 次 common-source paired bootstrap 同时产生四个 atlas estimate。
-# 直接复用稀疏 support operators，避免每次重建完整 ngeo 对象。
+# 每次重抽同一组源顶点，并同时计算四套图谱的斜率。
 source_values <- ngeo_values(source_complete)[, c(
   "SCZ_minus_HC", "HC_mean"
 ), drop=FALSE]
@@ -174,7 +224,7 @@ bootstrap_estimates <- t(replicate(49, paired_effect(
 )))
 colnames(bootstrap_estimates) <- family_names
 
-# 对角 shrinkage 避免有限 bootstrap 导致的数值奇异。
+# 少量收缩可稳定有限次自助抽样得到的协方差矩阵。
 paired_atlas_covariance <- stats::cov(bootstrap_estimates)
 paired_atlas_covariance <-
   0.9 * paired_atlas_covariance +
@@ -190,6 +240,12 @@ covariance_aware[c("estimate", "standard_error", "confidence_interval",
                    "inference_mode")]
 ```
 
-这里的 covariance 不是从四个 point estimates 反推出来，而是由同一批
-source vertices 的 paired bootstrap 估计。support sensitivity 只适用于这里明确列出的 DK/Schaefer family，
-不能自动推出 atlas-independent 或 parcellation-invariant 结论。
+综合结果中的估计值和置信区间已经考虑四套图谱之间的相关性。它概括的是预先列出的
+DK/Schaefer 图谱族；若换用另一套分区、另一种空间零模型或另一批受试者，结论仍需重新
+检查。
+
+## 把图谱敏感性纳入研究结论
+
+实际报告应同时给出每套图谱的效应、共同置换的校正结果以及综合效应，读者才能看到结论
+是否依赖某一套边界。若不同图谱给出方向相反的结果，优先回到皮层图检查效应跨越了哪些
+区域边界，并同时报告各图谱结果与综合数字。

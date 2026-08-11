@@ -1,8 +1,8 @@
 ---
-title: "空间模型：从 200 名受试者 GLM 到 DK68 GWR/SAR/CAR"
+title: "从受试者模型到一张有空间结构的组间效应图"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{空间模型：从 200 名受试者 GLM 到 DK68 GWR/SAR/CAR}
+  %\VignetteIndexEntry{从受试者模型到一张有空间结构的组间效应图}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -16,11 +16,14 @@ source(system.file("tutorial-code", "brain-case-study.R",
 dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
 ```
 
-## 第一层模型：受试者才是 sampling unit
+## 先在每个脑区估计经协变量调整的组间差异
 
-先在每个 DK region 拟合同一个 subject-level model：
-`thickness ~ age + sex + site + group`。这一步使用 100 名 HC 与 100 名 SCZ，
-而不是把 68 个 regions 当成独立重复。
+我们有 100 名健康对照和 100 名患者的 DK68 皮层厚度，同时记录了年龄、性别和扫描
+中心。直接相减两组均值会把这些因素与诊断组混在一起，因此先在每个脑区拟合相同的
+受试者水平模型：`thickness ~ age + sex + site + group`。
+
+这一步产生 68 个组别系数及其标准误。每个系数都来自全部 200 名受试者；68 个脑区
+记录效应图的位置，独立抽样单位仍是 200 名受试者。
 
 ```{r subject-glm}
 design_matrix <- model.matrix(
@@ -40,21 +43,44 @@ for (region in 1:68) {
 t_value <- coefficient / standard_error
 ```
 
-```{r subject-glm-maps, fig.width=10, fig.height=4.8, fig.alt="Covariate-adjusted SCZ group coefficient and t statistic on DK68 flat cortex", fig.cap="effect 与 uncertainty-derived t map 都来自 200 名 subjects 的同一个 design。"}
-ngeo_tutorial_plot_flat(
-  dk$difference, values=coefficient,
-  title="Adjusted group coefficient: SCZ - HC", diverging=TRUE
+```{r subject-glm-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 平坦化皮层上经协变量调整的组别系数与 t 统计量", fig.cap="左图显示调整后的患者组减对照组厚度差，右图结合标准误显示对应的 t 值。"}
+region_id <- ngeo_base_elements(dk$difference)$region_id
+coefficient_values <- setNames(coefficient, region_id)
+coefficient_limit <- max(abs(coefficient_values))
+coefficient_map <- ngeo_cortical_map(
+  dk$surface, values=coefficient_values,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-coefficient_limit, coefficient_limit), na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  dk$difference, values=t_value,
-  title="Adjusted group t statistic", diverging=TRUE
+plot(
+  coefficient_map, main="Adjusted group coefficient: SCZ - HC",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+t_values <- setNames(t_value, region_id)
+t_limit <- max(abs(t_values))
+t_map <- ngeo_cortical_map(
+  dk$surface, values=t_values,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-t_limit, t_limit), na_color=NA_character_
+)
+plot(
+  t_map, main="Adjusted group t statistic",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## 第二层空间诊断：regional estimates 不是独立点
+左图给出调整后的患者组减对照组厚度差，右图用标准误把差异换成 t 值。两张图来自同一个
+设计矩阵：前者回答差异有多大，后者还考虑了估计的不确定性。
 
-下面的 spatial models 作用于 68 个已估计的 group coefficients，用来描述 effect
-map 的空间结构；它们不能替代上面的 subject-level GLM。
+## 把 68 个系数组成一张可分析的皮层图
+
+现在的问题从“每个脑区是否存在组间差异”转向“这些差异在皮层上如何组织”。为此，
+把系数、标准误和健康对照平均厚度放进同一个 DK68 空间对象，并保留脑区面积、质心和
+相邻关系。下面的空间分析描述这张已估计的效应图，不会取代前面的受试者模型。
 
 ```{r model-object}
 model_data <- ngeo_parcellation(
@@ -75,7 +101,11 @@ model_data <- ngeo_parcellation(
 )
 ```
 
-## Variogram：先声明 metric
+## 相隔更远的脑区，效应也更不相似吗？
+
+半变异函数（variogram）把每一对脑区的效应差异与它们的距离放在一起。若曲线随
+距离上升，说明相近脑区的组间效应更相似。这里按 Conte69 模板中的三维质心距离分组；
+展开图上的屏幕坐标只用于显示。
 
 ```{r variogram}
 empirical <- ngeo_variogram(
@@ -85,14 +115,19 @@ empirical <- ngeo_variogram(
 empirical
 ```
 
-```{r variogram-plot, fig.width=7.2, fig.height=4.5, fig.alt="Empirical semivariogram of the adjusted DK68 group effect", fig.cap="距离来自 Conte69 3D DK centroids；flat chart 只用于显示，不用于 statistical distance。"}
+```{r variogram-plot, fig.width=7.2, fig.height=4.5, fig.alt="调整后 DK68 组间效应的经验半变异函数", fig.cap="横轴使用 Conte69 三维空间中的 DK68 脑区质心距离；平坦化坐标只用于绘图。"}
 plot(empirical, pch=21, bg="#2a9d8f", col="white", cex=1.3)
 ```
 
-`region_centroid` 是 3D template Euclidean metric；若科学问题需要沿 cortical sheet
-的距离，应改用明确的 parcel geodesic operator，不能使用屏幕上的 flat x/y 坐标。
+这条曲线的解释取决于距离定义。三维质心距离适合这里的演示；若研究问题关心沿皮层
+表面传播的距离，应改用脑区间测地距离。展开图只是可视化坐标，不能拿来代替统计距离。
 
-## Geographically weighted regression
+## 健康对照平均厚度与组间效应的关系会因位置而变吗？
+
+普通回归只给出一个全局斜率。地理加权回归（GWR）在每个脑区附近拟合局部关系，
+因此可以检查健康对照平均厚度与组间差异的联系是否随皮层位置改变。局部拟合需要先
+选择带宽：带宽太小会使估计不稳定，太大又会抹平真正的空间变化。下面用五折交叉验证
+从三个候选距离中选择带宽。
 
 ```{r gwr}
 distance <- ngeo_distance(
@@ -113,18 +148,42 @@ gwr <- ngeo_gwr(
 bandwidth
 ```
 
-```{r gwr-maps, fig.width=10, fig.height=4.8, fig.alt="GWR fitted group effect and local condition number on DK68 flat cortex", fig.cap="local fitted values 必须与 local numerical stability 一起显示。"}
-ngeo_tutorial_plot_flat(
-  model_data, values=gwr$fitted,
-  title="GWR fitted group effect", diverging=TRUE
+```{r gwr-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 平坦化皮层上的局部回归拟合值与条件数", fig.cap="左图显示局部模型拟合的组间效应，右图显示同一脑区的数值稳定性。"}
+gwr_fitted <- setNames(gwr$fitted, region_id)
+gwr_limit <- max(abs(gwr_fitted))
+gwr_map <- ngeo_cortical_map(
+  dk$surface, values=gwr_fitted,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-gwr_limit, gwr_limit), na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  model_data, values=gwr$condition_number,
-  title="GWR local condition number", palette="Inferno"
+plot(
+  gwr_map, main="GWR fitted group effect",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+gwr_condition <- setNames(gwr$condition_number, region_id)
+condition_map <- ngeo_cortical_map(
+  dk$surface, values=gwr_condition,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Inferno", na_color=NA_character_
+)
+plot(
+  condition_map, main="GWR local condition number",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## Graph-based SAR 与 CAR
+左图是局部模型拟合的效应，右图是对应的条件数。条件数很高的位置说明局部设计接近
+奇异，即使拟合图看起来平滑，那里的系数也不宜作强解释。
+
+## 邻近脑区之间还剩多少依赖？
+
+另一种思路不使用连续距离，而是直接从 DK68 的边界相邻关系出发。空间自回归模型
+（SAR）把邻区效应作为回归结构的一部分；条件自回归模型（CAR）则用邻接图定义一张
+平滑的空间场。它们对“邻近脑区如何共同变化”作出不同假设，因此我们同时查看两种
+模型留下的残差以及残差 Moran's I，从空间位置和整体统计量两方面比较拟合。
 
 ```{r graph-models}
 w <- ngeo_spatial_weights(
@@ -142,18 +201,37 @@ c(SAR_residual_Moran=sar$residual_moran,
   CAR_residual_Moran=car$residual_moran)
 ```
 
-```{r graph-residuals, fig.width=10, fig.height=4.8, fig.alt="SAR and CAR residual group-effect maps on DK68 flat cortex", fig.cap="不同 spatial estimands 的 residual pattern 不应被藏在一个 model summary 中。"}
-ngeo_tutorial_plot_flat(
-  model_data, values=sar$residuals,
-  title="SAR residual", diverging=TRUE
+```{r graph-residuals, fig.width=10, fig.height=4.8, fig.alt="DK68 平坦化皮层上的 SAR 与 CAR 模型残差", fig.cap="并排查看两种模型的残差，可以发现哪一种邻区依赖结构仍留下成片的未解释效应。"}
+sar_values <- setNames(sar$residuals, region_id)
+sar_limit <- max(abs(sar_values))
+sar_map <- ngeo_cortical_map(
+  dk$surface, values=sar_values,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-sar_limit, sar_limit), na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  model_data, values=car$residuals,
-  title="CAR residual", diverging=TRUE
+plot(
+  sar_map, main="SAR residual",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+car_values <- setNames(car$residuals, region_id)
+car_limit <- max(abs(car_values))
+car_map <- ngeo_cortical_map(
+  dk$surface, values=car_values,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-car_limit, car_limit), na_color=NA_character_
+)
+plot(
+  car_map, main="CAR residual",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-GWR、SAR 与 CAR 回答不同问题，不是可互换的“空间校正”。完整报告应同时给出
-subject design、DK support、metric/graph、normalization、bandwidth/CV、数值边界、
-effect 与 uncertainty；若换成 Schaefer support，应重新建立模型并把结果作为
-support sensitivity，而不是宣称 atlas-independent。
+这三种模型不应被合并成一个含糊的“空间校正”步骤。半变异函数描述相似性如何随距离
+改变；GWR 检查回归关系是否随位置变化；SAR 和 CAR 则为邻区依赖规定具体模型。
+报告结果时，应写清受试者设计、DK68 分区、距离或邻接定义、带宽选择和数值诊断，
+并把效应图与不确定性一起展示。若改用 Schaefer 分区，需要重新拟合并把差异视为
+分区敏感性；结论是否延伸到其他图谱，需要用相应分区重新检验。

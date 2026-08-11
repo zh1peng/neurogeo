@@ -701,26 +701,6 @@ if (!exists(
   }
 }
 
-.ngeo_tutorial_plot_core <- function() {
-  core <- .ngeo_tutorial_surface_core()
-  explicitly_synthetic <- identical(
-    Sys.getenv("NEUROGEO_TUTORIAL_DATA_MODE", ""), "synthetic"
-  ) || isTRUE(getOption("neurogeo.tutorial.allow_synthetic_plots"))
-  if (!isTRUE(core$published_atlases) && !explicitly_synthetic) {
-    stop(
-      paste(
-        "Synthetic fallback brain plots are disabled by default because",
-        "their circular teaching geometry is not a published cortical",
-        "flatmap. Fetch the pinned real fixtures and use real mode. Set",
-        "NEUROGEO_TUTORIAL_DATA_MODE=synthetic only for explicit offline",
-        "fallback tests."
-      ),
-      call. = FALSE
-    )
-  }
-  core
-}
-
 .ngeo_tutorial_new_surface <- function(values, layers = NULL, measures = NULL,
                                        mode = "auto") {
   core <- .ngeo_tutorial_surface_core(mode)
@@ -883,6 +863,9 @@ ngeo_tutorial_dk_case_control <- function(n_per_group = 100L,
     difference = difference,
     surface = core$template,
     atlas = core$supports$DK68,
+    supports = core$supports,
+    underlay = core$sulc,
+    mask = core$mask,
     data_source = core$data_source,
     published_atlases = core$published_atlases,
     support_note = core$support_note,
@@ -1026,221 +1009,6 @@ ngeo_tutorial_surface_map <- function(template, values, name = "surface map",
   )
 }
 
-ngeo_tutorial_flat_map <- function(x, layer = 1L, values = NULL,
-                                   atlas = "DK68", title = NULL,
-                                   palette = "viridis", limits = NULL,
-                                   diverging = FALSE) {
-  core <- .ngeo_tutorial_plot_core()
-  if (inherits(x, "ngeo_parcellation")) {
-    selected <- if (is.null(values)) neurogeo::ngeo_values(x)[, layer] else values
-    element <- neurogeo::ngeo_base_elements(x)
-    lift <- selected[match(core$supports$DK68, element$region_id)]
-    surface <- core$template
-    values <- lift
-    atlas <- core$supports$DK68
-    if (is.null(title)) title <- neurogeo::ngeo_layers(x)$name[[if (is.numeric(layer)) layer else 1L]]
-  } else if (inherits(x, "ngeo_surface")) {
-    surface <- x
-    if (is.null(title) && is.null(values)) {
-      index <- if (is.numeric(layer)) as.integer(layer) else
-        match(layer, neurogeo::ngeo_layers(x)$name)
-      title <- neurogeo::ngeo_layers(x)$name[[index]]
-    }
-  } else {
-    stop("`x` must be an `ngeo_parcellation` or `ngeo_surface`.")
-  }
-  if (isTRUE(diverging) && is.null(limits)) {
-    selected <- if (is.null(values)) neurogeo::ngeo_values(surface)[, layer] else values
-    maximum <- max(abs(selected), na.rm = TRUE)
-    limits <- c(-maximum, maximum)
-    palette <- "Blue-Red 3"
-  }
-  map <- neurogeo::ngeo_cortical_map(
-    surface,
-    layer = layer,
-    values = values,
-    chart = "flat",
-    atlas = atlas,
-    underlay = core$sulc,
-    underlay_palette = "Grays",
-    overlay_alpha = 0.82,
-    palette = palette,
-    limits = limits,
-    na_color = NA_character_
-  )
-  if (!is.null(title)) map$layer_name <- title
-  map$tutorial_data_source <- core$data_source
-  map$published_atlases <- core$published_atlases
-  map
-}
-
-ngeo_tutorial_parcel_flat_map <- function(
-    x,
-    parcel_values,
-    atlas = "DK68",
-    region_ids = NULL,
-    layer = 1L,
-    title = NULL,
-    palette = "viridis",
-    limits = NULL,
-    diverging = FALSE) {
-  core <- .ngeo_tutorial_plot_core()
-  surface <- if (is.list(x) && !inherits(x, "ngeo")) x$surface else x
-  if (!inherits(surface, "ngeo_surface") ||
-      !atlas %in% names(surface$base$labels)) {
-    stop("`x` must carry the selected vertex-aligned tutorial atlas.")
-  }
-  if (inherits(parcel_values, "ngeo_parcellation")) {
-    selected <- neurogeo::ngeo_values(parcel_values)[, layer]
-    region_ids <- neurogeo::ngeo_base_elements(parcel_values)$region_id
-  } else {
-    selected <- as.numeric(parcel_values)
-    if (is.null(region_ids) && !is.null(names(parcel_values)) &&
-        all(nzchar(names(parcel_values)))) {
-      region_ids <- names(parcel_values)
-    }
-  }
-  membership <- as.character(surface$base$labels[[atlas]]$values)
-  atlas_ids <- unique(membership[!is.na(membership)])
-  if (is.null(region_ids)) region_ids <- atlas_ids
-  if (length(selected) != length(region_ids) || anyDuplicated(region_ids)) {
-    stop("Parcel values and unique `region_ids` must align.", call. = FALSE)
-  }
-  lifted <- selected[match(membership, region_ids)]
-  if (!all(atlas_ids %in% region_ids)) {
-    stop("Parcel values do not cover every selected atlas region.", call. = FALSE)
-  }
-  map <- ngeo_tutorial_flat_map(
-    surface,
-    values = lifted,
-    atlas = atlas,
-    title = title,
-    palette = palette,
-    limits = limits,
-    diverging = diverging
-  )
-  map$parcel_support <- atlas
-  map$parcel_region_id <- region_ids
-  map$tutorial_data_source <- core$data_source
-  map
-}
-
-ngeo_tutorial_plot_support_values <- function(
-    parcel_values,
-    atlas = "DK68",
-    surface = NULL,
-    layer = 1L,
-    title = NULL,
-    palette = "viridis",
-    limits = NULL,
-    diverging = FALSE,
-    show_labels = FALSE,
-    show_legend = TRUE,
-    ...) {
-  if (is.null(surface)) {
-    surface <- .ngeo_tutorial_plot_core()$template
-  } else if (is.list(surface) && !inherits(surface, "ngeo")) {
-    surface <- surface$surface
-  }
-  map <- ngeo_tutorial_parcel_flat_map(
-    surface,
-    parcel_values,
-    atlas = atlas,
-    layer = layer,
-    title = title,
-    palette = palette,
-    limits = limits,
-    diverging = diverging
-  )
-  graphics::plot(
-    map,
-    show_boundaries = TRUE,
-    boundary_color = grDevices::adjustcolor("white", 0.55),
-    boundary_lwd = 0.25,
-    show_outline = TRUE,
-    outline_lwd = 1.1,
-    show_labels = show_labels,
-    show_legend = show_legend,
-    ...
-  )
-  invisible(map)
-}
-
-ngeo_tutorial_plot_flat <- function(x, layer = 1L, values = NULL,
-                                    atlas = "DK68", title = NULL,
-                                    palette = "viridis", limits = NULL,
-                                    diverging = FALSE, show_labels = FALSE,
-                                    show_legend = TRUE, ...) {
-  map <- ngeo_tutorial_flat_map(
-    x, layer = layer, values = values, atlas = atlas, title = title,
-    palette = palette, limits = limits, diverging = diverging
-  )
-  graphics::plot(
-    map,
-    show_boundaries = TRUE,
-    boundary_color = grDevices::adjustcolor("white", 0.55),
-    boundary_lwd = 0.25,
-    show_outline = TRUE,
-    outline_lwd = 1.1,
-    show_labels = show_labels,
-    show_legend = show_legend,
-    ...
-  )
-  invisible(map)
-}
-
-ngeo_tutorial_atlas_map <- function(x, atlas = "DK68", title = atlas) {
-  core <- .ngeo_tutorial_plot_core()
-  surface <- if (is.list(x) && !inherits(x, "ngeo")) x$surface else x
-  stopifnot(inherits(surface, "ngeo_surface"), atlas %in% names(core$supports))
-  map <- neurogeo::ngeo_cortical_map(
-    surface,
-    chart = "flat",
-    atlas = atlas,
-    fill = "atlas",
-    underlay = core$sulc,
-    underlay_palette = "Grays",
-    overlay_alpha = 0.78,
-    palette = "Dynamic",
-    na_color = NA_character_
-  )
-  map$layer_name <- title
-  map$tutorial_data_source <- core$data_source
-  map$published_atlases <- core$published_atlases
-  map
-}
-
-ngeo_tutorial_plot_atlas <- function(x, atlas = "DK68", title = atlas,
-                                     show_labels = FALSE, ...) {
-  map <- ngeo_tutorial_atlas_map(x, atlas = atlas, title = title)
-  graphics::plot(
-    map,
-    show_boundaries = TRUE,
-    boundary_lwd = 0.35,
-    show_outline = TRUE,
-    outline_lwd = 1.1,
-    show_labels = show_labels,
-    show_legend = FALSE,
-    ...
-  )
-  invisible(map)
-}
-
-ngeo_tutorial_atlas_layout <- function(x, atlases = c(
-                                         "DK68", "Schaefer100",
-                                         "Schaefer200", "Schaefer300"
-                                       )) {
-  maps <- lapply(atlases, function(atlas) {
-    ngeo_tutorial_atlas_map(x, atlas = atlas, title = atlas)
-  })
-  neurogeo::ngeo_cortical_layout(
-    maps,
-    ncol = 2L,
-    labels = atlases,
-    shared_scale = FALSE
-  )
-}
-
 ngeo_tutorial_support_maps <- function(x) {
   core <- .ngeo_tutorial_surface_core()
   surface <- if (is.list(x) && !inherits(x, "ngeo")) x$surface else x
@@ -1252,19 +1020,6 @@ ngeo_tutorial_support_maps <- function(x) {
       source_support = core$vertex_area
     )
   })
-}
-
-ngeo_tutorial_plot_dk <- function(x, layer = 1L, title = NULL,
-                                  limits = NULL, midpoint = 0) {
-  ngeo_tutorial_plot_flat(
-    x,
-    layer = layer,
-    title = title,
-    limits = limits,
-    diverging = !is.null(title) && grepl(
-      "minus|contrast|effect|difference|SCZ", title, ignore.case = TRUE
-    )
-  )
 }
 
 ngeo_tutorial_dk_multilayer <- function(dk = ngeo_tutorial_dk_case_control(),

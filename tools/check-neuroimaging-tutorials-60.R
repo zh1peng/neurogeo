@@ -48,12 +48,28 @@ forbidden <- c(
   generic_flat_point_plot = paste0(
     "plot[[:space:]]*\\([^\\n]*surface[^\\n]*",
     "chart[[:space:]]*=[[:space:]]*['\"]flat['\"]"
+  ),
+  tutorial_plot_wrapper = paste0(
+    "ngeo_tutorial_(plot_flat|atlas_map|plot_atlas|",
+    "plot_support_values|parcel_flat_map|flat_map|atlas_layout|plot_dk)|",
+    "\\.ngeo_tutorial_plot_core"
   )
+)
+writing_forbidden <- c(
+  internal_note = "这里的数据不是|不是装饰图|内部(验收|笔记)",
+  api_catalogue_heading = paste0(
+    "(?m)^##[[:space:]]+(科学问题|.*数据契约|.*验证用例|.*审阅检查项)"
+  ),
+  mixed_note_style = paste0(
+    "support map|subject-level|group-level|spatial estimand|",
+    "parcel rows|subject layers|independent subjects"
+  ),
+  algebraic_subject_intro = "(^|[。；[:space:]])x 是 [0-9]"
 )
 plot_pattern <- paste(
   c(
-    "ngeo_tutorial_plot_flat", "ngeo_tutorial_plot_atlas",
-    "ngeo_tutorial_atlas_layout", "ngeo_tutorial_plot_support_values",
+    "ngeo_cortical_map[[:space:]]*\\(",
+    "ngeo_cortical_layout[[:space:]]*\\(",
     "plot[[:space:]]*\\([[:space:]\\r\\n]*volume"
   ),
   collapse = "|"
@@ -61,7 +77,23 @@ plot_pattern <- paste(
 
 for (index in seq_len(nrow(tutorials))) {
   document <- tutorials[index, , drop = FALSE]
-  text <- read_source(document$source)
+  source_text <- read_source(document$source)
+  for (name in names(writing_forbidden)) {
+    if (grepl(
+      writing_forbidden[[name]], source_text,
+      perl = TRUE, ignore.case = TRUE
+    )) {
+      stop(document$source, " violates writing rule `", name, "`.")
+    }
+  }
+  heading_count <- lengths(regmatches(
+    source_text,
+    gregexpr("(?m)^##[[:space:]]+", source_text, perl = TRUE)
+  ))
+  if (heading_count < 2L) {
+    stop(document$source, " must contain at least two reader-oriented sections.")
+  }
+  text <- source_text
   if (nzchar(document$code_source)) {
     if (!file.exists(document$code_source)) {
       stop("Missing canonical tutorial code: ", document$code_source)
@@ -90,6 +122,20 @@ if (isTRUE(rendered)) {
     markdown_text <- read_source(markdown)
     if (grepl("synthetic_fallback", markdown_text, fixed = TRUE)) {
       stop("Rendered website contains a synthetic cortical fallback: ", markdown)
+    }
+    prose_text <- gsub(
+      "(?s)```.*?```", "", markdown_text, perl = TRUE
+    )
+    if (grepl(
+      paste0(
+        "\\p{Han}[[:blank:]]+\\p{Han}|",
+        "[[:blank:]]+[，。；：！？、）】》”’]|",
+        "[（【《“‘，。；：！？、][[:blank:]]+"
+      ),
+      prose_text,
+      perl = TRUE
+    )) {
+      stop("Rendered Chinese prose contains artificial spacing: ", markdown)
     }
     has_markdown_png <- grepl(
       "!\\[[^]]*\\]\\([^)]*\\.png", markdown_text, perl = TRUE

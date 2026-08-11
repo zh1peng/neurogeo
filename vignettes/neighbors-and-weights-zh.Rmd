@@ -1,8 +1,8 @@
 ---
-title: "DK68 case-control 脑图上的皮层邻接与权重"
+title: "从皮层边界构建邻接关系：DK68 空间自相关实例"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{DK68 case-control 脑图上的皮层邻接与权重}
+  %\VignetteIndexEntry{从皮层边界构建邻接关系：DK68 空间自相关实例}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -19,26 +19,48 @@ dk <- ngeo_tutorial_dk_case_control(n_per_group=100, seed=20260810)
 x <- dk$difference
 ```
 
-## 邻接是 cortical estimand 的一部分
+## 先观察组间差异出现在哪里
 
-`x` 是 100 名 SCZ 减 100 名 HC 的 DK68 thickness contrast。DK parcels 不是 68 个
-独立 subjects；它们是定义在同一 bilateral surface 上的空间元素。mesh boundary
-contiguity、parcel-centroid distance 与 vertex geodesic distance 对应不同问题，不能
-只因为函数都返回一个 matrix 就互换。
+假设我们已经完成一项皮层厚度研究：100 名精神分裂症患者与 100 名健康对照都被
+汇总到 DK68 图谱。变量 `x` 保存每个脑区的“患者组均值减去对照组均值”。我们想知道的
+不只是哪些脑区变薄，还想判断变薄的脑区是否沿皮层成片出现。
 
-```{r input-map, fig.width=10, fig.height=4.8, fig.alt="DK68 flat surface 上的 SCZ 减 HC cortical thickness", fig.cap="先查看将要定义 neighbors 的 contrast map。"}
-ngeo_tutorial_plot_flat(
-  x,
-  title="DK68 SCZ minus HC cortical thickness",
-  diverging=TRUE
+先看这张组间差异图。蓝色区域表示患者组皮层更薄，红色区域表示患者组更厚。图中的
+每一块是一个脑区，彼此共享皮层边界；稍后构建的邻接关系就来自这些边界。
+
+```{r input-map, fig.width=10, fig.height=4.8, fig.alt="DK68 平坦化皮层表面上的患者组减对照组皮层厚度", fig.cap="DK68 脑区上的组间皮层厚度差异；后续邻接分析使用同一空间分区。"}
+contrast_limit <- max(abs(ngeo_values(x)[, 1L]), na.rm=TRUE)
+contrast_map <- ngeo_cortical_map(
+  dk$surface,
+  values=x,
+  chart="flat",
+  atlas="DK68",
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-contrast_limit, contrast_limit),
+  na_color=NA_character_
+)
+plot(
+  contrast_map,
+  main="DK68 SCZ minus HC cortical thickness",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
-## 从 surface boundaries 得到 DK region contiguity
+## 沿 DK68 边界找出相邻脑区
 
-教学 DK graph 由共享 flat-surface mesh 上跨 parcel 的 faces 构造，并保持左右半球
-不跨 medial wall 连边。`style="B"` 保留 binary topology；`style="W"` 再做 row
-standardization。
+在皮层表面上，两块区域只要共享一段网格边界，就记为相邻。这个定义保留了脑回、脑沟
+和半球的拓扑关系，也不会跨过内侧壁把左右半球连起来。`ngeo_spatial_weights()` 可以
+直接从 DK68 分区与表面网格恢复这张邻接图。
+
+下面同时建立两种权重。二元权重（`style="B"`）把每条邻接边都记为 1；行标准化权重
+（`style="W"`）则让每个脑区分配给所有邻居的总权重等于 1。前者适合描述“有无相邻”，
+后者常用于计算空间滞后量与 Moran's I。
 
 ```{r weights}
 binary <- ngeo_spatial_weights(
@@ -56,31 +78,48 @@ c(
 summary(degree)
 ```
 
-```{r weight-diagnostic, fig.width=8, fig.height=4.2, fig.alt="DK68 parcel graph 的 degree diagnostic", fig.cap="graph diagnostic 用来检查 islands 和 degree distribution，但不能替代 brain map。"}
+```{r weight-diagnostic, fig.width=8, fig.height=4.2, fig.alt="DK68 脑区邻接图的度数诊断", fig.cap="每个点代表一个 DK68 脑区，连线表示两块区域共享皮层边界。"}
 plot(binary)
 ```
 
-binary weights 让每条相邻边贡献相同；row-standardized weights 让每个 parcel 的
-outgoing weight 总和为 1。邻居较多时单条边贡献会变小，因此 normalization 属于
-统计 specification，必须报告。
+数值摘要先告诉我们有没有孤立脑区，以及每个脑区通常连接多少邻居；邻接图则让异常
+连接更容易被发现。行标准化以后，邻居多的脑区会把权重分得更细，所以二元权重与
+行标准化权重回答的统计问题略有不同。研究报告应说明采用了哪一种。
 
-## 同一 surface 上的 atlas 不共享同一个 graph
+## 更换图谱后重新计算邻接
 
-Schaefer100 与 DK68 使用相同 vertex geometry，但 boundary 不同，因此必须各自从
-labels 与 faces 构造 topology，不能按 parcel 名称或数量猜邻接。
+如果把 DK68 换成 Schaefer100，受试者和皮层表面都没有变，区域边界却变了。新的边界
+会产生新的邻接图。下图可以直接看到 Schaefer100 的区域更细；一个 DK68 脑区内部可能
+包含数个彼此相邻的 Schaefer 脑区。因此，每套图谱都要从自己的标签和表面网格重新
+构建邻接，区域数量相同或名称相似都不足以确定连接关系。
 
-```{r schaefer-atlas, fig.width=10, fig.height=4.8, fig.alt="Schaefer100 flat-surface atlas boundaries", fig.cap="相同 surface 不意味着 DK68 与 Schaefer100 具有相同 region graph。"}
-ngeo_tutorial_plot_atlas(
+```{r schaefer-atlas, fig.width=10, fig.height=4.8, fig.alt="Schaefer100 图谱在平坦化皮层表面上的区域边界", fig.cap="Schaefer100 与 DK68 共用皮层表面，但区域边界和邻接关系不同。"}
+schaefer_atlas <- ngeo_cortical_map(
   dk$surface,
   atlas="Schaefer100",
-  title="Schaefer100: a different boundary graph"
+  chart="flat",
+  fill="atlas",
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.78,
+  palette="Dynamic",
+  na_color=NA_character_
+)
+plot(
+  schaefer_atlas,
+  main="Schaefer100: a different boundary graph",
+  boundary_color=grDevices::adjustcolor("white", 0.65),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=FALSE
 )
 ```
 
-## 全局与局部空间关联
+## 判断差异图是否呈现空间聚集
 
-global Moran's I 检查固定 DK graph 上 contrast values 是否比 value-label permutation
-更聚集；它不是 diagnosis 的 subject-level test。
+现在回到最初的组间差异图。全局 Moran's I 把每个脑区的差异值与其邻居的差异值作
+比较：相邻区域经常同为正或同为负时，统计量趋向正值。置换过程保持 DK68 邻接图不动，
+只重新排列脑区上的数值，用来回答“这张已得到的差异图是否比随机排列更聚集”。
 
 ```{r inference}
 global <- ngeo_moran(
@@ -103,10 +142,11 @@ global
 ngeo_inference_contract(global)
 ```
 
-local statistic 必须回到同一 cortical support 定位。表格给精确值，flatmap 显示
-这些值位于哪些 gyri 和 hemispheres。
+全局统计量把整张皮层压缩成一个数字，因此不能告诉我们聚集发生在哪里。局部 Moran's I
+为每个 DK68 脑区保留一个统计量；把它绘回皮层后，可以区分大范围平滑趋势与少数局部
+高值区域。图例表示局部统计量的大小，区域边界仍来自同一套 DK68 分区。
 
-```{r local-map, fig.width=10, fig.height=4.8, fig.alt="DK68 flat surface 上的 local Moran I", fig.cap="局部统计量保持 DK parcel identity，并绘回原 cortical support。"}
+```{r local-map, fig.width=10, fig.height=4.8, fig.alt="DK68 平坦化皮层表面上的局部 Moran I", fig.cap="把每个 DK68 脑区的局部 Moran I 绘回皮层，以定位空间聚集。"}
 local_map <- ngeo_parcellation(
   dk$regions,
   values=cbind(local_I=local$local_i),
@@ -120,13 +160,30 @@ local_map <- ngeo_parcellation(
   ),
   coordinate_space=ngeo_spatial_base(dk$cohort)$coordinate_space
 )
-ngeo_tutorial_plot_flat(
-  local_map,
-  title="Local Moran I for SCZ minus HC contrast",
-  palette="viridis"
+local_brain <- ngeo_cortical_map(
+  dk$surface,
+  values=local_map,
+  chart="flat",
+  atlas="DK68",
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="viridis",
+  na_color=NA_character_
+)
+plot(
+  local_brain,
+  main="Local Moran I for SCZ minus HC contrast",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
-报告中至少记录 atlas/support、surface 与 graph 来源、distance metric、neighbor
-rule、normalization、island policy、permutation 数、seed 和独立 sampling unit。
-组间总体推断必须交换完整的 200 名 subjects，不能 permutation parcels 或 vertices。
+## 把邻接选择写进分析方案
+
+本页的 Moran 检验描述的是一张组间差异图的空间组织，并不替代受试者层面的组间检验。
+如果研究目标是检验患者与对照的总体差异，置换单位仍应是完整的受试者记录。实际研究中
+还应记录所用图谱、邻接规则、权重标准化、孤立区域处理方式、置换次数与随机种子；这些
+选择共同决定空间统计量应如何解释。

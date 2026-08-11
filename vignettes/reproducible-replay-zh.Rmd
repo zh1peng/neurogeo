@@ -1,8 +1,8 @@
 ---
-title: "DK68 cortical selection 与 Conte69 结果的可复现 replay"
+title: "六个月后重新运行同一项皮层选择"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{DK68 cortical selection 与 Conte69 结果的可复现 replay}
+  %\VignetteIndexEntry{六个月后重新运行同一项皮层选择}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -25,12 +25,15 @@ vertex <- ngeo_tutorial_vertex_case_control(
 )
 ```
 
-## Replay 从明确的脑数据 identity 开始
+设想六个月后，我们要重做一项事先约定的皮层分析：从 DK68 数据中选出双侧颞上回、
+岛叶、前扣带和内侧眶额皮层，并保留 100 名健康对照者和 100 名精神分裂症患者。
+与此同时，Conte69 顶点样本每组各 5 人，为全皮层差值提供空间参照。这一页会记录
+选择、重新执行、核对结果，并把派生表与说明文件一起发布。
 
-主研究包含 DK68 上的 100 名 HC + 100 名 SCZ，以及 Conte69 vertex
-support 上每组 5 名被试。replay record 必须识别 ordered brain elements、
-全部 subject layers、operations、parameters、environment 和预期 hashes；
-仅保存最后一个 p value 不足以重建分析。
+## 重新运行之前，先固定输入和目标图
+
+先查看两份输入的维度与组别。仅保存最后一个 *p* 值无法回答用了哪些被试或哪些
+脑区；我们需要识别有序脑区、全部图层、操作参数和预期输出。
 
 ```{r source-contract}
 list(
@@ -41,22 +44,37 @@ list(
 )
 ```
 
-先固定全脑 vertex-level estimand，作为 replay 前的空间参照。
+再画出顶点水平的患者组减健康对照组差值。它不是稍后 DK 子集的输入，却让我们在
+视觉上记住这次模拟效应的全皮层位置。
 
-```{r source-brain, fig.width=10, fig.height=4.8, fig.alt="Replay 前 Conte69 flat surface 上的 vertex SCZ 减 HC contrast", fig.cap="Replay manifest 必须绑定产生该 cortical pattern 的输入和参数。"}
-ngeo_tutorial_plot_flat(
+```{r source-brain, fig.width=10, fig.height=4.8, fig.alt="重新执行分析前的组间皮层厚度差值显示在 Conte69 展开表面上", fig.cap="输入身份和分析参数共同决定这张全皮层组间差值图。"}
+source_limit <- max(abs(ngeo_values(vertex$difference)), na.rm = TRUE)
+source_map <- ngeo_cortical_map(
   vertex$difference,
   layer = "SCZ_minus_HC",
-  title = "Replay source: SCZ - HC thickness",
-  diverging = TRUE
+  chart = "flat",
+  atlas = "DK68",
+  underlay = vertex$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.82,
+  palette = "Blue-Red 3",
+  limits = c(-source_limit, source_limit),
+  na_color = NA_character_
+)
+plot(
+  source_map,
+  main = "Replay source: SCZ - HC thickness",
+  boundary_color = grDevices::adjustcolor("white", 0.55),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1
 )
 ```
 
-## 预先声明 DK cortical set
+## 把预先选择的脑区写成可重新执行的步骤
 
-这里选择双侧 superior temporal、insula、anterior cingulate 和 medial
-orbitofrontal parcels，并保留全部 200 名被试。selection 使用 ordered
-element indices，但解释必须回到明确 region IDs。
+目标包括双侧颞上回、岛叶、尾侧与喙侧前扣带，以及内侧眶额皮层，共 10 个 DK
+分区。代码先从脑区名称得到有序行号，再把 `ngeo_subset` 的输入和参数记录成一步
+可重放操作（replay step）。随后立即执行一次，得到恢复对象和清单哈希。
 
 ```{r record-selection}
 target_regions <- c(
@@ -95,10 +113,13 @@ list(
 )
 ```
 
-## Replay 前后 alignment 验证
+`verified` 应为真，恢复对象应有 10 行和 200 列。清单哈希识别这次输入、操作和
+输出预期；若以后换了被试或脑区，它就不应继续匹配。
 
-hash verification 之外，再显式检查 region order、200 个 layer IDs 和
-values。这样可以区分“代码运行完了”与“恢复了同一个神经影像对象”。
+## 恢复的真是同一批脑区和被试吗？
+
+哈希验证之后，我们再独立构造一次预期子集，逐项比较脑区顺序、200 个图层标识和
+数值。这样可以区分“代码顺利结束”和“确实恢复了同一个对象”。
 
 ```{r alignment-check}
 expected <- ngeo_subset(
@@ -125,18 +146,43 @@ head(ngeo_base_elements(replayed)[
 ])
 ```
 
-未选择的 DK cortex 在图中留空，因此可以直接检查 replay 的 spatial
-scope，而不是只相信 manifest 中的一串数字。
+表格应列出左右半球各五个目标分区。随后把第一名被试的恢复结果画回皮层；未选择
+区域留空，让选择范围一眼可见。
 
-```{r replayed-brain, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上 replay 恢复的 DK cortical subset", fig.cap="Hash 验证 identity；flat-surface map 验证恢复的 cortical scope。"}
-ngeo_tutorial_plot_flat(
-  replayed,
-  layer = "sub-001",
-  title = "Verified replay: preregistered DK set"
+```{r replayed-brain, fig.width=10, fig.height=4.8, fig.alt="重新执行后恢复的 DK 脑区子集显示在 Conte69 展开表面上", fig.cap="逐项比较确认对象身份，脑图确认恢复的解剖范围。"}
+replayed_layer <- match("sub-001", ngeo_layers(replayed)$layer_id)
+replayed_values <- ngeo_values(replayed)[, replayed_layer]
+names(replayed_values) <- ngeo_base_elements(replayed)$region_id
+replayed_vertices <- replayed_values[match(dk$atlas, names(replayed_values))]
+replayed_map <- ngeo_cortical_map(
+  dk$surface,
+  values = replayed_vertices,
+  chart = "flat",
+  atlas = "DK68",
+  underlay = dk$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.82,
+  palette = "viridis",
+  na_color = NA_character_
+)
+plot(
+  replayed_map,
+  main = "Verified replay: preregistered DK set",
+  boundary_color = grDevices::adjustcolor("white", 0.55),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1
 )
 ```
 
-## 发布 derivative 时继续保留证据链
+如果脑图出现了额外分区或漏掉一侧，即使对象维度恰好仍是 10 × 200，也应回到
+`target_regions` 和脑区顺序查错。
+
+## 怎样把差值表和重放记录一起交付？
+
+恢复正确后，我们计算这 10 个分区的患者组减健康对照组均值，并准备一份伴随说明
+（sidecar），
+写明样本量、空间范围和重放清单哈希。批量写出函数会同时生成 TSV、JSON 和批次
+清单，避免只传出一个失去上下文的结果表。
 
 ```{r publish}
 replayed_layers <- ngeo_layers(replayed)
@@ -215,6 +261,10 @@ if (requireNamespace("jsonlite", quietly = TRUE)) {
 }
 ```
 
-logical hash 应覆盖 ordered base、values、layer/measure metadata、labels
-和 file identity；timestamp 不应改变科学 identity。受限 operation
-vocabulary 防止 replay manifest 变成任意代码容器。
+恢复后的批次应同时包含两个文件，并通过完整性验证。时间戳可以变化，但有序脑区、
+数值、图层、测量信息和源文件身份应进入逻辑哈希；重放记录也只接受有限的已知操作，
+而不是执行任意代码。
+
+在实际项目中，可以据变化类型决定下一步：若输入哈希改变，先确认是否有计划内的
+数据更新；若输出哈希改变，比较操作参数和软件环境；若两者一致，再用脑图核对解剖
+范围。确认无误后，把结果、伴随说明和重放清单作为同一个派生批次发布。

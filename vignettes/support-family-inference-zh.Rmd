@@ -1,8 +1,8 @@
 ---
-title: "DK 与 Schaefer/Glasser support family 的共同受试者推断"
+title: "用同一批 200 名受试者比较五套皮层图谱"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{DK 与 Schaefer/Glasser support family 的共同受试者推断}
+  %\VignetteIndexEntry{用同一批 200 名受试者比较五套皮层图谱}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -24,17 +24,37 @@ family_names <- c(
 )
 ```
 
-## 200 名 subjects 始终是独立推断单位
+## 从受试者层面的研究问题出发
 
-本例有 100 名 HC 与 100 名 SCZ。每名 subject 的 DK68 thickness map 先提升到同一
-registered vertex surface，再分别聚合到 DK68、Schaefer100/200/300 和 Glasser360。
-提升只建立共享 source representation，不增加独立观测；推断仍只有 200 个 subjects。
+本例模拟一项多中心病例—对照研究：100 名精神分裂症患者和 100 名健康对照，每人都有
+一张 DK68 皮层厚度图，同时记录年龄、性别和扫描中心。我们的目标是检验患者组与对照组
+的全皮层平均厚度是否不同，并查看这一结论在 DK68、Schaefer100/200/300 与 Glasser360
+下是否稳定。
 
-```{r input-brain, fig.width=10, fig.height=4.8, fig.alt="DK68 support 上的模拟 SCZ 减 HC cortical thickness", fig.cap="跨 support 推断从同一 200-subject case-control cohort 开始。"}
-ngeo_tutorial_plot_flat(
-  dk$difference,
-  title="DK68 source contrast: SCZ minus HC",
-  diverging=TRUE
+先画出 DK68 上的组均值差。蓝色脑区表示患者组更薄。这张图用于理解效应的空间位置；
+后面的显著性检验仍以 200 名受试者作为独立观测。
+
+```{r input-brain, fig.width=10, fig.height=4.8, fig.alt="DK68 图谱上的患者组减对照组皮层厚度", fig.cap="100 名患者与 100 名健康对照的 DK68 平均皮层厚度差异。"}
+dk_limit <- max(abs(ngeo_values(dk$difference)[, 1L]), na.rm=TRUE)
+dk_brain <- ngeo_cortical_map(
+  dk$surface,
+  values=dk$difference,
+  chart="flat",
+  atlas="DK68",
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-dk_limit, dk_limit),
+  na_color=NA_character_
+)
+plot(
+  dk_brain,
+  main="DK68 source contrast: SCZ minus HC",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
@@ -43,11 +63,15 @@ with(dk$design, table(group, site))
 dim(ngeo_values(dk$cohort))
 ```
 
-## 一个 vertex source，五个 pinned atlas supports
+分组与中心的列联表用于检查置换分层是否可行，数据维度则应为 68 个 DK 脑区乘 200 名
+受试者。任何图谱转换都不能改变这 200 列的顺序。
 
-下面用真实 vertex surface 只建立 DK 与其他 atlas 的面积 overlap operators。
-68×200 DK maps 不必 materialize 成 64,984×200 的中间 dense matrix；
-`ngeo_cross_atlas()` 在明确的 piecewise-constant model 下直接传递每名 subject。
+## 在共同皮层上建立五套图谱的对应关系
+
+为了把 DK68 数值转换到其他图谱，我们使用真实 Conte69 表面计算区域间的面积重叠。
+这里采用一个明确的近似：每名受试者在同一 DK68 脑区内的厚度视为常数，再按照区域
+重叠面积传递到目标图谱。这样无需创建一个 64,984 顶点乘 200 受试者的巨大中间矩阵，
+同时保留每名受试者的数据身份。
 
 ```{r lift-cohort}
 included <- vertex_template$mask & Reduce(
@@ -63,16 +87,34 @@ c(
 )
 ```
 
-```{r atlas-layout, fig.width=11, fig.height=11, fig.alt="共同受试者推断中的 DK Schaefer 与 Glasser atlas family", fig.cap="每个 support 都对应同一 surface 上明确的 parcel boundaries。"}
+在计算重叠之前，先查看将进入分析的五套边界。它们覆盖同一批皮层顶点，但分区数量与
+解剖边界不同。
+
+```{r atlas-layout, fig.width=11, fig.height=11, fig.alt="共同受试者分析中的 DK、Schaefer 与 Glasser 图谱", fig.cap="五套图谱显示在同一 Conte69 皮层表面上，便于比较区域尺度与边界。"}
 atlas_maps <- lapply(family_names, function(atlas) {
-  ngeo_tutorial_atlas_map(vertex_template, atlas=atlas, title=atlas)
+  ngeo_cortical_map(
+    vertex_template$surface,
+    chart="flat",
+    atlas=atlas,
+    fill="atlas",
+    underlay=vertex_template$underlay,
+    underlay_palette="Grays",
+    overlay_alpha=0.78,
+    palette="Dynamic",
+    na_color=NA_character_
+  )
 })
 plot(ngeo_cortical_layout(
   atlas_maps,
   ncol=2L,
   labels=family_names,
   shared_scale=FALSE
-), show_legend=FALSE)
+),
+  boundary_color=grDevices::adjustcolor("white", 0.65),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=FALSE
+)
 ```
 
 ```{r change-support}
@@ -106,11 +148,14 @@ data.frame(
 )
 ```
 
-## 每个 support 独立生成 subject endpoint
+转换后的表格应显示：每套图谱的脑区数不同，但受试者列始终为 200。转换哈希把源图谱、
+目标图谱、顶点顺序和面积权重固定下来，使同一次分析可以被准确复现。
 
-为保持物理含义可比，本页使用 whole-cortex support-weighted mean thickness。每个
-atlas 先产生一个 200×1 `ngeo_subject_features`，并记录自己的 support hash；
-`ngeo_group_test()` 只在 endpoint 层绑定它们。
+## 为每名受试者计算可比较的全皮层指标
+
+接下来为每套图谱计算每名受试者的全皮层平均厚度。简单地对脑区均值再取平均会让小脑区
+和大脑区拥有相同权重，因此这里按每个脑区代表的皮层面积加权。只要转换守恒且覆盖范围
+一致，五套图谱得到的全皮层均值应非常接近；明显差异通常提示覆盖或权重出了问题。
 
 ```{r subject-features}
 make_support_feature <- function(map_values, support_map) {
@@ -157,10 +202,14 @@ names(features) <- family_names
 vapply(features, function(x) nrow(x$values), integer(1))
 ```
 
-## 一个 schedule 同时覆盖全部 support
+输出中的每个对象都应有 200 行，每行对应同一名受试者。图谱哈希随对象一起保存，随后
+组间模型只需在这些受试者指标上工作。
 
-同一个 schedule 在 site 内移动完整 subject records，并同时用于五个 supports。
-max-T family 覆盖全部 `support × endpoint`；vertex 和 parcel 从不被 permutation。
+## 在扫描中心内置换完整受试者记录
+
+组间模型校正年龄、性别和扫描中心，并检验分组系数。为了尊重多中心设计，我们只在同一
+扫描中心内置换完整受试者记录；同一套置换顺序同时应用于五套图谱。联合 max-T 校正把
+五项图谱结果视为一个检验族，从而控制选择最显著图谱带来的多重比较。
 
 ```{r common-inference}
 design <- data.frame(
@@ -193,7 +242,12 @@ result$support$members
 result$support$stability
 ```
 
-effect range、direction agreement 与 leave-one-support-out influence 只描述这里明确
-列出的五个 supports。共同 schedule 解决的是跨 support multiplicity 与随机 null
-一致性；它不会把 atlas boundaries 当作随机样本，也不会自动产生
-“parcellation-invariant”结论。
+结果表给出每套图谱的组间系数、偏决定系数、原始 p 值和 max-T 校正 p 值。稳定性摘要
+进一步展示效应范围、方向一致性，以及去掉任一图谱后综合结果的变化。
+
+## 根据研究目标解释图谱稳定性
+
+本页选择全皮层面积加权均值，因此五套图谱理应得到相近结果；这也是检验转换是否守恒的
+实用办法。若研究终点改为局部脑区、网络或极值，边界选择通常会产生更明显的影响。报告
+时应列出预先选择的图谱族和共同置换方案，并把结论限定在这些图谱与当前终点上。图谱
+图谱边界是固定的分析选择；跨图谱一致的结论应限定在本页列出的五套分区中。

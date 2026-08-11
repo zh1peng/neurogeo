@@ -1,21 +1,21 @@
 ---
-title: "NIfTI 体数据：5+5 case-control brain volume 从模拟到 round-trip"
+title: "从十名受试者的三维脑体积走完一次 NIfTI 分析"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{NIfTI 体数据：5+5 case-control brain volume 从模拟到 round-trip}
+  %\VignetteIndexEntry{从十名受试者的三维脑体积走完一次 NIfTI 分析}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-这条路线适用于带 affine 的 voxel 数据。voxel index 不是物理坐标；选择 metric
-或邻域前必须检查 affine 和 coordinate-space unit。除非显式 mask 另有声明，零值
-仍是数据，不会自动当作背景。
+## 数组下标为什么还不够？
 
-下面的 canonical 代码构造一个 48×56×40 brain-shaped volume，模拟 5 名 HC 与
-5 名 SCZ 的 gray-matter intensity，保留约 5 万个 mask 内 voxels。它检查
-base/layer/measure 语义，计算描述性的 SCZ-minus-HC volume、执行 QC 与六邻域
-Moran 分析、显示 axial brain slice，再写为 NIfTI 并读回。这里的 Moran's I 只
-描述 group-contrast volume 的空间自相关，不是 subject-level group test。
+NIfTI 文件一方面保存三维数组，另一方面用仿射矩阵（affine）说明每个体素在物理空间
+中的位置。数组里的相邻下标未必对应相同的毫米距离；如果忽略仿射矩阵，就可能在错误的
+方向或尺度上定义邻域。零值也不自动等于脑外背景，哪些体素进入分析应由掩膜明确指定。
+
+这一页模拟 5 名健康对照和 5 名患者的灰质强度。每名受试者拥有同一个 48×56×40
+体素网格，脑形掩膜内约有 5 万个体素。样本量刻意保持较小，便于完整演示三维对象、
+空间统计和 NIfTI 往返写入。
 
 ```{r setup, include=FALSE}
 knitr::read_chunk(system.file(
@@ -23,11 +23,22 @@ knitr::read_chunk(system.file(
 ))
 ```
 
-```{r workflow-volume, fig.width=7.5, fig.height=6.2, message=FALSE, warning=FALSE, fig.alt="Axial slice of a simulated 5 HC versus 5 SCZ gray-matter volume", fig.cap="SCZ-minus-HC intensity 显示在真实 voxel lattice/affine contract 上；零值不会被自动当作背景。"}
+## 运行一次完整的体数据工作流
+
+下面的代码先检查网格、仿射、掩膜和受试者信息是否对齐，再计算患者组减去健康对照组的
+平均强度差。六邻域 Moran's I 用来描述差异体积是否形成空间聚集，轴位切片则帮助我们
+确认效应是否位于预期的脑内位置。最后将结果写成 NIfTI 并重新读入，核对空间信息没有
+在文件往返中改变。
+
+```{r workflow-volume, fig.width=7.5, fig.height=6.2, message=FALSE, warning=FALSE, fig.alt="每组五名受试者的模拟灰质体积组间差异轴位切片", fig.cap="颜色显示患者组减去健康对照组的平均灰质强度差；脑形掩膜明确限定进入分析的体素。"}
 ```
 
-values 是约 5 万 voxels × 10 subjects，而不是几个点。mask、affine、voxel order、
-subject layers 与 intensity measure 都进入对象和 round-trip history。若真实文件的
-qform/sform 冲突，neurogeo 会保留两者并发出结构化 warning；应根据采集或 BIDS
-metadata 解决，不能静默忽略。大文件请改用 file-backed reader 与显式
-`ngeo_resource_budget()`。
+## 把切片上的空间形态与总体推断分开
+
+这里的 Moran's I 只概括一张组均值差异体积的空间形态。要检验总体组间效应，仍需
+在每个体素上使用十名受试者的原始数据，并为协变量、多重比较和置换方式作出明确选择。
+
+真实 NIfTI 有时同时包含 qform 和 sform，且两者指向不同空间。neurogeo 会保留这两套
+信息并给出警告；应结合采集记录或 BIDS 元数据判断哪一个正确，避免依赖静默选择。面对
+无法全部载入内存的体积，可以改用文件后端读取，并通过 `ngeo_resource_budget()`
+限制单次计算所使用的内存。

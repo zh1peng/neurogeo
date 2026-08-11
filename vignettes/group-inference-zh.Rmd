@@ -1,8 +1,8 @@
 ---
-title: "100 名 HC 与 100 名 SCZ 的 subject-level multilayer inference"
+title: "比较患者与健康对照的多模态皮层耦合"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{100 名 HC 与 100 名 SCZ 的 subject-level multilayer inference}
+  %\VignetteIndexEntry{比较患者与健康对照的多模态皮层耦合}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -19,22 +19,50 @@ x <- multi$object
 vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
 ```
 
-## 科学问题与数据契约
+## 把研究问题落到每一名受试者
 
-每名 subject 在同一个 DK68 base 上有 cortical thickness 与模拟 myelin proxy。
-我们询问：调整 age、sex 与 site 后，两种 modality 的 within-subject spatial
-coupling 是否在 SCZ 与 HC 之间不同。独立 sampling unit 是 subject；68 个 parcels
-与两种 modalities 是重复空间测量，不是独立重复。
+每名受试者都有一张皮层厚度图和一张模拟的髓鞘指标图。我们想知道的是：在控制
+年龄、性别和采集中心后，同一名受试者两种指标之间的皮层耦合，是否在健康对照与患者
+之间有所不同。
 
-```{r maps, fig.width=9, fig.height=4.5, fig.alt="模拟 SCZ 减 HC thickness 与 myelin proxy 的 DK 脑图", fig.cap="coupling inference 前先在共享 cortical support 上查看两种 modalities。"}
-ngeo_tutorial_plot_flat(
-  dk$difference, title="Thickness: SCZ - HC (mm)", diverging=TRUE
+这与比较两张组平均图不同。真正可以在两组之间交换的是完整的受试者记录；一名
+受试者的 68 个 DK 分区和两种指标始终要一起移动。先看两张组间差异图，可以帮助
+我们理解后面耦合指标的解剖背景；真正的组间检验从每名受试者的耦合特征开始。
+
+```{r maps, fig.width=9, fig.height=4.5, fig.alt="DK68 图谱上的皮层厚度与模拟髓鞘指标组间差异", fig.cap="两张图显示患者组减去健康对照组的平均差异，为个体耦合分析提供解剖背景。"}
+thickness_limit <- max(abs(ngeo_values(dk$difference)))
+thickness_map <- ngeo_cortical_map(
+  dk$surface, values=dk$difference, chart="flat", atlas="DK68",
+  underlay=dk$underlay, overlay_alpha=0.82,
+  palette="Blue-Red 3", limits=c(-thickness_limit, thickness_limit),
+  na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  multi$myelin_difference,
-  title="Myelin proxy: SCZ - HC (a.u.)", diverging=TRUE
+plot(
+  thickness_map, main="Thickness: SCZ - HC (mm)",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+myelin_limit <- max(abs(ngeo_values(multi$myelin_difference)))
+myelin_map <- ngeo_cortical_map(
+  dk$surface, values=multi$myelin_difference,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-myelin_limit, myelin_limit), na_color=NA_character_
+)
+plot(
+  myelin_map, main="Myelin proxy: SCZ - HC (a.u.)",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
+
+两张图的颜色分布提示哪些脑区可能同时发生变化，但真正进入组间模型的是随后为每名
+受试者计算的耦合特征。这里的两个组均值只提供解剖背景。
+
+## 先确认每名受试者都有成对的脑图
+
+下面检查厚度和髓鞘图能否按受试者一一配对。如果某位受试者缺少其中一种指标，
+后面的“个体内耦合”就没有定义，程序应在这里报错并停止，防止受试者记录被悄悄删除。
 
 ```{r data-contract}
 dim(ngeo_values(x))
@@ -45,10 +73,14 @@ index <- ngeo_validate_layers(
 index
 ```
 
-对象有 68 rows 与 400 layers：200 名 subjects 各两张严格对齐的脑图。layer index
-验证没有 subject 或 modality 被静默丢失。
+结果应显示 68 个分区和 400 个图层：200 名受试者，每人两张图。配对索引还保留
+组别和受试者编号，后面计算出的每一行特征都能追溯到同一名受试者。
 
-## 在组间检验前固定 spatial estimand
+## 把一对脑图变成可比较的个体特征
+
+直接把 68 个分区逐一检验会产生一长串彼此相关的终点。这里先用 DK 邻接构造图
+基底，再把每名受试者的两张图概括成三类特征：同位置相关、频谱耦合，以及不同
+空间尺度上的能量。基底只由分区几何决定，不接触诊断标签。
 
 ```{r features}
 weights <- ngeo_spatial_weights(x, method="region_contiguity", style="B")
@@ -64,11 +96,15 @@ dim(features$values)
 features$values[1:6, 1:6, drop=FALSE]
 ```
 
-graph basis 只依赖 DK support 与 graph，不依赖 diagnosis 或 values。rank bands 是
-保留的 graph modes，不自动等于毫米 wavelength。`spectral_coupling` 与 marginal
-`band_energy` 是不同 endpoints，不能把 energy change 错称为 coupling change。
+输出矩阵的行对应受试者，列对应预先声明的特征和尺度。低、中、高频带指的是图
+基底中的模态序号，并不能直接换算成毫米波长。频谱耦合衡量两种指标如何共同变化；
+频带能量则描述单一指标在某个尺度上的强弱，阅读结果时要把二者分开。
 
-## 交换完整 subjects
+## 置换时移动整名受试者
+
+采集中心可能带来系统差异，因此置换限制在中心内部。每次置换移动一整行受试者
+特征，同时保持脑区顺序和同一人的两种指标完整。所有频带和终点共用同一份置换表，
+这样最大统计量校正才对应我们实际声明的检验家族。
 
 ```{r inference}
 design <- data.frame(
@@ -92,28 +128,36 @@ result$tests[, c(
 result$omnibus
 ```
 
-一个 schedule 在 site 内移动完整 subject records，并复用于所有 bands 与 endpoints；
-它从不 permutation parcels。`p_maxT` 控制声明的 endpoint family，omnibus 检验在
-同一 schedule 下 family 中是否有任一 endpoint 存在 group difference。
+结果表同时给出原始置换概率和最大统计量校正后的概率。先看总体检验是否提示这组
+耦合特征中存在组间差异，再看具体终点的效应量与校正结果，比只挑最小的原始概率
+更可靠。
 
-## 扩展到 support family
+## 换一种分区，结论还站得住吗？
 
-同一 Conte69 vertex order 上已经对齐真实 DK68、Schaefer100/200/300 与
-Glasser360 labels。先把 support family 直接画出来，而不是只在文字里声称“换过
-atlas”。
+耦合特征会受到脑区边界和粒度影响。下图把 DK68、三个 Schaefer 分辨率以及
+Glasser360 放在同一张展开皮层上。它们共享 Conte69 顶点顺序，却以不同方式把
+顶点组合成区域，因此能用来检查结论对分区选择是否敏感。
 
-```{r support-family-plot, fig.width=10, fig.height=8.2, fig.alt="DK68 Schaefer100 Schaefer200 Schaefer300 and Glasser360 atlas boundaries on Conte69 flat cortex", fig.cap="五套 published atlas labels 严格对齐到同一个 Conte69 vertex base；颜色只标识 parcel membership。"}
+```{r support-family-plot, fig.width=10, fig.height=8.2, fig.alt="Conte69 平坦化皮层表面上的五套脑区图谱", fig.cap="DK68、三种 Schaefer 分辨率和 Glasser360 使用相同顶点顺序；颜色只用于区分脑区。"}
+atlas_names <- c(
+  "DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360"
+)
+atlas_maps <- lapply(atlas_names, function(atlas) {
+  ngeo_cortical_map(
+    vertex$surface, chart="flat", atlas=atlas, fill="atlas",
+    underlay=vertex$underlay, overlay_alpha=0.78,
+    palette="Dynamic", na_color=NA_character_
+  )
+})
 plot(
-  ngeo_tutorial_atlas_layout(
-    vertex,
-    c("DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360")
+  ngeo_cortical_layout(
+    atlas_maps, ncol=2L, labels=atlas_names, shared_scale=FALSE
   ),
   show_legend=FALSE
 )
 ```
 
-在每个 support 上分别构造 features 后，把 named feature list 传给一次
-`ngeo_group_test()`。所有 atlases 必须共享同一个 subject schedule，并进行
-full-family max-T adjustment。atlas dispersion 描述 sensitivity，不证明
-parcellation invariance；support labels、template、vertex order 与 checksum 都要进入
-provenance。
+实际分析时，应在每套分区上重新计算受试者特征，然后把所有结果放进同一次组间
+检验，继续复用同一份受试者置换表，并把跨分区的终点一起纳入校正。如果效应随
+分区变化，这本身就是重要的敏感性结果；它提醒我们结论依赖于怎样定义脑区，而不
+宜概括成“对所有图谱都完全一致”。

@@ -1,8 +1,8 @@
 ---
-title: "Conte69 vertex cohort 的文件后端与分块读取"
+title: "顶点数据放不进内存时，怎样按块读取而不打乱皮层"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Conte69 vertex cohort 的文件后端与分块读取}
+  %\VignetteIndexEntry{顶点数据放不进内存时，怎样按块读取而不打乱皮层}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -25,12 +25,16 @@ vertex <- ngeo_tutorial_vertex_case_control(
 )
 ```
 
-## 文件后端不能改变脑数据模型
+这一页设想一个很实际的场景：DK68 分区数据有 100 名健康对照者和 100 名精神分裂症
+患者，但后续还要处理 Conte69 顶点数据。示例顶点样本每组只有 5 人，已经足以演示
+64,984 行数据怎样分块访问；换成数百名被试时，同样的方法可以避免一次把全部数值
+载入内存。
 
-主案例是 100 HC + 100 SCZ 的 DK68 cohort，以及 5 HC + 5 SCZ 的
-Conte69 vertex cohort。file-backed values 只把“何时读取 values block”
-推迟到访问时；surface geometry、flat chart、vertex order、subject layers
-和 measurement semantics 仍由同一个 neurogeo 对象约束。
+## 延迟读取改变了什么，又保留了什么？
+
+文件后端（file-backed storage）把数值留在磁盘上，需要哪一块时再读取哪一块。
+改变的是读取时机，保留的是顶点顺序、表面网格、被试图层和测量含义。先看两份
+研究数据的大小和顶点样本的被试表。
 
 ```{r cohort-shape}
 c(
@@ -42,23 +46,37 @@ head(ngeo_layers(vertex$surface)[
 ])
 ```
 
-先查看后续要分块访问的完整 vertex-level SCZ--HC contrast。文件后端或
-chunk size 都不得改变这张图。
+接着把顶点样本的患者组减健康对照组差值画出来。这是后面检查分块结果时的空间
+参照：无论每次读取多少行，最后代表的仍应是同一组顶点、同一批被试。
 
-```{r vertex-map, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上的 vertex SCZ 减 HC 皮层厚度差异", fig.cap="storage backend 可以改变，vertex support 与 cortical pattern 不变。"}
-ngeo_tutorial_plot_flat(
+```{r vertex-map, fig.width=10, fig.height=4.8, fig.alt="Conte69 展开表面上的顶点水平组间皮层厚度差值", fig.cap="把数值留在磁盘不会改变顶点位置或组间差值的空间图样。"}
+filebacked_limit <- max(abs(ngeo_values(vertex$difference)), na.rm = TRUE)
+filebacked_map <- ngeo_cortical_map(
   vertex$difference,
   layer = "SCZ_minus_HC",
-  title = "File-backed target: SCZ - HC thickness",
-  diverging = TRUE
+  chart = "flat",
+  atlas = "DK68",
+  underlay = vertex$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.82,
+  palette = "Blue-Red 3",
+  limits = c(-filebacked_limit, filebacked_limit),
+  na_color = NA_character_
+)
+plot(
+  filebacked_map,
+  main = "File-backed target: SCZ - HC thickness",
+  boundary_color = grDevices::adjustcolor("white", 0.55),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1
 )
 ```
 
-## 在主数据上验证分块 alignment
+## 怎样确认每个顶点只读了一次？
 
-`ngeo_value_chunks()` 的 callback 同时收到 values block 和原始 row
-indices。这里记录每个 block 的边界，并把分块累计的 subject sums 与直接
-计算比较。
+`ngeo_value_chunks()` 每次交给我们一块数值及其原始行号。下面记录每块的首尾顶点，
+同时累加每名被试的全皮层数值。因为示例数据可以完整放入内存，我们还会直接计算
+一次列和，把它当作核对答案。
 
 ```{r aligned-chunks}
 chunk_report <- ngeo_value_chunks(
@@ -88,13 +106,15 @@ do.call(rbind, lapply(chunk_report, function(x) {
 }))
 ```
 
-这个检查比“读取成功”更强：每个 vertex 恰好出现一次，顺序没有改变，
-10 个 subject columns 也没有按近似名称重新 join。
+首块从顶点 1 开始，末块在最后一个顶点结束；分块列和与直接列和完全一致。三个
+条件合起来说明没有遗漏或重复顶点，10 名被试的列顺序也没有变化。实际大数据无法
+同时做完整矩阵核对时，仍应保存首尾行号、总行数和稳定的图层标识。
 
-## 格式 contract 侧栏：真实 tiny NIfTI round trip
+## 磁盘上的文件复制一遍，数值还相同吗？
 
-下面的 bundled tiny NIfTI 只用于验证文件编码、延迟读取、checksum 和
-atomic copy；它不是本教程的科学主案例，也不替代上面的 cortical cohort。
+分块计算正确之后，再检查文件本身。下面用一个小型 NIfTI 文件演示：以文件后端
+读入、分块访问、复制到新位置，然后再次读取。这个文件只测试存储过程，不用来解释
+皮层疾病效应。
 
 ```{r tiny-nifti-contract}
 if (requireNamespace("RNifti", quietly = TRUE)) {
@@ -137,10 +157,15 @@ if (requireNamespace("RNifti", quietly = TRUE)) {
 }
 ```
 
-## 真实文件的读取入口
+回环检查要求写出前后维度和全部数值一致。校验和还可以发现文件在传输或缓存期间
+是否被替换。这里把写入块设得很小，是为了让示例确实经过分块复制路径；它不会
+改变文件表达的空间。
 
-实际 NIfTI、CIFTI 和 MGH/MGZ 文件通过格式专用入口创建同样的
-file-backed contract。selection、checksum 与 budget 应显式声明。
+## NIfTI、CIFTI 和 MGH/MGZ 应该从哪个入口读？
+
+三种格式各有专用的文件后端读取函数。我们给这次操作设定 64 MiB 内存预算和
+最多八百万个实体化元素，再逐一读取软件包自带样例。输出中的文件标识可用于记录
+源文件与当前数值代理之间的关系。
 
 ```{r real-file-interfaces}
 filebacked_contracts <- list()
@@ -203,6 +228,11 @@ filebacked_contracts$mgh <- list(
 filebacked_contracts
 ```
 
-`write_ngeo_filebacked()` 只原子复制完整源文件；partial selection 必须
-先明确 materialize，再交给相应格式 writer。任何 storage 转换都不能
-隐式执行 registration、resampling 或 preprocessing。
+如果预算不足，读取应停止并报告，而不应擅自减少顶点、删掉被试或换用更粗图谱。
+`write_ngeo_filebacked()` 适合原子复制完整源文件；若只想保存一个子集，应先把选择
+明确实体化，再交给该格式的写出函数。
+
+因此，选择文件后端前先区分两类需求：若只是节省内存，保留完整对象并按块读取；
+若科学问题本身只需要部分顶点或被试，先记录选择规则，再生成新的派生对象。两种
+情况下都应核对首尾索引、图层顺序和写出—读回结果，配准与预处理则应在独立流程中
+完成并记录。

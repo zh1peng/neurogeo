@@ -1,8 +1,8 @@
 ---
-title: "Vertex SCZ--HC cortical map 的 support uncertainty"
+title: "脑区边界不确定时，皮层厚度结果会变化多少？"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vertex SCZ--HC cortical map 的 support uncertainty}
+  %\VignetteIndexEntry{脑区边界不确定时，皮层厚度结果会变化多少？}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -29,30 +29,67 @@ hard <- ngeo_atlas_map(
 )
 ```
 
-## value uncertainty 与 support uncertainty 不是一回事
+## 从同一张图中分清两类不确定性
 
-source 是 5 名 HC 与 5 名 SCZ 的 vertex-level thickness contrast。value uncertainty
-描述每个 vertex effect 的采样噪声；support uncertainty 描述同一 vertex 如何分配到
-DK parcels。两者必须绑定同一 ordered surface base，但不能合并成一个含糊的误差项。
+本例使用 5 名精神分裂症患者和 5 名健康对照的顶点尺度皮层厚度图。样本量较小，所以
+每个顶点的组间差异会受到明显的采样波动；与此同时，靠近 DK68 边界的顶点如果被分到
+相邻脑区，也会改变脑区均值。
 
-```{r effect-brain, fig.width=10, fig.height=4.8, fig.alt="vertex-level SCZ 减 HC thickness flatmap", fig.cap="effect、value covariance 与 atlas membership 使用同一 vertex order。"}
-ngeo_tutorial_plot_flat(
+这两种变化来源不同。第一种来自厚度测量和受试者抽样，称为数值不确定性；第二种来自
+顶点与脑区的归属，称为空间支持不确定性。下面先看组间差异和 DK68 边界，再分别处理
+这两个问题。
+
+```{r effect-brain, fig.width=10, fig.height=4.8, fig.alt="顶点尺度患者组减对照组皮层厚度图", fig.cap="患者组减对照组的皮层厚度差异；蓝色表示患者组更薄。"}
+effect_limit <- max(abs(ngeo_values(vertex$difference)[, 1L]), na.rm=TRUE)
+effect_brain <- ngeo_cortical_map(
   vertex$difference,
+  chart="flat",
   atlas="DK68",
-  title="Vertex-level SCZ minus HC thickness",
-  diverging=TRUE
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-effect_limit, effect_limit),
+  na_color=NA_character_
+)
+plot(
+  effect_brain,
+  main="Vertex-level SCZ minus HC thickness",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
-```{r dk-atlas, fig.width=10, fig.height=4.8, fig.alt="support uncertainty 分析中的 DK68 flat atlas", fig.cap="hard support 由明确的 DK68 boundaries 定义。"}
-ngeo_tutorial_plot_atlas(vertex, atlas="DK68", title="Hard DK68 support")
+```{r dk-atlas, fig.width=10, fig.height=4.8, fig.alt="空间支持不确定性分析所用的 DK68 图谱", fig.cap="DK68 的确定性分区为每个顶点指定唯一脑区。"}
+dk_atlas <- ngeo_cortical_map(
+  vertex$surface,
+  chart="flat",
+  atlas="DK68",
+  fill="atlas",
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.78,
+  palette="Dynamic",
+  na_color=NA_character_
+)
+plot(
+  dk_atlas,
+  main="Hard DK68 support",
+  boundary_color=grDevices::adjustcolor("white", 0.65),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=FALSE
+)
 ```
 
-## 从 5+5 subjects 估计 vertex contrast variance
+## 从受试者数据估计每个顶点的采样方差
 
-下面的 diagonal variance 来自两组 subject maps 的均值差方差；一个 sulcal
-low-rank factor 表示跨 vertices 的共享 measurement component。该 factor 是透明的
-教学假设，不是从真实 scanner reliability study 校准出的 covariance。
+对于两组均值之差，每个顶点的方差由患者组和对照组各自的样本方差共同决定。代码先在
+每个顶点计算这一对比方差，再加入一个随脑沟形态变化的低秩因子，表示邻近顶点可能共享
+的测量波动。这个相关成分是为了演示协方差传播而设定的透明假设；真实研究可用重复扫描、
+测量误差模型或自助抽样来估计。
 
 ```{r value-covariance}
 values <- ngeo_values(vertex$surface)[included, , drop=FALSE]
@@ -74,7 +111,14 @@ value_covariance <- ngeo_support_covariance(
 summary(contrast_variance)
 ```
 
-## 将相关 vertex uncertainty 传播到 DK68
+方差摘要让我们看到不同顶点的采样精度是否相近。接下来要回答的是：这些顶点误差经过
+面积加权平均后，会给 68 个 DK 脑区带来多大的标准误，以及脑区误差之间是否相关。
+
+## 把顶点协方差传播到 DK68 脑区
+
+DK68 脑区值是许多顶点的面积加权平均，因此它的误差不能由单个顶点的标准误代替。
+这里沿用上一步的加权规则，把完整的顶点协方差传播到脑区尺度；这样既能得到每个脑区
+的标准误，也能保留共同测量误差造成的脑区间相关。
 
 ```{r analytic}
 analytic <- ngeo_support_uncertainty(
@@ -87,9 +131,12 @@ analytic <- ngeo_support_uncertainty(
 analytic
 ```
 
-对 intensive thickness，传播使用 area-normalized ratio 的 derivative。输出中的
-off-diagonal target covariance 来自 shared factor；如果只提供逐 vertex SE，就会
-遗漏这部分相关 uncertainty。
+`ngeo_support_uncertainty()` 返回的协方差矩阵与 DK68 脑区逐一对齐。对角线给出各脑区
+方差，非对角元素则保留共享测量成分引起的脑区间相关；如果只保存逐顶点标准误，
+这部分信息就会丢失。
+
+解析传播依赖线性近似。下面再从同一协方差模型中随机抽取 50 张顶点误差图，每张都聚合
+到 DK68，用蒙特卡洛结果核对解析答案。
 
 ```{r monte-carlo}
 monte_carlo <- ngeo_support_uncertainty(
@@ -104,14 +151,15 @@ monte_carlo <- ngeo_support_uncertainty(
 monte_carlo
 ```
 
-网页示例使用 50 次 draws 保持全 vertex covariance 传播有界；研究报告
-应预先设定更高的 Monte Carlo 精度并报告数值误差。
+50 次抽样足以演示流程，但对尾部概率和稳定标准误仍然太少。正式研究应根据所需精度
+预先设定更多抽样，并报告蒙特卡洛误差与随机种子。
 
-## 只在真实 parcel boundary 上构造 soft alternative
+## 只扰动真正靠近 DK68 边界的顶点
 
-soft operator 不再通过循环平移 parcel columns 伪造。我们先从 surface faces 找到
-跨 DK labels 的 edges，再仅对 boundary vertices 把 10% membership 分给其实际相邻
-parcel。内部 vertices 保持 100% hard membership。
+现在转向第二类不确定性。我们先从皮层网格中找出连接两个不同 DK68 脑区的边，这些边
+定义了实际分区边界。对边界顶点，把 10% 的归属权重分给网格上真实相邻的另一个脑区；
+区域内部的顶点仍然 100% 属于原脑区。这样得到的软分区对应一个具体、可解释的边界扰动
+情景。
 
 ```{r boundary-operator}
 faces <- ngeo_spatial_base(analysis_surface)$geometry$faces
@@ -152,7 +200,7 @@ c(
 )
 ```
 
-```{r boundary-brain, fig.width=10, fig.height=4.8, fig.alt="DK68 boundary membership entropy flatmap", fig.cap="只有实际跨 parcel mesh edges 的 vertices 具有非零 boundary entropy。"}
+```{r boundary-brain, fig.width=10, fig.height=4.8, fig.alt="DK68 边界顶点的成员归属熵图", fig.cap="亮色仅出现在跨越两个 DK68 脑区的真实网格边界附近。"}
 entropy <- -rowSums(ifelse(
   soft_probability > 0,
   soft_probability * log(soft_probability),
@@ -160,14 +208,34 @@ entropy <- -rowSums(ifelse(
 ))
 full_entropy <- rep(NA_real_, nrow(ngeo_values(vertex$difference)))
 full_entropy[included] <- entropy
-ngeo_tutorial_plot_flat(
+entropy_brain <- ngeo_cortical_map(
   vertex$difference,
   values=full_entropy,
+  chart="flat",
   atlas="DK68",
-  title="DK68 boundary membership entropy",
-  palette="Inferno"
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Inferno",
+  na_color=NA_character_
+)
+plot(
+  entropy_brain,
+  main="DK68 boundary membership entropy",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
+
+成员归属熵把这次扰动的位置画出来：区域内部为零，边界附近升高。如果高熵区域出现在
+脑区内部或覆盖大片皮层，通常说明标签顺序或边界构造有误。
+
+## 比较确定性边界与软边界的结果
+
+最后把原始 DK68 分区和软边界方案组成一个分区集合，分别聚合相同的顶点差异图。敏感性
+摘要给出脑区估计在两种方案之间的变化范围，从而指出哪些结论最依赖边界归属。
 
 ```{r ensemble}
 ensemble <- ngeo_segmentation_ensemble(list(hard=hard, soft=soft))
@@ -179,6 +247,9 @@ sensitivity <- ngeo_support_sensitivity(
 sensitivity$summary
 ```
 
-between-operator variance 只衡量这里提供的 hard/soft DK alternatives。正式报告应
-同时给出 vertex covariance assumptions、boundary rule、operator hashes、target
-support、Monte Carlo 次数与 seed；它不能自动解释为 registration confidence interval。
+## 决定哪些不确定性需要进入正式分析
+
+本例的边界敏感性只覆盖一个 10% 邻区分配方案，不能代表所有分割或配准误差。真实研究
+可以用多名标注者、多次配准或概率图谱构造更有依据的分区集合。报告时应分别说明顶点
+协方差的估计方法、边界扰动规则、转换哈希、蒙特卡洛次数与随机种子，让数值噪声和边界
+选择对结论的影响都能被追溯。

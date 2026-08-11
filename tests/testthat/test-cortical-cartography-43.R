@@ -434,6 +434,166 @@ test_that("flatmaps combine masks, underlays, label atlases, and source colors",
   )
 })
 
+test_that("atlas coverage can mask unlabeled cortex without hiding vertex maps", {
+  flat <- ngeo_flatten_surface(
+    cartography_disk(),
+    "harmonic",
+    boundary = 1:4
+  )
+  atlas <- c(NA_character_, "A", "B", "B", "C")
+
+  surface_extent <- ngeo_cortical_map(
+    flat,
+    chart = "flat",
+    atlas = atlas,
+    fill = "atlas",
+    underlay = "signal",
+    na_color = NA_character_,
+    atlas_coverage = "surface"
+  )
+  labeled_extent <- ngeo_cortical_map(
+    flat,
+    chart = "flat",
+    atlas = atlas,
+    fill = "atlas",
+    underlay = "signal",
+    na_color = NA_character_,
+    atlas_coverage = "labeled"
+  )
+  automatic_extent <- ngeo_cortical_map(
+    flat,
+    chart = "flat",
+    atlas = atlas,
+    fill = "atlas",
+    underlay = "signal",
+    na_color = NA_character_
+  )
+  vertex_extent <- ngeo_cortical_map(
+    flat,
+    chart = "flat",
+    atlas = atlas,
+    underlay = "signal",
+    na_color = NA_character_
+  )
+  data <- ngeo_cortical_map_data(labeled_extent)
+
+  expect_equal(sum(surface_extent$face_data$included), 4L)
+  expect_equal(sum(labeled_extent$vertices$included), 4L)
+  expect_equal(sum(labeled_extent$face_data$included), 2L)
+  expect_identical(automatic_extent$atlas_coverage, "labeled")
+  expect_equal(sum(automatic_extent$face_data$included), 2L)
+  expect_identical(vertex_extent$atlas_coverage, "surface")
+  expect_equal(sum(vertex_extent$face_data$included), 4L)
+  expect_identical(data$metadata$atlas_coverage, "labeled")
+  expect_identical(data$metadata$history$surface_mask_vertices, 5L)
+  expect_identical(data$metadata$history$atlas_labeled_vertices, 4L)
+  expect_identical(data$metadata$history$atlas_unlabeled_vertices, 1L)
+  expect_true(all(is.na(
+    labeled_extent$face_data$underlay_color[
+      !labeled_extent$face_data$included
+    ]
+  )))
+
+  expect_error(
+    ngeo_cortical_map(
+      flat,
+      chart = "flat",
+      atlas_coverage = "labeled"
+    ),
+    class = "ngeo_error_argument"
+  )
+})
+
+test_that("cortical maps lift atlas-aligned parcellation values", {
+  flat <- ngeo_flatten_surface(
+    cartography_disk(),
+    "harmonic",
+    boundary = 1:4
+  )
+  atlas <- c(NA_character_, "A", "B", "B", "C")
+  parcel_values <- ngeo_parcellation(
+    data.frame(region_id = c("A", "B", "C")),
+    values = cbind(effect = c(-0.2, 0.1, 0.3)),
+    measures = ngeo_measure(support_behavior = "intensive"),
+    coordinate_space = ngeo_spatial_base(flat)$coordinate_space
+  )
+
+  map <- ngeo_cortical_map(
+    flat,
+    values = parcel_values,
+    layer = "effect",
+    atlas = atlas,
+    chart = "flat"
+  )
+
+  expect_equal(
+    map$vertices$value,
+    c(NA_real_, -0.2, 0.1, 0.1, 0.3)
+  )
+  expect_identical(map$layer_name, "effect")
+  expect_identical(map$atlas_coverage, "labeled")
+  expect_identical(map$history$atlas_coverage_requested, "auto")
+
+  incomplete <- ngeo_parcellation(
+    data.frame(region_id = c("A", "B")),
+    values = cbind(effect = c(-0.2, 0.1)),
+    measures = ngeo_measure(support_behavior = "intensive"),
+    coordinate_space = ngeo_spatial_base(flat)$coordinate_space
+  )
+  expect_error(
+    ngeo_cortical_map(flat, values = incomplete, atlas = atlas),
+    class = "ngeo_error_alignment"
+  )
+
+  extra <- ngeo_parcellation(
+    data.frame(region_id = c("A", "B", "C", "D")),
+    values = cbind(effect = c(-0.2, 0.1, 0.3, 0.4)),
+    measures = ngeo_measure(support_behavior = "intensive"),
+    coordinate_space = ngeo_spatial_base(flat)$coordinate_space
+  )
+  expect_error(
+    ngeo_cortical_map(flat, values = extra, atlas = atlas),
+    class = "ngeo_error_alignment"
+  )
+})
+
+test_that("named parcel vectors lift by identity rather than row position", {
+  flat <- ngeo_flatten_surface(
+    cartography_disk(),
+    "harmonic",
+    boundary = 1:4
+  )
+  atlas <- c(NA_character_, "A", "B", "B", "C")
+  parcel_values <- c(B = 0.1, C = 0.3, A = -0.2)
+
+  map <- ngeo_cortical_map(
+    flat,
+    values = parcel_values,
+    atlas = atlas,
+    chart = "flat"
+  )
+
+  expect_equal(
+    map$vertices$value,
+    c(NA_real_, -0.2, 0.1, 0.1, 0.3)
+  )
+  expect_identical(map$atlas_coverage, "labeled")
+  expect_identical(map$layer_name, "parcel_value")
+
+  invalid <- list(
+    unname(parcel_values),
+    c(A = -0.2, B = 0.1),
+    c(A = -0.2, A = -0.1, B = 0.1, C = 0.3),
+    c(A = -0.2, B = 0.1, C = 0.3, D = 0.4)
+  )
+  for (current in invalid) {
+    expect_error(
+      ngeo_cortical_map(flat, values = current, atlas = atlas),
+      class = "ngeo_error_alignment"
+    )
+  }
+})
+
 test_that("cortical map alignment and chart selection fail explicitly", {
   x <- cartography_disk()
   expect_error(

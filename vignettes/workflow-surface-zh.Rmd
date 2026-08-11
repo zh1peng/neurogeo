@@ -1,8 +1,8 @@
 ---
-title: "Surface workflow：Conte69 geometry、vertex cohort 与多 atlas flat maps"
+title: "从 GIFTI 表面文件到可分析的皮层脑图"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Surface workflow：Conte69 geometry、vertex cohort 与多 atlas flat maps}
+  %\VignetteIndexEntry{从 GIFTI 表面文件到可分析的皮层脑图}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -29,19 +29,15 @@ knitr::read_chunk(system.file(
 ))
 ```
 
-## Geometry、topology、chart 与 values 各司其职
+## 先理解表面文件中的四类信息
 
-surface values 按 ordered vertices 对齐；faces 定义 mesh topology；
-anatomical coordinates 定义三维 embedding；flat coordinates 是经过验证
-并绑定回同一 vertices/faces 的 viewing chart。任何一个数组的 row order
-不明确时，都不能把它附加到 geometry。
+皮层表面并不只是一组三维坐标。顶点值保存厚度等测量；三角面定义哪些顶点在网格上
+相连；解剖坐标给出折叠皮层的三维位置；平坦化坐标提供二维观察视图。四类数组都依赖
+同一个顶点顺序，只要其中一个顺序错位，颜色、邻接和脑区标签都会落到错误位置。
 
-主案例使用同一研究 foundation：
-
-- DK68 cohort：100 名 HC + 100 名 SCZ；
-- Conte69 vertex cohort：5 名 HC + 5 名 SCZ；
-- DK68、Schaefer100/200/300、Glasser360 都与同一 cortical vertices
-  对齐。
+本页用两套相互配合的模拟数据演示完整流程：DK68 数据包含 100 名患者与 100 名健康
+对照，Conte69 顶点数据包含每组 5 人。DK68、Schaefer100/200/300 和 Glasser360 标签
+都已经与同一 Conte69 顶点顺序对齐。下面先查看对象的维度与可用坐标。
 
 ```{r surface-contract}
 surface_base <- ngeo_spatial_base(vertex$surface)
@@ -55,44 +51,88 @@ list(
 )
 ```
 
-## Vertex-level case-control map
+输出应同时回答几个基本问题：DK68 矩阵是否有 200 名受试者，顶点矩阵是否有 10 名
+受试者，表面有多少顶点和三角面，以及对象里是否同时存在解剖与平坦化坐标。分组表还可
+发现受试者顺序或标签是否在读入时出错。
 
-下图直接使用 neurogeo 内部 cortical cartography：同一 surface object
-提供 topology、flat chart、sulcal underlay、mask 与 vertex values。
+## 把顶点尺度组间差异画在真实皮层上
 
-```{r vertex-effect, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上的 vertex SCZ 减 HC cortical thickness", fig.cap="5 名 HC 与 5 名 SCZ 的 vertex-level sample 在同一 validated flat chart 上比较。"}
-ngeo_tutorial_plot_flat(
+接着计算 5 名患者减去 5 名健康对照的平均厚度差，并直接绘制在 Conte69 平坦化表面上。
+同一个皮层对象提供三角面、平坦化坐标、脑沟底图、分析掩膜和顶点值，因此图像与后续
+空间分析使用完全相同的几何基础。
+
+```{r vertex-effect, fig.width=10, fig.height=4.8, fig.alt="Conte69 平坦化皮层表面上的顶点尺度患者组减对照组皮层厚度", fig.cap="每组 5 名受试者的平均皮层厚度差异；蓝色表示患者组更薄。"}
+vertex_limit <- max(abs(ngeo_values(vertex$difference)[, 1L]), na.rm=TRUE)
+vertex_brain <- ngeo_cortical_map(
   vertex$difference,
   layer = "SCZ_minus_HC",
-  title = "Vertex cortical thickness: SCZ - HC",
-  diverging = TRUE
+  chart = "flat",
+  atlas = "DK68",
+  underlay = vertex$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.82,
+  palette = "Blue-Red 3",
+  limits = c(-vertex_limit, vertex_limit),
+  na_color = NA_character_
+)
+plot(
+  vertex_brain,
+  main = "Vertex cortical thickness: SCZ - HC",
+  boundary_color = grDevices::adjustcolor("white", 0.55),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1,
+  show_legend = TRUE
 )
 ```
 
-## 同一 surface 上比较 atlas supports
+图中连续颜色用于观察疾病效应是否沿脑沟脑回形成空间模式。此处样本量很小，图主要用于
+演示数据结构和质量控制，不宜把局部高低值当作稳定的疾病发现。
 
-atlas 不是脱离 geometry 的名称表。每个 support 都必须以相同 vertex
-order 绑定到 surface，才可以画边界、构造 operator 或聚合 values。
+## 将五套图谱按顶点顺序附加到表面
 
-```{r atlas-family, fig.width=12, fig.height=12, fig.alt="Conte69 flat surface 上的 DK68、Schaefer100、Schaefer200、Schaefer300 和 Glasser360", fig.cap="五个 atlas resolutions 共享同一 surface geometry 和 flat chart。"}
-atlas_layout <- ngeo_tutorial_atlas_layout(
-  vertex,
-  atlases = c(
-    "DK68", "Schaefer100", "Schaefer200",
-    "Schaefer300", "Glasser360"
+脑区图谱本质上是每个皮层顶点的区域标签。只有标签与表面顶点逐行对应，才能正确绘制
+边界、构建顶点到脑区的转换矩阵，或汇总厚度值。下面把五套图谱放在同一表面上，直观
+检查半球方向、皮层覆盖和区域尺度。
+
+```{r atlas-family, fig.width=12, fig.height=12, fig.alt="Conte69 平坦化皮层表面上的 DK68、Schaefer100、Schaefer200、Schaefer300 和 Glasser360", fig.cap="五套图谱共享同一表面几何；区域数量和边界位置随图谱而变化。"}
+atlas_names <- c(
+  "DK68", "Schaefer100", "Schaefer200",
+  "Schaefer300", "Glasser360"
+)
+atlas_maps <- lapply(atlas_names, function(atlas) {
+  ngeo_cortical_map(
+    vertex$surface,
+    chart = "flat",
+    atlas = atlas,
+    fill = "atlas",
+    underlay = vertex$underlay,
+    underlay_palette = "Grays",
+    overlay_alpha = 0.78,
+    palette = "Dynamic",
+    na_color = NA_character_
   )
+})
+atlas_layout <- ngeo_cortical_layout(
+  atlas_maps,
+  ncol = 2L,
+  labels = atlas_names,
+  shared_scale = FALSE
 )
 plot(
   atlas_layout,
   show_boundaries = TRUE,
+  boundary_color = grDevices::adjustcolor("white", 0.65),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1,
   show_legend = FALSE
 )
 ```
 
-## Mesh topology 驱动空间关系
+## 从三角面构建顶点邻接并检验空间聚集
 
-空间邻接来自 faces，而不是 flat-map 上的二维欧氏近邻。flat chart 用于
-展示；mesh contiguity 或 geodesic metric 用于 surface analysis。
+平坦化过程会拉伸和剪切皮层，所以页面上看起来接近的两点未必在原始皮层上相邻。顶点
+邻接应从三角面恢复：只要两个顶点共享网格边，就视为相邻。下面用行标准化权重计算组间
+差异图的 Moran's I，检验相邻顶点是否倾向于具有相似差异值。
 
 ```{r mesh-weights}
 vertex_weights <- ngeo_spatial_weights(
@@ -112,11 +152,14 @@ vertex_result
 ngeo_inference_contract(vertex_result)
 ```
 
-## 格式 contract 侧栏：真实 tiny GIFTI round trip
+Moran 输出描述这张固定组间差异图的空间聚集。受试者层面的组间显著性需要另行拟合
+个体数据；随后的设置摘要记录所用邻接、置换方式和随机种子，便于之后复现。
 
-下面保留 canonical GIFTI fixture workflow。它验证真实 geometry 编码、
-strict validation、mesh weights、GIFTI writer 和 read-back history；
-四 vertex fixture 只承担格式 contract，不承担科学示例。
+## 写出并重新读入 GIFTI，检查顶点对应
+
+真实 Conte69 文件较大。为了让读写步骤能在网页中快速、完整地执行，下面使用包内一个
+最小 GIFTI 文件演示同样的编码流程：读取坐标和三角面、严格验证、写出文件，再读回对象。
+这里关注的是格式是否保存几何与顺序；前面的 Conte69 脑图仍是科学分析的上下文。
 
 ```{r workflow-surface}
 ```
@@ -149,6 +192,11 @@ stopifnot(
 )
 ```
 
-canonical workflow 创建的 chart 只用于 viewing；它不是跨被试 cortical
-registration。跨被试 mapping 必须使用经过验证的 registered surface pair，
-并记录来源、方向、vertex identity 与任何 resampling operator。
+最后的三个布尔值都应为真，分别表示顶点数、三角面顺序和坐标在写出前后保持一致。
+只比较文件是否存在远远不够，因为顶点重排仍可能生成一个可读文件，却把厚度放错位置。
+
+## 进入跨受试者分析前再确认配准
+
+GIFTI 的平坦化坐标只提供观察视图，不会自动完成个体之间的皮层配准。把多名受试者放到
+同一顶点分析中之前，应使用经过验证的个体—模板表面对，并保存配准来源、方向、顶点身份
+和重采样矩阵。做到这些，图上的每个颜色和模型中的每一行才真正指向同一皮层位置。

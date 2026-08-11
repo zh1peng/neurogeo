@@ -1,8 +1,8 @@
 ---
-title: "空间模型不确定性：DK68 case-control effect 的方差分解"
+title: "一张空间预测图到底有多不确定？"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{空间模型不确定性：DK68 case-control effect 的方差分解}
+  %\VignetteIndexEntry{一张空间预测图到底有多不确定？}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -34,25 +34,45 @@ model_data <- ngeo_parcellation(
 )
 ```
 
-## 不确定性先是一张 brain map
+## 同一张效应图上的误差并不处处相同
 
-空间预测的不确定性至少可能包含 subject sampling/measurement error、residual
-process variance、covariance-parameter uncertainty 与 support sensitivity。这里的
-measurement variance 不是凭空给每个点设为 0.01，而是从 100 名 HC 与 100 名 SCZ
-的 regional thickness 计算 case-control standard error。
+我们已经从 100 名健康对照和 100 名患者得到一张 DK68 皮层厚度差异图。即使两个脑区
+的差异同为 -0.1 mm，它们的证据强度也可能不同：某个脑区的受试者差异很一致，
+另一个脑区则可能有很大的个体波动。
 
-```{r input-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 case-control effect and its standard error on flat cortex", fig.cap="同一个 effect 在不同 cortical regions 具有不同 sampling uncertainty。"}
-ngeo_tutorial_plot_flat(
-  model_data, layer="effect", title="SCZ - HC thickness effect",
-  diverging=TRUE
+因此先不急着拟合空间模型。我们直接从两组受试者计算每个脑区的组间差异标准误，
+并把效应与标准误并排画出来。第二张图告诉我们，后面哪些位置的输入本来就更不确定。
+
+```{r input-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 平坦化皮层上的组间效应及其标准误", fig.cap="左图显示患者组减去健康对照组的厚度差异，右图显示每个脑区的估计标准误。"}
+effect_limit <- max(abs(ngeo_values(model_data, "effect")))
+effect_map <- ngeo_cortical_map(
+  dk$surface, values=model_data, layer="effect",
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-effect_limit, effect_limit), na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  model_data, layer="standard_error", title="Case-control standard error",
-  palette="Inferno"
+plot(
+  effect_map, main="SCZ - HC thickness effect",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+standard_error_map <- ngeo_cortical_map(
+  dk$surface, values=model_data, layer="standard_error",
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Inferno", na_color=NA_character_
+)
+plot(
+  standard_error_map, main="Case-control standard error",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## 把 covariance 绑定到 exact ordered DK base
+## 让方差与脑区顺序一起保存
+
+空间模型需要知道第 *i* 个方差属于哪个脑区。仅保存一个 68×68 数值矩阵很危险，
+因为左右半球或脑区顺序一旦改变，矩阵仍能相乘，却已经不再对应原数据。下面把逐区
+方差和 DK68 的空间身份保存在同一个协方差对象中。
 
 ```{r covariance}
 measurement <- ngeo_support_covariance(
@@ -61,10 +81,14 @@ measurement <- ngeo_support_covariance(
 measurement
 ```
 
-对象保存 base hash 与 region order，所以 covariance 不可能在左右半球或 parcel
-重排后被静默复用。
+打印结果时可以看到它所绑定的脑区顺序与空间标识。以后若数据重排，匹配检查会在
+计算前报错，从而避免生成一张位置错乱但数值看似合理的图。
 
-## Variogram parameter uncertainty
+## 半变异函数的参数会怎样随输入误差变化？
+
+半变异函数用距离解释效应图的相似程度，但它的基台、块金和范围也是由带误差的
+区域效应估计出来的。我们从刚才的测量协方差中抽取 30 组可能的效应图，每组都重新
+拟合指数模型，由此观察参数会波动到什么程度。
 
 ```{r variogram-uncertainty}
 variogram <- ngeo_variogram_uncertainty(
@@ -76,13 +100,14 @@ variogram$fit$parameters
 variogram$parameter_interval
 ```
 
-区间来自 measurement-error draws 下的重复 variogram 拟合；它不是把 empirical
-variogram bin 当成独立样本得到的置信区间。
+参数区间反映“如果区域效应在其测量误差范围内改变，半变异函数会怎样改变”。它不
+把距离分箱当成独立样本，因此也不应被解释成经典独立观测下的置信区间。
 
-## Kriging variance components
+## 一次预测中有哪几种误差来源？
 
-下面在全部 DK regions 上做 leave-location-style spatial prediction。示例用于展示
-variance contract，并不主张 DK contrast 必须被 kriging 平滑。
+下面依次把每个 DK 区域当作待预测位置，用其余邻区进行空间预测。这里关注的是
+不确定性怎样分解；实际研究是否需要平滑，应由预测目标和验证方案决定。总预测方差
+包括空间过程本身的剩余波动、输入效应的测量误差，以及半变异函数参数的不确定性。
 
 ```{r kriging}
 prediction <- ngeo_kriging_uncertainty(
@@ -97,18 +122,42 @@ prediction[1:6, c(
 )]
 ```
 
-```{r uncertainty-maps, fig.width=10, fig.height=4.8, fig.alt="Kriging prediction and total standard error on DK68 flat cortex", fig.cap="prediction map 必须与 total uncertainty map 同时报告。"}
-ngeo_tutorial_plot_flat(
-  model_data, values=prediction$prediction,
-  title="Spatial prediction of case-control effect", diverging=TRUE
+```{r uncertainty-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 平坦化皮层上的空间预测及其总标准误", fig.cap="左图显示空间预测值，右图汇总过程波动、测量误差与参数不确定性。"}
+region_id <- ngeo_base_elements(model_data)$region_id
+prediction_values <- setNames(prediction$prediction, region_id)
+prediction_limit <- max(abs(prediction_values))
+prediction_map <- ngeo_cortical_map(
+  dk$surface, values=prediction_values,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-prediction_limit, prediction_limit), na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  model_data, values=prediction$total_standard_error,
-  title="Total prediction standard error", palette="Inferno"
+plot(
+  prediction_map, main="Spatial prediction of case-control effect",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+prediction_se <- setNames(prediction$total_standard_error, region_id)
+prediction_se_map <- ngeo_cortical_map(
+  dk$surface, values=prediction_se,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Inferno", na_color=NA_character_
+)
+plot(
+  prediction_se_map, main="Total prediction standard error",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## 哪些 regions 的区间跨过零
+预测图单独看会显得很平滑、很确定；总标准误图则指出哪些区域主要依赖远处邻居，或
+受输入噪声影响较大。解读某个预测峰值时，应始终回到第二张图查看它的误差尺度。
+
+## 哪些区域的区间仍然跨过零？
+
+为了把预测值和误差放在一起阅读，我们按区间符号把区域分成三类：整体低于零、
+跨过零、整体高于零。这是一张描述模型区间的图，方便寻找稳定方向；全脑显著性仍需
+另行规定并执行多重比较校正。
 
 ```{r interval-map}
 interval_status <- ifelse(
@@ -117,15 +166,27 @@ interval_status <- ifelse(
 )
 ```
 
-```{r interval-brain, fig.width=9.5, fig.height=4.8, fig.alt="DK regions whose uncertainty intervals are negative, cross zero, or positive", fig.cap="-1 表示 interval entirely below zero，0 表示跨零，1 表示 entirely above zero。它是 model-based interval classification，不是多重比较校正后的显著性图。"}
-ngeo_tutorial_plot_flat(
-  model_data, values=interval_status,
-  title="Interval sign classification", diverging=TRUE,
-  limits=c(-1, 1)
+```{r interval-brain, fig.width=9.5, fig.height=4.8, fig.alt="预测区间低于零、跨零或高于零的 DK68 脑区", fig.cap="蓝色区域的预测区间整体低于零，中性色区域跨过零，红色区域整体高于零；该分类没有进行多重比较校正。"}
+interval_values <- setNames(interval_status, region_id)
+interval_map <- ngeo_cortical_map(
+  dk$surface, values=interval_values,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3", limits=c(-1, 1),
+  na_color=NA_character_
+)
+plot(
+  interval_map, main="Interval sign classification",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-GWR 的 alternative-bandwidth range 只能叫 sensitivity range，不能叫 confidence
-interval。若再比较 DK、Schaefer100/200/300，within-support 与 between-support
-variation 也必须分开记录；把它们直接加进一个“总 SE”需要明确的随机-support
-模型，而不是视觉上挑一个最好看的 atlas。
+中性色区域表明当前模型和误差范围仍容许零效应。蓝色或红色区域只表示模型区间方向稳定，
+其数量与位置不应被当作经过全脑校正的显著脑区。
+
+## 还有哪些不确定性没有进入这张图？
+
+这里的总标准误没有自动包含分区选择。若把 DK68 换成 Schaefer100、200 或 300，
+区域边界改变造成的结果差异应单独报告为分区敏感性。类似地，局部回归在不同带宽
+下的变化也是敏感性范围，不等同于置信区间。只有明确建立了随机分区或随机带宽模型，
+才能把这些变化正式并入同一个总方差。

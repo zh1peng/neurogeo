@@ -1,8 +1,8 @@
 ---
-title: "显式 surface transform 的可审计 resampling"
+title: "把皮层厚度重采样到目标表面：规划、执行与检查"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{显式 surface transform 的可审计 resampling}
+  %\VignetteIndexEntry{把皮层厚度重采样到目标表面：规划、执行与检查}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -19,24 +19,41 @@ vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5, seed=20260811)
 source_surface <- ngeo_subset(vertex$surface, layers=1L)
 ```
 
-## registration 与 resampling 是两个步骤
+## 先区分“找到对应”与“转移数值”
 
-registration 提供 source space 到 target space 的关系；resampling 使用该关系在
-target base 上评价 source measurements。本例使用一名 HC 的完整 vertex thickness
-map 和已验证的 surface geometry。输入和结果都必须回到同一 flat cortical view 检查。
+把个体皮层厚度带到模板表面需要两个步骤。配准（registration）先确定源表面与目标表面
+的空间对应；重采样（resampling）再利用这条对应，在目标顶点上计算源测量值。前一步
+回答“目标位置来自哪里”，后一步回答“该位置应取什么数值”。
 
-```{r before-map, fig.width=10, fig.height=4.8, fig.alt="resampling 前的一名 HC vertex thickness flatmap", fig.cap="source measurement、surface geometry、atlas labels 与 vertex order 同时可审计。"}
-ngeo_tutorial_plot_flat(
+本例使用一名健康对照的完整顶点尺度皮层厚度图。先查看源图，记住主要厚度图案和半球
+方向；执行重采样后，我们会在同一视角进行对照。
+
+```{r before-map, fig.width=10, fig.height=4.8, fig.alt="重采样前一名健康对照的顶点尺度皮层厚度图", fig.cap="源表面上的皮层厚度，Schaefer200 边界用于帮助解剖定位。"}
+before_brain <- ngeo_cortical_map(
   source_surface,
+  chart="flat",
   atlas="Schaefer200",
-  title="Before resampling: HC vertex thickness"
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="viridis",
+  na_color=NA_character_
+)
+plot(
+  before_brain,
+  main="Before resampling: HC vertex thickness",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
-## 注册 coordinate spaces 与已知 affine
+## 提供源空间到目标空间的已知变换
 
-`native` 直接来自 source object。target space 与 affine 是调用者明确提供的；
-neurogeo 不会从两个 surfaces 猜测 registration。
+源空间直接从皮层对象读取。我们再建立一个目标模板空间，并提供已经估计好的仿射矩阵。
+在真实研究中，这个矩阵通常来自外部配准流程；它的方向、模板版本和生成方法都应随分析
+保存。neurogeo 负责记录和应用这条关系，不会根据两个文件名猜测配准。
 
 ```{r transform}
 native <- ngeo_spatial_base(source_surface)$coordinate_space
@@ -74,19 +91,37 @@ target_surface <- ngeo_apply_transform_path(
 ngeo_transform_path_history(path)
 ```
 
-```{r target-atlas, fig.width=10, fig.height=4.8, fig.alt="target surface 上的 Glasser360 atlas flatmap", fig.cap="target 仍保留与 vertices 对齐的 pinned atlas labels。"}
-ngeo_tutorial_plot_atlas(
+变换路径建立后，我们先把源表面的几何带到目标空间，并查看目标表面上的 Glasser360
+边界。边界和轮廓应保持连贯；明显的半球翻转或覆盖缺口通常说明矩阵方向或空间身份有误。
+
+```{r target-atlas, fig.width=10, fig.height=4.8, fig.alt="目标表面上的 Glasser360 图谱", fig.cap="目标空间中的皮层轮廓与 Glasser360 边界，用于检查变换后的方向和覆盖。"}
+target_atlas <- ngeo_cortical_map(
   target_surface,
+  chart="flat",
   atlas="Glasser360",
-  title="Target surface: Glasser360 support"
+  fill="atlas",
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.78,
+  palette="Dynamic",
+  na_color=NA_character_
+)
+plot(
+  target_atlas,
+  main="Target surface: Glasser360 support",
+  boundary_color=grDevices::adjustcolor("white", 0.65),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=FALSE
 )
 ```
 
-## 先创建 inert plan，再显式授权执行
+## 在计算前固定重采样规则
 
-plan 同时固定 transform path、barycentric method、coverage、conservation、missing
-policy、source support 与 resource budget。`coverage="drop"` 只显式排除 atlas ROI
-之外的 medial-wall vertices；创建 plan 本身不执行 mapping。
+重采样计划把会影响结果的选择集中记录下来。本例采用重心插值，因为目标点落在源三角面
+内时，可以由三个顶点连续插值得到厚度；分析掩膜外的内侧壁允许被排除，而掩膜内出现
+未知值则直接报错。源顶点面积用于检查守恒，资源预算防止网页示例意外创建过大的中间
+对象。建立计划只做验证和记录，还不会改变数据。
 
 ```{r plan}
 plan <- ngeo_resampling_plan(
@@ -108,6 +143,9 @@ plan <- ngeo_resampling_plan(
 plan
 ```
 
+计划输出让我们在执行前确认源与目标空间、变换路径、插值方法和覆盖策略。确认无误后，
+再显式授权构建映射矩阵并完成重采样。
+
 ```{r execute}
 support_map <- ngeo_build_resampling_map(plan, authorize=TRUE)
 ngeo_resampling_diagnostics(plan, support_map)
@@ -122,15 +160,33 @@ c(
 )
 ```
 
-```{r after-map, fig.width=10, fig.height=4.8, fig.alt="barycentric resampling 后的 HC vertex thickness flatmap", fig.cap="前后脑图与数值误差共同检查 orientation、coverage 和 interpolation fidelity。"}
-ngeo_tutorial_plot_flat(
+诊断结果应显示源顶点如何覆盖目标顶点；最大绝对差为数值层面的简要检查。本例源与目标
+拓扑逐顶点对应，且仿射变化很小，因此重采样前后的厚度图应高度相似。
+
+```{r after-map, fig.width=10, fig.height=4.8, fig.alt="重心插值后健康对照的顶点尺度皮层厚度图", fig.cap="与源图比较半球方向、皮层覆盖和局部厚度图案，并结合数值误差判断重采样是否符合预期。"}
+after_brain <- ngeo_cortical_map(
   resampled,
+  chart="flat",
   atlas="Schaefer200",
-  title="After barycentric resampling: HC vertex thickness"
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="viridis",
+  na_color=NA_character_
+)
+plot(
+  after_brain,
+  main="After barycentric resampling: HC vertex thickness",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
-这里 source 和 target topology 一一对应，因此前后图应高度一致；该结果验证的是
-已声明 affine 与 resampling implementation，不证明未知 subject registration 已经
-估计正确。surface barycentric 在当前 API 中是 source-scatter remap，也不能冒充
-Workbench 的 area-aware target-gather resampling。
+## 根据数据类型选择合适的重采样方法
+
+这里的前后相似性说明已提供的仿射矩阵和当前重采样步骤按预期执行，但不能反过来证明
+外部配准本身准确。连续厚度适合插值，图谱标签通常需要保持类别的规则，面积或总量型
+测量还要特别考虑守恒。当前表面重心法采用源端散射映射；如果研究方案要求 Workbench
+式的面积感知目标采样，应使用相应算法并明确记录两种实现的区别。

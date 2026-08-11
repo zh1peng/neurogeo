@@ -38,8 +38,28 @@ report. A global pass cannot reveal a localized but anatomically implausible
 pattern.
 
 ```{r brain-qc, fig.width=9, fig.height=4.6, fig.alt="One simulated HC cortical thickness map on DK68 for visual QC", fig.cap="Structural validation and a brain plot answer complementary QC questions."}
-ngeo_tutorial_plot_dk(
-  dk$cohort, "sub-001", title="Visual QC: sub-001 cortical thickness"
+subject_values <- setNames(
+  ngeo_values(dk$cohort)[, "sub-001"],
+  ngeo_base_elements(dk$cohort)$region_id
+)
+subject_map <- ngeo_cortical_map(
+  dk$surface,
+  values=subject_values,
+  chart="flat",
+  atlas=dk$atlas,
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="viridis",
+  na_color=NA_character_,
+  atlas_coverage="auto"
+)
+plot(
+  subject_map,
+  main="Visual QC: sub-001 cortical thickness",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
@@ -79,11 +99,26 @@ ngeo_qc(vertex$difference, support_map=partial_map)$checks
 ```
 
 ```{r coverage-brain, fig.width=9, fig.height=4.5, fig.alt="Vertex coverage mask with an anterior temporal missing region on bilateral cortex", fig.cap="The missing support is visible on the brain and quantified by the support-map QC."}
-coverage_surface <- ngeo_tutorial_surface_map(
-  vertex$difference, as.numeric(!is.na(partial_labels)),
-  "support coverage", unit="binary"
+coverage_map <- ngeo_cortical_map(
+  vertex$difference,
+  values=as.numeric(!is.na(partial_labels)),
+  chart="flat",
+  atlas=vertex$supports$Schaefer200,
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blues 3",
+  limits=c(0, 1),
+  na_color=NA_character_,
+  atlas_coverage="auto"
 )
-plot(coverage_surface, chart="flat", show_edges=FALSE, palette="Blues 3")
+plot(
+  coverage_map,
+  main="Schaefer200 support coverage",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
+)
 ```
 
 QC does not perform registration, preprocessing, outlier removal, or

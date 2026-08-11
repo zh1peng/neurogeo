@@ -20,9 +20,30 @@ roi_result <- ngeo_moran(
   permutations = 499, seed = 2026
 )
 ngeo_inference_contract(roi_result)
-ngeo_tutorial_plot_flat(
-  group_difference,
-  title = "SCZ minus HC cortical thickness (mm)", diverging = TRUE
+contrast_values <- setNames(
+  ngeo_values(group_difference)[, "SCZ_minus_HC"],
+  ngeo_base_elements(group_difference)$region_id
+)
+contrast_limit <- max(abs(contrast_values), na.rm = TRUE)
+contrast_map <- ngeo_cortical_map(
+  dk$surface,
+  values = contrast_values,
+  chart = "flat",
+  atlas = dk$atlas,
+  underlay = dk$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.82,
+  palette = "Blue-Red 3",
+  limits = c(-contrast_limit, contrast_limit),
+  na_color = NA_character_,
+  atlas_coverage = "auto"
+)
+plot(
+  contrast_map,
+  main = "SCZ minus HC cortical thickness (mm)",
+  boundary_color = grDevices::adjustcolor("white", 0.55),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1
 )
 
 history_output <- tempfile(fileext = ".json")

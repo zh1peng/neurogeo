@@ -606,10 +606,11 @@
         "underlay_palette": "\"Grays\"",
         "underlay_limits": "NULL",
         "colors": "NULL",
-        "overlay_alpha": "1"
+        "overlay_alpha": "1",
+        "atlas_coverage": "c(\"auto\", \"surface\", \"labeled\")"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_coverage"],
-      "documentation_sha256": "f7daa71cae8c1be7473ea148c639be839f8393f71027e7b5785bca32328a381c"
+      "documentation_sha256": "dcd98e54bbcdf70718cc6d6877db67ab26760005ce7e82c549388579103657cd"
     },
     "ngeo_cortical_map_data": {
       "symbol": "ngeo_cortical_map_data",

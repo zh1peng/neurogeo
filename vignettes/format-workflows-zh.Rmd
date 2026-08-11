@@ -1,8 +1,8 @@
 ---
-title: "标准格式 I/O：NIfTI、GIFTI、CIFTI 与 FreeSurfer"
+title: "从读入到写回：NIfTI、GIFTI、CIFTI 与 FreeSurfer 实践"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{标准格式 I/O：NIfTI、GIFTI、CIFTI 与 FreeSurfer}
+  %\VignetteIndexEntry{从读入到写回：NIfTI、GIFTI、CIFTI 与 FreeSurfer 实践}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -36,43 +36,63 @@ source(system.file(
 vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
 ```
 
-## 1. 范围与数据契约
+神经影像文件第一次读进 R 时，我们通常最关心“数值有没有出来”。真正危险的错误
+却常发生在别处：体素世界坐标改变、左右半球互换、三角面索引偏移，或 CIFTI 的
+灰质坐标顺序被打乱。文件仍然能够打开，得到的脑图却已经不是原来的空间。
 
-四条可直接执行的路线分别是 [NIfTI volume](/tutorials/workflow-volume)、
-[surface](/tutorials/workflow-surface)、[CIFTI](/tutorials/workflow-cifti) 和
-[ROI × cohort](/tutorials/workflow-roi-cohort)。本页后续章节解释更完整的格式契约
-和 round-trip 细节。
+这一页沿着一份模拟病例—对照数据推进。Conte69 顶点样本包含 5 名健康对照者和
+5 名精神分裂症患者，用来展示完整皮层图；软件包自带的小型 NIfTI、GIFTI、CIFTI
+和 FreeSurfer 文件则用于快速完成写出—读回。四条更集中的路线见
+[NIfTI 体数据](/tutorials/workflow-volume)、[皮层表面](/tutorials/workflow-surface)、
+[CIFTI](/tutorials/workflow-cifti) 和 [ROI 队列](/tutorials/workflow-roi-cohort)。
 
-本工作流以 5 名 HC + 5 名 SCZ 的真实 Conte69 surface sample 为主线，并使用固定
-校验和的小型上游文件执行格式 round-trip。小文件只验证 reader/writer contract；
-脑图始终回到 64,984-vertex flat cortex。FreeSurfer、FSL 和 Connectome
-Workbench 不是运行时依赖。
+## 1. 四种格式先问同一组问题
 
-```{r format-main-brain, fig.width=10, fig.height=4.8, fig.alt="Vertex-level SCZ minus HC cortical thickness on the Conte69 flat surface before format round trips", fig.cap="后面每种 surface/grayordinate 格式都必须保持这套 vertex order、hemisphere identity 与 map alignment。"}
-ngeo_tutorial_plot_flat(
-  vertex$difference, atlas="DK68",
-  title="Vertex sample before I/O: SCZ - HC", diverging=TRUE
+开始逐个读取格式之前，先固定我们希望保留的皮层结果：患者组减健康对照组的顶点
+厚度差值。后面的表面与灰质坐标文件只要涉及这些顶点，都应保持半球身份和顶点
+顺序。
+
+```{r format-main-brain, fig.width=10, fig.height=4.8, fig.alt="格式写出—读回之前的顶点水平组间皮层厚度差值", fig.cap="表面与灰质坐标格式需要保留同一套顶点顺序和左右半球身份。"}
+format_limit <- max(abs(ngeo_values(vertex$difference)), na.rm=TRUE)
+format_map <- ngeo_cortical_map(
+  vertex$difference,
+  layer="SCZ_minus_HC",
+  chart="flat",
+  atlas="DK68",
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-format_limit, format_limit),
+  na_color=NA_character_
+)
+plot(
+  format_map,
+  main="Vertex sample before I/O: SCZ - HC",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-读取神经影像文件时需要同时区分五层信息：
+读入任何神经影像文件时，都可以依次问五个问题：
 
-1. **容器格式**：NIfTI、GIFTI、CIFTI 或 FreeSurfer；
-2. **base**：体素、表面顶点、grayordinate 或其他元素；
-3. **element indexing**：文件索引和 R 内部行号如何对应；
-4. **coordinate_space/geometry**：坐标、affine、faces 和 brain model；
-5. **values/layers/measures**：数值列、列名、单位和 measurement semantics。
+1. 文件采用 NIfTI、GIFTI、CIFTI 还是 FreeSurfer 容器？
+2. 每一行代表体素、表面顶点，还是灰质坐标（grayordinate）？
+3. 文件中的索引怎样对应 R 的行号？
+4. 仿射矩阵、表面面片或脑结构模型怎样把这些行放回空间？
+5. 每一列是什么测量、来自哪个图层、使用什么单位？
 
-文件“能够打开”只证明字节能被解析，不证明这些层次都正确。后面的每一节
-都按同一张检查表操作。
+后面每种格式都按这个顺序观察。这样，读者可以把新格式与熟悉的脑数据结构联系
+起来，而不是记忆四套互不相干的函数参数。
 
-### 1.1 索引、affine 与 round-trip
+### 1.1 文件里的第 0 个点，到了 R 里是哪一行？
 
-**文件索引与 R 行号。** 许多神经影像格式保存零基索引，例如第一个体素或
-顶点记为 0；R 的第一行编号是 1。neurogeo 保留 source index，同时用稳定的
-一基 element 行与 values 对齐。
+许多神经影像格式从 0 开始编号，例如第一个体素或顶点记为 0；R 则从 1 开始。
+neurogeo 保留源文件索引，同时让对象中的元素行与数值行使用 R 的一基顺序。看见
+索引 0 时，不应再次给数值矩阵减 1。
 
-**affine。** 对体素索引 $(i,j,k)$，世界坐标由齐次变换给出：
+对体素索引 $(i,j,k)$，仿射矩阵（affine）把它转换成世界坐标：
 
 $$
 \begin{bmatrix}x\\y\\z\\1\end{bmatrix}
@@ -81,22 +101,23 @@ A
 \begin{bmatrix}i\\j\\k\\1\end{bmatrix}.
 $$
 
-affine 不仅是平移，还可能包含体素尺寸、旋转、反射或剪切。不能因为两个
-数组维度相同就认为它们已经配准。
+这项变换不只记录平移，还可能包含体素尺寸、旋转、反射或剪切。因此，两个数组
+维度相同并不表示它们位于同一空间。
 
-**round-trip。** 设原对象为 $x$，写出再读入得到 $x'$。整数索引和类别通常
-要求 `identical()`；浮点数允许明确容差：
+写出—读回检查（round-trip）会把原对象 $x$ 写到临时文件，再读成 $x'$。整数索引
+和类别通常要求完全一致；浮点数则使用事先写明的误差容限：
 
 $$
 \max_i |x_i-x'_i| \leq \varepsilon.
 $$
 
-round-trip 验证的是格式和语义保真，不是预处理质量或生物学正确性。
+这个检查回答“存储过程有没有改变对象”，并不评价预处理质量或生物学解释。
 
-## 2. 样例来源与完整性
+## 2. 教学文件来自哪里，内容有没有被替换？
 
-4.1 内置的是上游软件包使用的小型格式样例，不是临床数据。每个文件都固定到
-上游 commit、URL、许可证、字节数和 SHA-256。默认查询时会重新验证文件：
+内置文件来自公开上游项目，仅用于格式教学，不是临床数据。每个样例都记录来源
+版本、网址、许可证、字节数和 SHA-256。先查看登记表，确认当前安装中的文件仍与
+记录一致。
 
 ```{r manifest}
 examples <- ngeo_example_data()
@@ -106,16 +127,19 @@ examples[, c(
 )]
 ```
 
-读取某个样例时，不要依赖安装目录的内部布局：
+需要某个样例时，通过登记名称取得路径，不依赖软件包安装目录的内部布局：
 
 ```{r select-path}
 nifti_path <- ngeo_example_data("rnifti-example")$path[[1L]]
 ```
 
-如果字节数或 SHA-256 不一致，`ngeo_example_data()` 会抛出
-`ngeo_error_io`，而不是继续分析已被替换的文件。
+如果字节数或 SHA-256 不一致，函数会报告 I/O 错误。此时应重新获取经过核验的
+文件，而不是继续分析一个来源不明的替代品。
 
-## 3. NIfTI：检查 affine、索引和体数据
+## 3. NIfTI：第一个体素在世界坐标中的哪里？
+
+先读取 NIfTI 样例，查看数组维度、仿射矩阵、前几个源体素索引和数值范围。历史记录
+还会告诉我们文件大小、校验和与所用读取器。
 
 ```{r nifti-read}
 volume <- suppressWarnings(
@@ -131,9 +155,9 @@ volume$history$sources[[1L]][c(
 )]
 ```
 
-这里的 `source_voxel_index` 保留文件中的零基索引；R 对象内部的元素行仍然是
-一基顺序。二者不能混用。把第一个文件索引代入 affine，实际计算它的世界
-坐标：
+`source_voxel_index` 中第一个体素通常从 `(0, 0, 0)` 开始，而对象数值的第一行仍是
+R 中的第 1 行。为了看清两者如何联系，我们把第一个源体素索引代入仿射矩阵，实际
+算出它的世界坐标。
 
 ```{r nifti-affine-calculation}
 first_index <- as.numeric(
@@ -153,8 +177,9 @@ data.frame(
 )
 ```
 
-`volume$base$geometry$dim` 是原数组维度；`nrow(volume$values)` 等于所有体素数，
-每一列对应一个 map 或 frame。先核对基本数量关系：
+结果中的 `world_x`、`world_y` 和 `world_z` 是这个体素在文件坐标空间中的位置。
+接着核对数量：原数组三维尺寸的乘积，应等于空间元素数和数值行数；数值列数则
+对应图像中的 map 或 frame。
 
 ```{r nifti-alignment}
 c(
@@ -165,13 +190,15 @@ c(
 )
 ```
 
-下面显示中间轴向切片。这个图只是格式和方向的快速诊断，不是医学阅片器：
+三项体素计数应完全一致。现在显示一张中间轴向切片，快速检查左右方向、背景范围和
+明显截断。它用于格式诊断，不替代医学阅片或完整质量控制。
 
 ```{r nifti-plot, fig.alt="NIfTI 教学样例的中间轴向切片"}
 plot(volume, slice = 30, palette = "Grays")
 ```
 
-执行 NIfTI 回环时要同时检查 values、affine、voxel index 和 map 顺序：
+读入看起来合理后，把对象写成新的 NIfTI，再读回来。这里同时比较数值与仿射矩阵；
+在多图层文件中还应比较体素索引和 map 顺序。
 
 ```{r nifti-roundtrip}
 nifti_output <- tempfile(fileext = ".nii.gz")
@@ -191,25 +218,40 @@ all.equal(
 identical(nifti_restored$values, volume$values)
 ```
 
-这里 affine 使用数值容差，因为不同 writer 可能改变浮点存储精度；values
-在这个样例中要求完全一致。真实分析还应比较维度、map 顺序、unit 和
-history，不能只看图像“长得差不多”。
+仿射矩阵采用 `1e-6` 容差，因为写出器可能改变浮点存储精度；这个样例的数值要求
+完全一致。若仿射比较失败，先查看是微小舍入还是方向、尺度发生改变；若数值失败，
+再检查数据类型与缩放字段。仅凭切片看起来相似不足以通过回环检查。
 
-## 4. GIFTI：先看完整 cortical surface，再验证最小格式 contract
+## 4. GIFTI：数值和三角网格是否使用同一顶点顺序？
 
-主案例的 anatomical coordinates、triangular faces、flat chart、mask 与 values 都是
-严格 vertex-aligned 的。下面的图不是 generic surface point plot，而是由 faces
-渲染的 flat cortical map：
+GIFTI 常把表面坐标、三角面、顶点数值和标签放在不同文件中。只有这些文件采用同一
+顶点顺序，厚度值才会落在正确皮层位置。先看病例—对照样本中第一名被试的完整
+Conte69 厚度图；图中的连续皮层轮廓来自三角面，而不是把顶点画成散点。
 
-```{r gifti-main-map, fig.width=10, fig.height=4.8, fig.alt="One simulated subject thickness map rendered through the neurogeo flat cortical surface module", fig.cap="GIFTI geometry/data 写读前，先确认一名 subject 的 vertex map 能回到正确 hemisphere 与 atlas boundary。"}
-ngeo_tutorial_plot_flat(
-  vertex$surface, layer=1L, atlas="Schaefer200",
-  title="vertex-sub-01 cortical thickness"
+```{r gifti-main-map, fig.width=10, fig.height=4.8, fig.alt="一名模拟被试的顶点皮层厚度显示在 Conte69 展开表面上", fig.cap="几何文件和数值文件共享顶点顺序，厚度才能回到正确半球和图谱边界。"}
+gifti_subject_map <- ngeo_cortical_map(
+  vertex$surface,
+  layer=1L,
+  chart="flat",
+  atlas="Schaefer200",
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="viridis",
+  na_color=NA_character_
+)
+plot(
+  gifti_subject_map,
+  main="vertex-sub-01 cortical thickness",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-接下来的 cube fixture 只用于快速触发零基 face index、geometry/data sidecar 和
-round-trip 检查，不代表分析 surface，也不承担教程主可视化。
+完整 Conte69 表面适合观察脑图，但检查文件索引时过于庞大。下面改用一个小型
+GIFTI 网格，专门观察零基面片索引、几何与数值 sidecar 以及写出—读回。它只测试
+格式路径，科学解释仍来自上面的皮层样本。
 
 ```{r gifti-read}
 gifti_path <- ngeo_example_data(
@@ -223,25 +265,27 @@ geometry$base$geometry$face_source_index_base
 ```
 
 表面由顶点坐标 $V\in\mathbb{R}^{n\times3}$ 和三角面索引
-$F\in\mathbb{N}^{m\times3}$ 组成。每一行 face 指向三个顶点，而不是三个
-坐标值。查看前几个三角面：
+$F\in\mathbb{N}^{m\times3}$ 组成。面片表的每一行保存三个顶点编号；真正的坐标要
+再到 $V$ 中查找。先看前几个三角面。
 
 ```{r gifti-faces}
 head(geometry$base$geometry$faces)
 ```
 
-文件中的 face 通常使用零基索引，neurogeo 内部 faces 使用 R 的一基索引，
-并在 `face_source_index_base` 中记录来源约定。错误地偏移一次会连接错误
-顶点，偏移两次则可能越界。
+源 GIFTI 的面片通常从顶点 0 开始编号，neurogeo 读入后转换为 R 的一基编号，并在
+`face_source_index_base` 中保留来源约定。若手工处理时多加或少加一次 1，面片会
+连接到错误顶点，严重时直接越界。
 
-GIFTI geometry 可以没有 values。下面为 fixture 的每个顶点定义一个数值列：
+几何文件本身可以不含数值。为了测试几何和顶点数据能否一起写回，我们为这个小网格
+构造一列顶点指标：
 
 $$
 m_v = x_v + y_v + z_v.
 $$
 
-它只用于演示“每个顶点一行 value”，不应被解释成真正的皮层曲率。随后
-重新构造“一个 base + 一个对齐 values block”的表面对象：
+公式给每个顶点恰好一个数，因此数值行数必须等于坐标行数。变量名沿用示例代码中的
+`distance_method`，其值只用于格式回环，不代表真实皮层曲率。下面把坐标、面片和
+这列数值组合成表面对象。
 
 ```{r gifti-values}
 coordinates <- geometry$base$geometry$coordinates
@@ -271,8 +315,9 @@ c(
 )
 ```
 
-写入会生成 geometry、data 和 JSON sidecar；如果对象含 labels，还会生成
-label GIFTI：
+输出中的 `vertices` 和 `metric_rows` 应相等，`triangles` 则对应面片数。现在写出
+geometry、data 和 JSON sidecar，再读回来；若对象带有标签，还会另外生成 label
+GIFTI。
 
 ```{r gifti-roundtrip}
 gifti_output <- tempfile(fileext = ".surf.gii")
@@ -288,11 +333,14 @@ all.equal(gifti_restored$values, surface$values, tolerance = 1e-6)
 identical(gifti_restored$base$geometry$faces, surface$base$geometry$faces)
 ```
 
-若 faces 完全相同而 values 超过容差，说明数值存储没有保真；若 values 相同
-而 faces 改变，图形可能仍然看似合理，但 topology 已经不同。两者必须分别
-验证。
+面片需要完全一致，顶点数值允许 `1e-6` 的浮点误差。面片一致而数值失败，提示数据
+类型或序列化问题；数值一致而面片失败，则说明表面连接关系已经改变。两种情况都
+需要停止后续空间分析并查明写出路径。
 
-## 5. CIFTI：验证 grayordinate 顺序和 brain models
+## 5. CIFTI：第 *g* 行怎样回到左、右皮层？
+
+CIFTI 把左右皮层和体结构压在同一条灰质坐标轴上。先读取一个 dscalar 样例，查看
+数值维度、包含的脑结构、左皮层前几个顶点索引以及 map 名称。
 
 ```{r cifti-read}
 cifti_path <- ngeo_example_data(
@@ -306,8 +354,8 @@ head(dense$base$geometry$components$cortex_left$vertex_index)
 dense$layers$name
 ```
 
-grayordinate 不是三维规则网格中的连续体素编号，而是按 CIFTI brain models
-拼接的有序元素。可以把其行号理解为：
+灰质坐标不是规则三维网格中的连续体素编号，而是按照 CIFTI 脑结构模型依次拼接的
+有序元素。第 $g$ 行可能来自：
 
 $$
 g =
@@ -318,8 +366,8 @@ g =
 \end{cases}
 $$
 
-每一行还必须通过 `structure` 和 `vertex_index` 或 `voxel_index` 才能回到
-对应的脑结构。统计每个结构的元素数：
+所以每一行还要结合 `structure` 以及 `vertex_index` 或 `voxel_index`，才能回到
+具体脑结构。先统计各结构行数，并检查它们的和是否等于数值行数。
 
 ```{r cifti-structure-count}
 structure_count <- table(dense$base$elements$structure)
@@ -328,19 +376,18 @@ sum(structure_count)
 nrow(dense$values)
 ```
 
-本文件是 dscalar，因此 values 的每一列是一张 scalar map；dtseries 的列
-通常对应时间点。两者都不能仅凭矩阵维度推断 map 的语义。
+这个文件是 dscalar，每列是一张标量图；若是 dtseries，列通常对应时间点。矩阵
+维度本身无法区分二者，图层元数据才说明每列的含义。
 
-这个样例包含左右皮层 brain model，但没有附带表面几何，因此
-`surface_topology` 和 `geodesic` capability 应为 `FALSE`。neurogeo 不会凭空
-补一个表面：
+样例包含左右皮层的脑结构模型，却没有附带表面坐标和面片。因此，它知道某行属于
+哪个表面顶点，却不能计算网格邻接或测地距离。能力查询应相应返回 `FALSE`。
 
 ```{r cifti-capabilities}
 ngeo_capabilities(dense)[c("surface_topology", "geodesic")]
 ```
 
-把 CIFTI cortex brain models 映射回其明确记录的 surface vertex indices，而不是画
-一条按 grayordinate 行号排列的折线：
+为了画脑图，我们把 CIFTI 两个皮层成分按记录的表面顶点索引放回 Conte69。内侧壁
+没有对应灰质坐标，因此保持缺失。按灰质坐标行号画折线无法完成这项空间还原。
 
 ```{r cifti-to-surface}
 cifti_vertex <- rep(NA_real_, nrow(ngeo_base_elements(vertex$surface)))
@@ -352,14 +399,29 @@ cifti_vertex[32492L + right_component$internal_vertex_index] <-
   dense$values[right_component$global_rows, 1L]
 ```
 
-```{r cifti-plot, fig.width=10, fig.height=4.8, fig.alt="CIFTI scalar values restored to their left and right Conte69 surface vertices", fig.cap="brain-model vertex indices 决定每个 grayordinate 回到哪里；medial wall 保持缺失。"}
-ngeo_tutorial_plot_flat(
-  vertex$surface, values=cifti_vertex, atlas="Schaefer100",
-  title="CIFTI scalar restored to Conte69 vertices"
+```{r cifti-plot, fig.width=10, fig.height=4.8, fig.alt="CIFTI 标量值按脑结构模型恢复到左右 Conte69 皮层顶点", fig.cap="脑结构模型中的顶点索引决定每个灰质坐标画在哪里，内侧壁保持缺失。"}
+cifti_surface_map <- ngeo_cortical_map(
+  vertex$surface,
+  values=cifti_vertex,
+  chart="flat",
+  atlas="Schaefer100",
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="viridis",
+  na_color=NA_character_
+)
+plot(
+  cifti_surface_map,
+  main="CIFTI scalar restored to Conte69 vertices",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-纯 R writer 可以完成 dscalar 回环，不调用 Connectome Workbench：
+左右半球和图谱边界看起来合理后，直接在 R 中完成 dscalar 写出—读回，不需要调用
+Connectome Workbench。
 
 ```{r cifti-roundtrip}
 cifti_output <- tempfile(fileext = ".dscalar.nii")
@@ -373,14 +435,13 @@ identical(
 all.equal(dense_restored$values, dense$values, tolerance = 1e-6)
 ```
 
-第一个 `identical()` 防止左右结构或元素顺序被交换；第二个 `all.equal()`
-检查数值误差。只比较 values 的排序结果或直方图会漏掉最危险的
-grayordinate 错位。
+第一个比较检查脑结构及其行顺序，第二个比较数值误差。若只比较排序后的数值或
+直方图，左右结构交换仍可能看不出来；CIFTI 回环因此需要同时核对轴和数值。
 
-## 6. FreeSurfer：transform metadata
+## 6. FreeSurfer：文件没有有效空间变换时怎么办？
 
-上游 tiny MGH 故意没有有效 RAS affine。直接读取会得到
-`ngeo_error_transform`，因为自动假设 identity affine 会制造错误空间语义：
+这个小型 MGH 样例故意缺少有效的 RAS 仿射矩阵。先尝试直接读取，观察错误信息。
+如果读取器擅自采用单位矩阵，数值虽然能出现，却会获得没有证据支持的世界坐标。
 
 ```{r freesurfer-error}
 mgh_path <- ngeo_example_data("freesurfer-tiny-mgh")$path[[1L]]
@@ -391,7 +452,9 @@ tryCatch(
 )
 ```
 
-只有在研究者确实知道正确变换时，才应显式提供：
+这里的失败提醒我们回查 sidecar、采集信息或上游处理记录。只有当研究者有独立依据
+知道正确变换时，才在读取时明确提供。为了继续这个教学样例，我们把单位矩阵作为
+已声明的假设传入。
 
 ```{r freesurfer-explicit}
 mgh <- read_ngeo_freesurfer(
@@ -406,16 +469,18 @@ mgh$base$geometry$affine
 range(mgh$values)
 ```
 
-这里的 `diag(4)` 只因为我们明确把它当作教学假设。它表示：
+`diag(4)` 表示：
 
 $$
 (x,y,z)=(i,j,k),
 $$
 
-即索引单位直接等于世界坐标单位。对真实 MGH/MGZ，除非 sidecar、采集信息
-或上游流程明确支持这个假设，否则不能用 identity 只是为了让 reader 成功。
+即索引单位直接等于世界坐标单位。这只适用于当前明确声明的教学假设。真实 MGH/MGZ
+若没有证据支持该变换，应保留错误并补齐元数据，而不是为了让读取成功而套用单位
+矩阵。
 
-表面与 curv 的正向回环可以从前面的有效 GIFTI base 开始：
+体数据变换问题看清后，再用前面有效的小型表面对象测试 FreeSurfer surface 与 curv
+的写出—读回。
 
 ```{r freesurfer-roundtrip}
 fs_output <- tempfile(fileext = ".surface")
@@ -431,48 +496,50 @@ identical(fs_restored$base$geometry$faces, surface$base$geometry$faces)
 all.equal(fs_restored$values, surface$values, tolerance = 1e-5)
 ```
 
-FreeSurfer surface 保存几何和 topology，curv 保存逐顶点 distance_method；两者通过
-顶点顺序对齐，而不是通过顶点名称匹配。因此回环必须同时检查 faces、
-coordinates 和 values。
+surface 文件保存坐标和面片，curv 文件保存逐顶点指标；二者靠顶点顺序对齐，而
+不是按顶点名称匹配。因此，面片需要完全一致，数值使用明确容差，实际项目还应
+比较坐标数组。
 
-## 7. 格式 I/O 检查顺序
+## 7. 面对自己的新文件，从哪一步开始？
 
-面对一个新文件，可以按以下顺序执行：
+现在把四种格式的共同步骤放回一条路线。面对新文件，可以按以下顺序进行：
 
-1. 用 `ngeo_example_data()` 或自己的数据登记表确认来源与 checksum；
-2. 调用对应 reader，但不要立即开始统计分析；
-3. 查看 base 类型、元素数、map 数和 capabilities；
-4. 检查 source index base、affine、faces 或 brain-model 顺序；
-5. 明确补充文件无法可靠表达的 unit 和 measurement semantics；
-6. 用 `ngeo_validate(x, level = "strict")` 检查对象不变量；
-7. 做小规模可视化，寻找方向、边界或错位异常；
-8. 写出并再读入，分别比较整数索引、浮点 values 和 metadata；
-9. 保存 history、checksum、writer manifest 和数值容差。
+1. 从数据登记表确认文件来源、版本和校验和；
+2. 调用对应读取函数，先不要进入统计分析；
+3. 查看空间元素类型、元素数、图层数和可用能力；
+4. 根据格式检查源索引、仿射矩阵、面片或脑结构模型顺序；
+5. 补充文件无法可靠表达的单位和测量含义；
+6. 用 `ngeo_validate(x, level = "strict")` 检查对象内部关系；
+7. 画切片或皮层图，寻找方向、边界和错位异常；
+8. 写出再读回，分别比较整数索引、浮点数值和元数据；
+9. 保存来源记录、校验和、写出清单和所用数值容差。
 
-## 8. 验证用例
+## 8. 动手改一处，看看检查能否发现
 
-1. 在 NIfTI 示例中选择第二个体素索引，手算 affine 后的世界坐标，再与矩阵
+以下练习沿用本页数据，每一题都先预测结果，再运行代码核对：
+
+1. 在 NIfTI 示例中选择第二个体素索引，手算仿射变换后的世界坐标，再与矩阵
    乘法结果核对。
-2. 将 GIFTI 教学 distance_method 改成 $x_v^2+y_v^2+z_v^2$，预测图上的最大值位置。
-3. 交换 CIFTI values 的两行但不交换 elements，说明为什么矩阵维度检查不会
-   发现错误，以及 round-trip 也不能替代输入对齐验证。
-4. 把 GIFTI round-trip 的容差从 `1e-6` 逐步减小，观察浮点序列化精度。
-5. 删除显式 MGH affine，确认错误类别，并用自己的话解释为什么失败比自动
-   identity 更安全。
+2. 将 GIFTI 教学指标改成 $x_v^2+y_v^2+z_v^2$，预测哪个顶点数值最大。
+3. 交换 CIFTI 数值的两行但不交换元素表，说明为什么维度检查发现不了错误，以及
+   为什么对错误输入做写出—读回也无法修复对齐。
+4. 把 GIFTI 写出—读回的容差从 `1e-6` 逐步减小，观察浮点序列化精度。
+5. 删除显式 MGH 仿射矩阵，确认错误类别，并用自己的话解释为什么失败比自动
+   采用单位矩阵更安全。
 
-## 9. 审阅检查项
+## 9. 交付文件前做最后一次核对
 
-对任何格式，至少检查：
+准备把数据交给下游分析或合作者时，逐项确认：
 
-1. 文件来源、许可证、大小和 checksum 是否可审计；
-2. base 元素数是否与 values 行数严格一致；
-3. source index base 和 R 内部索引是否被明确区分；
-4. affine、surface structure、brain-model 顺序和 map 顺序是否保真；
-5. measurement semantics 是否由分析者明确给出；
-6. truncated、错位或缺少 transform 的文件是否以 classed error 失败；
-7. history 是否记录 reader、源文件和 checksum；
-8. round-trip 比较是否使用了明确的数值容差。
+1. 来源、许可证、文件大小和校验和是否有记录；
+2. 空间元素数是否与数值行数一致；
+3. 源文件索引与 R 行号是否明确区分；
+4. 仿射矩阵、表面结构、脑结构模型和图层顺序是否保真；
+5. 测量单位与含义是否已经补充；
+6. 文件截断、错位或缺少变换时是否得到清楚的错误；
+7. 历史记录是否包含读取器、源文件和校验和；
+8. 写出—读回是否使用了合适且明确的数值容差。
 
-这些验证证明的是格式互操作和语义保真，不证明文件已经完成预处理、配准或
-质量控制。neurogeo 不执行 raw MRI preprocessing，也不自动
-registration/resampling。
+如果这些检查通过，可以认为格式转换保留了当前对象的空间与数值含义。接下来再根据
+项目流程决定是否进入预处理、配准、质量控制或统计分析；这些科学步骤不会由格式
+读取器自动完成。

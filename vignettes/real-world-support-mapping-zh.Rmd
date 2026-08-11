@@ -1,8 +1,8 @@
 ---
-title: "真实皮层数据中的 support mapping"
+title: "把皮层测量映射到新表面与脑区图谱"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{真实皮层数据中的 support mapping}
+  %\VignetteIndexEntry{把皮层测量映射到新表面与脑区图谱}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -19,35 +19,45 @@ vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5, seed=20260811)
 source_map <- ngeo_subset(vertex$surface, layers=1L)
 ```
 
-## support map 需要已有的空间对应证据
+## 从一名受试者的皮层厚度图开始
 
-本例使用一名 HC 的 cortical thickness map。source 与 target 都来自同一套经过
-验证的 bilateral surface geometry，所以 vertex order、faces 和 coordinate space
-已经有明确对应关系。`ngeo_surface_registration_map()` 使用该对应关系构造
-operator；它不会估计 registration。
+真实研究常需要把受试者自身表面上的测量转到研究模板，再汇总到某套脑区图谱。这里先
+取一名健康对照的完整顶点尺度皮层厚度图。源表面保存了顶点顺序、三角面、坐标空间和
+平坦化视图；这些信息共同决定每个厚度值位于皮层的哪里。
 
-```{r input-brain, fig.width=10, fig.height=4.8, fig.alt="support mapping 前的一名 HC vertex thickness flatmap", fig.cap="source map 的 vertex order、surface geometry 和 flat chart 同时保留。"}
-ngeo_tutorial_plot_flat(
+先看映射前的图。后面每完成一步，我们都回到同一视角，检查左右方向、覆盖范围和局部
+图案是否符合预期。
+
+```{r input-brain, fig.width=10, fig.height=4.8, fig.alt="映射前一名健康对照的顶点尺度皮层厚度图", fig.cap="源表面上的皮层厚度；顶点值、网格几何与平坦化视图保持对齐。"}
+source_brain <- ngeo_cortical_map(
   source_map,
+  chart="flat",
   atlas="DK68",
-  title="Source vertex map: HC subject 01"
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="viridis",
+  na_color=NA_character_
+)
+plot(
+  source_brain,
+  main="Source vertex map: HC subject 01",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
-## 已知 surface registration
+## 用已知配准关系建立顶点映射
 
-为清楚地区分“已有 registration”与“估计 registration”，这里建立一个与 source
-具有相同 registered geometry 的 target。identity correspondence 是可审计的教学
-情形；换成真实 subject-to-template mapping 时，应把外部 registration 及其方向
-作为参数提供。
+表面配准负责确定源顶点与目标表面之间的空间对应，映射函数负责把已有对应关系写成可
+执行的转换矩阵。本例的目标表面与源表面已经逐顶点配准，因此采用恒等对应，便于直接
+核对每一步。分析真实的“个体到模板”数据时，应先由专门的配准流程得到对应关系，再把
+其来源和方向明确传给 `ngeo_surface_registration_map()`。
 
 ```{r registered-map}
-target <- ngeo_tutorial_surface_map(
-  vertex$difference,
-  rep(0, nrow(ngeo_values(vertex$difference))),
-  name="registered target",
-  unit="mm"
-)
+target <- vertex$difference
 surface_map <- ngeo_surface_registration_map(
   source_map,
   target,
@@ -61,32 +71,67 @@ max(abs(
 ))
 ```
 
-```{r registered-brain, fig.width=10, fig.height=4.8, fig.alt="已注册 target surface 上的 thickness flatmap", fig.cap="映射后回到同一 flat surface 检查空间方向和 coverage。"}
-ngeo_tutorial_plot_flat(
+```{r registered-brain, fig.width=10, fig.height=4.8, fig.alt="已配准目标表面上的皮层厚度图", fig.cap="目标表面上的结果应与源图保持相同方向、覆盖范围和局部厚度图案。"}
+registered_brain <- ngeo_cortical_map(
   registered,
+  chart="flat",
   atlas="DK68",
-  title="Registered target vertex map"
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="viridis",
+  na_color=NA_character_
+)
+plot(
+  registered_brain,
+  main="Registered target vertex map",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
-数值接近不等于 registration 自动正确。正式分析还应检查 source/target base hash、
-coordinate-space identity、coverage、最大映射距离和 medial-wall policy。
+最大绝对差接近零，说明这次恒等映射按预期保存了数值。它只是数值层面的检查；正式分析
+还要核对源与目标的空间标识、表面哈希、覆盖率、最大映射距离以及内侧壁处理方式。只要
+其中一项与预期不符，就应在进入脑区聚合前停下来排查。
 
-## 从 vertex support 映射到真实声明的 atlas support
+## 把组间差异汇总到 Glasser360
 
-同一个 vertex map 可以映射到 DK68、Schaefer 或 Glasser support。下面实际使用
-Glasser360；operator 的 rows 是 360 个 parcels，columns 是 surface vertices。
+完成顶点对应以后，我们可以把顶点值汇总到 DK、Schaefer 或 Glasser 图谱。下面选择
+Glasser360，因为它比 DK68 提供更细的皮层划分。先查看图谱边界，确认每个目标脑区在
+双侧皮层上的位置。
 
-```{r glasser-atlas, fig.width=10, fig.height=4.8, fig.alt="双侧 flat surface 上的 Glasser360 support", fig.cap="atlas boundary 与 source vertex map 使用同一 surface geometry。"}
-ngeo_tutorial_plot_atlas(
-  vertex,
+```{r glasser-atlas, fig.width=10, fig.height=4.8, fig.alt="双侧平坦化皮层表面上的 Glasser360 图谱", fig.cap="Glasser360 区域边界与源顶点图使用同一套皮层几何。"}
+glasser_atlas <- ngeo_cortical_map(
+  vertex$surface,
+  chart="flat",
   atlas="Glasser360",
-  title="Glasser360 support"
+  fill="atlas",
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.78,
+  palette="Dynamic",
+  na_color=NA_character_
+)
+plot(
+  glasser_atlas,
+  main="Glasser360 support",
+  boundary_color=grDevices::adjustcolor("white", 0.65),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=FALSE
 )
 ```
 
 ```{r atlas-map}
-atlas_maps <- ngeo_tutorial_support_maps(vertex$difference)
+atlas_maps <- lapply(vertex$supports, function(labels) {
+  ngeo_atlas_map(
+    vertex$difference,
+    labels,
+    source_support=vertex$vertex_area
+  )
+})
 glasser <- atlas_maps$Glasser360
 glasser_result <- aggregate_to(
   vertex$difference,
@@ -100,19 +145,41 @@ c(
 )
 ```
 
-```{r atlas-result, fig.width=10, fig.height=4.8, fig.alt="Glasser360 support 上的 SCZ 减 HC thickness", fig.cap="聚合结果保持 parcel support，并在对应 flat atlas 上呈现。"}
-target_id <- ngeo_base_elements(glasser_result)$region_id
-target_value <- ngeo_values(glasser_result)[, 1L]
-lifted <- target_value[match(vertex$supports$Glasser360, target_id)]
-ngeo_tutorial_plot_flat(
+映射矩阵有 360 行，每行对应一个 Glasser 脑区；列数等于源顶点数。覆盖率用于确认分析
+掩膜内的顶点都进入了目标脑区。这里聚合的是 5 名患者与 5 名对照的组间差异，采用顶点
+面积加权平均。
+
+```{r atlas-result, fig.width=10, fig.height=4.8, fig.alt="Glasser360 脑区上的患者组减对照组皮层厚度", fig.cap="每个 Glasser360 脑区显示该区域内顶点组间差异的面积加权平均值。"}
+glasser_limit <- max(abs(ngeo_values(glasser_result)[, 1L]), na.rm=TRUE)
+glasser_brain <- ngeo_cortical_map(
   vertex$difference,
-  values=lifted,
+  values=glasser_result,
+  chart="flat",
   atlas="Glasser360",
-  title="Glasser360-supported SCZ minus HC",
-  diverging=TRUE
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-glasser_limit, glasser_limit),
+  na_color=NA_character_
+)
+plot(
+  glasser_brain,
+  main="Glasser360-supported SCZ minus HC",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
-probabilistic atlas 同样要求 source-element × region probability 与相同 ordered
-vertex base 对齐。多个 operator 之间的差异只能解释为所提供 mapping alternatives
-的敏感性，不能自动称为 registration 或 segmentation 的置信区间。
+图中的色块表示脑区平均值，因此比原始顶点图更平滑。若使用概率图谱，每个顶点可以按
+概率贡献给多个脑区，但概率矩阵仍须与同一顶点顺序严格对齐。比较多种映射方案时，应把
+结果称为对所列方案的敏感性分析；要讨论配准或分割的不确定性，还需要专门的重复配准、
+人工标注或概率模型作为依据。
+
+## 在真实项目中保存哪些信息
+
+一条可复现的映射记录至少包括源与目标空间、配准方向、顶点顺序、覆盖率、距离诊断、
+脑区图谱版本和聚合权重。这样，当某个脑区结果异常时，我们才能沿转换路径追溯它来自
+哪些顶点以及哪一次空间对应。

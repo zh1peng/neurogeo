@@ -1,8 +1,8 @@
 ---
-title: "把 surface、CIFTI 与 ROI/cohort 读成同一神经影像数据模型"
+title: "读入神经影像后，第一步应该检查什么"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{把 surface、CIFTI 与 ROI/cohort 读成同一神经影像数据模型}
+  %\VignetteIndexEntry{读入神经影像后，第一步应该检查什么}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -25,17 +25,15 @@ vertex <- ngeo_tutorial_vertex_case_control(
 )
 ```
 
-## 读取器的目标不是一个裸 matrix
+假设我们收到一批皮层厚度文件：主研究是 DK68 分区上的 100 名健康对照者和
+100 名精神分裂症患者，另有一份 Conte69 顶点样本用于检查表面数据，每组各 5 人。
+这一页从“文件已经在磁盘上”开始，依次完成三件事：读入不同格式、核对空间顺序，
+再用一项简单空间统计确认对象已经具备分析所需的信息。
 
-神经影像文件除 values 外，还包含 vertex/voxel indexing、surface faces、
-brain structures、map names、coordinate space、单位和源文件 identity。
-读取器的任务是把这些信息绑定成一个可验证对象，而不是只返回 array。
+## 我们希望文件读入后变成什么样？
 
-本教程后续分析所需的目标 contract 由两组模拟数据展示：
-
-- DK68：100 名 HC + 100 名 SCZ，`68 x 200` values；
-- Conte69 vertex：5 名 HC + 5 名 SCZ，ordered cortical vertices ×
-  10 subject layers。
+先查看两份已经整理好的目标对象。它们示范了读取结果应保留的信息：数值矩阵、
+被试图层、测量单位，以及体素或顶点所在的空间。
 
 ```{r target-contract}
 list(
@@ -49,23 +47,41 @@ list(
 )
 ```
 
-读取 surface/CIFTI 后，最重要的第一张图不是随手画 values 曲线，而是把
-数据放回经过验证的 flat chart，确认左右半球、vertex order 和 spatial
-pattern。
+DK68 对象应有 68 行和 200 列；Conte69 对象应有 64,984 行和 10 列，并带有完整
+三角网格。维度只是起点。对表面数据，更直观的检查是把数值放回左右半球，看看
+它们是否落在预期位置。下面画出顶点水平的患者组减健康对照组差值。
 
-```{r read-target-map, fig.width=10, fig.height=4.8, fig.alt="读取后的目标 contract：Conte69 flat surface 上的 vertex SCZ 减 HC contrast", fig.cap="任何 reader 输出都应保留生成这张 cortical map 所需的 geometry、chart 与 vertex alignment。"}
-ngeo_tutorial_plot_flat(
+```{r read-target-map, fig.width=10, fig.height=4.8, fig.alt="Conte69 展开表面上的顶点水平组间皮层厚度差值", fig.cap="读入表面数据时，几何、左右半球和顶点顺序共同决定每个数值画在哪里。"}
+reader_limit <- max(abs(ngeo_values(vertex$difference)), na.rm = TRUE)
+reader_map <- ngeo_cortical_map(
   vertex$difference,
   layer = "SCZ_minus_HC",
-  title = "Reader target: SCZ - HC thickness",
-  diverging = TRUE
+  chart = "flat",
+  atlas = "DK68",
+  underlay = vertex$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.82,
+  palette = "Blue-Red 3",
+  limits = c(-reader_limit, reader_limit),
+  na_color = NA_character_
+)
+plot(
+  reader_map,
+  main = "Reader target: SCZ - HC thickness",
+  boundary_color = grDevices::adjustcolor("white", 0.55),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1
 )
 ```
 
-## 格式专用读取入口
+如果左右半球互换、中央沟附近出现不连续条带，或大片数值落入内侧壁，首先应怀疑
+索引或表面配对，而不是急着解释疾病效应。
 
-下面使用真实路径时，reader 不会调用 FreeSurfer、FSL 或 Connectome
-Workbench，也不会隐式执行 registration 或 resampling。
+## 同一批信息怎样从四种格式进入 R？
+
+NIfTI、GIFTI、CIFTI 和 FreeSurfer 文件存放信息的方式不同，因此各有对应的读取
+函数。下面用软件包自带的小型文件走一遍真实读取流程。它们只用于展示格式结构；
+科学案例仍是上面的两组皮层数据。读取过程不会替我们执行配准或重采样。
 
 ```{r readers}
 golden <- function(name) {
@@ -135,11 +151,16 @@ if (requireNamespace("freesurferformats", quietly = TRUE)) {
 reader_contracts
 ```
 
-## 读入后立即检查 alignment
+`reader_contracts` 汇总了每种格式最基本的结果。NIfTI 返回体素空间，GIFTI 和
+FreeSurfer 表面返回顶点与面片，CIFTI 还会把不同脑结构记录在有序的灰质坐标轴
+上。看到这些输出时，应问的不是“函数有没有报错”，而是元素数、面片数和脑结构
+是否符合文件本身的预期。
 
-至少检查 object invariants、values rows、surface topology、coordinate
-space 和 measurement semantics。随后才能建立 mesh weights 或执行空间
-统计。
+## 在做统计之前，逐项核对空间顺序
+
+现在回到 Conte69 样本。我们先确认数值行数等于顶点数，坐标行数也等于顶点数；
+再确认 10 个数值列都有对应的被试图层。只有这些关系成立，网格邻接才能和组间
+差值使用同一套顶点顺序。
 
 ```{r post-read-checks}
 ngeo_validate(vertex$surface, "strict")
@@ -168,13 +189,14 @@ vertex_moran <- ngeo_moran(
 vertex_moran
 ```
 
-`zero_policy=TRUE` 只处理 atlas-ROI mask 外被保留的 medial-wall
-vertices：它们没有可见 mesh neighbors，不会为了消除 isolate 而伪造连边。
+Moran's I 在这里描述组间差值是否沿表面网格呈现空间聚集。`zero_policy=TRUE` 让
+内侧壁等没有可见邻居的顶点保留为空邻接，而不是人为给它们添加连边。这个结果只
+回答差值图的空间结构，不是患者组与对照组的总体显著性检验。
 
-## 格式 contract 侧栏：bundled tiny GIFTI round trip
+## 写出再读回，哪些信息应该完全一致？
 
-这个 tiny surface 只验证 GIFTI 编码和 geometry round trip，不承担科学
-示例。主分析仍是上面的 Conte69 cohort。
+最后用一个很小的 GIFTI 表面做回环检查：先读取，写到临时文件，再读回来。
+小表面不用于解释脑效应，它的优点是可以快速看清写出过程有没有改变顶点和面片。
 
 ```{r tiny-gifti-contract}
 if (all(vapply(
@@ -217,6 +239,10 @@ if (all(vapply(
 }
 ```
 
-BIDS sidecar 和 spatial entities 在存在时应进入 object history。读取成功
-只表示文件已经转换成可审计对象，不表示两个被试、两个 atlas 或两个
-coordinate spaces 已经完成对齐。
+回环后的顶点数、面片内容和坐标维度都应与写出前一致。若这一步失败，应先处理格式
+问题；若它通过，也只能说明这一个对象被忠实保存，不能据此断定两名被试或两套
+图谱已经配准。
+
+因此，拿到新文件时可以按以下顺序作决定：先用专用读取函数保留格式中的空间信息，
+再把数值画回脑表面检查半球和边界，随后验证行、坐标、面片与图层数量，最后才建立
+空间权重或开始建模。需要保存派生数据时，再增加一次写出—读回检查。

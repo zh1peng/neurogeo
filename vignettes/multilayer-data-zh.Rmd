@@ -1,8 +1,8 @@
 ---
-title: "多图层数据与严格索引：68 regions × 200 subjects × 2 modalities"
+title: "同一批被试有两种皮层测量时，怎样保持配对关系"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{多图层数据与严格索引：68 regions × 200 subjects × 2 modalities}
+  %\VignetteIndexEntry{同一批被试有两种皮层测量时，怎样保持配对关系}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -18,10 +18,15 @@ multi <- ngeo_tutorial_dk_multilayer(dk)
 x <- multi$object
 ```
 
-## 一个 spatial base，一个 aligned values block
+这一页继续使用 100 名健康对照者和 100 名精神分裂症患者的 DK68 数据，但现在每人
+有两张图：皮层厚度和模拟的髓鞘指标。我们先找到同一个人的两张图，再检查全体
+被试是否都成对出现，最后计算两种测量各自的组间差值。这个过程对应多模态研究中
+最常见的一类整理问题。
 
-这里的数据不是 6 个点、2 名虚构 subject。对象包含真实 DK68 support、100 名 HC、
-100 名 SCZ，以及每人的 cortical thickness 与模拟 myelin proxy：
+## 400 张脑图分别属于谁？
+
+两种测量共用同一套 68 个皮层分区，因此对象的行仍是 DK68，列数则从 200 增加到
+400。先看维度和图层表，确认每一列记录了被试、测量类型和组别。
 
 ```{r dimensions}
 dim(ngeo_values(x))
@@ -31,10 +36,14 @@ head(ngeo_layers(x)[, c(
 table(ngeo_layers(x)$feature, ngeo_layers(x)$group)
 ```
 
-68×400 仍只是一个 `element × map` matrix。`layers` 表负责恢复逻辑上的
-`subject × feature` index；它不会改变 spatial base，也不会产生第二套 region order。
+交叉表中，每种测量都应有 100 名健康对照者和 100 名患者。数值矩阵只告诉我们有
+400 列；真正让厚度图与髓鞘图能够按人配对的是 `layers` 中的 `subject_id` 和
+`feature`。两种测量并没有各自建立一套分区顺序，而是共享同一个 DK68 空间基底。
 
-```{r subject-maps, fig.width=10, fig.height=4.8, fig.alt="Thickness and myelin maps for the same simulated HC subject on DK68 flat cortex", fig.cap="同一 subject 的两种 modality 共享完全相同的 ordered DK support，但 measurement unit 不同。"}
+先挑出第一名被试的两张图。若索引正确，两幅图应覆盖完全相同的分区，只是数值
+单位和空间模式不同。
+
+```{r subject-maps, fig.width=10, fig.height=4.8, fig.alt="同一名健康对照者的皮层厚度图和髓鞘指标图显示在 DK68 展开表面上", fig.cap="两张图属于同一名被试并共享 DK68 分区，但表示不同的测量。"}
 first_subject <- dk$design$subject_id[[1L]]
 thickness_layer <- which(
   ngeo_layers(x)$subject_id == first_subject &
@@ -44,17 +53,54 @@ myelin_layer <- which(
   ngeo_layers(x)$subject_id == first_subject &
     ngeo_layers(x)$feature == "myelin"
 )
-ngeo_tutorial_plot_flat(
-  x, layer=thickness_layer,
-  title=paste(first_subject, "cortical thickness")
+thickness_map <- ngeo_cortical_map(
+  dk$surface,
+  values=x,
+  layer=thickness_layer,
+  chart="flat",
+  atlas="DK68",
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="viridis",
+  na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  x, layer=myelin_layer,
-  title=paste(first_subject, "myelin proxy")
+plot(
+  thickness_map,
+  main=paste(first_subject, "cortical thickness"),
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+
+myelin_map <- ngeo_cortical_map(
+  dk$surface,
+  values=x,
+  layer=myelin_layer,
+  chart="flat",
+  atlas="DK68",
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="viridis",
+  na_color=NA_character_
+)
+plot(
+  myelin_map,
+  main=paste(first_subject, "myelin proxy"),
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## 验证完整的 subject × modality index
+图上相同的边界说明两张图使用同一分区支撑；颜色不能直接相减，因为两种测量的
+单位与含义不同。接下来检查这种一一配对是否覆盖全部 200 名被试。
+
+## 每名被试真的都有两张图吗？
+
+`ngeo_validate_layers()` 会把被试放在行、测量放在列，生成一张可用性表。我们要求
+每名被试恰好有一张厚度图和一张髓鞘图。
 
 ```{r index}
 index <- ngeo_validate_layers(
@@ -65,8 +111,11 @@ dim(index$availability)
 index$availability[1:10, , drop=FALSE]
 ```
 
-每个 `subject_id × feature` 必须唯一。重复 acquisition 不会被自动平均；缺少 layer
-时可先用 `complete="report"` 检查，再由研究者显式选择 run、聚合或构造 contrast。
+完整数据会得到 200 行、2 列的可用性表，而且所有单元格都表示图层存在。真实项目
+中可能缺少一次扫描，也可能同一测量有多个重复扫描。程序不会替研究者决定如何
+平均或挑选，而是先把问题暴露出来。
+
+为了看清报告长什么样，我们暂时删掉最后一列，然后用报告模式重新检查：
 
 ```{r missing-layer}
 incomplete <- ngeo_subset(
@@ -80,7 +129,13 @@ tail(report$availability, 3)
 report$incomplete_units
 ```
 
-## 精确绑定，不猜测 registration
+最后几行会指出哪名被试缺少哪种测量。看到这份报告后，研究者可以根据方案选择
+排除该被试、补齐数据，或采用允许缺失的模型；不宜在整理阶段无声地填入一个均值。
+
+## 拆开再合并，分区顺序会不会变化？
+
+有时厚度和髓鞘结果来自两个处理步骤，需要在分析前重新合并。下面把 400 列拆成
+两半，再沿图层方向合并，并比较合并前后的空间标识和维度。
 
 ```{r bind}
 first_half <- ngeo_subset(x, seq_len(68), layers=1:200)
@@ -90,20 +145,62 @@ identical(base_hash(bound), base_hash(x))
 identical(dim(ngeo_values(bound)), c(68L, 400L))
 ```
 
-`ngeo_bind_layers()` 只拼接 base hash 完全相同的 map columns；它不会按 region name
-猜 registration，也不会把 metadata 变成另一块 values。
+两个结果都应为真。这里能够合并，是因为两半拥有完全相同的 DK68 分区顺序。
+如果它们来自不同模板或不同顶点顺序，仅靠相似的脑区名称还不足以证明已经配准，
+应先完成并验证空间对应关系。
 
-## 多图层 cohort 的组间空间检查
+## 两种测量给出的组间图是否相似？
 
-```{r group-effects, fig.width=10, fig.height=4.8, fig.alt="Group effects for thickness and myelin layers on DK68 flat cortex", fig.cap="两种 modality 的 group contrasts 仍落在同一个真实 DK surface support。"}
-ngeo_tutorial_plot_flat(
-  dk$difference, title="Thickness: SCZ - HC", diverging=TRUE
+配对和空间顺序确认后，才轮到研究问题。下面分别计算并显示两种测量中患者组减
+健康对照组的平均差值。
+
+```{r group-effects, fig.width=10, fig.height=4.8, fig.alt="皮层厚度和髓鞘指标的组间差值显示在 DK68 展开表面上", fig.cap="两种组间差值共用 DK68 分区，因此可以比较空间位置，但数值含义仍各不相同。"}
+thickness_limit <- max(abs(ngeo_values(dk$difference)), na.rm=TRUE)
+thickness_effect_map <- ngeo_cortical_map(
+  dk$surface,
+  values=dk$difference,
+  chart="flat",
+  atlas="DK68",
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-thickness_limit, thickness_limit),
+  na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  multi$myelin_difference, title="Myelin proxy: SCZ - HC", diverging=TRUE
+plot(
+  thickness_effect_map,
+  main="Thickness: SCZ - HC",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+
+myelin_limit <- max(abs(ngeo_values(multi$myelin_difference)), na.rm=TRUE)
+myelin_effect_map <- ngeo_cortical_map(
+  dk$surface,
+  values=multi$myelin_difference,
+  chart="flat",
+  atlas="DK68",
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-myelin_limit, myelin_limit),
+  na_color=NA_character_
+)
+plot(
+  myelin_effect_map,
+  main="Myelin proxy: SCZ - HC",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-这一页只建立 alignment 与 indexing contract。有效人口推断单位仍是完整 subject；
-region、vertex、modality 都是同一 subject 内的重复结构。相同 base 也只说明当前对象
-已对齐，不能倒推出两份原始影像在读入前已经完成 registration。
+两幅图可以用来观察差异是否出现在相近脑区，却不能把两种数值当作同一单位合并。
+正式建模时，被试仍是独立观测；分区和测量是同一被试内部的重复结构。
+
+面对自己的多模态数据，下一步决定取决于可用性表：若每人都有完整测量，可以进入
+配对或联合模型；若存在缺失或重复扫描，应先写明选择规则。无论哪种情况，合并前都
+要验证两份数据使用相同的皮层空间和分区顺序。

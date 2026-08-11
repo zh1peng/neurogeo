@@ -1,8 +1,8 @@
 ---
-title: "有界迭代空间模型：DK68 校准与 vertex 执行"
+title: "从 DK68 校准到全顶点迭代求解"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{有界迭代空间模型：DK68 校准与 vertex 执行}
+  %\VignetteIndexEntry{从 DK68 校准到全顶点迭代求解}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -33,25 +33,49 @@ model_data <- ngeo_parcellation(
 )
 ```
 
-## 为什么先在 DK68 校准
+## 当 68 个脑区变成 64,984 个顶点
 
-大 surface 上的 exact factorization 可能不可承受；iterative solver 与 stochastic
-log-determinant 会引入 tolerance、trace order 和 Monte Carlo error。先在 68 个
-真实 DK parcels 上比较 exact 与 approximate，再把已经校准的控制参数带到
-64,984-vertex Conte69 数据。输入始终是同一个 SCZ--HC cortical effect。
+在 DK68 上拟合空间回归时，直接分解一个 68×68 矩阵并不困难。把同样的想法应用
+到完整皮层网格后，矩阵会扩展到 64,984 个顶点；显式分解既慢又占内存。这时通常
+改用迭代求解和随机近似，但近似结果是否可信，需要先在一个能算出精确答案的小问题
+上校准。
 
-```{r input-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 and vertex-level SCZ minus HC thickness effects on flat cortex", fig.cap="左图是 200 名受试者的 DK68 contrast；右图是 5+5 vertex sample 的同一模拟 effect。"}
-ngeo_tutorial_plot_flat(
-  model_data, layer="response", title="DK68 response: SCZ - HC",
-  diverging=TRUE
+下面两张图表示同一类患者组减对照组厚度差异：左图来自 200 名受试者的 DK68 数据，
+右图来自 5+5 名受试者的全顶点样例。我们先在左图上比较精确与近似计算，再把已
+检查过的数值设置带到右图。
+
+```{r input-maps, fig.width=10, fig.height=4.8, fig.alt="脑区尺度与顶点尺度的患者组减对照组皮层厚度差异", fig.cap="左图来自 200 名受试者的 DK68 数据，右图来自每组 5 人的顶点尺度样本。"}
+dk_limit <- max(abs(ngeo_values(model_data, "response")))
+dk_response_map <- ngeo_cortical_map(
+  dk$surface, values=model_data, layer="response",
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-dk_limit, dk_limit), na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  vertex$difference, title="Vertex response: SCZ - HC",
-  atlas="DK68", diverging=TRUE
+plot(
+  dk_response_map, main="DK68 response: SCZ - HC",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+vertex_limit <- max(abs(ngeo_values(vertex$difference)))
+vertex_response_map <- ngeo_cortical_map(
+  vertex$difference, chart="flat", atlas="DK68",
+  underlay=vertex$underlay, overlay_alpha=0.82,
+  palette="Blue-Red 3", limits=c(-vertex_limit, vertex_limit),
+  na_color=NA_character_
+)
+plot(
+  vertex_response_map, main="Vertex response: SCZ - HC",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## 固定并记录 solver control
+## 先决定什么叫“算完了”
+
+迭代算法不会自动知道答案是否足够准确。我们把相对残差容许值设为 `1e-6`，最多
+迭代 1000 次；随机对数行列式还需要规定展开阶数、探针数量和随机种子。把这些值
+集中写入控制对象，后面每个结果才能说明自己采用了同一套停止规则。
 
 ```{r control}
 w <- ngeo_spatial_weights(
@@ -64,7 +88,11 @@ control <- ngeo_solver_control(
 )
 ```
 
-## DK68：exact-small calibration
+## 在 DK68 上对照精确答案
+
+空间滞后模型用健康对照平均厚度和分区面积解释组间差异，并通过 DK 邻接描述
+相邻区域的依赖。由于这里只有 68 个区域，我们可以精确计算对数行列式，同时仍用
+迭代方法解线性系统。先查看估计的空间参数，再检查求解器是否收敛以及最终残差。
 
 ```{r exact-fit}
 exact_fit <- ngeo_spatial_regression_iterative(
@@ -89,24 +117,53 @@ c(exact=exact_fit$log_determinant$estimate,
   approximate=approximate_logdet$estimate)
 ```
 
-## fitted 与 residual 必须回到 cortex
+两种对数行列式应该足够接近，差异则量化了随机近似带来的数值误差。如果差异大到
+会改变模型结论，应增加展开阶数或探针数，并在结果中保留近似误差。
 
-```{r fit-maps, fig.width=10, fig.height=4.8, fig.alt="Iterative SAR fitted effect and residual on DK68 flat cortex", fig.cap="solver 收敛并不保证 spatial model 合理；fitted 与 residual brain maps 是必要诊断。"}
-ngeo_tutorial_plot_flat(
-  model_data, values=exact_fit$fitted,
-  title="Iterative SAR fitted effect", diverging=TRUE
+## 用脑图检查模型漏掉了什么
+
+一个很小的线性残差不代表空间模型合理。把拟合值和统计残差画回皮层，可以立即看出
+模型是否只复现了大尺度梯度，或是否在某些相邻区域留下成片的结构。后者通常提示
+协变量、空间权重或模型形式还需要调整。
+
+```{r fit-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 平坦化皮层上的空间滞后模型拟合值与残差", fig.cap="左图显示模型解释的组间效应，右图显示尚未解释的空间结构。"}
+region_id <- ngeo_base_elements(model_data)$region_id
+fitted_values <- setNames(exact_fit$fitted, region_id)
+fitted_limit <- max(abs(fitted_values))
+fitted_map <- ngeo_cortical_map(
+  dk$surface, values=fitted_values, chart="flat", atlas="DK68",
+  underlay=dk$underlay, overlay_alpha=0.82,
+  palette="Blue-Red 3", limits=c(-fitted_limit, fitted_limit),
+  na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  model_data, values=exact_fit$residuals,
-  title="Iterative SAR residual", diverging=TRUE
+plot(
+  fitted_map, main="Iterative SAR fitted effect",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+residual_values <- setNames(exact_fit$residuals, region_id)
+residual_limit <- max(abs(residual_values))
+residual_map <- ngeo_cortical_map(
+  dk$surface, values=residual_values, chart="flat", atlas="DK68",
+  underlay=dk$underlay, overlay_alpha=0.82,
+  palette="Blue-Red 3", limits=c(-residual_limit, residual_limit),
+  na_color=NA_character_
+)
+plot(
+  residual_map, main="Iterative SAR residual",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## vertex level：只在 sparse operator 上执行
+左图应保留原始效应的主要空间梯度；右图若仍出现成片的同号区域，说明当前协变量与
+空间滞后项尚未充分解释邻区依赖，即使求解器已经达到很小的数值残差。
 
-对完整 64,984 vertices，不构造 dense distance 或 dense precision matrix。下面用
-mesh adjacency 和一个固定 `rho` 解 `(I-rho W)x=b`，演示真正的 vertex-scale
-iterative primitive；输入、解和残差都保持 vertex order。
+## 把同样的停止规则带到全顶点网格
+
+到了 64,984 个顶点，我们不再构造稠密距离或精度矩阵。皮层网格邻接本身就是稀疏
+矩阵，因此只需提供“给定一个向量，怎样计算 \((I-\rho W)x\)”这一操作。下面固定
+\(\rho=0.35\)，用 BiCGSTAB 求解，并保留每个顶点的原始顺序。
 
 ```{r vertex-solve}
 vertex_w <- ngeo_spatial_weights(
@@ -128,13 +185,22 @@ vertex_solution <- ngeo_iterative_solve(
 vertex_solution[c("converged", "iterations", "relative_residual")]
 ```
 
-```{r vertex-solution-map, fig.width=9.5, fig.height=4.8, fig.alt="Sparse iterative solution on the full Conte69 vertex surface", fig.cap="vertex solver 的输出仍以原始 flat chart 和 DK boundary 显示；没有静默降采样。"}
-ngeo_tutorial_plot_flat(
+```{r vertex-solution-map, fig.width=9.5, fig.height=4.8, fig.alt="完整 Conte69 顶点表面上的稀疏迭代解", fig.cap="迭代结果按原顶点顺序绘制，DK68 边界仅用于定位；细粒度变化应继续可见。"}
+solution_limit <- max(abs(vertex_solution$solution))
+solution_map <- ngeo_cortical_map(
   vertex$difference, values=vertex_solution$solution,
-  atlas="DK68", title="Vertex sparse solve", diverging=TRUE
+  chart="flat", atlas="DK68", underlay=vertex$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-solution_limit, solution_limit), na_color=NA_character_
+)
+plot(
+  solution_map, main="Vertex sparse solve",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-报告结果时至少保留 convergence、iteration count、relative residual、trace order、
-probe count、seed、base hash 与 atlas/mesh identity。数值近似是科学 provenance，
-不能只写成“模型已运行”。
+最后一张图应该仍然保持细致的顶点内变化。若只剩 68 块常数色，说明中途发生了意外
+聚合或降采样。报告这类分析时，除了模型系数，还应给出是否收敛、迭代次数、相对残差、
+随机近似设置、种子，
+以及对应的网格和分区标识。这样读者才能区分模型不确定性与纯粹的数值误差。

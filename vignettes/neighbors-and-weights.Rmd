@@ -24,7 +24,31 @@ part of the estimand: cortical contiguity, centroid KNN, and surface geodesic
 distance answer different questions.
 
 ```{r input-map, fig.width=9, fig.height=4.6, fig.alt="SCZ minus HC cortical thickness on DK68", fig.cap="Always orient the spatial relation on the brain map it will analyze."}
-ngeo_tutorial_plot_dk(x, title="SCZ minus HC cortical thickness (mm)")
+contrast_values <- setNames(
+  ngeo_values(x)[, "SCZ_minus_HC"],
+  ngeo_base_elements(x)$region_id
+)
+contrast_limit <- max(abs(contrast_values), na.rm=TRUE)
+contrast_map <- ngeo_cortical_map(
+  dk$surface,
+  values=contrast_values,
+  chart="flat",
+  atlas=dk$atlas,
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-contrast_limit, contrast_limit),
+  na_color=NA_character_,
+  atlas_coverage="auto"
+)
+plot(
+  contrast_map,
+  main="SCZ minus HC cortical thickness (mm)",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
+)
 ```
 
 ## Use the declared DK graph
@@ -84,7 +108,31 @@ local_map <- ngeo_parcellation(
                         unit="dimensionless"),
   coordinate_space=ngeo_spatial_base(dk$cohort)$coordinate_space
 )
-ngeo_tutorial_plot_dk(local_map, title="Local Moran's I of SCZ minus HC")
+local_values <- setNames(
+  ngeo_values(local_map)[, "local_I"],
+  ngeo_base_elements(local_map)$region_id
+)
+local_limit <- max(abs(local_values), na.rm=TRUE)
+local_brain_map <- ngeo_cortical_map(
+  dk$surface,
+  values=local_values,
+  chart="flat",
+  atlas=dk$atlas,
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-local_limit, local_limit),
+  na_color=NA_character_,
+  atlas_coverage="auto"
+)
+plot(
+  local_brain_map,
+  main="Local Moran's I of SCZ minus HC",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
+)
 ```
 
 The permutation null randomizes values over parcels while holding the graph

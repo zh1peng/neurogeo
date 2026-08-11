@@ -1,8 +1,8 @@
 ---
-title: "固定空间基与多尺度投影：DK68 graph modes"
+title: "把一张皮层图拆成从平滑到局部的空间成分"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{固定空间基与多尺度投影：DK68 graph modes}
+  %\VignetteIndexEntry{把一张皮层图拆成从平滑到局部的空间成分}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -17,19 +17,37 @@ dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
 x <- dk$cohort
 ```
 
-## 科学问题
+## 先看一名受试者的整张皮层图
 
-我们希望把每名 subject 的 DK68 cortical thickness 分解为 topology-defined spatial
-scales。basis 只读取真实 DK parcel adjacency 与 support area，不读取 SCZ/HC label、
-clinical outcome 或 map value；因此组别不会泄漏进尺度定义。
+下面是一名健康对照受试者的 DK68 皮层厚度图。相邻区域的厚度通常相近，但图中也叠加了
+更局部的起伏。只比较 68 个原始数值，很难分清组间差异主要来自缓慢变化的大片区域，
+还是来自少数相邻脑区之间的快速变化。
 
-```{r input-map, fig.width=9.5, fig.height=4.8, fig.alt="A simulated subject cortical thickness map on DK68 flat cortex", fig.cap="graph basis 作用于完整 cortical map，而不是一条抽象的一维 signal。"}
-ngeo_tutorial_plot_flat(
-  x, layer=1L, title="HC subject cortical thickness"
+空间基（spatial basis）的作用，是把同一张图改写成一组由平滑到局部的成分。这样，
+后续分析就能分别询问：患者与健康对照的差异集中在哪一种空间尺度？
+
+```{r input-map, fig.width=9.5, fig.height=4.8, fig.alt="一名模拟受试者在 DK68 平坦化皮层上的厚度图", fig.cap="颜色显示一名受试者的 68 个脑区厚度，既包含大范围平滑变化，也包含局部起伏。"}
+subject_map <- ngeo_cortical_map(
+  dk$surface, values=x, layer=1L,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="viridis", na_color=NA_character_
+)
+plot(
+  subject_map, main="HC subject cortical thickness",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## 从 surface-derived DK graph 构造 basis
+图中的宽广色带与相邻区域间的快速颜色变化混合在一起。空间基底会把这两类变化投影到
+不同阶次的模态中，使其能够分别量化。
+
+## 用 DK68 的相邻关系定义空间尺度
+
+尺度不能由组别标签或待分析的厚度值来定义，否则会把答案预先写进特征。这里仅使用
+DK68 分区在皮层表面的相邻关系以及各区面积。相邻脑区构成一张图，图拉普拉斯的
+特征向量给出一组空间模态：低阶模态变化缓慢，高阶模态允许相邻区域之间出现更快的
+起伏。
 
 ```{r basis}
 w <- ngeo_spatial_weights(
@@ -44,11 +62,15 @@ basis
 basis$diagnostics
 ```
 
-左右半球没有跨胼胝体的 cortical mesh edge，因此分别形成两个 components。每个
-component 解广义特征问题 `L u = lambda A u`，并满足 `t(U) A U = I`；`A` 是
-parcel surface area，而不是把大小差异很大的 DK regions 等权处理。
+输出显示左右半球被当作两个独立的连通部分，因为这张皮层网格没有跨半球的边。
+计算采用分区面积作为权重，因而一个很小的脑区不会和一个很大的脑区拥有完全相同的
+空间分量。诊断信息中的特征方程残差和正交误差，可用来确认求得的基是否足够精确。
 
-## 把 graph modes 画回 flat cortex
+## 第一阶与第六阶模态在脑上是什么样子？
+
+单看特征值很难形成直觉。我们把每个半球的第一阶和第六阶模态放回同一张展开皮层。
+第一阶模态通常呈现宽广、平滑的梯度；第六阶模态包含更多局部转折。这里的“第六阶”
+只是 DK68 邻接图中的排序，并不等同于一个固定的毫米波长。
 
 ```{r mode-values}
 mode1 <- numeric(68)
@@ -59,18 +81,44 @@ for (component in basis$components) {
 }
 ```
 
-```{r mode-maps, fig.width=10, fig.height=4.8, fig.alt="Low and higher rank DK graph eigenmodes on bilateral flat cortex", fig.cap="graph rank 是 atlas/topology-dependent scale；它不能自动换算成毫米波长。"}
-ngeo_tutorial_plot_flat(
-  dk$difference, values=mode1,
-  title="Graph mode 1 per hemisphere", diverging=TRUE
+```{r mode-maps, fig.width=10, fig.height=4.8, fig.alt="双侧平坦化皮层上的低阶与较高阶 DK 图模态", fig.cap="第一阶模态呈现宽广梯度，第六阶模态具有更多局部转折；阶次取决于 DK68 邻接结构。"}
+region_id <- ngeo_base_elements(dk$difference)$region_id
+mode1 <- setNames(mode1, region_id)
+mode1_limit <- max(abs(mode1))
+mode1_map <- ngeo_cortical_map(
+  dk$surface, values=mode1, chart="flat", atlas="DK68",
+  underlay=dk$underlay, overlay_alpha=0.82,
+  palette="Blue-Red 3", limits=c(-mode1_limit, mode1_limit),
+  na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  dk$difference, values=mode6,
-  title="Graph mode 6 per hemisphere", diverging=TRUE
+plot(
+  mode1_map, main="Graph mode 1 per hemisphere",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+mode6 <- setNames(mode6, region_id)
+mode6_limit <- max(abs(mode6))
+mode6_map <- ngeo_cortical_map(
+  dk$surface, values=mode6, chart="flat", atlas="DK68",
+  underlay=dk$underlay, overlay_alpha=0.82,
+  palette="Blue-Red 3", limits=c(-mode6_limit, mode6_limit),
+  na_color=NA_character_
+)
+plot(
+  mode6_map, main="Graph mode 6 per hemisphere",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## 为 200 名 subjects 生成多尺度 endpoints
+比较两图时应关注颜色转折的密度，而非正负号本身。模态整体乘以 -1 仍表示同一个空间
+方向；第六阶也只是在当前 DK68 图中的相对次序，不能直接换算成毫米尺度。
+
+## 把每名受试者投影到同一组空间模态
+
+基一旦由 DK68 的几何关系确定，就可以原样用于全部 200 名受试者。下面把前 6 个
+模态看作低阶成分，第 7--14 个看作中阶成分，第 15--25 个看作高阶成分，并为每名
+受试者计算各频段的能量、粗糙度和保留方差。
 
 ```{r projection}
 features <- ngeo_basis_project(
@@ -86,13 +134,15 @@ dim(features$values)
 features$endpoints[, c("estimand", "band", "component")]
 ```
 
-输出有 200 行：每行仍是一名完整 subject。后续 SCZ--HC permutation 移动这些
-rows，不会置换 68 个 regions。
+结果矩阵有 200 行，每一行对应一名受试者。这一点决定了后续组间检验的置换单位：
+如果要比较患者与健康对照，应在受试者之间重新分配组别，同时保持每个人的 68 个脑区
+及其顺序完整。
 
-## 一个 subject 的低秩重建与 residual
+## 重建一张图，看看低阶成分保留了什么
 
-下面显式使用同一个 support-weighted basis 重建第一名 subject。这样可以直接看到
-low-rank endpoint 在解剖上保留了什么，而不是只读一列 energy 数字。
+“低阶能量较高”仍然很抽象。更直观的检查是只保留前 6 个模态，重建第一名受试者的
+皮层图，再把重建没有解释的部分画成残差。重建图呈现大尺度变化，残差则指出被低阶
+表示遗漏的局部结构。
 
 ```{r reconstruction}
 subject_map <- as.numeric(ngeo_values(x)[, 1L])
@@ -114,16 +164,34 @@ for (component in basis$components) {
 high_rank_residual <- subject_map - low_rank
 ```
 
-```{r reconstruction-maps, fig.width=10, fig.height=4.8, fig.alt="Low-rank reconstruction and high-rank residual of one DK68 subject map", fig.cap="低秩重建和 residual 必须与原始 subject map 在同一 cortex 上比较。"}
-ngeo_tutorial_plot_flat(
-  x, values=low_rank, title="Subject low-rank reconstruction"
+```{r reconstruction-maps, fig.width=10, fig.height=4.8, fig.alt="一名 DK68 受试者脑图的低阶重建与高阶残差", fig.cap="左图保留前六个空间模态，右图显示被低阶表示遗漏的局部变化。"}
+low_rank <- setNames(low_rank, region_id)
+low_rank_map <- ngeo_cortical_map(
+  dk$surface, values=low_rank, chart="flat", atlas="DK68",
+  underlay=dk$underlay, overlay_alpha=0.82,
+  palette="viridis", na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  x, values=high_rank_residual,
-  title="Subject high-rank residual", diverging=TRUE
+plot(
+  low_rank_map, main="Subject low-rank reconstruction",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+high_rank_residual <- setNames(high_rank_residual, region_id)
+residual_limit <- max(abs(high_rank_residual))
+residual_map <- ngeo_cortical_map(
+  dk$surface, values=high_rank_residual,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-residual_limit, residual_limit), na_color=NA_character_
+)
+plot(
+  residual_map, main="Subject high-rank residual",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-应同时报告 eigen residual、weighted orthogonality error、zero-mode 数量、retained
-variance 与 residual energy。换到 Schaefer100/200/300 后必须重新建立各自 basis；
-“相同 rank”只是预声明的 rank-matched estimand，不代表不同 atlas 拥有相同物理尺度。
+实际报告中，除了组间统计量，还应给出特征方程残差、加权正交误差、零模态数量、
+保留方差和残差能量。若把 DK68 换成 Schaefer100、200 或 300，需要按新分区重新
+建立空间基；不同分区里的同一阶数，只表示采用了相同的排序规则，并不保证对应相同的
+物理尺度。

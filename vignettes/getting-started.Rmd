@@ -44,17 +44,56 @@ The first map is one HC participant. The second is the descriptive SCZ-minus-HC
 contrast. Every subsequent number in this tutorial refers back to these maps.
 
 ```{r subject-brain, fig.width=9, fig.height=4.6, fig.alt="DK cortical thickness for one simulated healthy control shown on bilateral cortical views", fig.cap="One subject is one layer; DK parcels form the shared spatial base."}
-ngeo_tutorial_plot_flat(
-  dk$cohort, layer = "sub-001",
-  title = "sub-001 cortical thickness (HC)"
+subject_values <- setNames(
+  ngeo_values(dk$cohort)[, "sub-001"],
+  ngeo_base_elements(dk$cohort)$region_id
+)
+subject_map <- ngeo_cortical_map(
+  dk$surface,
+  values = subject_values,
+  chart = "flat",
+  atlas = dk$atlas,
+  underlay = dk$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.82,
+  palette = "viridis",
+  na_color = NA_character_,
+  atlas_coverage = "auto"
+)
+plot(
+  subject_map,
+  main = "sub-001 cortical thickness (HC)",
+  boundary_color = grDevices::adjustcolor("white", 0.55),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1
 )
 ```
 
 ```{r contrast-brain, fig.width=9, fig.height=4.6, fig.alt="Simulated SCZ minus HC cortical thickness difference on the DK atlas", fig.cap="The case-control contrast is spatially structured and is plotted before spatial inference."}
-ngeo_tutorial_plot_flat(
-  dk$difference,
-  title = "SCZ - HC cortical thickness (mm)",
-  diverging = TRUE
+contrast_values <- setNames(
+  ngeo_values(dk$difference)[, "SCZ_minus_HC"],
+  ngeo_base_elements(dk$difference)$region_id
+)
+contrast_limit <- max(abs(contrast_values), na.rm = TRUE)
+contrast_map <- ngeo_cortical_map(
+  dk$surface,
+  values = contrast_values,
+  chart = "flat",
+  atlas = dk$atlas,
+  underlay = dk$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.82,
+  palette = "Blue-Red 3",
+  limits = c(-contrast_limit, contrast_limit),
+  na_color = NA_character_,
+  atlas_coverage = "auto"
+)
+plot(
+  contrast_map,
+  main = "SCZ - HC cortical thickness (mm)",
+  boundary_color = grDevices::adjustcolor("white", 0.55),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1
 )
 ```
 
@@ -101,12 +140,34 @@ summary(Matrix::rowSums(weights$raw_matrix != 0))
 The same vertex base also carries several published atlas label sets.
 
 ```{r atlas-family, fig.width=10, fig.height=8, fig.alt="DK68 Schaefer100 Schaefer200 Schaefer300 and Glasser360 on Conte69 flat cortex", fig.cap="All atlases are strictly aligned to the same 64,984-vertex Conte69 base."}
+atlas_names <- c(
+  "DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360"
+)
+atlas_maps <- lapply(atlas_names, function(atlas_name) {
+  ngeo_cortical_map(
+    vertex$surface,
+    chart = "flat",
+    atlas = vertex$supports[[atlas_name]],
+    fill = "atlas",
+    underlay = vertex$underlay,
+    underlay_palette = "Grays",
+    overlay_alpha = 0.78,
+    palette = "Dynamic",
+    na_color = NA_character_,
+    atlas_coverage = "auto"
+  )
+})
+atlas_layout <- ngeo_cortical_layout(
+  atlas_maps,
+  ncol = 2L,
+  labels = atlas_names,
+  shared_scale = FALSE
+)
 plot(
-  ngeo_tutorial_atlas_layout(
-    vertex,
-    c("DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360")
-  ),
-  show_legend=FALSE
+  atlas_layout,
+  show_legend = FALSE,
+  boundary_lwd = 0.35,
+  outline_lwd = 1.1
 )
 ```
 

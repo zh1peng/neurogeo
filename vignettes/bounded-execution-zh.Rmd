@@ -1,8 +1,8 @@
 ---
-title: "Conte69 vertex 与 DK68 case-control 数据的有界执行"
+title: "内存有限时，怎样完成同一项皮层分析"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Conte69 vertex 与 DK68 case-control 数据的有界执行}
+  %\VignetteIndexEntry{内存有限时，怎样完成同一项皮层分析}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -25,13 +25,16 @@ vertex <- ngeo_tutorial_vertex_case_control(
 )
 ```
 
-## 研究数据与执行约束
+这一页假设分析要在一台内存受限的工作站上运行。DK68 研究包含 100 名健康对照者
+和 100 名精神分裂症患者；用于演示高分辨率计算的 Conte69 顶点样本每组各 5 人。
+我们的目标是得到完全相同的被试摘要和 Schaefer300 分区结果，只把大矩阵拆成更小
+的数据块处理。
 
-主案例始终是同一个 SCZ--HC 皮层厚度研究：DK68 数据包含 100 名 HC
-和 100 名 SCZ；vertex 数据包含每组 5 名被试。DK parcels 是空间
-support，被试才是独立 sampling units。下面的 bounded execution
-只改变一次读入或运算多少 rows，不改变 vertex 顺序、被试、atlas、
-measure 或 estimand。
+## 先分清研究规模和机器预算
+
+先数一数分区、顶点和被试。被试是组间研究的独立观测；顶点和 DK 分区是同一名
+被试脑上的空间位置。内存预算决定每次读取多少行，但不应改变被试集合、顶点顺序
+或采用的图谱。
 
 ```{r data-contract}
 c(
@@ -43,23 +46,36 @@ c(
 table(vertex$group)
 ```
 
-先画出将要被分块处理的整张 cortical contrast。后面的数值检查都必须能
-回到这张相同 support、相同 vertex order 的 flat-surface brain map。
+把将要分块处理的组间差值先画出来。之后无论分成多少块，结果都应能回到这套
+64,984 个顶点上。
 
-```{r vertex-contrast, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上的模拟 SCZ 减 HC vertex 皮层厚度差异", fig.cap="有界执行改变访问方式，不改变 SCZ 减 HC 的 cortical estimand。"}
-ngeo_tutorial_plot_flat(
+```{r vertex-contrast, fig.width=10, fig.height=4.8, fig.alt="Conte69 展开表面上的模拟组间顶点皮层厚度差值", fig.cap="内存预算改变数据访问方式，不改变顶点位置或组间比较。"}
+bounded_limit <- max(abs(ngeo_values(vertex$difference)), na.rm = TRUE)
+bounded_map <- ngeo_cortical_map(
   vertex$difference,
   layer = "SCZ_minus_HC",
-  title = "Vertex cortical thickness: SCZ - HC",
-  diverging = TRUE
+  chart = "flat",
+  atlas = "DK68",
+  underlay = vertex$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.82,
+  palette = "Blue-Red 3",
+  limits = c(-bounded_limit, bounded_limit),
+  na_color = NA_character_
+)
+plot(
+  bounded_map,
+  main = "Vertex cortical thickness: SCZ - HC",
+  boundary_color = grDevices::adjustcolor("white", 0.55),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1
 )
 ```
 
-## 分块 summary 与直接计算必须一致
+## 分块扫描能否复现每名被试的均值和标准差？
 
-`ngeo_stream_summary()` 按 vertex blocks 扫描 10 个 subject layers。
-这里用完整矩阵的直接结果做教学核对；真正的大型 CIFTI/surface 数据
-不需要同时 materialize 全部 values。
+`ngeo_stream_summary()` 每次读取 512 个顶点，同时更新 10 名被试的均值和方差。
+示例数据可以完整载入，所以我们再直接计算一次均值和标准差，用来验证流式结果。
 
 ```{r streaming}
 streamed <- ngeo_stream_summary(
@@ -80,14 +96,15 @@ head(data.frame(
 ))
 ```
 
-这个核对的重点不是“chunk size 选多少最好”，而是 chunking 前后 layer IDs
-和结果完全对齐。如果实现按数值重新排序 rows，即使均值看起来合理，也已经
-破坏了神经影像空间身份。
+两种方法应给出相同结果。块大小可以根据机器调整，图层标识和顶点遍历顺序则应
+保持不变。若均值不一致，先检查是否漏读末块或重复顶点；若数值一致但脑图错位，
+再检查行号是否在分块过程中被重排。
 
-## 在预算内构造 Schaefer300 support
+## 16 MiB 预算能否完成 Schaefer300 聚合？
 
-下面把同一个 vertex contrast 聚合到 Schaefer300。operator 保持 sparse；
-预算不足时应该明确报错，而不是静默换成更粗 atlas、删除被试或改变统计量。
+下一步把同一张顶点差值图汇总到 Schaefer300。稀疏映射保存顶点到分区的关系，
+资源预算设为 16 MiB，并只允许实体化 300 个结果元素。若预算不够，合理结果是停止
+并报告所需资源，而不是悄悄换成更粗的图谱。
 
 ```{r schaefer300-support}
 schaefer300_map <- ngeo_atlas_map(
@@ -111,17 +128,36 @@ c(
 )
 ```
 
-```{r schaefer300-atlas, fig.width=10, fig.height=4.8, fig.alt="同一 Conte69 flat surface 上的 Schaefer300 support", fig.cap="预算控制 operator 的执行；Schaefer300 的空间 support 本身保持不变。"}
-ngeo_tutorial_plot_atlas(
-  vertex,
+输出应显示 64,984 个源顶点和 300 个目标分区。下面把 Schaefer300 边界画回原表面，
+确认目标分区确实是我们计划使用的空间单位。
+
+```{r schaefer300-atlas, fig.width=10, fig.height=4.8, fig.alt="Schaefer300 分区显示在 Conte69 展开表面上", fig.cap="资源预算约束计算规模，Schaefer300 的分区边界保持不变。"}
+bounded_atlas_map <- ngeo_cortical_map(
+  vertex$surface,
+  chart = "flat",
   atlas = "Schaefer300",
-  title = "Schaefer300 support"
+  fill = "atlas",
+  underlay = vertex$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.78,
+  palette = "Dynamic",
+  na_color = NA_character_
+)
+plot(
+  bounded_atlas_map,
+  main = "Schaefer300 support",
+  boundary_lwd = 0.35,
+  outline_lwd = 1.1,
+  show_legend = FALSE
 )
 ```
 
-## 应记录什么
+## 下次换一台机器，哪些设置可以改？
 
-可复现记录至少应包含 input identity、vertex/layer selection、chunk size、
-resource budget、atlas 名称、operator hash 和输出 hash。`memory_bytes`
-属于执行参数；`Schaefer300`、被试集合和 SCZ--HC estimand 属于科学
-分析定义，两者不能混为一谈。
+块大小和内存上限属于执行设置，可以随硬件调整；被试集合、顶点选择、图谱版本和
+组间差值定义属于分析设计，改变它们会得到另一个科学结果。运行记录应同时保存输入
+身份、顶点与图层选择、块大小、资源预算、图谱名称、映射哈希和输出哈希。
+
+因此，预算不足时先尝试减小块大小或采用文件后端，并重新核对流式摘要；不要以机器
+限制为由自动删除被试或更换图谱。若研究确实要改用 Schaefer100 等更粗分区，应把
+它作为新的分析选择记录并重新解释结果。

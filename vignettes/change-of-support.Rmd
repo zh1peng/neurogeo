@@ -19,17 +19,36 @@ vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
 ## Start from a vertex-level brain map
 
 The sample contains five HC and five SCZ surface maps. The bilateral teaching
-mesh has 672 vertices and a flat chart, so support operators remain small
-enough to inspect. The simulated SCZ effect is anterior-temporal and smooth.
+surface uses the 64,984-vertex Conte69 geometry and its registered flat chart.
+The simulated SCZ effect is anterior-temporal and smooth.
 
 ```{r vertex-map, fig.width=9, fig.height=4.5, fig.alt="Vertex-level SCZ minus HC cortical thickness on a bilateral surface", fig.cap="Change of support starts from a spatially located vertex map, not an anonymous vector."}
-plot(vertex$difference, chart="flat", layer="SCZ_minus_HC",
-     show_edges=FALSE, palette="Blue-Red 3")
+vertex_values <- ngeo_values(vertex$difference)[, "SCZ_minus_HC"]
+vertex_limit <- max(abs(vertex_values), na.rm=TRUE)
+vertex_map <- ngeo_cortical_map(
+  vertex$difference,
+  layer="SCZ_minus_HC",
+  chart="flat",
+  atlas=vertex$supports$DK68,
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-vertex_limit, vertex_limit),
+  na_color=NA_character_,
+  atlas_coverage="auto"
+)
+plot(
+  vertex_map,
+  main="Vertex-level SCZ minus HC cortical thickness",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
+)
 ```
 
-The included DK68, Schaefer100/200/300, and Glasser360 memberships match atlas
-*sizes* for operator teaching. Their borders are synthetic and must not be
-reported as the published anatomical atlases.
+The included DK68, Schaefer100/200/300, and Glasser360 memberships are the
+published atlas labels registered to the same Conte69 vertex base.
 
 ```{r support-family}
 vertex$support_note
@@ -74,14 +93,31 @@ a parcel-supported estimate.
 dk_result <- aggregate_to(vertex$difference, maps$DK68$target, maps$DK68)
 dk_id <- ngeo_base_elements(dk_result)$region_id
 dk_value <- ngeo_values(dk_result)[, "SCZ_minus_HC"]
-dk_lift <- dk_value[match(vertex$supports$DK68, dk_id)]
-dk_surface <- ngeo_tutorial_surface_map(
-  vertex$difference, dk_lift, "DK68-supported SCZ minus HC"
+dk_values <- setNames(dk_value, dk_id)
+dk_limit <- max(abs(dk_values), na.rm=TRUE)
+dk_map <- ngeo_cortical_map(
+  vertex$difference,
+  values=dk_values,
+  chart="flat",
+  atlas=vertex$supports$DK68,
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-dk_limit, dk_limit),
+  na_color=NA_character_,
+  atlas_coverage="auto"
 )
 ```
 
 ```{r aggregate-brain, fig.width=9, fig.height=4.5, fig.alt="DK68 aggregated case-control thickness lifted to the bilateral surface", fig.cap="Piecewise-constant color makes the change from vertex support to parcel support visible."}
-plot(dk_surface, chart="flat", show_edges=FALSE, palette="Blue-Red 3")
+plot(
+  dk_map,
+  main="DK68-supported SCZ minus HC",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
+)
 ```
 
 The block-like map is not a reconstructed vertex effect. Every vertex in a DK
@@ -113,6 +149,5 @@ image(t(overlap[nrow(overlap):1, ]), axes=FALSE,
 ```
 
 Cross-atlas agreement must be evaluated over the declared support family. A
-result consistent across these synthetic scales demonstrates operator behavior
-only; scientific atlas robustness requires registered published labels and the
-same subject-level design on every support.
+result consistent across these registered atlas scales still requires the same
+subject-level design on every support before it can support a robustness claim.

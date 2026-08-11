@@ -48,8 +48,30 @@ immediately visible.
 
 ```{r replay-brain, fig.width=9, fig.height=4.6, fig.alt="Replayed preregistered DK cortical subset for one HC subject", fig.cap="A replay hash verifies identity; the brain plot verifies that the selected spatial scope is the intended one."}
 replayed <- verified$outputs$cortical_set
-ngeo_tutorial_plot_dk(
-  replayed, "sub-001", title="Verified replay: preregistered cortical set"
+replayed_values <- setNames(
+  rep(NA_real_, nrow(ngeo_base_elements(dk$cohort))),
+  ngeo_base_elements(dk$cohort)$region_id
+)
+replayed_values[ngeo_base_elements(replayed)$region_id] <-
+  ngeo_values(replayed)[, "sub-001"]
+replayed_map <- ngeo_cortical_map(
+  dk$surface,
+  values=replayed_values,
+  chart="flat",
+  atlas=dk$atlas,
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="viridis",
+  na_color=NA_character_,
+  atlas_coverage="auto"
+)
+plot(
+  replayed_map,
+  main="Verified replay: preregistered cortical set",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 

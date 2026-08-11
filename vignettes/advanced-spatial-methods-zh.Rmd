@@ -1,8 +1,8 @@
 ---
-title: "高级空间方法：从 DK68 多模态脑图到局部系数"
+title: "从两张组间差异图寻找共同的皮层结构"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{高级空间方法：从 DK68 多模态脑图到局部系数}
+  %\VignetteIndexEntry{从两张组间差异图寻找共同的皮层结构}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -18,27 +18,49 @@ multi <- ngeo_tutorial_dk_multilayer(dk)
 x <- multi$object
 ```
 
-## 同一个问题贯穿三个高级方法
+## 两张脑图看起来是否在讲同一个故事？
 
-这里不再用一串抽象坐标。数据是 100 名 HC 与 100 名 SCZ，每名受试者在真实
-Conte69 surface 对应的 DK68 support 上各有 cortical thickness 与模拟 myelin
-proxy。三个方法回答不同问题：空间排序寻找两种 modality 的共同 cortical axis；
-LMC 描述 cross-variogram 的共享尺度；MGWR 检查局部回归系数是否随 cortex 改变。
-它们都是 reference-map 探索，不会把 68 个 parcels 当成 68 名受试者。
+前面的教程一直跟踪患者组与健康对照组的皮层厚度差异。现在我们给每名受试者再增加一张
+模拟的髓鞘指标图。把两张组间差异图并排放在一起，很容易产生一个直觉判断：某些
+脑区似乎在两张图上同时偏高或偏低。
 
-```{r input-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 thickness and myelin SCZ minus HC effects on bilateral flat cortex", fig.cap="所有高级方法都从同一组 SCZ-minus-HC cortical maps 出发。白色边界是真实 DK atlas boundary。"}
-ngeo_tutorial_plot_flat(
-  dk$difference, title="Thickness: SCZ - HC", diverging=TRUE
+这句话其实包含三个不同的问题。第一，两张图是否沿着一条共同的皮层梯度变化？
+第二，这种共同变化大约跨越多远的空间范围？第三，髓鞘指标与厚度的关系是否在
+所有脑区都一样？本页依次回答这三个问题。分析单位仍然是同一组 DK68 分区，
+因此这些结果用于形成空间假设；基于 200 名受试者的组间推断仍需单独完成。
+
+```{r input-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 图谱上的皮层厚度与髓鞘指标组间差异", fig.cap="两种指标都来自同一批受试者和同一 DK68 分区；白线标出脑区边界。"}
+thickness_limit <- max(abs(ngeo_values(dk$difference)))
+thickness_map <- ngeo_cortical_map(
+  dk$surface, values=dk$difference, chart="flat", atlas="DK68",
+  underlay=dk$underlay, overlay_alpha=0.82,
+  palette="Blue-Red 3", limits=c(-thickness_limit, thickness_limit),
+  na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  multi$myelin_difference, title="Myelin proxy: SCZ - HC", diverging=TRUE
+plot(
+  thickness_map, main="Thickness: SCZ - HC",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+myelin_limit <- max(abs(ngeo_values(multi$myelin_difference)))
+myelin_map <- ngeo_cortical_map(
+  dk$surface, values=multi$myelin_difference,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-myelin_limit, myelin_limit), na_color=NA_character_
+)
+plot(
+  myelin_map, main="Myelin proxy: SCZ - HC",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## 空间排序：共同 cortical axis
+## 先把两种指标放回同一个皮层坐标系
 
-先把两张 group contrast 绑定在同一个 DK68 base；topology 来自 surface-derived
-DK adjacency，而不是二维 flat-chart 距离。
+比较两张脑图之前，要确认第 *i* 行在两张图中始终指向同一个 DK 分区。下面把
+厚度差异和髓鞘差异组成一个双变量对象，并从皮层网格推导 DK 分区之间的邻接。
+展开图只负责显示；空间计算使用的仍是皮层拓扑。
 
 ```{r ordination-data}
 contrast <- ngeo_parcellation(
@@ -60,9 +82,12 @@ w <- ngeo_spatial_weights(
 )
 ```
 
-`ngeo_spatial_ordination()` 使用可选的 `adespatial` 后端；安装后下面的 chunk 会
-真正拟合空间排序。未安装时，教程仍用同一输入的标准 PCA axis 展示 estimand，
-而不会换成 toy data。
+## 找到两张图共有的变化方向
+
+空间排序把两个指标压缩成少数几条轴。第一条轴可以理解为：沿着哪一种皮层变化
+方向，厚度差异和髓鞘差异最容易一起改变。若安装了 `adespatial`，计算会同时利用
+数值协变与 DK 邻接；否则使用同一份脑数据做普通主成分分析，便于读者继续完成
+示例，但不会把两者解释成相同的方法。
 
 ```{r ordination}
 if (all(vapply(c("adespatial", "ade4", "spdep"),
@@ -78,16 +103,32 @@ if (all(vapply(c("adespatial", "ade4", "spdep"),
 }
 ```
 
-```{r ordination-map, fig.width=9.5, fig.height=4.6, fig.alt="First shared thickness-myelin cortical axis on DK68 flat surface", fig.cap="共同轴必须回填到 cortex 后检查；轴的正负号本身没有生物学方向。"}
-ngeo_tutorial_plot_flat(
-  contrast, values=axis1, title="Shared cortical axis 1", diverging=TRUE
+```{r ordination-map, fig.width=9.5, fig.height=4.6, fig.alt="DK68 平坦化皮层表面上的第一条厚度—髓鞘共同轴", fig.cap="颜色显示两个指标共有的主要变化方向；整条轴的正负号可以同时翻转。"}
+region_id <- ngeo_base_elements(contrast)$region_id
+axis_values <- setNames(axis1, region_id)
+axis_limit <- max(abs(axis_values))
+axis_map <- ngeo_cortical_map(
+  dk$surface, values=axis_values,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-axis_limit, axis_limit), na_color=NA_character_
+)
+plot(
+  axis_map, main="Shared cortical axis 1",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-## LMC：共享空间尺度，不是 co-kriging
+图中的正负号可以整体翻转，所以不能把“正轴”直接命名成某种生物学方向。更值得
+观察的是颜色变化是否形成连贯的皮层带，以及哪些区域偏离了这条共同轴。
 
-在 68 个 DK parcels 的所有无序 pair 中显式抽样；距离来自 3D template centroid。
-该模型只描述两张 reference maps 的二阶结构。
+## 共同变化大约跨越多远？
+
+排序告诉我们两张图是否共享主要梯度，却没有给出空间尺度。线性协同区域化模型
+（linear model of coregionalization, LMC）通过两两分区之间的距离，估计两种指标
+各自及共同变化的范围。这里使用三维模板中的分区中心距离，并从 DK68 的区域对中
+抽样；模型描述的是这两张组间差异图的二阶空间结构。
 
 ```{r lmc}
 if (all(vapply(c("gstat", "sf"), requireNamespace,
@@ -103,11 +144,18 @@ if (all(vapply(c("gstat", "sf"), requireNamespace,
 }
 ```
 
-## MGWR：把局部 coefficient 与 condition number 一起画回脑表面
+输出中的尺度参数回答“相关结构延伸多远”，并不表示我们已经完成了跨指标预测。
+若要做协同克里金，还需要另行定义预测目标、训练数据和验证方案。
 
-MGWR 需要稠密的 68×68 距离矩阵，所以这里严格限于 DK68；它不是 32k vertex
-分析的捷径。即使可选 `GWmodel` 后端未安装，也可以用稳定的单带宽 GWR 检查同一
-局部模型的 fitted value 与 condition number。
+## 两种指标的关系在每个脑区都一样吗？
+
+最后我们允许“髓鞘差异与厚度差异的关系”随皮层位置改变。局部回归会为每个 DK
+分区赋予附近观测更高的权重。带宽取自分区中心距离的分布，因此这一步会显式构造
+68×68 距离矩阵；它适合 DK68 的探索，完整顶点数据则需要稀疏或近邻算法。
+
+如果安装了 `GWmodel`，示例会为截距和髓鞘指标使用不同带宽；否则使用单带宽的
+地理加权回归。无论哪一种，都要同时查看拟合值和局部条件数。条件数很高的区域
+说明局部设计不稳定，那里的系数即使看起来醒目也不宜过度解释。
 
 ```{r local-model}
 distance <- ngeo_distance(
@@ -129,17 +177,40 @@ if (all(vapply(c("GWmodel", "sf"), requireNamespace,
 }
 ```
 
-```{r local-maps, fig.width=10, fig.height=4.8, fig.alt="Local fitted thickness contrast and condition number on DK68 flat cortex", fig.cap="局部拟合图必须与 numerical condition map 同时报告。"}
-ngeo_tutorial_plot_flat(
-  contrast, values=local_fit$fitted,
-  title="Local fitted thickness contrast", diverging=TRUE
+```{r local-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 平坦化皮层上的局部厚度拟合值与条件数", fig.cap="左图显示局部拟合的厚度差异，右图显示同一位置的数值稳定性。"}
+local_values <- setNames(local_fit$fitted, region_id)
+local_limit <- max(abs(local_values))
+local_map <- ngeo_cortical_map(
+  dk$surface, values=local_values,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Blue-Red 3",
+  limits=c(-local_limit, local_limit), na_color=NA_character_
 )
-ngeo_tutorial_plot_flat(
-  contrast, values=local_fit$condition_number,
-  title="Local condition number", palette="Inferno"
+plot(
+  local_map, main="Local fitted thickness contrast",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+condition_values <- setNames(local_fit$condition_number, region_id)
+condition_map <- ngeo_cortical_map(
+  dk$surface, values=condition_values,
+  chart="flat", atlas="DK68", underlay=dk$underlay,
+  overlay_alpha=0.82, palette="Inferno", na_color=NA_character_
+)
+plot(
+  condition_map, main="Local condition number",
+  boundary_color=adjustcolor("white", 0.55), boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
-这些结果可以生成空间假设，但不能提供 population-level SCZ--HC p value。确认性
-研究仍应回到完整受试者记录，在独立训练或每次 permutation 内重新拟合，并在
-DK、Schaefer100/200/300 等预先声明的 support family 上复现。
+阅读这两张图时，先在左图寻找空间上连贯的局部关系，再到右图核对相同脑区的条件数。
+若醒目的拟合区域同时具有很高的条件数，其局部系数可能主要由不稳定设计驱动。
+
+## 从探索图回到可检验的研究问题
+
+现在我们得到三种互补的描述：共同梯度、共享空间尺度，以及随位置变化的局部关系。
+它们可以帮助我们提出下一项研究的具体假设，例如预先指定某条皮层轴或某组区域。
+这些图本身不足以给出总体层面的病例—对照显著性。确认性分析仍要回到完整的
+受试者记录，在独立数据或每次置换中重新拟合，并检查结论是否依赖 DK、Schaefer
+等分区方案。

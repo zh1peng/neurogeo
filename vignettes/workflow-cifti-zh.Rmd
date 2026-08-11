@@ -1,8 +1,8 @@
 ---
-title: "CIFTI workflow：从 brain models 到 Conte69 cortical map"
+title: "读取 CIFTI 灰质坐标并恢复皮层脑图"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{CIFTI workflow：从 brain models 到 Conte69 cortical map}
+  %\VignetteIndexEntry{读取 CIFTI 灰质坐标并恢复皮层脑图}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -29,16 +29,15 @@ knitr::read_chunk(system.file(
 ))
 ```
 
-## CIFTI rows 是有结构的 grayordinates
+## 先弄清 CIFTI 的每一行代表什么
 
-CIFTI 可以在同一 axis 中包含左右 cortical vertices 和 subcortical
-voxels。建立 topology 前必须读取 brain models、structures、source
-indices 和匹配 surface geometry；grayordinate row order 本身就是科学
-contract。
+CIFTI 可以把左半球顶点、右半球顶点和皮层下体素放在同一条轴上。这些行统称灰质坐标
+（grayordinates），但每一行的空间含义并不相同。要把其中的皮层数据画回表面，必须读取
+脑模型、结构名称、源索引，并为左右半球配上对应的表面几何。
 
-本教程的科学目标仍是同一个 case-control study：DK68 有 100 HC +
-100 SCZ；Conte69 vertex sample 有每组 5 人。CIFTI reader 最终必须把
-cortical rows 恢复到能够生成下图的 ordered surface support。
+本页沿用病例—对照案例：DK68 数据有 100 名患者和 100 名健康对照，Conte69 顶点样本
+每组 5 人。下面的对象摘要先确认数据规模和五套图谱的区域数量。随后我们以患者组减去
+对照组的皮层厚度图为目标，说明 CIFTI 读入后应恢复到什么样的双侧皮层结构。
 
 ```{r study-contract}
 list(
@@ -56,40 +55,75 @@ list(
 )
 ```
 
-```{r cifti-target-map, fig.width=10, fig.height=4.8, fig.alt="CIFTI cortical components 应恢复的 Conte69 flat-surface SCZ 减 HC map", fig.cap="附加并验证左右 surface geometry 后，CIFTI cortical rows 才能回到 brain map。"}
-ngeo_tutorial_plot_flat(
+```{r cifti-target-map, fig.width=10, fig.height=4.8, fig.alt="CIFTI 皮层成分应恢复的 Conte69 患者组减对照组皮层厚度图", fig.cap="左右半球的灰质坐标按源索引放回表面后，才能形成完整的双侧皮层图。"}
+target_limit <- max(abs(ngeo_values(vertex$difference)[, 1L]), na.rm=TRUE)
+target_brain <- ngeo_cortical_map(
   vertex$difference,
   layer = "SCZ_minus_HC",
-  title = "CIFTI cortical target: SCZ - HC",
-  diverging = TRUE
+  chart = "flat",
+  atlas = "DK68",
+  underlay = vertex$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.82,
+  palette = "Blue-Red 3",
+  limits = c(-target_limit, target_limit),
+  na_color = NA_character_
+)
+plot(
+  target_brain,
+  main = "CIFTI cortical target: SCZ - HC",
+  boundary_color = grDevices::adjustcolor("white", 0.55),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1,
+  show_legend = TRUE
 )
 ```
 
-## Cortical structures 与 atlas support
+如果读入时把左右结构、源索引或顶点顺序弄错，数值矩阵的维度仍可能看起来正常，但图上
+会出现半球交换、局部错位或覆盖缺口。因此，脑图是读取 CIFTI 后不可缺少的质量控制。
 
-同一 Conte69 foundation 可以承载 DK68、Schaefer100/200/300 和
-Glasser360，但 atlas membership 不能从 CIFTI 文件名猜测。它必须来自
-明确 label axis、sidecar 或经过验证的外部 support。
+## 为皮层灰质坐标附加 Glasser360 标签
 
-```{r cifti-atlas-map, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上的 Glasser360 support", fig.cap="Grayordinate rows 与 Glasser360 labels 必须使用同一 cortical vertex order。"}
-ngeo_tutorial_plot_atlas(
-  vertex,
+同一 Conte69 表面可以承载 DK68、Schaefer100/200/300 和 Glasser360。图谱标签需要
+来自 CIFTI 标签轴、配套文件或经过验证的外部图谱，并按相同皮层顶点顺序对齐。仅凭文件
+名无法安全判断一行灰质坐标属于哪个脑区。
+
+```{r cifti-atlas-map, fig.width=10, fig.height=4.8, fig.alt="Conte69 平坦化皮层表面上的 Glasser360 图谱", fig.cap="Glasser360 标签与 CIFTI 的左右皮层顶点使用相同顺序。"}
+glasser_atlas <- ngeo_cortical_map(
+  vertex$surface,
+  chart = "flat",
   atlas = "Glasser360",
-  title = "Glasser360 on the cortical foundation"
+  fill = "atlas",
+  underlay = vertex$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.78,
+  palette = "Dynamic",
+  na_color = NA_character_
+)
+plot(
+  glasser_atlas,
+  main = "Glasser360 on the cortical foundation",
+  boundary_color = grDevices::adjustcolor("white", 0.65),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1,
+  show_legend = FALSE
 )
 ```
 
-## 格式 contract 侧栏：真实 tiny CIFTI round trip
+边界应连续覆盖两个半球的有效皮层。如果某些非内侧壁区域出现空洞，应优先检查结构索引
+和图谱顶点数；直接填补缺失值会掩盖结构错位。
 
-下面保留 canonical tiny fixture workflow，用于检查真实 CIFTI-2/NIfTI-2
-编码、brain components、QC、component-contiguity weights、dscalar
-写出和 round trip。tiny fixture 不是科学主案例。
+## 完成一次可验证的 CIFTI 写出与读回
+
+为了让网页能够快速执行完整文件流程，下面使用包内最小 CIFTI-2/NIfTI-2 文件。代码会
+读取脑成分，执行质量控制，按成分构建邻接，写出 dscalar 文件，再把它读回。文件虽小，
+使用的头信息、脑模型和读写路径与研究数据相同。
 
 ```{r workflow-cifti}
 ```
 
-workflow 返回的 `dense` 与 `dense_roundtrip` 仍留在当前环境，因此可以
-显式检查写出前后的 grayordinate/layer alignment，而不只检查文件存在。
+读写流程把原对象 `dense` 和读回对象 `dense_roundtrip` 保留在环境中。接下来逐项比较
+维度、数值、灰质坐标顺序和图层顺序。
 
 ```{r cifti-roundtrip-alignment}
 cifti_alignment <- list(
@@ -119,7 +153,12 @@ stopifnot(
 )
 ```
 
-canonical workflow 中的 ordering line plot 只是编码诊断，不是 cortical
-brain plot。只有在左右 surface geometry 和 source indices 通过验证之后，
-surface topology、area、geodesic distance 与 flat-surface plotting
-才可用。reader 与 writer 都不会隐式执行 registration 或 resampling。
+四项检查都应为真。它们比“文件成功写出”更严格，因为 CIFTI 文件即使能够打开，也可能
+在结构或图层顺序上发生变化。
+
+## 何时可以开始表面空间分析
+
+读写流程中的顺序折线图用于诊断编码；只有当左右表面几何、结构名称和源索引全部通过
+验证后，才能可靠地计算网格邻接、顶点面积、测地距离并绘制平坦化皮层图。CIFTI 读写器
+不会自动执行个体到模板的配准或重采样：如果文件来自不同空间，这两步仍需在分析流程中
+明确完成并记录。

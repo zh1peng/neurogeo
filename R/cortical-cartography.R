@@ -564,14 +564,105 @@ ngeo_project_surface <- function(
   )
 }
 
-.ngeo_cortical_vertex_values <- function(x, layer, values) {
-  if (!is.null(values)) {
-    if (!is.atomic(values) || !is.null(dim(values)) ||
-        length(values) != nrow(x$base$elements)) {
+.ngeo_cortical_vertex_values <- function(x, layer, values, atlas = NULL) {
+  if (inherits(values, "ngeo_parcellation")) {
+    if (is.null(atlas)) {
       .ngeo_abort(
-        "`values` must contain one value per surface vertex.",
+        "Parcellation `values` require an aligned `atlas`.",
+        "ngeo_error_argument"
+      )
+    }
+    if (!.ngeo_coordinate_spaces_match(
+      x$base$coordinate_space,
+      values$base$coordinate_space
+    )) {
+      .ngeo_abort(
+        paste(
+          "Parcellation values and the cortical surface use different",
+          "coordinate spaces."
+        ),
+        "ngeo_error_coordinate_space"
+      )
+    }
+    source_base_hash <- values$base$geometry$source_base_hash
+    if (!is.null(source_base_hash) &&
+        !identical(source_base_hash, base_hash(x))) {
+      .ngeo_abort(
+        "Parcellation values declare a different source base.",
+        "ngeo_error_base_mismatch"
+      )
+    }
+    selected <- .ngeo_plot_map(values, layer)
+    index <- .ngeo_layer_selection(values, layer)
+    measure <- .ngeo_measures_for_layers(values, index)
+    categorical <- measure$value_type %in% c("label", "categorical") ||
+      measure$support_behavior == "categorical" ||
+      !is.numeric(selected$values)
+    region_id <- as.character(values$base$elements$region_id)
+    membership <- as.character(atlas$membership)
+    required <- unique(membership[!is.na(membership)])
+    missing <- setdiff(required, region_id)
+    extra <- setdiff(region_id, required)
+    if (length(missing) || length(extra)) {
+      .ngeo_abort(
+        sprintf(
+          paste0(
+            "Parcellation region identifiers must exactly match the atlas; ",
+            "%d missing and %d extra region%s."
+          ),
+          length(missing),
+          length(extra),
+          if (length(missing) + length(extra) == 1L) "" else "s"
+        ),
         "ngeo_error_alignment"
       )
+    }
+    return(list(
+      values = selected$values[match(membership, region_id)],
+      name = selected$name,
+      type = if (categorical) "categorical" else "continuous"
+    ))
+  }
+  if (!is.null(values)) {
+    if (!is.atomic(values) || !is.null(dim(values))) {
+      .ngeo_abort(
+        paste(
+          "`values` must be a vertex-aligned atomic vector, a strictly",
+          "named atlas-region vector, or an `ngeo_parcellation`."
+        ),
+        "ngeo_error_alignment"
+      )
+    }
+    if (length(values) != nrow(x$base$elements)) {
+      if (is.null(atlas)) {
+        .ngeo_abort(
+          "Named atlas-region `values` require an aligned `atlas`.",
+          "ngeo_error_alignment"
+        )
+      }
+      region_id <- names(values)
+      valid_names <- !is.null(region_id) &&
+        length(region_id) == length(values) &&
+        !anyNA(region_id) && all(nzchar(region_id)) &&
+        !anyDuplicated(region_id)
+      required <- unique(as.character(
+        atlas$membership[!is.na(atlas$membership)]
+      ))
+      if (!valid_names || !setequal(region_id, required)) {
+        .ngeo_abort(
+          paste(
+            "Parcel `values` names must be unique and exactly match every",
+            "non-missing atlas region identifier."
+          ),
+          "ngeo_error_alignment"
+        )
+      }
+      membership <- as.character(atlas$membership)
+      return(list(
+        values = unname(values[match(membership, region_id)]),
+        name = "parcel_value",
+        type = if (is.numeric(values)) "continuous" else "categorical"
+      ))
     }
     return(list(
       values = values,
@@ -855,6 +946,81 @@ ngeo_project_surface <- function(
   mask
 }
 
+.ngeo_cortical_coverage_request <- function(
+    x, values, fill, atlas_coverage) {
+  requested <- match.arg(
+    atlas_coverage,
+    c("auto", "surface", "labeled")
+  )
+  atomic_parcel_values <- !is.null(values) && is.atomic(values) &&
+    is.null(dim(values)) && length(values) != nrow(x$base$elements)
+  resolved <- if (identical(requested, "auto")) {
+    if (identical(fill, "atlas") || inherits(values, "ngeo_parcellation") ||
+        atomic_parcel_values) {
+      "labeled"
+    } else {
+      "surface"
+    }
+  } else {
+    requested
+  }
+  list(requested = requested, resolved = resolved)
+}
+
+.ngeo_cortical_coverage_mask <- function(
+    x, mask, atlas_info, atlas_coverage) {
+  surface_mask <- .ngeo_cortical_mask(x, mask)
+  if (identical(atlas_coverage, "labeled") && is.null(atlas_info)) {
+    .ngeo_abort(
+      "`atlas_coverage = \"labeled\"` requires an aligned `atlas`.",
+      "ngeo_error_argument"
+    )
+  }
+  atlas_labeled <- if (is.null(atlas_info)) {
+    NULL
+  } else {
+    !is.na(atlas_info$membership)
+  }
+  included <- if (identical(atlas_coverage, "labeled")) {
+    surface_mask & atlas_labeled
+  } else {
+    surface_mask
+  }
+  list(
+    mask = included,
+    surface_mask_vertices = sum(surface_mask),
+    atlas_labeled_vertices = if (is.null(atlas_labeled)) NULL else
+      sum(surface_mask & atlas_labeled),
+    atlas_unlabeled_vertices = if (is.null(atlas_labeled)) NULL else
+      sum(surface_mask & !atlas_labeled)
+  )
+}
+
+.ngeo_cortical_value_source <- function(
+    x, layer, values, fill, atlas_info, colors) {
+  if (!identical(fill, "atlas")) {
+    return(list(
+      value = .ngeo_cortical_vertex_values(x, layer, values, atlas_info),
+      colors = colors
+    ))
+  }
+  if (is.null(atlas_info)) {
+    .ngeo_abort(
+      "`fill = \"atlas\"` requires an aligned `atlas`.",
+      "ngeo_error_argument"
+    )
+  }
+  if (is.null(colors)) colors <- atlas_info$colors
+  list(
+    value = list(
+      values = atlas_info$membership,
+      name = atlas_info$name,
+      type = "categorical"
+    ),
+    colors = colors
+  )
+}
+
 .ngeo_cortical_underlay <- function(x, underlay) {
   if (is.null(underlay)) return(NULL)
   if (is.numeric(underlay) &&
@@ -907,7 +1073,12 @@ ngeo_project_surface <- function(
 #'
 #' @param x An `ngeo_surface` with a chart.
 #' @param layer One aligned layer when `values` is not supplied.
-#' @param values Optional arbitrary vertex-aligned values.
+#' @param values Optional arbitrary vertex-aligned values, a named atomic
+#'   atlas-region vector, or an `ngeo_parcellation` whose `region_id` values
+#'   exactly match `atlas`. Parcel values are lifted piecewise-constantly to the
+#'   cortical vertices. A named vector must contain exactly one uniquely named
+#'   value for every non-missing atlas region; use an `ngeo_parcellation` when
+#'   coordinate-space and source-base provenance must travel with the values.
 #' @param chart Chart name.
 #' @param atlas Optional aligned labels or `ngeo_partition`.
 #' @param palette HCL palette name.
@@ -916,6 +1087,12 @@ ngeo_project_surface <- function(
 #' @param fill Whether face colors represent vertex values or atlas membership.
 #' @param mask Optional logical vertex mask. By default the base mask is used.
 #'   A face is visible only when all three vertices are included.
+#' @param atlas_coverage How atlas-unlabelled vertices are displayed. `"auto"`
+#'   uses `"labeled"` for atlas fills and parcel values, but `"surface"`
+#'   when vertex values merely use an atlas for boundaries. `"surface"` keeps
+#'   the surface mask, so a transparent missing overlay can reveal the
+#'   anatomical underlay outside atlas coverage. `"labeled"` intersects the
+#'   surface mask with non-missing atlas membership.
 #' @param underlay Optional numeric vertex vector or map selector used as a
 #'   grayscale or colored anatomical underlay.
 #' @param underlay_palette HCL palette for the underlay.
@@ -937,6 +1114,11 @@ ngeo_project_surface <- function(
 #' )
 #' map <- ngeo_cortical_map(surface, atlas = c("A", "A", "B", "B"))
 #' ngeo_cortical_map_data(map)$faces
+#' parcel_map <- ngeo_cortical_map(
+#'   surface,
+#'   values = c(B = 2, A = 1),
+#'   atlas = c("A", "A", "B", "B")
+#' )
 #' @template stable-geometry-core
 #' @export
 ngeo_cortical_map <- function(
@@ -954,7 +1136,8 @@ ngeo_cortical_map <- function(
     underlay_palette = "Grays",
     underlay_limits = NULL,
     colors = NULL,
-    overlay_alpha = 1) {
+    overlay_alpha = 1,
+    atlas_coverage = c("auto", "surface", "labeled")) {
   .ngeo_cartography_surface(x)
   .ngeo_assert_scalar_character(palette, "palette")
   .ngeo_assert_scalar_character(underlay_palette, "underlay_palette")
@@ -984,27 +1167,20 @@ ngeo_cortical_map <- function(
     )
   }
   fill <- match.arg(fill)
+  coverage_request <- .ngeo_cortical_coverage_request(
+    x, values, fill, atlas_coverage)
+  atlas_coverage <- coverage_request$resolved
   chart_info <- .ngeo_chart_coordinates(x, chart)
   chart <- chart_info$name
   atlas_info <- .ngeo_cortical_atlas(x, atlas, chart)
-  value <- if (identical(fill, "atlas")) {
-    if (is.null(atlas_info)) {
-      .ngeo_abort(
-        "`fill = \"atlas\"` requires an aligned `atlas`.",
-        "ngeo_error_argument"
-      )
-    }
-    if (is.null(colors)) colors <- atlas_info$colors
-    list(
-      values = atlas_info$membership,
-      name = atlas_info$name,
-      type = "categorical"
-    )
-  } else {
-    .ngeo_cortical_vertex_values(x, layer, values)
-  }
+  value_source <- .ngeo_cortical_value_source(
+    x, layer, values, fill, atlas_info, colors)
+  value <- value_source$value
+  colors <- value_source$colors
   faces <- x$base$geometry$faces
-  mask <- .ngeo_cortical_mask(x, mask)
+  coverage_mask <- .ngeo_cortical_coverage_mask(
+    x, mask, atlas_info, atlas_coverage)
+  mask <- coverage_mask$mask
   charted_face <- rep.int(FALSE, nrow(faces))
   source_face_in_chart <-
     x$base$charts[[chart]]$invariants$source_face_in_chart %||%
@@ -1131,6 +1307,7 @@ ngeo_cortical_map <- function(
     na_color = na_color,
     colors = colors,
     mask = mask,
+    atlas_coverage = atlas_coverage,
     underlay_name = underlay_info$name %||% NULL,
     underlay_palette = underlay_palette,
     underlay_limits = underlay_limits,
@@ -1142,6 +1319,11 @@ ngeo_cortical_map <- function(
       seam_faces =
         x$base$charts[[chart]]$invariants$seam_faces %||% integer(),
       atlas_source = atlas_info$source %||% NULL,
+      atlas_coverage_requested = coverage_request$requested,
+      atlas_coverage = atlas_coverage,
+      surface_mask_vertices = coverage_mask$surface_mask_vertices,
+      atlas_labeled_vertices = coverage_mask$atlas_labeled_vertices,
+      atlas_unlabeled_vertices = coverage_mask$atlas_unlabeled_vertices,
       included_vertices = sum(mask),
       included_faces = sum(included_face),
       source_vertex = seq_len(nrow(coordinates)),
@@ -1184,6 +1366,7 @@ ngeo_cortical_map_data <- function(x) {
       palette = x$palette,
       na_color = x$na_color,
       colors = x$colors,
+      atlas_coverage = x$atlas_coverage,
       underlay_name = x$underlay_name,
       underlay_palette = x$underlay_palette,
       underlay_limits = x$underlay_limits,

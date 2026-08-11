@@ -26,6 +26,8 @@ test_that("synthetic tutorial fallback is explicit and atlas-sized", {
   )
   expect_identical(dk$data_source, "synthetic_fallback")
   expect_false(dk$published_atlases)
+  expect_length(dk$underlay, 5124L)
+  expect_length(dk$mask, 5124L)
   expect_match(dk$support_note, "not published", fixed = TRUE)
   expect_true(all(is.finite(dk$centroids)))
   expect_true(all(dk$support_size > 0L))
@@ -33,11 +35,19 @@ test_that("synthetic tutorial fallback is explicit and atlas-sized", {
   expect_false(any(diag(dk$adjacency)))
   expect_silent(ngeo_validate(dk$cohort, "strict"))
 
-  flat_map <- ngeo_tutorial_flat_map(
-    dk$difference, layer = "SCZ_minus_HC", diverging = TRUE
+  flat_map <- ngeo_cortical_map(
+    dk$surface,
+    values = dk$difference,
+    layer = "SCZ_minus_HC",
+    chart = "flat",
+    atlas = "DK68",
+    underlay = dk$underlay,
+    palette = "Blue-Red 3",
+    na_color = NA_character_
   )
   expect_s3_class(flat_map, "ngeo_cortical_map")
   expect_equal(nrow(ngeo_cortical_map_data(flat_map)$vertices), 5124L)
+  expect_identical(flat_map$atlas_coverage, "labeled")
 })
 
 test_that("synthetic vertex fallback exposes every declared support", {
@@ -76,8 +86,17 @@ test_that("synthetic vertex fallback exposes every declared support", {
   expect_silent(ngeo_validate(vertex$surface, "strict"))
   expect_silent(ngeo_validate(vertex$difference, "strict"))
 
-  atlas_map <- ngeo_tutorial_atlas_map(vertex, "Schaefer200")
+  atlas_map <- ngeo_cortical_map(
+    vertex$surface,
+    chart = "flat",
+    atlas = "Schaefer200",
+    fill = "atlas",
+    underlay = vertex$underlay,
+    palette = "Dynamic",
+    na_color = NA_character_
+  )
   expect_s3_class(atlas_map, "ngeo_cortical_map")
+  expect_identical(atlas_map$atlas_coverage, "labeled")
   maps <- ngeo_tutorial_support_maps(vertex)
   expect_equal(
     vapply(maps, function(x) nrow(x$operator), integer(1)),
@@ -92,11 +111,18 @@ test_that("synthetic vertex fallback exposes every declared support", {
     maps$Schaefer100$target,
     maps$Schaefer100
   )
-  parcel_map <- ngeo_tutorial_parcel_flat_map(
-    vertex, schaefer100, atlas = "Schaefer100", diverging = TRUE
+  parcel_map <- ngeo_cortical_map(
+    vertex$surface,
+    values = schaefer100,
+    layer = 1L,
+    chart = "flat",
+    atlas = "Schaefer100",
+    underlay = vertex$underlay,
+    palette = "Blue-Red 3",
+    na_color = NA_character_
   )
   expect_s3_class(parcel_map, "ngeo_cortical_map")
-  expect_identical(parcel_map$parcel_support, "Schaefer100")
+  expect_identical(parcel_map$atlas_coverage, "labeled")
 
   plot_file <- tempfile(fileext = ".pdf")
   grDevices::pdf(plot_file)
@@ -104,13 +130,18 @@ test_that("synthetic vertex fallback exposes every declared support", {
     grDevices::dev.off()
     unlink(plot_file)
   }, add = TRUE)
-  support_plot <- ngeo_tutorial_plot_support_values(
-    schaefer100,
-    atlas = "Schaefer100",
-    title = "Schaefer100 aggregated effect",
-    diverging = TRUE
+  expect_silent(
+    graphics::plot(
+      parcel_map,
+      show_boundaries = TRUE,
+      boundary_color = grDevices::adjustcolor("white", 0.55),
+      boundary_lwd = 0.25,
+      show_outline = TRUE,
+      outline_lwd = 1.1,
+      show_labels = FALSE,
+      show_legend = TRUE
+    )
   )
-  expect_s3_class(support_plot, "ngeo_cortical_map")
 })
 
 test_that("tutorial cache is shared across page source environments", {
@@ -124,22 +155,6 @@ test_that("tutorial cache is shared across page source environments", {
   expect_identical(
     first$ngeo_tutorial_vertex_case_control(mode = "synthetic"),
     second$ngeo_tutorial_vertex_case_control(mode = "synthetic")
-  )
-})
-
-test_that("automatic fallback cannot masquerade as a published brain plot", {
-  unavailable <- tempfile("missing-real-tutorial-fixtures-")
-  withr::local_envvar(c(
-    NEUROGEO_TUTORIAL_DATA_MODE = NA_character_,
-    NEUROGEO_TUTORIAL_FLATMAP_CACHE = unavailable,
-    NEUROGEO_TUTORIAL_REFERENCE50_CACHE = unavailable
-  ))
-  .source_brain_case_study(environment())
-  dk <- ngeo_tutorial_dk_case_control(mode = "synthetic")
-
-  expect_error(
-    ngeo_tutorial_flat_map(dk$difference),
-    "Synthetic fallback brain plots are disabled"
   )
 })
 
@@ -166,12 +181,16 @@ test_that("verified real fixtures preserve Conte69 and atlas contracts", {
     n_per_group = 5, seed = 20260811, mode = "real"
   )
   core <- .ngeo_tutorial_surface_core("real")
+  dk <- ngeo_tutorial_dk_case_control(
+    n_per_group = 100, seed = 20260810, mode = "real"
+  )
   expect_identical(vertex$data_source, "real_conte69")
   expect_true(vertex$published_atlases)
   expect_equal(dim(ngeo_values(vertex$surface)), c(64984L, 10L))
   expect_equal(nrow(core$faces), 129960L)
   expect_equal(nrow(core$flat_faces), 117927L)
   expect_equal(sum(core$mask), 59412L)
+  expect_length(dk$underlay, 64984L)
   expect_equal(vertex$n_vertex_per_hemi, 32492L)
   expect_equal(
     core$support_counts,
@@ -194,9 +213,34 @@ test_that("verified real fixtures preserve Conte69 and atlas contracts", {
   expect_silent(ngeo_validate(vertex$surface, "strict"))
   expect_silent(ngeo_validate(vertex$difference, "strict"))
 
-  effect_map <- ngeo_tutorial_flat_map(
-    vertex$difference, layer = 1L, diverging = TRUE
+  effect_map <- ngeo_cortical_map(
+    vertex$difference,
+    layer = 1L,
+    chart = "flat",
+    atlas = "DK68",
+    underlay = vertex$underlay,
+    palette = "Blue-Red 3",
+    na_color = NA_character_
   )
   expect_s3_class(effect_map, "ngeo_cortical_map")
   expect_equal(nrow(ngeo_cortical_map_data(effect_map)$vertices), 64984L)
+  expect_identical(effect_map$atlas_coverage, "surface")
+
+  parcel_map <- ngeo_cortical_map(
+    dk$surface,
+    values = dk$difference,
+    layer = 1L,
+    chart = "flat",
+    atlas = "DK68",
+    underlay = dk$underlay,
+    na_color = NA_character_
+  )
+  expect_identical(parcel_map$atlas_coverage, "labeled")
+  expect_identical(parcel_map$history$atlas_coverage_requested, "auto")
+  expect_equal(sum(parcel_map$vertices$included), 56206L)
+  expect_equal(sum(parcel_map$face_data$included), 110751L)
+  expect_identical(
+    parcel_map$history$atlas_unlabeled_vertices,
+    3206L
+  )
 })

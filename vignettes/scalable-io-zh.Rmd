@@ -1,8 +1,8 @@
 ---
-title: "Conte69 vertex case-control cohort 的 scalable I/O"
+title: "从 64,984 个顶点汇总到 Schaefer200：一条可扩展的数据路径"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Conte69 vertex case-control cohort 的 scalable I/O}
+  %\VignetteIndexEntry{从 64,984 个顶点汇总到 Schaefer200：一条可扩展的数据路径}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -25,12 +25,15 @@ vertex <- ngeo_tutorial_vertex_case_control(
 )
 ```
 
-## 一个 logical cortical matrix，多种访问策略
+这一页把几个常见的数据步骤串成一条完整路线。我们从 Conte69 顶点样本开始，每组
+5 名被试；先按块汇总两组数据，再把顶点差值聚合到 Schaefer200 分区，最后将一个
+CIFTI 派生文件连同 BIDS 伴随说明（sidecar）写出。DK68 的 200 名被试数据同时保留，
+用来提醒我们：存储策略可以随规模改变，研究对象和被试身份不应随之改变。
 
-DK68 cohort 有 200 个 subject layers；Conte69 vertex sample 有 5 名 HC
-与 5 名 SCZ。scalable I/O 允许 values 延迟读取或分块访问，但不能改变
-ordered vertices、surface geometry、layer metadata、atlas support 或
-measurement semantics。
+## 先确定这次处理的是哪一张脑图
+
+查看两份数据的维度和顶点样本的组别，然后画出患者组减健康对照组的顶点差值。
+后面的分块、聚合与写出都应保留这张图所代表的顶点顺序和组间比较。
 
 ```{r dimensions}
 list(
@@ -41,19 +44,34 @@ list(
 )
 ```
 
-```{r cortical-contrast, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上的 vertex SCZ 减 HC 皮层厚度 contrast", fig.cap="分块和 file backing 只改变访问方式，不改变 cortical contrast。"}
-ngeo_tutorial_plot_flat(
+```{r cortical-contrast, fig.width=10, fig.height=4.8, fig.alt="Conte69 展开表面上的顶点水平组间皮层厚度差值", fig.cap="分块访问改变计算方式，不改变顶点位置或组间比较。"}
+scalable_limit <- max(abs(ngeo_values(vertex$difference)), na.rm = TRUE)
+scalable_map <- ngeo_cortical_map(
   vertex$difference,
   layer = "SCZ_minus_HC",
-  title = "Scalable I/O target: SCZ - HC thickness",
-  diverging = TRUE
+  chart = "flat",
+  atlas = "DK68",
+  underlay = vertex$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.82,
+  palette = "Blue-Red 3",
+  limits = c(-scalable_limit, scalable_limit),
+  na_color = NA_character_
+)
+plot(
+  scalable_map,
+  main = "Scalable I/O target: SCZ - HC thickness",
+  boundary_color = grDevices::adjustcolor("white", 0.55),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1
 )
 ```
 
-## 分块读取并保持 subject alignment
+## 按块累加时，怎样知道组别没有串行？
 
-callback 收到连续 vertex rows 和全部 10 个 subject columns。下面分别累计
-HC 与 SCZ 的总和，并与直接计算核对。
+每个数据块包含一段连续顶点和全部 10 名被试。下面在块内分别累加健康对照组和
+患者组的数值，同时记录首尾顶点。示例矩阵可以完整载入，因此还能计算一次直接
+结果作为参照。
 
 ```{r chunks}
 chunk_result <- ngeo_value_chunks(
@@ -95,10 +113,15 @@ stopifnot(
 )
 ```
 
-stable keys 是 element IDs 与 layer IDs，不是 thickness value，也不是近似
-subject name。分块前后只要任一顺序改变，group contrast 就不再是同一张脑图。
+两种方法的组内总和应一致，首块和末块也应覆盖整个顶点范围。这里的配对依据是
+稳定的顶点标识和图层标识，而不是厚度值的大小或相似的文件名。若结果不一致，应先
+检查行列顺序，再检查数值计算。
 
-## Sparse Schaefer200 aggregation
+## 怎样在有限内存中得到 Schaefer200 分区均值？
+
+顶点图适合保留精细空间信息，但很多分析和报告需要分区水平结果。我们先根据
+Schaefer200 标签建立稀疏映射，再按顶点面积把组间差值聚合到 200 个分区。资源
+预算限制一次可实体化的结果规模，但不会改变采用哪套图谱。
 
 ```{r schaefer200}
 schaefer200_map <- ngeo_atlas_map(
@@ -121,18 +144,35 @@ list(
 )
 ```
 
-```{r schaefer200-support, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上的 Schaefer200 support", fig.cap="Sparse aggregation 在同一 vertex foundation 上声明 target support。"}
-ngeo_tutorial_plot_atlas(
-  vertex,
+`operator` 的维度应是 200 × 64,984，聚合结果则有 200 行。前者记录每个顶点属于
+哪个分区，后者保存每个分区的面积加权差值。把目标图谱画出来，可以检查分区是否
+覆盖预期皮层以及左右半球是否排列正确。
+
+```{r schaefer200-support, fig.width=10, fig.height=4.8, fig.alt="Schaefer200 分区显示在 Conte69 展开表面上", fig.cap="稀疏映射把 64,984 个顶点汇总为 200 个有明确边界的分区。"}
+sch200_atlas_map <- ngeo_cortical_map(
+  vertex$surface,
+  chart = "flat",
   atlas = "Schaefer200",
-  title = "Sparse target: Schaefer200"
+  fill = "atlas",
+  underlay = vertex$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.78,
+  palette = "Dynamic",
+  na_color = NA_character_
+)
+plot(
+  sch200_atlas_map,
+  main = "Sparse target: Schaefer200",
+  boundary_lwd = 0.35,
+  outline_lwd = 1.1,
+  show_legend = FALSE
 )
 ```
 
-## 格式 contract 侧栏：tiny CIFTI file-backed blocks
+## CIFTI 文件也能沿同样的块边界读取吗？
 
-bundled tiny CIFTI 仅验证真实格式 reader 与 delayed blocks；它不是科学
-主数据。
+接下来用一个小型 CIFTI 文件检查真实格式读取路径。它不承担科学解释，只让我们
+快速确认灰质坐标行在分块后仍然恰好覆盖一次。
 
 ```{r tiny-cifti-contract}
 if (requireNamespace("cifti", quietly = TRUE)) {
@@ -165,11 +205,14 @@ if (requireNamespace("cifti", quietly = TRUE)) {
 }
 ```
 
-## Derivative output
+如果各块行数之和等于 CIFTI 的总行数，至少说明这次遍历没有漏行。真实项目还应
+按脑结构核对行数，并保存每块对应的灰质坐标范围。
 
-下面继续用 bundled tiny CIFTI 验证 BIDS derivative transaction。它检查
-canonical name、CIFTI writer、JSON sidecar、SHA-256 和 read-back
-alignment；科学主图仍是前面的 vertex cohort。
+## 分析结果怎样连同来源一起发布？
+
+最后继续用小型 CIFTI 演示一次 BIDS 派生数据写出。我们构造规范文件名，写出数据
+与 JSON sidecar，计算 SHA-256，再读回来比较数值。这样，接收者不仅能打开文件，
+还可以核对它来自哪个空间和哪次写出。
 
 ```{r derivative}
 if (all(vapply(
@@ -244,6 +287,10 @@ if (all(vapply(
 }
 ```
 
-writer 只发布声明的 derivative；它不会发现数据、运行 preprocessing、
-替换 atlas 或自动降低 cortical resolution。resource budget 失败时应该
-停止并报告，而不是改变科学问题。
+输出摘要中的文件名应包含被试、空间和描述实体，读回后的维度与数值应保持一致。
+这一步发布的是已经声明好的结果，不会替我们发现输入文件、运行预处理或降低皮层
+分辨率。
+
+在自己的数据上，可以先根据内存预算决定块大小，再根据科学问题决定保留顶点还是
+聚合到 Schaefer200。前者是执行选择，后者是分析选择。只有当分块核对、图谱覆盖和
+写出—读回都通过后，才适合把派生文件交给下游分析或共享给合作者。

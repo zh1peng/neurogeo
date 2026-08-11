@@ -1,8 +1,8 @@
 ---
-title: "Support 转换：vertex SCZ--HC 脑图的多 atlas 分析"
+title: "同一张皮层图在不同图谱下会怎样变化？"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Support 转换：vertex SCZ--HC 脑图的多 atlas 分析}
+  %\VignetteIndexEntry{同一张皮层图在不同图谱下会怎样变化？}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -16,21 +16,44 @@ source(system.file(
   mustWork=TRUE
 ))
 vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5, seed=20260811)
-maps <- ngeo_tutorial_support_maps(vertex$difference)
+maps <- lapply(vertex$supports, function(labels) {
+  ngeo_atlas_map(
+    vertex$difference,
+    labels,
+    source_support=vertex$vertex_area
+  )
+})
 ```
 
-## 从 vertex-level case-control map 开始
+## 从一张连续的皮层差异图提出问题
 
-输入包含 5 名 HC 与 5 名 SCZ，并使用一套双侧 cortical surface。SCZ effect 在
-DK temporal、insula、anterior cingulate 与 medial orbitofrontal 区域较低；连续
-vertex noise 使 effect 不会在 parcel boundary 处被人为截断。
+我们有 5 名精神分裂症患者和 5 名健康对照的顶点尺度皮层厚度图。模拟的疾病效应主要
+分布在颞叶、岛叶、前扣带和内侧眶额区域，并带有连续的空间变化。研究者如果选择 DK68
+或不同尺度的 Schaefer 图谱，最终报告的脑区数值会有多大差异？这就是空间支持转换
+（change of support）要回答的问题。
 
-```{r vertex-map, fig.width=10, fig.height=4.8, fig.alt="双侧 flat surface 上的 vertex-level SCZ 减 HC thickness", fig.cap="所有 support 转换共享这一 ordered vertex source。"}
-ngeo_tutorial_plot_flat(
+下图是所有转换共享的起点。蓝色越深，患者组相对对照组的皮层厚度降低越明显。
+
+```{r vertex-map, fig.width=10, fig.height=4.8, fig.alt="双侧平坦化皮层表面上的顶点尺度患者组减对照组皮层厚度", fig.cap="同一张顶点尺度差异图将分别汇总到多套皮层图谱。"}
+vertex_limit <- max(abs(ngeo_values(vertex$difference)[, 1L]), na.rm=TRUE)
+vertex_map <- ngeo_cortical_map(
   vertex$difference,
+  chart="flat",
   atlas="DK68",
-  title="Vertex-level SCZ minus HC cortical thickness",
-  diverging=TRUE
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-vertex_limit, vertex_limit),
+  na_color=NA_character_
+)
+plot(
+  vertex_map,
+  main="Vertex-level SCZ minus HC cortical thickness",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
@@ -44,17 +67,43 @@ c(
 vertex$density
 ```
 
-## 同一 surface 上的 atlas family
+输出确认了顶点数和受试者构成。这里使用的小样本便于网页完整运行；转换本身发生在皮层
+顶点与脑区之间，不会增加或减少受试者。
 
-atlas membership 与 flat geometry 严格按 vertex 对齐。这里同时声明 DK68、
-Schaefer100/200/300 与 Glasser360；不同 atlas 具有不同 parcel
-boundaries，但 source vertices、mask 和受试者保持不变。
+## 确认图谱与同一批顶点对齐
 
-```{r atlas-layout, fig.width=11, fig.height=8, fig.alt="DK68 和 Schaefer100 200 300 的 flat-surface atlas layout", fig.cap="change of support 改变 boundary 和 parcel 数，不改变 source surface。"}
-plot(ngeo_tutorial_atlas_layout(
-  vertex,
-  atlases=c("DK68", "Schaefer100", "Schaefer200", "Schaefer300")
-), show_legend=FALSE)
+我们准备比较 DK68、Schaefer100/200/300 和 Glasser360。每套图谱都必须为同一顺序
+的皮层顶点提供标签。下图展示其中四套：随着分区变细，边界数量增加，局部信号被平均的
+范围也随之缩小。
+
+```{r atlas-layout, fig.width=11, fig.height=8, fig.alt="DK68 与 Schaefer100、200、300 图谱的平坦化皮层表面布局", fig.cap="图谱边界逐渐变细，底层皮层顶点与分析掩膜保持一致。"}
+atlas_names <- c("DK68", "Schaefer100", "Schaefer200", "Schaefer300")
+atlas_maps <- lapply(atlas_names, function(atlas) {
+  ngeo_cortical_map(
+    vertex$surface,
+    chart="flat",
+    atlas=atlas,
+    fill="atlas",
+    underlay=vertex$underlay,
+    underlay_palette="Grays",
+    overlay_alpha=0.78,
+    palette="Dynamic",
+    na_color=NA_character_
+  )
+})
+atlas_layout <- ngeo_cortical_layout(
+  atlas_maps,
+  ncol=2L,
+  labels=atlas_names,
+  shared_scale=FALSE
+)
+plot(
+  atlas_layout,
+  boundary_color=grDevices::adjustcolor("white", 0.65),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=FALSE
+)
 ```
 
 ```{r operator-table}
@@ -67,22 +116,29 @@ data.frame(
 )
 ```
 
-## 构建和检查 sparse vertex-to-parcel operators
+表格中的映射哈希记录源顶点顺序、目标脑区顺序和权重。它相当于这次转换的指纹：如果
+换了表面、掩膜或图谱，哈希也会变化，从而阻止一张旧映射被误用于新数据。
 
-对 cortical thickness，source support 是 vertex area，聚合采用 area-weighted mean。
-每个 operator 都应覆盖同一批 included vertices；其 hash 绑定 source/target order，
-因此不能把 Schaefer operator 静默应用到另一个 surface。
+## 检查每个顶点被分配到哪个脑区
+
+对皮层厚度，我们用顶点面积加权平均。每个稀疏转换矩阵的列对应源顶点，行对应目标
+脑区；非零元素表示某个顶点对某个脑区的贡献。诊断结果应显示所有分析顶点都被覆盖。
+Schaefer300 的成员关系图进一步揭示矩阵的稀疏结构：每个顶点通常只属于一个脑区。
 
 ```{r diagnostics}
 diagnostics <- lapply(maps, ngeo_support_diagnostics)
 vapply(diagnostics, function(x) x$coverage, character(1))
 ```
 
-```{r operator-plot, fig.width=8, fig.height=4.2, fig.alt="Schaefer300 vertex-to-parcel operator 的 membership diagnostic", fig.cap="稀疏 operator 直接表达 source vertex 到 target parcel 的分配。"}
+```{r operator-plot, fig.width=8, fig.height=4.2, fig.alt="Schaefer300 顶点到脑区转换矩阵的成员关系诊断", fig.cap="矩阵中的非零位置表示源顶点被分配到相应的 Schaefer300 脑区。"}
 plot(maps$Schaefer300, type="membership", col="#2a9d8f", border="white")
 ```
 
-## 在每个 support 上执行同一个 aggregation
+## 用相同规则生成五套脑区结果
+
+现在把同一张顶点图分别聚合到五套图谱。所有转换都使用面积加权平均，所以结果间的
+差异主要来自区域边界与空间尺度，而不是聚合规则。表格列出每套图谱的脑区数、全皮层
+平均差异和脑区间标准差。
 
 ```{r aggregate-family}
 selected_maps <- maps[c(
@@ -104,31 +160,52 @@ data.frame(
 )
 ```
 
-下面将三个 parcel-supported results lift 回 source vertices 仅用于绘图。块状颜色
-表示同一 parcel 内共享一个 estimate，不应解释为重新获得了 vertex resolution。
+只看标准差还不够：同样的整体离散程度可能来自完全不同的解剖位置。下面把 DK68、
+Schaefer100 和 Schaefer300 的结果绘回皮层。三张图使用同一源信号，但区域越细，越能
+保留局部变化；每个色块仍代表一个脑区均值。
 
-```{r lifted-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 Schaefer100 与 Schaefer300 support 上的 SCZ 减 HC flatmaps", fig.cap="相同 source effect 在不同 atlas support 下呈现不同边界与平滑程度。"}
-plot_regional <- function(atlas) {
-  result <- regional[[atlas]]
-  id <- ngeo_base_elements(result)$region_id
-  value <- ngeo_values(result)[, 1L]
-  lifted <- value[match(vertex$supports[[atlas]], id)]
-  ngeo_tutorial_plot_flat(
+```{r lifted-maps, fig.width=10, fig.height=8.2, fig.alt="DK68、Schaefer100 与 Schaefer300 图谱上的患者组减对照组皮层厚度", fig.cap="相同顶点信号在三套图谱下形成不同大小的色块，显示分区尺度带来的平滑差异。"}
+regional_names <- c("DK68", "Schaefer100", "Schaefer300")
+regional_limit <- max(abs(unlist(lapply(
+  regional[regional_names],
+  function(result) ngeo_values(result)[, 1L]
+))), na.rm=TRUE)
+regional_maps <- lapply(regional_names, function(atlas) {
+  ngeo_cortical_map(
     vertex$difference,
-    values=lifted,
+    values=regional[[atlas]],
+    chart="flat",
     atlas=atlas,
-    title=paste(atlas, "supported SCZ minus HC"),
-    diverging=TRUE
+    underlay=vertex$underlay,
+    underlay_palette="Grays",
+    overlay_alpha=0.82,
+    palette="Blue-Red 3",
+    limits=c(-regional_limit, regional_limit),
+    na_color=NA_character_
   )
-}
-plot_regional("DK68")
-plot_regional("Schaefer100")
-plot_regional("Schaefer300")
+})
+regional_layout <- ngeo_cortical_layout(
+  regional_maps,
+  ncol=2L,
+  labels=paste(regional_names, "supported SCZ minus HC"),
+  shared_scale=FALSE
+)
+plot(
+  regional_layout,
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
+)
 ```
 
-## 跨 atlas overlap 是 support 关系，不是生物学一致性
+## 用重叠矩阵理解两套图谱如何对应
 
-```{r overlap, fig.width=8, fig.height=5, fig.alt="DK68 与 Schaefer100 support 的 Dice overlap heatmap", fig.cap="overlap 描述两个 atlas 怎样覆盖同一 surface。"}
+DK68 与 Schaefer100 没有一一对应的区域名称，但它们都覆盖同一皮层。Dice 重叠矩阵
+量化每对脑区共享了多少面积。一个 DK68 区域如果跨过多个 Schaefer 边界，在热图中就会
+对应多个较亮的格子。这张图解释的是空间划分关系，为跨图谱转换提供依据。
+
+```{r overlap, fig.width=8, fig.height=5, fig.alt="DK68 与 Schaefer100 脑区的 Dice 重叠热图", fig.cap="每个格子表示一个 DK68 脑区与一个 Schaefer100 脑区的面积重叠程度。"}
 overlap <- as.matrix(ngeo_atlas_overlap(
   maps$DK68, maps$Schaefer100, distance_method="dice"
 ))
@@ -140,6 +217,8 @@ image(
 )
 ```
 
-跨 atlas stability 必须在预先声明的 support family 中、使用相同 subject design
-和共同 null schedule 评估。多个 atlas 的 estimate 来自同一批数据，因此不能当作
-相互独立的研究，也不能仅凭方向一致就声称 parcellation invariant。
+## 在研究设计中处理图谱选择
+
+如果图谱是在看到结果后才挑选，最显著的那套分区容易被过度解释。更稳妥的做法是事先
+声明要比较的图谱，始终使用同一批受试者和同一组置换安排，并把跨图谱差异作为敏感性
+分析报告。多套图谱提供的是同一数据的多个空间摘要，不能按多项独立研究来累计证据。

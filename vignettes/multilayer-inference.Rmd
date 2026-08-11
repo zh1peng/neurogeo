@@ -27,10 +27,57 @@ one independent sampling unit; 68 parcels and two modalities are repeated
 spatial measurements, not replication.
 
 ```{r maps, fig.width=9, fig.height=4.5, fig.alt="DK brain maps of simulated SCZ minus HC thickness and myelin proxy", fig.cap="Both modalities are inspected on their shared cortical support before coupling inference."}
-ngeo_tutorial_plot_dk(dk$difference,
-                      title="Thickness: SCZ minus HC (mm)")
-ngeo_tutorial_plot_dk(multi$myelin_difference,
-                      title="Myelin proxy: SCZ minus HC (a.u.)")
+thickness_values <- setNames(
+  ngeo_values(dk$difference)[, 1L],
+  ngeo_base_elements(dk$difference)$region_id
+)
+thickness_limit <- max(abs(thickness_values), na.rm=TRUE)
+thickness_map <- ngeo_cortical_map(
+  dk$surface,
+  values=thickness_values,
+  chart="flat",
+  atlas=dk$atlas,
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-thickness_limit, thickness_limit),
+  na_color=NA_character_,
+  atlas_coverage="auto"
+)
+plot(
+  thickness_map,
+  main="Thickness: SCZ minus HC (mm)",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+
+myelin_values <- setNames(
+  ngeo_values(multi$myelin_difference)[, 1L],
+  ngeo_base_elements(multi$myelin_difference)$region_id
+)
+myelin_limit <- max(abs(myelin_values), na.rm=TRUE)
+myelin_map <- ngeo_cortical_map(
+  dk$surface,
+  values=myelin_values,
+  chart="flat",
+  atlas=dk$atlas,
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-myelin_limit, myelin_limit),
+  na_color=NA_character_,
+  atlas_coverage="auto"
+)
+plot(
+  myelin_map,
+  main="Myelin proxy: SCZ minus HC (a.u.)",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
+)
 ```
 
 ```{r data-contract}

@@ -1,8 +1,8 @@
 ---
-title: "皮层 surface 的显式空间与 transform path"
+title: "沿配准路径把皮层表面从个体空间带到标准空间"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{皮层 surface 的显式空间与 transform path}
+  %\VignetteIndexEntry{沿配准路径把皮层表面从个体空间带到标准空间}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -19,25 +19,43 @@ vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5, seed=20260811)
 source_surface <- ngeo_subset(vertex$surface, layers=1L)
 ```
 
-## coordinate space 是 surface identity 的一部分
+## 为什么需要记录一条完整的空间路径
 
-两个文件都使用毫米并不能证明它们属于同一 subject、template 或 surface
-registration。这里从一名 HC 的完整 cortical surface 开始；values、faces、DK/
-Schaefer/Glasser labels 与 flat chart 都已按 vertex order 对齐。
+一项研究可能先把每名受试者的皮层表面配准到研究模板，再把研究模板映射到公开标准
+模板。分析文件通常都以毫米为单位，但“单位相同”并不能说明它们来自同一受试者或同一
+模板。若只保存最终矩阵，很容易在后来忘记矩阵方向或漏掉中间步骤。
 
-```{r source-atlas, fig.width=10, fig.height=4.8, fig.alt="transform 前的 Glasser360 flat-surface atlas", fig.cap="atlas labels 与 source surface coordinate space 绑定。"}
-ngeo_tutorial_plot_atlas(
+本页从一名健康对照的完整皮层表面出发，建立“个体空间 → 研究模板 → 公开模板”的有向
+路径。源对象中的顶点值、三角面、图谱标签和平坦化坐标已经按同一顶点顺序对齐。先用
+Glasser360 边界查看源表面的左右方向和覆盖范围。
+
+```{r source-atlas, fig.width=10, fig.height=4.8, fig.alt="空间变换前的 Glasser360 平坦化皮层图谱", fig.cap="源表面上的 Glasser360 边界，用于核对半球方向与皮层覆盖。"}
+source_atlas <- ngeo_cortical_map(
   source_surface,
+  chart="flat",
   atlas="Glasser360",
-  title="Source surface: Glasser360 support"
+  fill="atlas",
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.78,
+  palette="Dynamic",
+  na_color=NA_character_
+)
+plot(
+  source_atlas,
+  main="Source surface: Glasser360 support",
+  boundary_color=grDevices::adjustcolor("white", 0.65),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=FALSE
 )
 ```
 
-## 注册三个 surface spaces
+## 为个体、研究模板和公开模板建立明确身份
 
-`native` 直接取自 source object，而不是新建一个同名字符串。study template 与
-public template 是两个新的规范 coordinate-space identities；registry alias 解析的是
-完整 identity/hash。
+个体空间直接从源对象读取，避免手工输入一个看似相同但缺少来源的名称。随后建立研究
+模板与公开模板的空间描述，并放入同一注册表。每个描述包含空间类型、单位、模板名称和
+稳定标识；别名 `subject` 与 `reference` 只是便于查询的入口，最终仍会解析到完整身份。
 
 ```{r spaces}
 native <- ngeo_spatial_base(source_surface)$coordinate_space
@@ -61,10 +79,14 @@ registry <- ngeo_coordinate_space_registry(
 ngeo_coordinate_space_audit(native, standard)
 ```
 
-## 构造有方向的 transform graph
+审计结果列出源空间与目标空间的异同。在真实数据进入变换之前，这一步能及时发现把个体
+表面误当成模板表面、或把两个模板版本混用的问题。
 
-下面两个 affine 是已提供的教学 transforms：第一步轻微平移，第二步加入尺度和
-平移。graph 只登记它们，不估计缺失 registration。
+## 把两步已知仿射变换连接成路径
+
+下面用两个已提供的仿射矩阵演示：第一步从个体空间到研究模板，第二步从研究模板到公开
+模板。每条边都记录起点、终点、方法和参数。变换图负责保存并连接已有配准结果，不会
+根据空间名称自动估计缺失的配准。
 
 ```{r graph}
 first_matrix <- diag(4)
@@ -95,23 +117,38 @@ path <- ngeo_transform_path(graph, "subject", "reference")
 ngeo_transform_path_history(path)
 ```
 
-## 应用 path 前后都回到 flat surface 检查
+路径历史应依次列出 `native-study` 和 `study-standard`，方向与研究流程一致。若请求反向
+路径却没有登记逆变换，系统会停止，而不会默默把矩阵倒用。
 
-`ngeo_apply_transform_path()` 只改变 anatomical geometry 和 coordinate-space
-identity；vertex order、faces、subject values 与 atlas labels 必须保持不变。为了让
-几何变化在 flatmap 上可见，颜色表示 transform 前后的 anatomical x coordinate。
+## 用解剖坐标图核对变换方向
 
-```{r before-brain, fig.width=10, fig.height=4.8, fig.alt="transform 前 anatomical x coordinate 的 cortical flatmap", fig.cap="flat chart 作为 viewing geometry；颜色来自 transform 前的 anatomical coordinates。"}
+仿射变换改变三维解剖坐标和空间身份，但不应重排顶点、改写三角面或改变受试者厚度值。
+为了在平坦化表面上看见坐标变化，我们用颜色表示每个顶点的解剖学 x 坐标。第一张图是
+应用路径之前的基线。
+
+```{r before-brain, fig.width=10, fig.height=4.8, fig.alt="空间变换前解剖学 x 坐标的皮层图", fig.cap="平坦化视图保持不变，颜色表示变换前每个顶点的三维 x 坐标。"}
 before_geometry <- ngeo_spatial_base(source_surface)$geometry
 before_coordinates <- before_geometry$coordinates[[
   before_geometry$active_coordinates
 ]]
-ngeo_tutorial_plot_flat(
+before_brain <- ngeo_cortical_map(
   source_surface,
   values=before_coordinates[, 1L],
+  chart="flat",
   atlas="DK68",
-  title="Before transform: anatomical x",
-  palette="viridis"
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="viridis",
+  na_color=NA_character_
+)
+plot(
+  before_brain,
+  main="Before transform: anatomical x",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
@@ -132,16 +169,35 @@ c(
 )
 ```
 
-```{r after-brain, fig.width=10, fig.height=4.8, fig.alt="transform 后 anatomical x coordinate 的 cortical flatmap", fig.cap="前后对照验证方向；数据值与 topology 不因 affine application 改变。"}
-ngeo_tutorial_plot_flat(
+数值检查应显示厚度值和三角面完全保留，而空间基础哈希发生变化。随后查看变换后的 x
+坐标图：整体颜色变化应与两个仿射矩阵中的缩放和平移方向一致，皮层轮廓与图谱边界则
+保持原样。
+
+```{r after-brain, fig.width=10, fig.height=4.8, fig.alt="空间变换后解剖学 x 坐标的皮层图", fig.cap="颜色变化反映仿射变换，顶点拓扑、皮层轮廓和受试者测量保持不变。"}
+after_brain <- ngeo_cortical_map(
   changed,
   values=after_coordinates[, 1L],
+  chart="flat",
   atlas="DK68",
-  title="After transform: anatomical x",
-  palette="viridis"
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="viridis",
+  na_color=NA_character_
+)
+plot(
+  after_brain,
+  main="After transform: anatomical x",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
-应用 transform 需要显式 `authorize=TRUE`。lossy 或不支持的 non-affine path 可以
-保存在 graph 中供审计，但不能被该 affine application API 静默执行。flat chart
-只负责检查结果，不应被误称为 registration 本身。
+## 把路径历史与结果一起保存
+
+执行会改变空间状态，因此需要显式设置 `authorize=TRUE`。尚不支持执行的非线性变换仍可
+登记在图中用于审计，但不会被仿射接口悄悄近似。实际项目应把路径历史、每个矩阵的来源、
+方向和软件版本与输出表面一起保存。平坦化脑图提供直观质量控制，配准质量还需结合标志点、
+沟回对齐或专门的表面配准指标判断。

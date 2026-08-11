@@ -1,8 +1,8 @@
 ---
-title: "皮层制图：neurogeo flat-surface brain plots"
+title: "读懂并绘制平坦化皮层图"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{皮层制图：neurogeo flat-surface brain plots}
+  %\VignetteIndexEntry{读懂并绘制平坦化皮层图}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -18,16 +18,16 @@ dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
 surface <- vertex$surface
 ```
 
-## 这套绘图系统在画什么
+## 一张皮层图由哪些部分组成
 
-`ngeo_cortical_map()` 直接从 surface triangles 生成 face geometry、mask、underlay、
-vertex values、atlas boundaries 与 outline。它不是把 region 名称交给外部
-parcel-polygon 绘图库，也
-不是 surface generic plot 产生的 colored point cloud。
+平坦化皮层图把折叠的三维皮层展开到二维，使脑沟两侧和大范围空间模式更容易同时观察。
+图上的每个彩色三角形仍对应原始表面网格中的一个三角面；颜色来自顶点测量，白线可以
+表示图谱边界，灰度底图可以显示脑沟深度，外轮廓则标出有效皮层范围。
 
-本页使用 checksum-pinned 的 bilateral Conte69：每半球 32,492 vertices，合计
-64,984 vertices 与 129,960 source faces；5 名 HC 与 5 名 SCZ 的 values 是模拟的，
-但 cortical geometry、flat coordinates、mask 和 atlas labels 不是模拟的。
+本页使用双侧 Conte69 表面：每个半球有 32,492 个顶点，合计 64,984 个顶点和
+129,960 个源三角面。5 名患者和 5 名健康对照的厚度值是教学模拟数据；表面几何、
+平坦化坐标、分析掩膜以及 DK、Schaefer、Glasser 标签均来自固定并校验过的数据文件。
+我们先检查这些组成部分，再逐步画连续测量、图谱标签和脑区聚合结果。
 
 ```{r geometry-contract}
 c(
@@ -40,11 +40,13 @@ names(ngeo_spatial_base(surface)$geometry$coordinates)
 ngeo_validate(surface, "strict")
 ```
 
-## imported flat chart 保留 provenance
+输出应显示顶点、三角面和厚度图层的数量，并通过严格验证。这里的关键对应是：第 i 行
+厚度值、第 i 个解剖坐标、第 i 个平坦化坐标和第 i 个图谱标签都指向同一顶点。
 
-真实 flat coordinates 通过 `ngeo_flatten_surface(..., method="imported")` 绑定到
-source topology。chart 是 visualization coordinate system；3D anatomical
-coordinates 仍是 active scientific geometry。
+## 检查平坦化坐标与原始网格的对应
+
+Conte69 的平坦化坐标通过 `ngeo_flatten_surface(..., method="imported")` 附加到原始
+网格。它们只改变观察方式，三维解剖坐标仍用于距离、面积和空间变换等科学计算。
 
 ```{r chart-contract}
 geometry <- ngeo_spatial_base(surface)$geometry
@@ -59,11 +61,15 @@ with(distortion, c(
 ))
 ```
 
-`ngeo_project_surface()` 只能产生 view projection；它不能伪装成 metric-preserving
-flat surface。统计距离必须显式选择 edge geodesic、3D Euclidean 或其它已审计
-metric，不能使用页面像素距离。
+失真摘要比较三维表面与二维展开后的三角面面积，并报告哪些三角面成功进入图表。平坦化
+不可避免地带来面积和形状失真，所以页面上的像素距离不适合直接用于空间统计。需要距离
+时，应明确选择网格测地距离、三维欧氏距离或研究方案规定的其他度量。
 
-## 连续 vertex values
+## 绘制连续的顶点尺度组间差异
+
+先画患者组减去对照组的逐顶点皮层厚度。`ngeo_cortical_map()` 从表面三角面构造绘图
+几何，并把连续数值、脑沟底图、DK68 边界和皮层轮廓组合成一个可检查的制图对象。
+色阶以零为中心并对称设置，因此蓝色和红色的绝对强度可以直接比较。
 
 ```{r direct-map-object}
 effect <- as.numeric(ngeo_values(vertex$difference)[, 1L])
@@ -84,7 +90,7 @@ effect_map <- ngeo_cortical_map(
 effect_map
 ```
 
-```{r continuous-map, fig.width=10, fig.height=4.8, fig.alt="Vertex-level SCZ minus HC cortical thickness on bilateral Conte69 flat surface", fig.cap="连续 face color 来自三个 vertex values；DK boundary 仅帮助解剖定位，并未把 vertex effect 聚合成 parcel value。"}
+```{r continuous-map, fig.width=10, fig.height=4.8, fig.alt="双侧 Conte69 平坦化皮层表面上的顶点尺度患者组减对照组皮层厚度", fig.cap="三角面颜色由其三个顶点的连续数值决定；DK68 边界仅用于解剖定位。"}
 plot(
   effect_map,
   show_boundaries=TRUE,
@@ -95,10 +101,14 @@ plot(
 )
 ```
 
-一个 face 只有在三个 vertices 都通过 mask 时才显示，因此 medial wall 不会被填成
-任意数值。连续图的色阶显式固定为 `[-M, M]`，SCZ--HC 的零点不会随 panel 改变。
+图中每个三角面只有在三个顶点都属于分析掩膜时才显示，内侧壁因此保持空白。DK68 白色
+边界帮助读者定位，但颜色仍保留顶点尺度变化，并没有被平均到 DK68 脑区。若要并排比较
+多张组间差异图，应继续使用同一对称色阶，避免自动色阶放大很小的效应。
 
-## atlas membership 与 boundaries
+## 绘制 Schaefer200 区域与边界
+
+图谱图回答的是“每个顶点属于哪个区域”。这里不提供连续测量值，而让填充色直接来自
+Schaefer200 标签；相邻顶点标签发生变化的位置形成区域边界。
 
 ```{r atlas-object}
 schaefer200_map <- ngeo_cortical_map(
@@ -115,34 +125,74 @@ schaefer200_map <- ngeo_cortical_map(
 )
 ```
 
-```{r atlas-map, fig.width=10, fig.height=4.8, fig.alt="Real Schaefer200 labels and parcel boundaries on bilateral Conte69 flat surface", fig.cap="颜色表示 atlas membership；边界由相邻 vertices 的真实 label change 计算。"}
+```{r atlas-map, fig.width=10, fig.height=4.8, fig.alt="双侧 Conte69 平坦化皮层表面上的 Schaefer200 标签与边界", fig.cap="颜色区分 Schaefer200 脑区，边界来自相邻顶点之间的标签变化。"}
 plot(
   schaefer200_map,
   show_boundaries=TRUE,
+  boundary_color=adjustcolor("white", 0.65),
   boundary_lwd=0.25,
   show_outline=TRUE,
   show_legend=FALSE
 )
 ```
 
-## 不同 atlas 必须有各自的 surface visualization
+图中颜色只是为了区分相邻脑区，没有连续数值上的高低含义。因此无需共享连续色阶，也
+通常不需要显示包含 200 项的图例。
 
-```{r atlas-family, fig.width=10, fig.height=8.2, fig.alt="DK68 Schaefer100 Schaefer200 Schaefer300 and Glasser360 on the same flat cortical surface", fig.cap="五套 atlas 均为 vertex-aligned published labels；相同底图让 boundary 与 spatial scale 的差异可见。"}
-atlas_layout <- ngeo_tutorial_atlas_layout(
-  vertex,
-  c("DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360")
+## 比较五套图谱的空间尺度
+
+把 DK68、Schaefer100/200/300 和 Glasser360 放在同一表面布局中，可以直观看到边界
+密度和区域形状怎样随图谱变化。这一步适合在建模前完成：如果感兴趣效应跨过某套图谱的
+边界，聚合后可能被拆分；如果正负效应落在同一大脑区，聚合后可能相互抵消。
+
+```{r atlas-family, fig.width=10, fig.height=8.2, fig.alt="同一平坦化皮层表面上的 DK68、Schaefer100、Schaefer200、Schaefer300 与 Glasser360", fig.cap="相同底图突出五套图谱在区域数量、形状和边界位置上的差异。"}
+atlas_names <- c(
+  "DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360"
 )
-plot(atlas_layout, show_legend=FALSE)
+atlas_maps <- lapply(atlas_names, function(atlas) {
+  ngeo_cortical_map(
+    surface,
+    chart="flat",
+    atlas=atlas,
+    fill="atlas",
+    underlay=vertex$underlay,
+    underlay_palette="Grays",
+    overlay_alpha=0.78,
+    palette="Dynamic",
+    na_color=NA_character_
+  )
+})
+atlas_layout <- ngeo_cortical_layout(
+  atlas_maps,
+  ncol=2L,
+  labels=atlas_names,
+  shared_scale=FALSE
+)
+plot(
+  atlas_layout,
+  boundary_color=adjustcolor("white", 0.65),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=FALSE
+)
 ```
 
-`shared_scale=FALSE` 对 categorical atlas 是正确选择。对多个连续 case-control maps，
-应先为每张 map 显式设置同一个 symmetric limits，再组合 layout，避免自动 range
-破坏零点可比性。
+这里的图谱颜色是类别色，各面板可以独立分配。连续脑图的情况相反：应先为每张图设定
+相同且以零为中心的范围，再组合布局，才能比较效应幅度。
 
-## parcel estimate 也要 lift 回对应 atlas surface
+## 把 Schaefer200 脑区结果绘回皮层
+
+接下来把顶点尺度组间差异按面积加权平均到 200 个 Schaefer 脑区。聚合后的对象只有
+200 个估计值；为了显示解剖位置，绘图时把每个脑区值复制给该区域内的顶点。
 
 ```{r aggregate-schaefer}
-maps <- ngeo_tutorial_support_maps(vertex)
+maps <- lapply(vertex$supports, function(labels) {
+  ngeo_atlas_map(
+    vertex$difference,
+    labels,
+    source_support=vertex$vertex_area
+  )
+})
 schaefer200 <- aggregate_to(
   vertex$difference,
   maps$Schaefer200$target,
@@ -151,17 +201,37 @@ schaefer200 <- aggregate_to(
 dim(ngeo_values(schaefer200))
 ```
 
-```{r aggregate-map, fig.width=10, fig.height=4.8, fig.alt="Vertex case-control effect aggregated to Schaefer200 and lifted back to the flat surface", fig.cap="piecewise-constant face color 使用 Schaefer200 parcel estimate；白色线仍是同一 atlas boundary。"}
-ngeo_tutorial_plot_support_values(
-  schaefer200, atlas="Schaefer200",
-  title="Schaefer200 aggregated effect", diverging=TRUE
+```{r aggregate-map, fig.width=10, fig.height=4.8, fig.alt="聚合到 Schaefer200 后绘回平坦化皮层的组间差异", fig.cap="每个色块显示一个 Schaefer200 脑区的组间差异均值，白线标出相应区域边界。"}
+schaefer_limit <- max(abs(ngeo_values(schaefer200)[, 1L]), na.rm=TRUE)
+schaefer_brain <- ngeo_cortical_map(
+  vertex$difference,
+  values=schaefer200,
+  chart="flat",
+  atlas="Schaefer200",
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-schaefer_limit, schaefer_limit),
+  na_color=NA_character_
+)
+plot(
+  schaefer_brain,
+  main="Schaefer200 aggregated effect",
+  boundary_color=adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1,
+  show_legend=TRUE
 )
 ```
 
-这里的 lift 只是可视化：target×source support operator 的 transpose 把 parcel value
-复制回其 member vertices。它不会凭空恢复 parcel 内丢失的 vertex variation。
+图中的块状颜色表明结果已经处于脑区尺度。同一区域内原本存在的顶点变化在聚合时已经
+丢失，绘回皮层只为定位，不会恢复这些细节。
 
-## 输出 plotting-system-neutral geometry
+## 提取绘图几何以便复用
+
+有时需要把同一张脑图交给网页渲染器、交互式图形或出版流程。`ngeo_cortical_map_data()`
+把制图对象拆成顶点、三角面、边界、轮廓、标签和色阶，同时保留有序顶点身份。
 
 ```{r exchange}
 map_data <- ngeo_cortical_map_data(effect_map)
@@ -171,6 +241,6 @@ dim(map_data$faces)
 head(map_data$boundaries)
 ```
 
-`ngeo_cortical_map_data()` 提供 vertices、faces、boundaries、outline、labels 与 scale，
-便于导出到其它渲染器；这些表仍携带 ordered vertex identity。教程其余页面的所有
-brain plots 都应沿用这条 `surface -> cortical_map -> plot/layout` 路径。
+输出维度可用于确认导出前后没有丢失顶点或三角面。实际研究中，连续脑图、图谱边界和
+脑区结果都可以沿用“皮层对象 → 制图对象 → 单图或布局”的路径，从而让网页版、分析报告
+和导出图共享同一套表面几何与掩膜。

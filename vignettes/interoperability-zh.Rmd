@@ -1,8 +1,8 @@
 ---
-title: "Conte69、DK 与 Schaefer support 的可审计交换"
+title: "把皮层结果交给另一套软件时，怎样避免空间错位"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Conte69、DK 与 Schaefer support 的可审计交换}
+  %\VignetteIndexEntry{把皮层结果交给另一套软件时，怎样避免空间错位}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -25,13 +25,16 @@ vertex <- ngeo_tutorial_vertex_case_control(
 )
 ```
 
-## 交换的是有空间身份的脑数据
+假设我们要把分析结果交给使用另一套软件的合作者。主研究仍是 DK68 上的
+100 名健康对照者和 100 名精神分裂症患者，顶点样本则在 Conte69 上每组各 5 人。
+我们准备共享一张患者组减健康对照组的厚度差值图，以及把顶点汇总到 Schaefer200
+所需的映射。文件能够打开只是第一关；更重要的是合作者读到的每一行仍指向同一
+皮层位置。
 
-文件能被另一个软件打开，只解决了编码问题。可审计 interoperability
-还必须保留 element order、coordinate space、surface topology、subject
-layers、measure semantics、atlas membership 和 history。主案例仍是
-DK68 的 100 HC + 100 SCZ，以及 Conte69 vertex support 上每组 5 人的
-SCZ--HC study。
+## 先给待共享的结果确定空间身份
+
+在写文件之前，先查看对象维度、组别和坐标空间，并把待交换的顶点差值画出来。
+这一步为后面的回环检查提供参照。
 
 ```{r study-identity}
 list(
@@ -42,20 +45,38 @@ list(
 )
 ```
 
-```{r effect-map, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上待交换的 SCZ 减 HC vertex effect map", fig.cap="交换前先固定 vertex order、coordinate space 与科学 estimand。"}
-ngeo_tutorial_plot_flat(
+```{r effect-map, fig.width=10, fig.height=4.8, fig.alt="准备共享的组间皮层厚度差值显示在 Conte69 展开表面上", fig.cap="共享前先记录顶点顺序、坐标空间和图层含义。"}
+exchange_limit <- max(abs(ngeo_values(vertex$difference)), na.rm = TRUE)
+exchange_map <- ngeo_cortical_map(
   vertex$difference,
   layer = "SCZ_minus_HC",
-  title = "Exchange target: SCZ - HC thickness",
-  diverging = TRUE
+  chart = "flat",
+  atlas = "DK68",
+  underlay = vertex$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.82,
+  palette = "Blue-Red 3",
+  limits = c(-exchange_limit, exchange_limit),
+  na_color = NA_character_
+)
+plot(
+  exchange_map,
+  main = "Exchange target: SCZ - HC thickness",
+  boundary_color = grDevices::adjustcolor("white", 0.55),
+  boundary_lwd = 0.25,
+  outline_lwd = 1.1
 )
 ```
 
-## Schaefer200 operator 的 bundle round trip
+如果接收方恢复后得到不同半球、不同边界或不同顶点数，即使颜色分布相似，也不能
+认为是同一结果。接下来分别处理图谱映射和影像文件。
 
-下面不是把一个 atlas 名称写进 JSON 就结束，而是交换完整 sparse
-operator、source/target support metadata 与 logical hash。读取后必须得到
-相同 operator identity。
+## Schaefer200 映射怎样完整交给合作者？
+
+仅写下“Schaefer200”还不够，因为同名图谱可能使用不同空间或顶点顺序。下面从
+当前 Conte69 表面建立面积加权映射，把稀疏矩阵和源、目标信息一起写成映射包
+（bundle），
+再读回来比较哈希与矩阵内容。
 
 ```{r support-bundle}
 schaefer200_map <- ngeo_atlas_map(
@@ -94,19 +115,36 @@ if (requireNamespace("jsonlite", quietly = TRUE)) {
 }
 ```
 
-```{r schaefer200-map, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上的 Schaefer200 support", fig.cap="bundle round trip 前后，Schaefer200 membership 与 cortical alignment 必须相同。"}
-ngeo_tutorial_plot_atlas(
-  vertex,
+摘要应显示 64,984 个源顶点和 200 个目标分区，`hash_preserved` 为真。哈希相同表示
+映射的逻辑内容没有变化；矩阵比较则进一步确认权重数值在写出—读回过程中保持
+一致。再把目标图谱画出来，检查其空间边界。
+
+```{r schaefer200-map, fig.width=10, fig.height=4.8, fig.alt="Schaefer200 分区显示在 Conte69 展开表面上", fig.cap="映射文件恢复后，每个顶点仍应属于同一个 Schaefer200 分区。"}
+exchange_atlas_map <- ngeo_cortical_map(
+  vertex$surface,
+  chart = "flat",
   atlas = "Schaefer200",
-  title = "Schaefer200 support"
+  fill = "atlas",
+  underlay = vertex$underlay,
+  underlay_palette = "Grays",
+  overlay_alpha = 0.78,
+  palette = "Dynamic",
+  na_color = NA_character_
+)
+plot(
+  exchange_atlas_map,
+  main = "Schaefer200 support",
+  boundary_lwd = 0.35,
+  outline_lwd = 1.1,
+  show_legend = FALSE
 )
 ```
 
-## 对象 manifest 与 BIDS derivative 名称
+## 文件名和内容清单分别解决什么问题？
 
-对象 manifest 绑定 base、ordered elements、metadata 和 content identity；
-BIDS 名称则表达文件在 derivative dataset 中的位置。两者作用不同，应该
-一起使用。
+BIDS 名称告诉合作者文件属于哪个被试、空间和派生步骤；对象清单
+（manifest）则用哈希绑定有序元素、元数据和内容身份。一个便于找到文件，另一个
+用于确认找到的是预期对象。下面为顶点差值生成两者。
 
 ```{r manifest-and-name}
 effect_manifest <- ngeo_object_manifest(vertex$difference)
@@ -130,11 +168,15 @@ derivative_name
 ngeo_bids_parse_name(derivative_name)
 ```
 
-## CIFTI/GIFTI 输出边界
+解析结果应还原 `sub-group`、`space-fsLR` 和 `desc-SCZminusHC`。同时，清单验证通过
+表示当前对象仍与生成清单时一致。共享时最好同时保留规范文件名、清单和源文件
+说明，而不是把全部含义塞进一个很长的文件名。
 
-CIFTI writer 需要 grayordinate axis contract；GIFTI writer 需要 surface
-geometry 与 vertex-aligned arrays。写出接口不会自动注册两个被试，也不会
-把 DK、Schaefer 或 vertex supports 静默互换。
+## CIFTI 和 GIFTI 写出后，哪些部分需要逐项比较？
+
+CIFTI 按灰质坐标轴组织脑结构，GIFTI 则分别保存表面几何、顶点数据和标签。我们
+用小型真实格式样例各做一次回环：CIFTI 比较数值、元素顺序和图层顺序；GIFTI
+比较面片和顶点数值。
 
 ```{r format-writers}
 format_roundtrips <- list()
@@ -239,6 +281,10 @@ if (all(vapply(
 format_roundtrips
 ```
 
-一个可用的 exchange test 至少应同时核对 dimensions、ordered IDs、
-coordinate-space identity、operator hash 和 representative values；
-仅比较文件大小或对象 class 不足以证明 cortical alignment。
+两个摘要都应显示 `alignment_preserved = TRUE`。如果只比较文件大小，左右半球交换
+或顶点重排很可能不会被发现；如果只比较数值集合，空间错位同样可能漏过。
+
+因此，交付皮层结果前应根据内容作出检查选择：共享顶点图时比较坐标空间、有序顶点
+和代表性数值；共享图谱转换时再比较映射哈希与覆盖；共享派生文件时附上 BIDS 名称
+和对象清单。任何回环都不等于自动配准，输入影像之间的空间对应仍需在上游明确
+建立并验证。

@@ -2,7 +2,7 @@
 title: "Subject-level multilayer inference in 100 HC and 100 SCZ"
 outline: [2, 3]
 editLink: false
-sourceSha256: "7767810b2bc246993a33e4e238fedc5484c3961b4376cbbb94b28d2bfc9d43b5"
+sourceSha256: "9030afb1b60911d0ee967f41cdcbf3d2b8937ae4745f561be47e8b2c6d078748"
 ---
 
 > **Translation status:** This page does not yet have a reviewed Simplified Chinese translation; the source-language version is shown.
@@ -18,8 +18,31 @@ One subject is one independent sampling unit; 68 parcels and two
 modalities are repeated spatial measurements, not replication.
 
 ``` r
-ngeo_tutorial_plot_dk(dk$difference,
-                      title="Thickness: SCZ minus HC (mm)")
+thickness_values <- setNames(
+  ngeo_values(dk$difference)[, 1L],
+  ngeo_base_elements(dk$difference)$region_id
+)
+thickness_limit <- max(abs(thickness_values), na.rm=TRUE)
+thickness_map <- ngeo_cortical_map(
+  dk$surface,
+  values=thickness_values,
+  chart="flat",
+  atlas=dk$atlas,
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-thickness_limit, thickness_limit),
+  na_color=NA_character_,
+  atlas_coverage="auto"
+)
+plot(
+  thickness_map,
+  main="Thickness: SCZ minus HC (mm)",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
+)
 ```
 
 <div class="figure" style="text-align: center">
@@ -34,8 +57,32 @@ coupling inference.
 </div>
 
 ``` r
-ngeo_tutorial_plot_dk(multi$myelin_difference,
-                      title="Myelin proxy: SCZ minus HC (a.u.)")
+
+myelin_values <- setNames(
+  ngeo_values(multi$myelin_difference)[, 1L],
+  ngeo_base_elements(multi$myelin_difference)$region_id
+)
+myelin_limit <- max(abs(myelin_values), na.rm=TRUE)
+myelin_map <- ngeo_cortical_map(
+  dk$surface,
+  values=myelin_values,
+  chart="flat",
+  atlas=dk$atlas,
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-myelin_limit, myelin_limit),
+  na_color=NA_character_,
+  atlas_coverage="auto"
+)
+plot(
+  myelin_map,
+  main="Myelin proxy: SCZ minus HC (a.u.)",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
+)
 ```
 
 <div class="figure" style="text-align: center">
@@ -66,7 +113,7 @@ index
 #>   layers: 2
 #>   observations: 400
 #>   complete: TRUE
-#>   index hash: bfa164d4fb301c1f3bef2ec64affc6b5ca72dffea9cf62bdfb73a7e6c30fbeb3
+#>   index hash: e6072dd1c501b22171dda1dd9d8ae608c8f8b6feaac58587dea0c4e0775e4d6f
 ```
 
 There are 68 rows and 400 layers: two aligned maps for each of 200
@@ -91,40 +138,40 @@ dim(features$values)
 #> [1] 200  69
 features$values[1:6, 1:6, drop=FALSE]
 #>         same_location::thickness::myelin::none::whole_base::all
-#> sub-001                                               0.7581317
-#> sub-002                                               0.8361214
-#> sub-003                                               0.8436612
-#> sub-004                                               0.8415511
-#> sub-005                                               0.8327421
-#> sub-006                                               0.8619936
+#> sub-001                                               0.7461137
+#> sub-002                                               0.8171695
+#> sub-003                                               0.8716993
+#> sub-004                                               0.8502657
+#> sub-005                                               0.8239913
+#> sub-006                                               0.8740804
 #>         band_energy_x::thickness::myelin::none::component_001::low_rank
-#> sub-001                                                      0.17321496
-#> sub-002                                                      0.11735904
-#> sub-003                                                      0.06609750
-#> sub-004                                                      0.10279415
-#> sub-005                                                      0.09753059
-#> sub-006                                                      0.14331719
+#> sub-001                                                      0.10724094
+#> sub-002                                                      0.05188418
+#> sub-003                                                      0.03525282
+#> sub-004                                                      0.05095546
+#> sub-005                                                      0.09929737
+#> sub-006                                                      0.07825277
 #>         band_energy_y::thickness::myelin::none::component_001::low_rank
-#> sub-001                                                       0.3697504
-#> sub-002                                                       0.2175661
-#> sub-003                                                       0.2955266
-#> sub-004                                                       0.3052670
-#> sub-005                                                       0.2474375
-#> sub-006                                                       0.2771118
+#> sub-001                                                       0.0930335
+#> sub-002                                                       0.1941668
+#> sub-003                                                       0.1415373
+#> sub-004                                                       0.1605296
+#> sub-005                                                       0.1513407
+#> sub-006                                                       0.1691022
 #>         spectral_cross_energy::thickness::myelin::none::component_001::low_rank
-#> sub-001                                                               0.2072772
-#> sub-002                                                               0.1517883
-#> sub-003                                                               0.1186216
-#> sub-004                                                               0.1634415
-#> sub-005                                                               0.1479111
-#> sub-006                                                               0.1863450
+#> sub-001                                                              0.08185055
+#> sub-002                                                              0.07768153
+#> sub-003                                                              0.05690657
+#> sub-004                                                              0.08000201
+#> sub-005                                                              0.11322890
+#> sub-006                                                              0.11051024
 #>         spectral_coupling::thickness::myelin::none::component_001::low_rank
-#> sub-001                                                           0.8190388
-#> sub-002                                                           0.9499143
-#> sub-003                                                           0.8487370
-#> sub-004                                                           0.9226529
-#> sub-005                                                           0.9521327
-#> sub-006                                                           0.9350635
+#> sub-001                                                           0.8194484
+#> sub-002                                                           0.7739498
+#> sub-003                                                           0.8056197
+#> sub-004                                                           0.8845612
+#> sub-005                                                           0.9236566
+#> sub-006                                                           0.9606783
 #>         retained_variance_x::thickness::myelin::none::component_001::low_rank
 #> sub-001                                                                     1
 #> sub-002                                                                     1
@@ -302,289 +349,289 @@ result$tests[, c(
 #> retained_variance::myelin::none::none::component_002::retained            retained
 #> residual_energy::myelin::none::none::component_002::retained              retained
 #>                                                                            coefficient
-#> same_location::thickness::myelin::none::whole_base::all                  -1.712284e-01
-#> band_energy_x::thickness::myelin::none::component_001::low_rank           6.789404e-03
-#> band_energy_y::thickness::myelin::none::component_001::low_rank          -7.974139e-02
-#> spectral_cross_energy::thickness::myelin::none::component_001::low_rank  -2.502451e-02
-#> spectral_coupling::thickness::myelin::none::component_001::low_rank      -1.752193e-01
-#> retained_variance_x::thickness::myelin::none::component_001::low_rank     4.026929e-16
-#> retained_variance_y::thickness::myelin::none::component_001::low_rank     4.337069e-16
-#> band_energy_x::thickness::myelin::none::component_001::mid_rank          -2.293473e-03
-#> band_energy_y::thickness::myelin::none::component_001::mid_rank          -1.968010e-02
-#> spectral_cross_energy::thickness::myelin::none::component_001::mid_rank  -1.496885e-02
-#> spectral_coupling::thickness::myelin::none::component_001::mid_rank      -2.546908e-01
-#> retained_variance_x::thickness::myelin::none::component_001::mid_rank     4.026929e-16
-#> retained_variance_y::thickness::myelin::none::component_001::mid_rank     4.337069e-16
-#> band_energy_x::thickness::myelin::none::component_001::high_rank         -1.452173e-03
-#> band_energy_y::thickness::myelin::none::component_001::high_rank         -1.384606e-02
-#> spectral_cross_energy::thickness::myelin::none::component_001::high_rank -1.141279e-02
-#> spectral_coupling::thickness::myelin::none::component_001::high_rank     -2.171436e-01
-#> retained_variance_x::thickness::myelin::none::component_001::high_rank    4.026929e-16
-#> retained_variance_y::thickness::myelin::none::component_001::high_rank    4.337069e-16
-#> absolute_energy::thickness::none::none::component_001::low_rank           6.789404e-03
-#> relative_energy::thickness::none::none::component_001::low_rank           2.813180e-02
-#> absolute_energy::thickness::none::none::component_001::mid_rank          -2.293473e-03
-#> relative_energy::thickness::none::none::component_001::mid_rank          -1.667651e-02
-#> absolute_energy::thickness::none::none::component_001::high_rank         -1.452173e-03
-#> relative_energy::thickness::none::none::component_001::high_rank         -1.145529e-02
-#> retained_variance::thickness::none::none::component_001::retained         4.026929e-16
-#> residual_energy::thickness::none::none::component_001::retained           8.195667e-19
-#> absolute_energy::myelin::none::none::component_001::low_rank             -7.974139e-02
-#> relative_energy::myelin::none::none::component_001::low_rank             -1.734337e-02
-#> absolute_energy::myelin::none::none::component_001::mid_rank             -1.968010e-02
-#> relative_energy::myelin::none::none::component_001::mid_rank             -4.396882e-04
-#> absolute_energy::myelin::none::none::component_001::high_rank            -1.384606e-02
-#> relative_energy::myelin::none::none::component_001::high_rank             1.778306e-02
-#> retained_variance::myelin::none::none::component_001::retained            4.337069e-16
-#> residual_energy::myelin::none::none::component_001::retained             -2.657090e-18
-#> band_energy_x::thickness::myelin::none::component_002::low_rank          -4.826282e-03
-#> band_energy_y::thickness::myelin::none::component_002::low_rank          -8.845102e-02
-#> spectral_cross_energy::thickness::myelin::none::component_002::low_rank  -3.542579e-02
-#> spectral_coupling::thickness::myelin::none::component_002::low_rank      -1.932329e-01
-#> retained_variance_x::thickness::myelin::none::component_002::low_rank     4.181574e-16
-#> retained_variance_y::thickness::myelin::none::component_002::low_rank     1.777439e-16
-#> band_energy_x::thickness::myelin::none::component_002::mid_rank           1.300805e-03
-#> band_energy_y::thickness::myelin::none::component_002::mid_rank          -1.465591e-02
-#> spectral_cross_energy::thickness::myelin::none::component_002::mid_rank  -7.442833e-03
-#> spectral_coupling::thickness::myelin::none::component_002::mid_rank      -1.526334e-01
-#> retained_variance_x::thickness::myelin::none::component_002::mid_rank     4.181574e-16
-#> retained_variance_y::thickness::myelin::none::component_002::mid_rank     1.777439e-16
-#> band_energy_x::thickness::myelin::none::component_002::high_rank         -9.474543e-04
-#> band_energy_y::thickness::myelin::none::component_002::high_rank         -1.808352e-02
-#> spectral_cross_energy::thickness::myelin::none::component_002::high_rank -1.138419e-02
-#> spectral_coupling::thickness::myelin::none::component_002::high_rank     -1.970272e-01
-#> retained_variance_x::thickness::myelin::none::component_002::high_rank    4.181574e-16
-#> retained_variance_y::thickness::myelin::none::component_002::high_rank    1.777439e-16
-#> absolute_energy::thickness::none::none::component_002::low_rank          -4.826282e-03
-#> relative_energy::thickness::none::none::component_002::low_rank          -1.048412e-02
-#> absolute_energy::thickness::none::none::component_002::mid_rank           1.300805e-03
-#> relative_energy::thickness::none::none::component_002::mid_rank           1.286863e-02
-#> absolute_energy::thickness::none::none::component_002::high_rank         -9.474543e-04
-#> relative_energy::thickness::none::none::component_002::high_rank         -2.384515e-03
-#> retained_variance::thickness::none::none::component_002::retained         4.181574e-16
-#> residual_energy::thickness::none::none::component_002::retained          -1.046244e-17
-#> absolute_energy::myelin::none::none::component_002::low_rank             -8.845102e-02
-#> relative_energy::myelin::none::none::component_002::low_rank             -2.326506e-02
-#> absolute_energy::myelin::none::none::component_002::mid_rank             -1.465591e-02
-#> relative_energy::myelin::none::none::component_002::mid_rank              1.249800e-02
-#> absolute_energy::myelin::none::none::component_002::high_rank            -1.808352e-02
-#> relative_energy::myelin::none::none::component_002::high_rank             1.076706e-02
-#> retained_variance::myelin::none::none::component_002::retained            1.777439e-16
-#> residual_energy::myelin::none::none::component_002::retained             -2.593391e-18
+#> same_location::thickness::myelin::none::whole_base::all                  -3.483872e-01
+#> band_energy_x::thickness::myelin::none::component_001::low_rank           7.911903e-02
+#> band_energy_y::thickness::myelin::none::component_001::low_rank          -4.595830e-02
+#> spectral_cross_energy::thickness::myelin::none::component_001::low_rank  -2.053207e-03
+#> spectral_coupling::thickness::myelin::none::component_001::low_rank      -4.643852e-01
+#> retained_variance_x::thickness::myelin::none::component_001::low_rank     3.297805e-16
+#> retained_variance_y::thickness::myelin::none::component_001::low_rank     3.935090e-16
+#> band_energy_x::thickness::myelin::none::component_001::mid_rank          -4.192498e-03
+#> band_energy_y::thickness::myelin::none::component_001::mid_rank          -3.821971e-02
+#> spectral_cross_energy::thickness::myelin::none::component_001::mid_rank  -2.776312e-02
+#> spectral_coupling::thickness::myelin::none::component_001::mid_rank      -3.656456e-01
+#> retained_variance_x::thickness::myelin::none::component_001::mid_rank     3.297805e-16
+#> retained_variance_y::thickness::myelin::none::component_001::mid_rank     3.935090e-16
+#> band_energy_x::thickness::myelin::none::component_001::high_rank          1.179336e-02
+#> band_energy_y::thickness::myelin::none::component_001::high_rank         -4.331710e-02
+#> spectral_cross_energy::thickness::myelin::none::component_001::high_rank -1.406494e-02
+#> spectral_coupling::thickness::myelin::none::component_001::high_rank     -1.889127e-01
+#> retained_variance_x::thickness::myelin::none::component_001::high_rank    3.297805e-16
+#> retained_variance_y::thickness::myelin::none::component_001::high_rank    3.935090e-16
+#> absolute_energy::thickness::none::none::component_001::low_rank           7.911903e-02
+#> relative_energy::thickness::none::none::component_001::low_rank           1.601657e-01
+#> absolute_energy::thickness::none::none::component_001::mid_rank          -4.192498e-03
+#> relative_energy::thickness::none::none::component_001::mid_rank          -1.025381e-01
+#> absolute_energy::thickness::none::none::component_001::high_rank          1.179336e-02
+#> relative_energy::thickness::none::none::component_001::high_rank         -5.762757e-02
+#> retained_variance::thickness::none::none::component_001::retained         3.297805e-16
+#> residual_energy::thickness::none::none::component_001::retained          -1.843163e-17
+#> absolute_energy::myelin::none::none::component_001::low_rank             -4.595830e-02
+#> relative_energy::myelin::none::none::component_001::low_rank             -2.060818e-02
+#> absolute_energy::myelin::none::none::component_001::mid_rank             -3.821971e-02
+#> relative_energy::myelin::none::none::component_001::mid_rank              1.176157e-02
+#> absolute_energy::myelin::none::none::component_001::high_rank            -4.331710e-02
+#> relative_energy::myelin::none::none::component_001::high_rank             8.846612e-03
+#> retained_variance::myelin::none::none::component_001::retained            3.935090e-16
+#> residual_energy::myelin::none::none::component_001::retained             -3.650621e-18
+#> band_energy_x::thickness::myelin::none::component_002::low_rank           5.732228e-02
+#> band_energy_y::thickness::myelin::none::component_002::low_rank          -5.487609e-02
+#> spectral_cross_energy::thickness::myelin::none::component_002::low_rank  -1.933690e-02
+#> spectral_coupling::thickness::myelin::none::component_002::low_rank      -5.790350e-01
+#> retained_variance_x::thickness::myelin::none::component_002::low_rank    -1.854331e-15
+#> retained_variance_y::thickness::myelin::none::component_002::low_rank    -4.864842e-16
+#> band_energy_x::thickness::myelin::none::component_002::mid_rank           4.086086e-03
+#> band_energy_y::thickness::myelin::none::component_002::mid_rank          -3.123685e-02
+#> spectral_cross_energy::thickness::myelin::none::component_002::mid_rank  -1.473460e-02
+#> spectral_coupling::thickness::myelin::none::component_002::mid_rank      -1.997431e-01
+#> retained_variance_x::thickness::myelin::none::component_002::mid_rank    -1.854331e-15
+#> retained_variance_y::thickness::myelin::none::component_002::mid_rank    -4.864842e-16
+#> band_energy_x::thickness::myelin::none::component_002::high_rank          2.802990e-03
+#> band_energy_y::thickness::myelin::none::component_002::high_rank         -5.116500e-02
+#> spectral_cross_energy::thickness::myelin::none::component_002::high_rank -2.471686e-02
+#> spectral_coupling::thickness::myelin::none::component_002::high_rank     -2.720141e-01
+#> retained_variance_x::thickness::myelin::none::component_002::high_rank   -1.854331e-15
+#> retained_variance_y::thickness::myelin::none::component_002::high_rank   -4.864842e-16
+#> absolute_energy::thickness::none::none::component_002::low_rank           5.732228e-02
+#> relative_energy::thickness::none::none::component_002::low_rank           1.194350e-01
+#> absolute_energy::thickness::none::none::component_002::mid_rank           4.086086e-03
+#> relative_energy::thickness::none::none::component_002::mid_rank          -5.052101e-02
+#> absolute_energy::thickness::none::none::component_002::high_rank          2.802990e-03
+#> relative_energy::thickness::none::none::component_002::high_rank         -6.891398e-02
+#> retained_variance::thickness::none::none::component_002::retained        -1.854331e-15
+#> residual_energy::thickness::none::none::component_002::retained           3.227213e-16
+#> absolute_energy::myelin::none::none::component_002::low_rank             -5.487609e-02
+#> relative_energy::myelin::none::none::component_002::low_rank             -1.998008e-02
+#> absolute_energy::myelin::none::none::component_002::mid_rank             -3.123685e-02
+#> relative_energy::myelin::none::none::component_002::mid_rank              2.302782e-02
+#> absolute_energy::myelin::none::none::component_002::high_rank            -5.116500e-02
+#> relative_energy::myelin::none::none::component_002::high_rank            -3.047746e-03
+#> retained_variance::myelin::none::none::component_002::retained           -4.864842e-16
+#> residual_energy::myelin::none::none::component_002::retained              7.701050e-17
 #>                                                                            partial_r2
-#> same_location::thickness::myelin::none::whole_base::all                  4.153978e-01
-#> band_energy_x::thickness::myelin::none::component_001::low_rank          7.092988e-03
-#> band_energy_y::thickness::myelin::none::component_001::low_rank          3.521419e-01
-#> spectral_cross_energy::thickness::myelin::none::component_001::low_rank  8.400691e-02
-#> spectral_coupling::thickness::myelin::none::component_001::low_rank      7.351916e-02
-#> retained_variance_x::thickness::myelin::none::component_001::low_rank    5.065950e-03
-#> retained_variance_y::thickness::myelin::none::component_001::low_rank    3.987126e-03
-#> band_energy_x::thickness::myelin::none::component_001::mid_rank          3.297436e-03
-#> band_energy_y::thickness::myelin::none::component_001::mid_rank          1.295016e-01
-#> spectral_cross_energy::thickness::myelin::none::component_001::mid_rank  1.328803e-01
-#> spectral_coupling::thickness::myelin::none::component_001::mid_rank      1.478896e-01
-#> retained_variance_x::thickness::myelin::none::component_001::mid_rank    5.065950e-03
-#> retained_variance_y::thickness::myelin::none::component_001::mid_rank    3.987126e-03
-#> band_energy_x::thickness::myelin::none::component_001::high_rank         1.990539e-03
-#> band_energy_y::thickness::myelin::none::component_001::high_rank         7.152914e-02
-#> spectral_cross_energy::thickness::myelin::none::component_001::high_rank 9.961046e-02
-#> spectral_coupling::thickness::myelin::none::component_001::high_rank     1.142896e-01
-#> retained_variance_x::thickness::myelin::none::component_001::high_rank   5.065950e-03
-#> retained_variance_y::thickness::myelin::none::component_001::high_rank   3.987126e-03
-#> absolute_energy::thickness::none::none::component_001::low_rank          7.092988e-03
-#> relative_energy::thickness::none::none::component_001::low_rank          1.588836e-02
-#> absolute_energy::thickness::none::none::component_001::mid_rank          3.297436e-03
-#> relative_energy::thickness::none::none::component_001::mid_rank          7.882805e-03
-#> absolute_energy::thickness::none::none::component_001::high_rank         1.990539e-03
-#> relative_energy::thickness::none::none::component_001::high_rank         6.627515e-03
-#> retained_variance::thickness::none::none::component_001::retained        5.065950e-03
-#> residual_energy::thickness::none::none::component_001::retained          1.181376e-04
-#> absolute_energy::myelin::none::none::component_001::low_rank             3.521419e-01
-#> relative_energy::myelin::none::none::component_001::low_rank             1.397632e-02
-#> absolute_energy::myelin::none::none::component_001::mid_rank             1.295016e-01
-#> relative_energy::myelin::none::none::component_001::mid_rank             1.240132e-05
-#> absolute_energy::myelin::none::none::component_001::high_rank            7.152914e-02
-#> relative_energy::myelin::none::none::component_001::high_rank            2.458278e-02
-#> retained_variance::myelin::none::none::component_001::retained           3.987126e-03
-#> residual_energy::myelin::none::none::component_001::retained             9.051888e-03
-#> band_energy_x::thickness::myelin::none::component_002::low_rank          3.058815e-03
-#> band_energy_y::thickness::myelin::none::component_002::low_rank          4.141207e-01
-#> spectral_cross_energy::thickness::myelin::none::component_002::low_rank  1.372023e-01
-#> spectral_coupling::thickness::myelin::none::component_002::low_rank      7.469590e-02
-#> retained_variance_x::thickness::myelin::none::component_002::low_rank    9.740305e-03
-#> retained_variance_y::thickness::myelin::none::component_002::low_rank    2.489612e-03
-#> band_energy_x::thickness::myelin::none::component_002::mid_rank          1.209878e-03
-#> band_energy_y::thickness::myelin::none::component_002::mid_rank          1.128970e-01
-#> spectral_cross_energy::thickness::myelin::none::component_002::mid_rank  5.386861e-02
-#> spectral_coupling::thickness::myelin::none::component_002::mid_rank      6.431016e-02
-#> retained_variance_x::thickness::myelin::none::component_002::mid_rank    9.740305e-03
-#> retained_variance_y::thickness::myelin::none::component_002::mid_rank    2.489612e-03
-#> band_energy_x::thickness::myelin::none::component_002::high_rank         7.776114e-04
-#> band_energy_y::thickness::myelin::none::component_002::high_rank         1.221932e-01
-#> spectral_cross_energy::thickness::myelin::none::component_002::high_rank 1.065726e-01
-#> spectral_coupling::thickness::myelin::none::component_002::high_rank     1.131727e-01
-#> retained_variance_x::thickness::myelin::none::component_002::high_rank   9.740305e-03
-#> retained_variance_y::thickness::myelin::none::component_002::high_rank   2.489612e-03
-#> absolute_energy::thickness::none::none::component_002::low_rank          3.058815e-03
-#> relative_energy::thickness::none::none::component_002::low_rank          2.519725e-03
-#> absolute_energy::thickness::none::none::component_002::mid_rank          1.209878e-03
-#> relative_energy::thickness::none::none::component_002::mid_rank          6.683944e-03
-#> absolute_energy::thickness::none::none::component_002::high_rank         7.776114e-04
-#> relative_energy::thickness::none::none::component_002::high_rank         2.049978e-04
-#> retained_variance::thickness::none::none::component_002::retained        9.740305e-03
-#> residual_energy::thickness::none::none::component_002::retained          3.461489e-03
-#> absolute_energy::myelin::none::none::component_002::low_rank             4.141207e-01
-#> relative_energy::myelin::none::none::component_002::low_rank             2.963264e-02
-#> absolute_energy::myelin::none::none::component_002::mid_rank             1.128970e-01
-#> relative_energy::myelin::none::none::component_002::mid_rank             1.789017e-02
-#> absolute_energy::myelin::none::none::component_002::high_rank            1.221932e-01
-#> relative_energy::myelin::none::none::component_002::high_rank            1.017519e-02
-#> retained_variance::myelin::none::none::component_002::retained           2.489612e-03
-#> residual_energy::myelin::none::none::component_002::retained             8.412822e-05
+#> same_location::thickness::myelin::none::whole_base::all                  0.7480944931
+#> band_energy_x::thickness::myelin::none::component_001::low_rank          0.4853945324
+#> band_energy_y::thickness::myelin::none::component_001::low_rank          0.3160240738
+#> spectral_cross_energy::thickness::myelin::none::component_001::low_rank  0.0012000430
+#> spectral_coupling::thickness::myelin::none::component_001::low_rank      0.3355753196
+#> retained_variance_x::thickness::myelin::none::component_001::low_rank    0.0062266333
+#> retained_variance_y::thickness::myelin::none::component_001::low_rank    0.0068109948
+#> band_energy_x::thickness::myelin::none::component_001::mid_rank          0.0091272839
+#> band_energy_y::thickness::myelin::none::component_001::mid_rank          0.2234725002
+#> spectral_cross_energy::thickness::myelin::none::component_001::mid_rank  0.2700646899
+#> spectral_coupling::thickness::myelin::none::component_001::mid_rank      0.3147911604
+#> retained_variance_x::thickness::myelin::none::component_001::mid_rank    0.0062266333
+#> retained_variance_y::thickness::myelin::none::component_001::mid_rank    0.0068109948
+#> band_energy_x::thickness::myelin::none::component_001::high_rank         0.0540587426
+#> band_energy_y::thickness::myelin::none::component_001::high_rank         0.2974439449
+#> spectral_cross_energy::thickness::myelin::none::component_001::high_rank 0.0849706410
+#> spectral_coupling::thickness::myelin::none::component_001::high_rank     0.1304003728
+#> retained_variance_x::thickness::myelin::none::component_001::high_rank   0.0062266333
+#> retained_variance_y::thickness::myelin::none::component_001::high_rank   0.0068109948
+#> absolute_energy::thickness::none::none::component_001::low_rank          0.4853945324
+#> relative_energy::thickness::none::none::component_001::low_rank          0.3823453726
+#> absolute_energy::thickness::none::none::component_001::mid_rank          0.0091272839
+#> relative_energy::thickness::none::none::component_001::mid_rank          0.3110090780
+#> absolute_energy::thickness::none::none::component_001::high_rank         0.0540587426
+#> relative_energy::thickness::none::none::component_001::high_rank         0.0985276621
+#> retained_variance::thickness::none::none::component_001::retained        0.0062266333
+#> residual_energy::thickness::none::none::component_001::retained          0.0267022687
+#> absolute_energy::myelin::none::none::component_001::low_rank             0.3160240738
+#> relative_energy::myelin::none::none::component_001::low_rank             0.0213352844
+#> absolute_energy::myelin::none::none::component_001::mid_rank             0.2234725002
+#> relative_energy::myelin::none::none::component_001::mid_rank             0.0063455692
+#> absolute_energy::myelin::none::none::component_001::high_rank            0.2974439449
+#> relative_energy::myelin::none::none::component_001::high_rank            0.0038120512
+#> retained_variance::myelin::none::none::component_001::retained           0.0068109948
+#> residual_energy::myelin::none::none::component_001::retained             0.0045510680
+#> band_energy_x::thickness::myelin::none::component_002::low_rank          0.3356391734
+#> band_energy_y::thickness::myelin::none::component_002::low_rank          0.3095498507
+#> spectral_cross_energy::thickness::myelin::none::component_002::low_rank  0.0815365376
+#> spectral_coupling::thickness::myelin::none::component_002::low_rank      0.4901796951
+#> retained_variance_x::thickness::myelin::none::component_002::low_rank    0.1549630719
+#> retained_variance_y::thickness::myelin::none::component_002::low_rank    0.0103112208
+#> band_energy_x::thickness::myelin::none::component_002::mid_rank          0.0073177801
+#> band_energy_y::thickness::myelin::none::component_002::mid_rank          0.1790962712
+#> spectral_cross_energy::thickness::myelin::none::component_002::mid_rank  0.0888282973
+#> spectral_coupling::thickness::myelin::none::component_002::mid_rank      0.1109167398
+#> retained_variance_x::thickness::myelin::none::component_002::mid_rank    0.1549630719
+#> retained_variance_y::thickness::myelin::none::component_002::mid_rank    0.0103112208
+#> band_energy_x::thickness::myelin::none::component_002::high_rank         0.0029797878
+#> band_energy_y::thickness::myelin::none::component_002::high_rank         0.3209833894
+#> spectral_cross_energy::thickness::myelin::none::component_002::high_rank 0.1653242337
+#> spectral_coupling::thickness::myelin::none::component_002::high_rank     0.2242602288
+#> retained_variance_x::thickness::myelin::none::component_002::high_rank   0.1549630719
+#> retained_variance_y::thickness::myelin::none::component_002::high_rank   0.0103112208
+#> absolute_energy::thickness::none::none::component_002::low_rank          0.3356391734
+#> relative_energy::thickness::none::none::component_002::low_rank          0.2282556478
+#> absolute_energy::thickness::none::none::component_002::mid_rank          0.0073177801
+#> relative_energy::thickness::none::none::component_002::mid_rank          0.0788990622
+#> absolute_energy::thickness::none::none::component_002::high_rank         0.0029797878
+#> relative_energy::thickness::none::none::component_002::high_rank         0.1157074549
+#> retained_variance::thickness::none::none::component_002::retained        0.1549630719
+#> residual_energy::thickness::none::none::component_002::retained          0.1878433258
+#> absolute_energy::myelin::none::none::component_002::low_rank             0.3095498507
+#> relative_energy::myelin::none::none::component_002::low_rank             0.0147890307
+#> absolute_energy::myelin::none::none::component_002::mid_rank             0.1790962712
+#> relative_energy::myelin::none::none::component_002::mid_rank             0.0306656262
+#> absolute_energy::myelin::none::none::component_002::high_rank            0.3209833894
+#> relative_energy::myelin::none::none::component_002::high_rank            0.0004494123
+#> retained_variance::myelin::none::none::component_002::retained           0.0103112208
+#> residual_energy::myelin::none::none::component_002::retained             0.0079652248
 #>                                                                          p_raw
 #> same_location::thickness::myelin::none::whole_base::all                  0.005
-#> band_energy_x::thickness::myelin::none::component_001::low_rank          0.265
+#> band_energy_x::thickness::myelin::none::component_001::low_rank          0.005
 #> band_energy_y::thickness::myelin::none::component_001::low_rank          0.005
-#> spectral_cross_energy::thickness::myelin::none::component_001::low_rank  0.005
+#> spectral_cross_energy::thickness::myelin::none::component_001::low_rank  0.605
 #> spectral_coupling::thickness::myelin::none::component_001::low_rank      0.005
-#> retained_variance_x::thickness::myelin::none::component_001::low_rank    0.430
-#> retained_variance_y::thickness::myelin::none::component_001::low_rank    0.520
-#> band_energy_x::thickness::myelin::none::component_001::mid_rank          0.395
+#> retained_variance_x::thickness::myelin::none::component_001::low_rank    0.310
+#> retained_variance_y::thickness::myelin::none::component_001::low_rank    0.270
+#> band_energy_x::thickness::myelin::none::component_001::mid_rank          0.165
 #> band_energy_y::thickness::myelin::none::component_001::mid_rank          0.005
 #> spectral_cross_energy::thickness::myelin::none::component_001::mid_rank  0.005
 #> spectral_coupling::thickness::myelin::none::component_001::mid_rank      0.005
-#> retained_variance_x::thickness::myelin::none::component_001::mid_rank    0.430
-#> retained_variance_y::thickness::myelin::none::component_001::mid_rank    0.520
-#> band_energy_x::thickness::myelin::none::component_001::high_rank         0.595
+#> retained_variance_x::thickness::myelin::none::component_001::mid_rank    0.310
+#> retained_variance_y::thickness::myelin::none::component_001::mid_rank    0.270
+#> band_energy_x::thickness::myelin::none::component_001::high_rank         0.005
 #> band_energy_y::thickness::myelin::none::component_001::high_rank         0.005
 #> spectral_cross_energy::thickness::myelin::none::component_001::high_rank 0.005
 #> spectral_coupling::thickness::myelin::none::component_001::high_rank     0.005
-#> retained_variance_x::thickness::myelin::none::component_001::high_rank   0.430
-#> retained_variance_y::thickness::myelin::none::component_001::high_rank   0.520
-#> absolute_energy::thickness::none::none::component_001::low_rank          0.265
-#> relative_energy::thickness::none::none::component_001::low_rank          0.095
-#> absolute_energy::thickness::none::none::component_001::mid_rank          0.395
-#> relative_energy::thickness::none::none::component_001::mid_rank          0.200
-#> absolute_energy::thickness::none::none::component_001::high_rank         0.595
-#> relative_energy::thickness::none::none::component_001::high_rank         0.310
-#> retained_variance::thickness::none::none::component_001::retained        0.430
-#> residual_energy::thickness::none::none::component_001::retained          0.885
+#> retained_variance_x::thickness::myelin::none::component_001::high_rank   0.310
+#> retained_variance_y::thickness::myelin::none::component_001::high_rank   0.270
+#> absolute_energy::thickness::none::none::component_001::low_rank          0.005
+#> relative_energy::thickness::none::none::component_001::low_rank          0.005
+#> absolute_energy::thickness::none::none::component_001::mid_rank          0.165
+#> relative_energy::thickness::none::none::component_001::mid_rank          0.005
+#> absolute_energy::thickness::none::none::component_001::high_rank         0.005
+#> relative_energy::thickness::none::none::component_001::high_rank         0.005
+#> retained_variance::thickness::none::none::component_001::retained        0.310
+#> residual_energy::thickness::none::none::component_001::retained          0.025
 #> absolute_energy::myelin::none::none::component_001::low_rank             0.005
-#> relative_energy::myelin::none::none::component_001::low_rank             0.115
+#> relative_energy::myelin::none::none::component_001::low_rank             0.045
 #> absolute_energy::myelin::none::none::component_001::mid_rank             0.005
-#> relative_energy::myelin::none::none::component_001::mid_rank             0.975
+#> relative_energy::myelin::none::none::component_001::mid_rank             0.210
 #> absolute_energy::myelin::none::none::component_001::high_rank            0.005
-#> relative_energy::myelin::none::none::component_001::high_rank            0.025
-#> retained_variance::myelin::none::none::component_001::retained           0.520
-#> residual_energy::myelin::none::none::component_001::retained             0.245
-#> band_energy_x::thickness::myelin::none::component_002::low_rank          0.500
+#> relative_energy::myelin::none::none::component_001::high_rank            0.360
+#> retained_variance::myelin::none::none::component_001::retained           0.270
+#> residual_energy::myelin::none::none::component_001::retained             0.365
+#> band_energy_x::thickness::myelin::none::component_002::low_rank          0.005
 #> band_energy_y::thickness::myelin::none::component_002::low_rank          0.005
 #> spectral_cross_energy::thickness::myelin::none::component_002::low_rank  0.005
 #> spectral_coupling::thickness::myelin::none::component_002::low_rank      0.005
-#> retained_variance_x::thickness::myelin::none::component_002::low_rank    0.160
-#> retained_variance_y::thickness::myelin::none::component_002::low_rank    0.620
-#> band_energy_x::thickness::myelin::none::component_002::mid_rank          0.645
+#> retained_variance_x::thickness::myelin::none::component_002::low_rank    0.005
+#> retained_variance_y::thickness::myelin::none::component_002::low_rank    0.110
+#> band_energy_x::thickness::myelin::none::component_002::mid_rank          0.255
 #> band_energy_y::thickness::myelin::none::component_002::mid_rank          0.005
-#> spectral_cross_energy::thickness::myelin::none::component_002::mid_rank  0.010
+#> spectral_cross_energy::thickness::myelin::none::component_002::mid_rank  0.005
 #> spectral_coupling::thickness::myelin::none::component_002::mid_rank      0.005
-#> retained_variance_x::thickness::myelin::none::component_002::mid_rank    0.160
-#> retained_variance_y::thickness::myelin::none::component_002::mid_rank    0.620
-#> band_energy_x::thickness::myelin::none::component_002::high_rank         0.700
+#> retained_variance_x::thickness::myelin::none::component_002::mid_rank    0.005
+#> retained_variance_y::thickness::myelin::none::component_002::mid_rank    0.110
+#> band_energy_x::thickness::myelin::none::component_002::high_rank         0.440
 #> band_energy_y::thickness::myelin::none::component_002::high_rank         0.005
 #> spectral_cross_energy::thickness::myelin::none::component_002::high_rank 0.005
 #> spectral_coupling::thickness::myelin::none::component_002::high_rank     0.005
-#> retained_variance_x::thickness::myelin::none::component_002::high_rank   0.160
-#> retained_variance_y::thickness::myelin::none::component_002::high_rank   0.620
-#> absolute_energy::thickness::none::none::component_002::low_rank          0.500
-#> relative_energy::thickness::none::none::component_002::low_rank          0.565
-#> absolute_energy::thickness::none::none::component_002::mid_rank          0.645
-#> relative_energy::thickness::none::none::component_002::mid_rank          0.320
-#> absolute_energy::thickness::none::none::component_002::high_rank         0.700
-#> relative_energy::thickness::none::none::component_002::high_rank         0.840
-#> retained_variance::thickness::none::none::component_002::retained        0.160
-#> residual_energy::thickness::none::none::component_002::retained          0.385
+#> retained_variance_x::thickness::myelin::none::component_002::high_rank   0.005
+#> retained_variance_y::thickness::myelin::none::component_002::high_rank   0.110
+#> absolute_energy::thickness::none::none::component_002::low_rank          0.005
+#> relative_energy::thickness::none::none::component_002::low_rank          0.005
+#> absolute_energy::thickness::none::none::component_002::mid_rank          0.255
+#> relative_energy::thickness::none::none::component_002::mid_rank          0.005
+#> absolute_energy::thickness::none::none::component_002::high_rank         0.440
+#> relative_energy::thickness::none::none::component_002::high_rank         0.005
+#> retained_variance::thickness::none::none::component_002::retained        0.005
+#> residual_energy::thickness::none::none::component_002::retained          0.005
 #> absolute_energy::myelin::none::none::component_002::low_rank             0.005
-#> relative_energy::myelin::none::none::component_002::low_rank             0.015
+#> relative_energy::myelin::none::none::component_002::low_rank             0.085
 #> absolute_energy::myelin::none::none::component_002::mid_rank             0.005
-#> relative_energy::myelin::none::none::component_002::mid_rank             0.055
+#> relative_energy::myelin::none::none::component_002::mid_rank             0.015
 #> absolute_energy::myelin::none::none::component_002::high_rank            0.005
-#> relative_energy::myelin::none::none::component_002::high_rank            0.195
-#> retained_variance::myelin::none::none::component_002::retained           0.620
-#> residual_energy::myelin::none::none::component_002::retained             0.910
+#> relative_energy::myelin::none::none::component_002::high_rank            0.780
+#> retained_variance::myelin::none::none::component_002::retained           0.110
+#> residual_energy::myelin::none::none::component_002::retained             0.155
 #>                                                                          p_maxT
 #> same_location::thickness::myelin::none::whole_base::all                   0.005
-#> band_energy_x::thickness::myelin::none::component_001::low_rank           1.000
+#> band_energy_x::thickness::myelin::none::component_001::low_rank           0.005
 #> band_energy_y::thickness::myelin::none::component_001::low_rank           0.005
-#> spectral_cross_energy::thickness::myelin::none::component_001::low_rank   0.005
-#> spectral_coupling::thickness::myelin::none::component_001::low_rank       0.010
+#> spectral_cross_energy::thickness::myelin::none::component_001::low_rank   1.000
+#> spectral_coupling::thickness::myelin::none::component_001::low_rank       0.005
 #> retained_variance_x::thickness::myelin::none::component_001::low_rank     1.000
 #> retained_variance_y::thickness::myelin::none::component_001::low_rank     1.000
-#> band_energy_x::thickness::myelin::none::component_001::mid_rank           1.000
+#> band_energy_x::thickness::myelin::none::component_001::mid_rank           0.995
 #> band_energy_y::thickness::myelin::none::component_001::mid_rank           0.005
 #> spectral_cross_energy::thickness::myelin::none::component_001::mid_rank   0.005
 #> spectral_coupling::thickness::myelin::none::component_001::mid_rank       0.005
 #> retained_variance_x::thickness::myelin::none::component_001::mid_rank     1.000
 #> retained_variance_y::thickness::myelin::none::component_001::mid_rank     1.000
-#> band_energy_x::thickness::myelin::none::component_001::high_rank          1.000
-#> band_energy_y::thickness::myelin::none::component_001::high_rank          0.010
+#> band_energy_x::thickness::myelin::none::component_001::high_rank          0.020
+#> band_energy_y::thickness::myelin::none::component_001::high_rank          0.005
 #> spectral_cross_energy::thickness::myelin::none::component_001::high_rank  0.005
 #> spectral_coupling::thickness::myelin::none::component_001::high_rank      0.005
 #> retained_variance_x::thickness::myelin::none::component_001::high_rank    1.000
 #> retained_variance_y::thickness::myelin::none::component_001::high_rank    1.000
-#> absolute_energy::thickness::none::none::component_001::low_rank           1.000
-#> relative_energy::thickness::none::none::component_001::low_rank           0.890
-#> absolute_energy::thickness::none::none::component_001::mid_rank           1.000
-#> relative_energy::thickness::none::none::component_001::mid_rank           1.000
-#> absolute_energy::thickness::none::none::component_001::high_rank          1.000
-#> relative_energy::thickness::none::none::component_001::high_rank          1.000
+#> absolute_energy::thickness::none::none::component_001::low_rank           0.005
+#> relative_energy::thickness::none::none::component_001::low_rank           0.005
+#> absolute_energy::thickness::none::none::component_001::mid_rank           0.995
+#> relative_energy::thickness::none::none::component_001::mid_rank           0.005
+#> absolute_energy::thickness::none::none::component_001::high_rank          0.020
+#> relative_energy::thickness::none::none::component_001::high_rank          0.005
 #> retained_variance::thickness::none::none::component_001::retained         1.000
-#> residual_energy::thickness::none::none::component_001::retained           1.000
+#> residual_energy::thickness::none::none::component_001::retained           0.465
 #> absolute_energy::myelin::none::none::component_001::low_rank              0.005
-#> relative_energy::myelin::none::none::component_001::low_rank              0.955
+#> relative_energy::myelin::none::none::component_001::low_rank              0.665
 #> absolute_energy::myelin::none::none::component_001::mid_rank              0.005
 #> relative_energy::myelin::none::none::component_001::mid_rank              1.000
-#> absolute_energy::myelin::none::none::component_001::high_rank             0.010
-#> relative_energy::myelin::none::none::component_001::high_rank             0.555
+#> absolute_energy::myelin::none::none::component_001::high_rank             0.005
+#> relative_energy::myelin::none::none::component_001::high_rank             1.000
 #> retained_variance::myelin::none::none::component_001::retained            1.000
 #> residual_energy::myelin::none::none::component_001::retained              1.000
-#> band_energy_x::thickness::myelin::none::component_002::low_rank           1.000
+#> band_energy_x::thickness::myelin::none::component_002::low_rank           0.005
 #> band_energy_y::thickness::myelin::none::component_002::low_rank           0.005
 #> spectral_cross_energy::thickness::myelin::none::component_002::low_rank   0.005
-#> spectral_coupling::thickness::myelin::none::component_002::low_rank       0.010
-#> retained_variance_x::thickness::myelin::none::component_002::low_rank     1.000
-#> retained_variance_y::thickness::myelin::none::component_002::low_rank     1.000
+#> spectral_coupling::thickness::myelin::none::component_002::low_rank       0.005
+#> retained_variance_x::thickness::myelin::none::component_002::low_rank     0.005
+#> retained_variance_y::thickness::myelin::none::component_002::low_rank     0.995
 #> band_energy_x::thickness::myelin::none::component_002::mid_rank           1.000
 #> band_energy_y::thickness::myelin::none::component_002::mid_rank           0.005
-#> spectral_cross_energy::thickness::myelin::none::component_002::mid_rank   0.040
-#> spectral_coupling::thickness::myelin::none::component_002::mid_rank       0.015
-#> retained_variance_x::thickness::myelin::none::component_002::mid_rank     1.000
-#> retained_variance_y::thickness::myelin::none::component_002::mid_rank     1.000
+#> spectral_cross_energy::thickness::myelin::none::component_002::mid_rank   0.005
+#> spectral_coupling::thickness::myelin::none::component_002::mid_rank       0.005
+#> retained_variance_x::thickness::myelin::none::component_002::mid_rank     0.005
+#> retained_variance_y::thickness::myelin::none::component_002::mid_rank     0.995
 #> band_energy_x::thickness::myelin::none::component_002::high_rank          1.000
 #> band_energy_y::thickness::myelin::none::component_002::high_rank          0.005
 #> spectral_cross_energy::thickness::myelin::none::component_002::high_rank  0.005
 #> spectral_coupling::thickness::myelin::none::component_002::high_rank      0.005
-#> retained_variance_x::thickness::myelin::none::component_002::high_rank    1.000
-#> retained_variance_y::thickness::myelin::none::component_002::high_rank    1.000
-#> absolute_energy::thickness::none::none::component_002::low_rank           1.000
-#> relative_energy::thickness::none::none::component_002::low_rank           1.000
+#> retained_variance_x::thickness::myelin::none::component_002::high_rank    0.005
+#> retained_variance_y::thickness::myelin::none::component_002::high_rank    0.995
+#> absolute_energy::thickness::none::none::component_002::low_rank           0.005
+#> relative_energy::thickness::none::none::component_002::low_rank           0.005
 #> absolute_energy::thickness::none::none::component_002::mid_rank           1.000
-#> relative_energy::thickness::none::none::component_002::mid_rank           1.000
+#> relative_energy::thickness::none::none::component_002::mid_rank           0.005
 #> absolute_energy::thickness::none::none::component_002::high_rank          1.000
-#> relative_energy::thickness::none::none::component_002::high_rank          1.000
-#> retained_variance::thickness::none::none::component_002::retained         1.000
-#> residual_energy::thickness::none::none::component_002::retained           1.000
+#> relative_energy::thickness::none::none::component_002::high_rank          0.005
+#> retained_variance::thickness::none::none::component_002::retained         0.005
+#> residual_energy::thickness::none::none::component_002::retained           0.005
 #> absolute_energy::myelin::none::none::component_002::low_rank              0.005
-#> relative_energy::myelin::none::none::component_002::low_rank              0.370
+#> relative_energy::myelin::none::none::component_002::low_rank              0.910
 #> absolute_energy::myelin::none::none::component_002::mid_rank              0.005
-#> relative_energy::myelin::none::none::component_002::mid_rank              0.840
+#> relative_energy::myelin::none::none::component_002::mid_rank              0.325
 #> absolute_energy::myelin::none::none::component_002::high_rank             0.005
 #> relative_energy::myelin::none::none::component_002::high_rank             1.000
-#> retained_variance::myelin::none::none::component_002::retained            1.000
+#> retained_variance::myelin::none::none::component_002::retained            0.995
 #> residual_energy::myelin::none::none::component_002::retained              1.000
 result$omnibus
 #>   omnibus  statistic p_value
-#> 1     max   11.77116   0.005
-#> 2  sum_sq 1134.49006   0.005
+#> 1     max   24.06449   0.005
+#> 2  sum_sq 3286.36286   0.005
 ```
 
 One schedule moves complete subject records within site and is reused

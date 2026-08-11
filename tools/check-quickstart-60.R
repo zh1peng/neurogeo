@@ -28,8 +28,8 @@ on.exit(unlink(temporary, recursive = TRUE), add = TRUE)
 scripts <- file.path(temporary, c("en.R", "zh.R"))
 invisible(knitr::purl(sources[["en"]], output = scripts[[1L]], quiet = TRUE))
 invisible(knitr::purl(sources[["zh"]], output = scripts[[2L]], quiet = TRUE))
-code <- lapply(scripts, readLines, warn = FALSE, encoding = "UTF-8")
-if (!identical(code[[1L]], code[[2L]])) {
+expressions <- lapply(scripts, parse, keep.source = FALSE)
+if (!identical(expressions[[1L]], expressions[[2L]])) {
   stop("English and Chinese quickstarts do not execute identical code.")
 }
 

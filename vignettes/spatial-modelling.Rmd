@@ -40,8 +40,30 @@ thickness while accounting for spatial structure on DK68. This is a model of
 that produced those estimates.
 
 ```{r input-map, fig.width=9, fig.height=4.6, fig.alt="DK68 SCZ minus HC cortical thickness contrast", fig.cap="Inspect the response on cortex before choosing a spatial covariance or local model."}
-ngeo_tutorial_plot_dk(
-  model_data, "SCZ_minus_HC", title="Model response: SCZ minus HC thickness"
+response_values <- setNames(
+  ngeo_values(model_data)[, "SCZ_minus_HC"],
+  ngeo_base_elements(model_data)$region_id
+)
+response_limit <- max(abs(response_values), na.rm=TRUE)
+response_map <- ngeo_cortical_map(
+  dk$surface,
+  values=response_values,
+  chart="flat",
+  atlas=dk$atlas,
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-response_limit, response_limit),
+  na_color=NA_character_,
+  atlas_coverage="auto"
+)
+plot(
+  response_map,
+  main="Model response: SCZ minus HC thickness",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
 )
 ```
 
@@ -108,8 +130,55 @@ condition_map <- ngeo_parcellation(
                         support_behavior="intensive", unit="dimensionless"),
   coordinate_space=ngeo_spatial_base(dk$cohort)$coordinate_space
 )
-ngeo_tutorial_plot_dk(fitted_map, title="GWR fitted SCZ minus HC")
-ngeo_tutorial_plot_dk(condition_map, title="GWR local condition number")
+fitted_values <- setNames(
+  ngeo_values(fitted_map)[, "GWR_fitted"],
+  ngeo_base_elements(fitted_map)$region_id
+)
+fitted_limit <- max(abs(fitted_values), na.rm=TRUE)
+fitted_brain_map <- ngeo_cortical_map(
+  dk$surface,
+  values=fitted_values,
+  chart="flat",
+  atlas=dk$atlas,
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-fitted_limit, fitted_limit),
+  na_color=NA_character_,
+  atlas_coverage="auto"
+)
+plot(
+  fitted_brain_map,
+  main="GWR fitted SCZ minus HC",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
+)
+
+condition_values <- setNames(
+  ngeo_values(condition_map)[, "condition_number"],
+  ngeo_base_elements(condition_map)$region_id
+)
+condition_brain_map <- ngeo_cortical_map(
+  dk$surface,
+  values=condition_values,
+  chart="flat",
+  atlas=dk$atlas,
+  underlay=dk$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="viridis",
+  na_color=NA_character_,
+  atlas_coverage="auto"
+)
+plot(
+  condition_brain_map,
+  main="GWR local condition number",
+  boundary_color=grDevices::adjustcolor("white", 0.55),
+  boundary_lwd=0.25,
+  outline_lwd=1.1
+)
 ```
 
 ## Graph-based spatial regression and CAR
