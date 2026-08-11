@@ -164,6 +164,16 @@ Moran 输出描述这张固定组间差异图的空间聚集。受试者层面�
 ```{r workflow-surface}
 ```
 
+```{r workflow-surface-purl, include=FALSE}
+if (!exists("surface", inherits = FALSE) ||
+    !exists("surface_roundtrip", inherits = FALSE)) {
+  source(system.file(
+    "tutorial-code", "workflow-surface.R",
+    package = "neurogeo", mustWork = TRUE
+  ), local = TRUE)
+}
+```
+
 ```{r surface-roundtrip-alignment}
 before_base <- ngeo_spatial_base(surface)
 after_base <- ngeo_spatial_base(surface_roundtrip)

@@ -122,6 +122,16 @@ plot(
 ```{r workflow-cifti}
 ```
 
+```{r ensure-cifti-roundtrip-defined, include=FALSE}
+if (!exists("dense", inherits = FALSE) ||
+    !exists("dense_roundtrip", inherits = FALSE)) {
+  source(system.file(
+    "tutorial-code", "workflow-cifti.R",
+    package = "neurogeo", mustWork = TRUE
+  ), local = environment())
+}
+```
+
 读写流程把原对象 `dense` 和读回对象 `dense_roundtrip` 保留在环境中。接下来逐项比较
 维度、数值、灰质坐标顺序和图层顺序。
 
