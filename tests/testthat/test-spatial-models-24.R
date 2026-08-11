@@ -23,6 +23,43 @@ test_that("bounded WLS variogram fitting recovers a direct curve", {
   )
 })
 
+test_that("variogram fitting remains stable for small regional effects", {
+  empirical <- data.frame(
+    bin = seq_len(4L),
+    distance = c(379.1427, 1804.6722, 2682.7785, 3444.6540),
+    semivariance = c(1.289676e-5, 5.206817e-6, 9.651957e-6, 3.207142e-5),
+    n_pairs = c(1101L, 158L, 853L, 166L)
+  )
+  class(empirical) <- c("ngeo_variogram", "data.frame")
+
+  fit <- ngeo_fit_variogram(empirical, model = "spherical")
+  fitted <- neurogeo:::.ngeo_variogram_curve(
+    empirical$distance, "spherical",
+    fit$parameters[["nugget"]],
+    fit$parameters[["partial_sill"]],
+    fit$parameters[["range"]]
+  )
+  weight <- empirical$n_pairs / pmax(empirical$semivariance^2, 1e-12)
+
+  expect_s3_class(fit, "ngeo_variogram_fit")
+  expect_identical(fit$convergence, 0L)
+  expect_true(all(is.finite(fit$parameters)))
+  expect_equal(
+    fit$objective,
+    sum(weight * (empirical$semivariance - fitted)^2),
+    tolerance = 1e-10
+  )
+
+  rescaled <- empirical
+  rescaled$semivariance <- rescaled$semivariance * 1e6
+  rescaled_fit <- ngeo_fit_variogram(rescaled, model = "spherical")
+  rescaled_parameters <- rescaled_fit$parameters
+  rescaled_parameters[c("nugget", "partial_sill")] <-
+    rescaled_parameters[c("nugget", "partial_sill")] / 1e6
+  expect_equal(rescaled_parameters, fit$parameters, tolerance = 1e-6)
+  expect_equal(rescaled_fit$objective, fit$objective, tolerance = 1e-6)
+})
+
 test_that("local ordinary kriging is bounded and reports variance", {
   coordinates <- cbind(x = 0:7, y = 0)
   x <- ngeo_point(

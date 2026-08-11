@@ -88,7 +88,9 @@ measurement
 
 半变异函数用距离解释效应图的相似程度，但它的基台、块金和范围也是由带误差的
 区域效应估计出来的。我们从刚才的测量协方差中抽取 30 组可能的效应图，每组都按
-四个距离区间重新拟合球状模型，由此观察参数会波动到什么程度。
+四个距离区间重新拟合球状模型，由此观察参数会波动到什么程度。拟合之后要先看
+经验半方差是否大致随距离上升；如果没有，球状曲线只能作为后续演示的参照模型，
+不能被当成这组数据已经证实的空间规律。
 
 ```{r variogram-uncertainty}
 variogram <- ngeo_variogram_uncertainty(
@@ -96,18 +98,31 @@ variogram <- ngeo_variogram_uncertainty(
   breaks=4, model="spherical",
   nsim=30, seed=2701, workers=1
 )
+variogram$empirical[, c("distance", "semivariance", "n_pairs")]
 variogram$fit$parameters
 variogram$parameter_interval
+c(
+  shortest_observed_distance=min(variogram$empirical$distance),
+  longest_observed_distance=max(variogram$empirical$distance),
+  fitted_range=unname(variogram$fit$parameters[["range"]])
+)
 ```
 
-参数区间反映“如果区域效应在其测量误差范围内改变，半变异函数会怎样改变”。它不
-把距离分箱当成独立样本，因此也不应被解释成经典独立观测下的置信区间。
+这组 DK68 效应包含局灶改变，而且脑区质心的距离分布并不均匀，所以四个经验点未必
+形成平滑的单调曲线。这里的参数区间只回答“如果区域效应在其测量误差范围内改变，
+球状参照模型会怎样改变”。它既不把距离分箱当成独立样本，也不包含模型族选择带来的
+误差，因此不应被解释成经典独立观测下的置信区间。还要把拟合范围与实际观察到的距离
+并排检查：若拟合范围短于第一个距离箱，平台在现有分辨率之前就已经出现；若它远长于
+最远距离，数据还没有观察到平台。两种情况都说明范围尚未被这组数据识别，不能把它
+解释成一个生理长度。
 
 ## 一次预测中有哪几种误差来源？
 
-下面依次把每个 DK 区域当作待预测位置，用其余邻区进行空间预测。这里关注的是
-不确定性怎样分解；实际研究是否需要平滑，应由预测目标和验证方案决定。总预测方差
-包括空间过程本身的剩余波动、输入效应的测量误差，以及半变异函数参数的不确定性。
+下面依次把每个 DK 区域的质心当作预测位置，并让距离最近的 20 个区域共同产生空间
+估计；这 20 个区域包含目标区域本身，因此这一步不是留一交叉验证。我们在这里关注的
+是同一次模型估计中，不确定性怎样分解。若要评价对未观测脑区的预测能力，还需要另做
+逐区留一或空间分块验证。总预测方差包括空间过程本身的剩余波动、输入效应的测量误差，
+以及半变异函数参数的不确定性。
 
 ```{r kriging}
 prediction <- ngeo_kriging_uncertainty(

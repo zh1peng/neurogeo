@@ -81,6 +81,11 @@ ngeo_fit_variogram <- function(
     max(max(observed) * 10, 1),
     max(max(distance) * 10, 1e-6)
   )
+  parameter_scale <- c(
+    max(max(abs(observed)), 1e-8),
+    max(max(abs(observed)), 1e-8),
+    max(max(abs(distance)), 1e-8)
+  )
   fit <- stats::optim(
     default,
     function(parameter) {
@@ -92,7 +97,8 @@ ngeo_fit_variogram <- function(
     },
     method = "L-BFGS-B",
     lower = c(0, 0, max(min(distance) * 1e-6, 1e-10)),
-    upper = upper
+    upper = upper,
+    control = list(parscale = parameter_scale)
   )
   if (fit$convergence != 0L) {
     .ngeo_abort("Variogram optimization did not converge.", "ngeo_error_model")
