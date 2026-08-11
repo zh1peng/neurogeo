@@ -1,69 +1,208 @@
 ---
-title: "文件后端神经影像 values"
+title: "Conte69 vertex cohort 的文件后端与分块读取"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{文件后端神经影像 values}
+  %\VignetteIndexEntry{Conte69 vertex cohort 的文件后端与分块读取}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(eval = FALSE)
-```
-
-## 基础背景
-
-file-backed values 在请求特定 element-by-map block 时才读取文件，适合长时间
-序列和 dense grayordinate 数据。它不是新的科学数据模型：对象仍然只有一个
-base 和一个严格对齐的 values block。
-
-源文件 identity 和 selection 必须进入对象身份，避免文件改变后仍命中旧缓存。
-
-## 读取
-
-```{r, eval=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", message = FALSE, warning = FALSE,
+  fig.align = "center"
+)
 library(neurogeo)
-
-x <- read_ngeo_nifti_filebacked(
-  "sub-01_task-rest_bold.nii.gz",
-  frames = 1:20,
-  verify = "checksum",
-  budget = ngeo_resource_budget(
-    memory_bytes = 64 * 1024^2,
-    materialized_elements = 8e6
-  )
+source(system.file(
+  "tutorial-code", "brain-case-study.R",
+  package = "neurogeo", mustWork = TRUE
+))
+dk <- ngeo_tutorial_dk_case_control(
+  n_per_group = 100, seed = 20260810
 )
-x$values[1:1000, 1:2, drop = FALSE]
+vertex <- ngeo_tutorial_vertex_case_control(
+  n_per_group = 5, seed = 20260811
+)
 ```
 
-CIFTI 和 FreeSurfer volume 使用相同契约：
+## 文件后端不能改变脑数据模型
 
-```{r, eval=FALSE}
-dense <- read_ngeo_cifti_filebacked(
-  "sub-01_task-rest_bold.dtseries.nii",
-  structures = c("CORTEX_LEFT", "CORTEX_RIGHT"),
-  frames = 1:100
+主案例是 100 HC + 100 SCZ 的 DK68 cohort，以及 5 HC + 5 SCZ 的
+Conte69 vertex cohort。file-backed values 只把“何时读取 values block”
+推迟到访问时；surface geometry、flat chart、vertex order、subject layers
+和 measurement semantics 仍由同一个 neurogeo 对象约束。
+
+```{r cohort-shape}
+c(
+  dk = paste(dim(ngeo_values(dk$cohort)), collapse = " x "),
+  vertex = paste(dim(ngeo_values(vertex$surface)), collapse = " x ")
 )
-mgh <- read_ngeo_mgh_filebacked("lh.distance_method.mgz", frames = 1)
+head(ngeo_layers(vertex$surface)[
+  c("layer_id", "subject_id", "group")
+])
 ```
 
-## 分块与预算
+先查看后续要分块访问的完整 vertex-level SCZ--HC contrast。文件后端或
+chunk size 都不得改变这张图。
 
-```{r, eval=FALSE}
-ngeo_value_chunks(
-  dense,
-  chunk_size = 4096,
+```{r vertex-map, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上的 vertex SCZ 减 HC 皮层厚度差异", fig.cap="storage backend 可以改变，vertex support 与 cortical pattern 不变。"}
+ngeo_tutorial_plot_flat(
+  vertex$difference,
+  layer = "SCZ_minus_HC",
+  title = "File-backed target: SCZ - HC thickness",
+  diverging = TRUE
+)
+```
+
+## 在主数据上验证分块 alignment
+
+`ngeo_value_chunks()` 的 callback 同时收到 values block 和原始 row
+indices。这里记录每个 block 的边界，并把分块累计的 subject sums 与直接
+计算比较。
+
+```{r aligned-chunks}
+chunk_report <- ngeo_value_chunks(
+  vertex$surface,
+  chunk_size = 512,
   FUN = function(block, rows) {
-    list(rows = range(rows), mean = colMeans(block))
+    list(
+      first = min(rows),
+      last = max(rows),
+      n = length(rows),
+      sums = colSums(block)
+    )
   }
 )
+chunk_sums <- Reduce(
+  `+`, lapply(chunk_report, function(x) x$sums)
+)
+direct_sums <- colSums(ngeo_values(vertex$surface))
+stopifnot(
+  identical(chunk_report[[1L]]$first, 1L),
+  identical(tail(chunk_report, 1L)[[1L]]$last,
+            nrow(ngeo_values(vertex$surface))),
+  isTRUE(all.equal(unname(chunk_sums), unname(direct_sums)))
+)
+do.call(rbind, lapply(chunk_report, function(x) {
+  data.frame(first_vertex = x$first, last_vertex = x$last, n = x$n)
+}))
 ```
 
-每个请求 block 都接受预算检查；超限时在读取数据前产生
-`ngeo_error_resource`。
+这个检查比“读取成功”更强：每个 vertex 恰好出现一次，顺序没有改变，
+10 个 subject columns 也没有按近似名称重新 join。
 
-## 写出边界
+## 格式 contract 侧栏：真实 tiny NIfTI round trip
 
-`write_ngeo_filebacked()` 仅原子复制完整源文件。部分 selection 必须先显式
-materialize，再用对应格式 writer 编码。读取和写出都不会执行 preprocessing、
-registration 或 resampling。
+下面的 bundled tiny NIfTI 只用于验证文件编码、延迟读取、checksum 和
+atomic copy；它不是本教程的科学主案例，也不替代上面的 cortical cohort。
+
+```{r tiny-nifti-contract}
+if (requireNamespace("RNifti", quietly = TRUE)) {
+  fixture_path <- system.file(
+    "extdata", "golden", "tiny.nii.gz",
+    package = "neurogeo", mustWork = TRUE
+  )
+  backed <- read_ngeo_nifti_filebacked(
+    fixture_path, checksum = TRUE
+  )
+  fixture_chunks <- ngeo_value_chunks(
+    backed,
+    chunk_size = 2,
+    FUN = function(block, rows) {
+      list(rows = rows, values = block)
+    }
+  )
+
+  copied_path <- tempfile(fileext = ".nii.gz")
+  write_ngeo_filebacked(
+    backed, copied_path, chunk_bytes = 17L
+  )
+  restored <- read_ngeo_nifti_filebacked(
+    copied_path, checksum = TRUE
+  )
+  stopifnot(
+    identical(dim(ngeo_values(backed)),
+              dim(ngeo_values(restored))),
+    isTRUE(all.equal(
+      as.matrix(ngeo_values(backed)),
+      as.matrix(ngeo_values(restored))
+    ))
+  )
+  unlink(copied_path, force = TRUE)
+  list(
+    dimensions = dim(ngeo_values(backed)),
+    chunks = length(fixture_chunks),
+    round_trip_aligned = TRUE
+  )
+}
+```
+
+## 真实文件的读取入口
+
+实际 NIfTI、CIFTI 和 MGH/MGZ 文件通过格式专用入口创建同样的
+file-backed contract。selection、checksum 与 budget 应显式声明。
+
+```{r real-file-interfaces}
+filebacked_contracts <- list()
+budget <- ngeo_resource_budget(
+  memory_bytes = 64 * 1024^2,
+  materialized_elements = 8e6
+)
+
+if (requireNamespace("RNifti", quietly = TRUE)) {
+  nifti_path <- system.file(
+    "extdata", "golden", "tiny.nii.gz",
+    package = "neurogeo", mustWork = TRUE
+  )
+  nifti <- read_ngeo_nifti_filebacked(
+    nifti_path,
+    checksum = TRUE,
+    verify = "checksum",
+    budget = budget
+  )
+  ngeo_validate(nifti, "strict")
+  filebacked_contracts$nifti <- list(
+    dimensions = dim(ngeo_values(nifti)),
+    identity = ngeo_file_values_identity(ngeo_values(nifti))
+  )
+}
+
+if (requireNamespace("cifti", quietly = TRUE)) {
+  cifti_path <- system.file(
+    "extdata", "golden", "tiny.dscalar.nii",
+    package = "neurogeo", mustWork = TRUE
+  )
+  cifti <- read_ngeo_cifti_filebacked(
+    cifti_path,
+    checksum = TRUE,
+    verify = "checksum",
+    budget = budget
+  )
+  ngeo_validate(cifti, "strict")
+  filebacked_contracts$cifti <- list(
+    dimensions = dim(ngeo_values(cifti)),
+    identity = ngeo_file_values_identity(ngeo_values(cifti))
+  )
+}
+
+mgh_path <- system.file(
+  "extdata", "golden", "tiny.mgh",
+  package = "neurogeo", mustWork = TRUE
+)
+mgh <- read_ngeo_mgh_filebacked(
+  mgh_path,
+  checksum = TRUE,
+  verify = "checksum",
+  budget = budget
+)
+ngeo_validate(mgh, "strict")
+filebacked_contracts$mgh <- list(
+  dimensions = dim(ngeo_values(mgh)),
+  identity = ngeo_file_values_identity(ngeo_values(mgh))
+)
+filebacked_contracts
+```
+
+`write_ngeo_filebacked()` 只原子复制完整源文件；partial selection 必须
+先明确 materialize，再交给相应格式 writer。任何 storage 转换都不能
+隐式执行 registration、resampling 或 preprocessing。

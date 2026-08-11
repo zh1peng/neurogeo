@@ -1,74 +1,140 @@
 ---
-title: "有界迭代空间模型"
+title: "有界迭代空间模型：DK68 校准与 vertex 执行"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{有界迭代空间模型}
+  %\VignetteIndexEntry{有界迭代空间模型：DK68 校准与 vertex 执行}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
+model_data <- ngeo_parcellation(
+  dk$regions,
+  values=cbind(
+    response=ngeo_values(dk$difference)[, 1L],
+    HC_mean=dk$group_mean[, "HC"],
+    log_support=log(dk$support_size)
+  ),
+  centroid=dk$centroids, support_size=dk$support_size,
+  adjacency=dk$adjacency,
+  measures=rbind(
+    ngeo_measure(name="SCZ minus HC thickness", support_behavior="intensive", unit="mm"),
+    ngeo_measure(name="HC mean thickness", support_behavior="intensive", unit="mm"),
+    ngeo_measure(name="log parcel area", support_behavior="intensive", unit="1")
+  ),
+  coordinate_space=ngeo_spatial_base(dk$cohort)$coordinate_space
+)
 ```
 
-## 基础背景
+## 为什么先在 DK68 校准
 
-大 spatial base 上的 exact matrix factorization 可能不可承受。iterative
-solver 和 stochastic log-determinant approximation 可以降低内存与计算量，
-但会引入 convergence tolerance、series truncation 和 Monte Carlo error。
-这些数值选择属于科学结果，不能隐藏在内部默认值中。
+大 surface 上的 exact factorization 可能不可承受；iterative solver 与 stochastic
+log-determinant 会引入 tolerance、trace order 和 Monte Carlo error。先在 68 个
+真实 DK parcels 上比较 exact 与 approximate，再把已经校准的控制参数带到
+64,984-vertex Conte69 数据。输入始终是同一个 SCZ--HC cortical effect。
 
-## Solver control
-
-```{r}
-coordinates <- as.matrix(expand.grid(x = 0:4, y = 0:4))
-data <- ngeo_point(
-  coordinates,
-  values = cbind(
-    response = 2 + coordinates[,1] - 0.5 * coordinates[,2],
-    x = coordinates[,1], y = coordinates[,2]
-  )
+```{r input-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 and vertex-level SCZ minus HC thickness effects on flat cortex", fig.cap="左图是 200 名受试者的 DK68 contrast；右图是 5+5 vertex sample 的同一模拟 effect。"}
+ngeo_tutorial_plot_flat(
+  model_data, layer="response", title="DK68 response: SCZ - HC",
+  diverging=TRUE
 )
-spatial_weights <- ngeo_spatial_weights(
-  data, method = "distance_band", threshold = 1.01, style = "W"
+ngeo_tutorial_plot_flat(
+  vertex$difference, title="Vertex response: SCZ - HC",
+  atlas="DK68", diverging=TRUE
+)
+```
+
+## 固定并记录 solver control
+
+```{r control}
+w <- ngeo_spatial_weights(
+  model_data, method="region_contiguity", style="W"
 )
 control <- ngeo_solver_control(
-  tolerance = 1e-7,
-  max_iterations = 1000,
-  trace_order = 20,
-  trace_probes = 60,
-  seed = 3401,
-  workers = 1,
-  exact_threshold = 100
+  tolerance=1e-6, max_iterations=1000,
+  trace_order=24, trace_probes=80,
+  seed=3401, workers=1, exact_threshold=100
 )
 ```
 
-## 小问题校准
+## DK68：exact-small calibration
 
-```{r}
-sar <- ngeo_spatial_regression_iterative(
-  data, response = "response", predictors = c("x", "y"),
-  spatial_weights = spatial_weights, model = "sar",
-  control = control, logdet = "exact"
+```{r exact-fit}
+exact_fit <- ngeo_spatial_regression_iterative(
+  model_data, response="response",
+  predictors=c("HC_mean", "log_support"),
+  spatial_weights=w, model="sar", control=control, logdet="exact"
 )
-sar$solve$relative_residual
+exact_fit$spatial_parameter
+exact_fit$solve[c("converged", "iterations", "relative_residual")]
 ```
 
-小 base 的 exact result 是 approximation calibration reference。
-
-## Approximate execution
-
-```{r}
-ngeo_logdet_approx(
-  spatial_weights, parameter = 0.2,
-  control = ngeo_solver_control(
-    trace_order = 30, trace_probes = 100,
-    exact_threshold = 10, seed = 3402
+```{r approximate-logdet}
+approximate_logdet <- ngeo_logdet_approx(
+  w, parameter=exact_fit$spatial_parameter,
+  control=ngeo_solver_control(
+    trace_order=30, trace_probes=120, exact_threshold=10,
+    seed=3402, workers=1
   ),
-  exact = FALSE
+  exact=FALSE
+)
+c(exact=exact_fit$log_determinant$estimate,
+  approximate=approximate_logdet$estimate)
+```
+
+## fitted 与 residual 必须回到 cortex
+
+```{r fit-maps, fig.width=10, fig.height=4.8, fig.alt="Iterative SAR fitted effect and residual on DK68 flat cortex", fig.cap="solver 收敛并不保证 spatial model 合理；fitted 与 residual brain maps 是必要诊断。"}
+ngeo_tutorial_plot_flat(
+  model_data, values=exact_fit$fitted,
+  title="Iterative SAR fitted effect", diverging=TRUE
+)
+ngeo_tutorial_plot_flat(
+  model_data, values=exact_fit$residuals,
+  title="Iterative SAR residual", diverging=TRUE
 )
 ```
 
-报告结果时应包括 residual、iteration count、trace order、probe count 和 seed。
-CAR 还要求 symmetric spatial_weights 与明确 precision。
+## vertex level：只在 sparse operator 上执行
+
+对完整 64,984 vertices，不构造 dense distance 或 dense precision matrix。下面用
+mesh adjacency 和一个固定 `rho` 解 `(I-rho W)x=b`，演示真正的 vertex-scale
+iterative primitive；输入、解和残差都保持 vertex order。
+
+```{r vertex-solve}
+vertex_w <- ngeo_spatial_weights(
+  vertex$difference, method="mesh_contiguity", style="W"
+)
+rho <- 0.35
+b <- as.numeric(ngeo_values(vertex$difference)[, 1L])
+operator <- function(value) {
+  value - rho * as.numeric(vertex_w$matrix %*% value)
+}
+vertex_solution <- ngeo_iterative_solve(
+  operator, b, method="bicgstab",
+  control=ngeo_solver_control(
+    tolerance=1e-6, max_iterations=500,
+    seed=3403, exact_threshold=100
+  ),
+  n=length(b)
+)
+vertex_solution[c("converged", "iterations", "relative_residual")]
+```
+
+```{r vertex-solution-map, fig.width=9.5, fig.height=4.8, fig.alt="Sparse iterative solution on the full Conte69 vertex surface", fig.cap="vertex solver 的输出仍以原始 flat chart 和 DK boundary 显示；没有静默降采样。"}
+ngeo_tutorial_plot_flat(
+  vertex$difference, values=vertex_solution$solution,
+  atlas="DK68", title="Vertex sparse solve", diverging=TRUE
+)
+```
+
+报告结果时至少保留 convergence、iteration count、relative residual、trace order、
+probe count、seed、base hash 与 atlas/mesh identity。数值近似是科学 provenance，
+不能只写成“模型已运行”。

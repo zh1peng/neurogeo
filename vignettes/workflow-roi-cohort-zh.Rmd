@@ -23,7 +23,7 @@ knitr::read_chunk(system.file(
 ))
 ```
 
-```{r workflow-roi-cohort, fig.width=9, fig.height=4.6, message=FALSE, warning=FALSE, fig.alt="DK atlas 上的模拟 SCZ 减 HC 皮层厚度", fig.cap="68 个 parcel rows 与 200 个 subject layers 始终显式，ROI-by-cohort 数据才保持可解释。"}
+```{r workflow-roi-cohort, fig.width=10, fig.height=4.8, message=FALSE, warning=FALSE, fig.alt="SCZ minus HC cortical thickness on the real DK68 Conte69 flat surface", fig.cap="68 个 parcel rows 与 200 个 subject layers 始终显式；effect 通过 neurogeo cortical map 回填到真实 DK surface。"}
 ```
 
 确认性组间推断必须保留 200 名 subjects 作为独立单元，调整预先指定的协变量，

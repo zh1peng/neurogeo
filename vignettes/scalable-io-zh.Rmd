@@ -1,82 +1,249 @@
 ---
-title: "Vertex case-control surfaces 的 scalable I/O"
+title: "Conte69 vertex case-control cohort 的 scalable I/O"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vertex case-control surfaces 的 scalable I/O}
+  %\VignetteIndexEntry{Conte69 vertex case-control cohort 的 scalable I/O}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
-                      warning=FALSE, fig.align="center")
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", message = FALSE, warning = FALSE,
+  fig.align = "center"
+)
 library(neurogeo)
-source(system.file("tutorial-code", "brain-case-study.R",
-                   package="neurogeo", mustWork=TRUE))
-vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
+source(system.file(
+  "tutorial-code", "brain-case-study.R",
+  package = "neurogeo", mustWork = TRUE
+))
+dk <- ngeo_tutorial_dk_case_control(
+  n_per_group = 100, seed = 20260810
+)
+vertex <- ngeo_tutorial_vertex_case_control(
+  n_per_group = 5, seed = 20260811
+)
 ```
 
-## 一个 logical brain matrix，bounded access
+## 一个 logical cortical matrix，多种访问策略
 
-教学矩阵有 672 cortical vertices × 10 subjects；同一 contract 适用于 32k/164k
-surface 与 dense CIFTI cohort。chunking 只改变 values access，不改变 vertex order、
-subject metadata、base identity 或 measurement semantics。
+DK68 cohort 有 200 个 subject layers；Conte69 vertex sample 有 5 名 HC
+与 5 名 SCZ。scalable I/O 允许 values 延迟读取或分块访问，但不能改变
+ordered vertices、surface geometry、layer metadata、atlas support 或
+measurement semantics。
 
-```{r brain, fig.width=9, fig.height=4.5, fig.alt="双侧 cortical surface 上的 vertex case-control thickness contrast", fig.cap="value access 分块时，spatial meaning 保持不变。"}
-plot(vertex$difference, chart="flat", show_edges=FALSE, palette="Blue-Red 3")
+```{r dimensions}
+list(
+  dk = dim(ngeo_values(dk$cohort)),
+  vertex = dim(ngeo_values(vertex$surface)),
+  groups = table(vertex$group),
+  density = vertex$density
+)
 ```
+
+```{r cortical-contrast, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上的 vertex SCZ 减 HC 皮层厚度 contrast", fig.cap="分块和 file backing 只改变访问方式，不改变 cortical contrast。"}
+ngeo_tutorial_plot_flat(
+  vertex$difference,
+  layer = "SCZ_minus_HC",
+  title = "Scalable I/O target: SCZ - HC thickness",
+  diverging = TRUE
+)
+```
+
+## 分块读取并保持 subject alignment
+
+callback 收到连续 vertex rows 和全部 10 个 subject columns。下面分别累计
+HC 与 SCZ 的总和，并与直接计算核对。
 
 ```{r chunks}
-chunks <- ngeo_value_chunks(
-  vertex$surface, chunk_size=96,
-  FUN=function(block, rows) {
-    c(first_vertex=min(rows), last_vertex=max(rows),
-      HC_sum=sum(block[, vertex$group == "HC", drop=FALSE]),
-      SCZ_sum=sum(block[, vertex$group == "SCZ", drop=FALSE]))
+chunk_result <- ngeo_value_chunks(
+  vertex$surface,
+  chunk_size = 512,
+  FUN = function(block, rows) {
+    c(
+      first_vertex = min(rows),
+      last_vertex = max(rows),
+      n_vertices = length(rows),
+      HC_sum = sum(
+        block[, vertex$group == "HC", drop = FALSE]
+      ),
+      SCZ_sum = sum(
+        block[, vertex$group == "SCZ", drop = FALSE]
+      )
+    )
   }
 )
-chunks
+chunk_table <- do.call(rbind, chunk_result)
+chunk_table
+
+direct_group_sum <- c(
+  HC_sum = sum(ngeo_values(vertex$surface)[
+    , vertex$group == "HC", drop = FALSE
+  ]),
+  SCZ_sum = sum(ngeo_values(vertex$surface)[
+    , vertex$group == "SCZ", drop = FALSE
+  ])
+)
+stopifnot(
+  isTRUE(all.equal(
+    colSums(chunk_table[, c("HC_sum", "SCZ_sum"), drop = FALSE]),
+    direct_group_sum
+  )),
+  chunk_table[1L, "first_vertex"] == 1L,
+  tail(chunk_table, 1L)[1L, "last_vertex"] ==
+    nrow(ngeo_values(vertex$surface))
+)
 ```
 
-callback 接收严格对齐的 cortical rows。不能按 value 重排 chunk，也不能用近似名称
-join subjects；element IDs 与 layer IDs 才是 stable keys。
+stable keys 是 element IDs 与 layer IDs，不是 thickness value，也不是近似
+subject name。分块前后只要任一顺序改变，group contrast 就不再是同一张脑图。
 
-## budget 下的 sparse support operations
+## Sparse Schaefer200 aggregation
 
-```{r support}
-atlas <- ngeo_atlas_map(
-  vertex$difference, vertex$supports$Schaefer200,
-  source_support=ngeo_vertex_area(vertex$difference)
-)
-regional <- aggregate_to(
-  vertex$difference, atlas$target, atlas,
-  budget=ngeo_resource_budget(
-    memory_bytes=8 * 1024^2,
-    materialized_elements=200
-  )
-)
-regional
-```
-
-sparse 200 × 672 operator 被直接使用。budget 不能静默 downsample cortex 或换 atlas。
-
-## 神经影像 derivative output
-
-`write_ngeo_cifti()` 把 dscalar、dlabel 与 dtseries 写为 CIFTI-2/NIfTI-2；
-`write_ngeo_bids_derivative()` 添加包含 spatial entities、measure semantics 与 history
-的 scoped JSON sidecar。surface 数据使用相应 GIFTI/FreeSurfer writers，并保持
-vertex-index contract。
-
-```{r derivative, eval=FALSE}
-write_ngeo_bids_derivative(
+```{r schaefer200}
+schaefer200_map <- ngeo_atlas_map(
   vertex$difference,
-  path="derivatives/neurogeo/group_scz-vs-hc_desc-thickness.dscalar.nii",
-  sidecar=list(
-    Analysis="SCZ minus HC",
-    SamplingUnit="subject",
-    Support="registered cortical vertices"
+  vertex$supports$Schaefer200,
+  source_support = ngeo_vertex_area(vertex$difference)
+)
+schaefer200_effect <- aggregate_to(
+  vertex$difference,
+  schaefer200_map$target,
+  schaefer200_map,
+  budget = ngeo_resource_budget(
+    memory_bytes = 16 * 1024^2,
+    materialized_elements = 200
   )
+)
+list(
+  operator = dim(schaefer200_map$operator),
+  result = dim(ngeo_values(schaefer200_effect))
 )
 ```
 
-writers 只发布声明的 derivatives，不发现、预处理或运行完整 BIDS dataset。
+```{r schaefer200-support, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上的 Schaefer200 support", fig.cap="Sparse aggregation 在同一 vertex foundation 上声明 target support。"}
+ngeo_tutorial_plot_atlas(
+  vertex,
+  atlas = "Schaefer200",
+  title = "Sparse target: Schaefer200"
+)
+```
+
+## 格式 contract 侧栏：tiny CIFTI file-backed blocks
+
+bundled tiny CIFTI 仅验证真实格式 reader 与 delayed blocks；它不是科学
+主数据。
+
+```{r tiny-cifti-contract}
+if (requireNamespace("cifti", quietly = TRUE)) {
+  fixture_path <- system.file(
+    "extdata", "golden", "tiny.dscalar.nii",
+    package = "neurogeo", mustWork = TRUE
+  )
+  tiny_backed <- read_ngeo_cifti_filebacked(
+    fixture_path, checksum = TRUE
+  )
+  tiny_chunks <- ngeo_value_chunks(
+    tiny_backed,
+    chunk_size = 2,
+    FUN = function(block, rows) {
+      list(rows = rows, dimensions = dim(block))
+    }
+  )
+  stopifnot(
+    sum(vapply(
+      tiny_chunks,
+      function(x) length(x$rows),
+      integer(1)
+    )) == nrow(ngeo_values(tiny_backed))
+  )
+  list(
+    dimensions = dim(ngeo_values(tiny_backed)),
+    chunks = length(tiny_chunks),
+    alignment_checked = TRUE
+  )
+}
+```
+
+## Derivative output
+
+下面继续用 bundled tiny CIFTI 验证 BIDS derivative transaction。它检查
+canonical name、CIFTI writer、JSON sidecar、SHA-256 和 read-back
+alignment；科学主图仍是前面的 vertex cohort。
+
+```{r derivative}
+if (all(vapply(
+  c("cifti", "jsonlite"),
+  requireNamespace, logical(1), quietly = TRUE
+))) {
+  cifti_fixture <- system.file(
+    "extdata", "golden", "tiny.dscalar.nii",
+    package = "neurogeo", mustWork = TRUE
+  )
+  dense_fixture <- read_ngeo_cifti(
+    cifti_fixture, checksum = TRUE
+  )
+  derivative_directory <- tempfile(
+    "bids-derivative-"
+  )
+  dir.create(derivative_directory)
+  entities <- list(
+    sub = "01",
+    space = "fsLR",
+    desc = "contract"
+  )
+  derivative_basename <- ngeo_bids_build_name(
+    entities,
+    suffix = "dscalar",
+    extension = ".dscalar.nii"
+  )
+  derivative_path <- file.path(
+    derivative_directory,
+    derivative_basename
+  )
+  derivative_output <- write_ngeo_bids_derivative(
+    dense_fixture,
+    path = derivative_path,
+    entities = entities,
+    sources = cifti_fixture,
+    strict_name = TRUE
+  )
+  derivative_restored <- read_ngeo_cifti(
+    derivative_output[["data"]],
+    checksum = TRUE
+  )
+  derivative_sidecar <- jsonlite::fromJSON(
+    derivative_output[["sidecar"]],
+    simplifyVector = FALSE
+  )
+  ngeo_validate_bids_sidecar(
+    derivative_sidecar,
+    derivative_restored,
+    derivative_output[["data"]]
+  )
+  stopifnot(
+    all(file.exists(derivative_output)),
+    length(attr(derivative_output, "sha256")) == 2L,
+    isTRUE(all.equal(
+      ngeo_values(derivative_restored),
+      ngeo_values(dense_fixture),
+      tolerance = 1e-12
+    ))
+  )
+  derivative_summary <- list(
+    basename = basename(derivative_output[["data"]]),
+    dimensions = dim(ngeo_values(derivative_restored)),
+    alignment_preserved = TRUE
+  )
+  unlink(
+    derivative_directory,
+    recursive = TRUE,
+    force = TRUE
+  )
+  derivative_summary
+}
+```
+
+writer 只发布声明的 derivative；它不会发现数据、运行 preprocessing、
+替换 atlas 或自动降低 cortical resolution。resource budget 失败时应该
+停止并报告，而不是改变科学问题。

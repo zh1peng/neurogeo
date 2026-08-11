@@ -1,97 +1,129 @@
 ---
-title: "固定空间基与多尺度投影"
+title: "固定空间基与多尺度投影：DK68 graph modes"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{固定空间基与多尺度投影}
+  %\VignetteIndexEntry{固定空间基与多尺度投影：DK68 graph modes}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
+library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
+x <- dk$cohort
 ```
 
 ## 科学问题
 
-如何把每张脑图分解为由 topology 决定、与组标签无关的空间尺度？4.5 使用
-固定 graph-Laplacian basis。它只依赖 base、原始空间权重和 support，
-不读取 group、clinical outcome 或 effect size。
+我们希望把每名 subject 的 DK68 cortical thickness 分解为 topology-defined spatial
+scales。basis 只读取真实 DK parcel adjacency 与 support area，不读取 SCZ/HC label、
+clinical outcome 或 map value；因此组别不会泄漏进尺度定义。
 
-```{r basis}
-library(neurogeo)
-
-n <- 8L
-values <- cbind(
-  sub01 = sin((1:n) / 2),
-  sub02 = cos((1:n) / 3)
+```{r input-map, fig.width=9.5, fig.height=4.8, fig.alt="A simulated subject cortical thickness map on DK68 flat cortex", fig.cap="graph basis 作用于完整 cortical map，而不是一条抽象的一维 signal。"}
+ngeo_tutorial_plot_flat(
+  x, layer=1L, title="HC subject cortical thickness"
 )
-x <- ngeo_point(
-  cbind(x = 1:n, y = 0),
-  values = values,
-  layers = data.frame(
-    layer_id = c("sub01", "sub02"),
-    name = c("sub01", "sub02"),
-    subject_id = c("sub01", "sub02"),
-    feature = "signal"
-  ),
-  measures = rbind(
-    ngeo_measure(support_behavior = "intensive", unit = "a.u."),
-    ngeo_measure(support_behavior = "intensive", unit = "a.u.")
-  )
-)
-w <- ngeo_spatial_weights(
-  x,
-  method = "distance_band",
-  threshold = 1.01,
-  style = "B"
-)
-basis <- ngeo_spatial_basis(
-  x,
-  spatial_weights = w,
-  support = "identity",
-  n_modes = 7
-)
-basis
 ```
 
-## 数学 estimand
+## 从 surface-derived DK graph 构造 basis
 
-对 stiffness `L` 和 support mass `A`，每个 connected component 解
-`L u = lambda A u`，并满足 `t(U) A U = I`。返回的是非恒定 modes；加权均值
-单独保存，因此小图上的完整非恒定 basis 可以重建中心化 map。
+```{r basis}
+w <- ngeo_spatial_weights(
+  x, method="region_contiguity", style="B"
+)
+basis <- ngeo_spatial_basis(
+  x, spatial_weights=w,
+  operator="graph_laplacian", support="auto",
+  n_modes=30, components="separate"
+)
+basis
+basis$diagnostics
+```
+
+左右半球没有跨胼胝体的 cortical mesh edge，因此分别形成两个 components。每个
+component 解广义特征问题 `L u = lambda A u`，并满足 `t(U) A U = I`；`A` 是
+parcel surface area，而不是把大小差异很大的 DK regions 等权处理。
+
+## 把 graph modes 画回 flat cortex
+
+```{r mode-values}
+mode1 <- numeric(68)
+mode6 <- numeric(68)
+for (component in basis$components) {
+  mode1[component$rows] <- component$vectors[, 1L]
+  mode6[component$rows] <- component$vectors[, 6L]
+}
+```
+
+```{r mode-maps, fig.width=10, fig.height=4.8, fig.alt="Low and higher rank DK graph eigenmodes on bilateral flat cortex", fig.cap="graph rank 是 atlas/topology-dependent scale；它不能自动换算成毫米波长。"}
+ngeo_tutorial_plot_flat(
+  dk$difference, values=mode1,
+  title="Graph mode 1 per hemisphere", diverging=TRUE
+)
+ngeo_tutorial_plot_flat(
+  dk$difference, values=mode6,
+  title="Graph mode 6 per hemisphere", diverging=TRUE
+)
+```
+
+## 为 200 名 subjects 生成多尺度 endpoints
 
 ```{r projection}
-index <- ngeo_validate_layers(x, complete = "error")
 features <- ngeo_basis_project(
-  x,
-  basis,
-  index = index,
-  bands = list(low = 1:3, high = 4:7),
-  summaries = c(
+  x, basis,
+  bands=list(low_rank=1:6, middle_rank=7:14, high_rank=15:25),
+  summaries=c(
     "absolute_energy", "relative_energy", "roughness",
     "retained_variance", "residual_energy"
   ),
-  chunk_rows = 3,
-  chunk_layers = 1
+  chunk_rows=68, chunk_layers=20
 )
-features
+dim(features$values)
 features$endpoints[, c("estimand", "band", "component")]
-features$values
 ```
 
-## Diagnostics
+输出有 200 行：每行仍是一名完整 subject。后续 SCZ--HC permutation 移动这些
+rows，不会置换 68 个 regions。
 
-应同时检查 eigen residual、加权正交误差、zero-mode 数量、retained variance
-和 residual energy。band 不能切开 near-degenerate eigenspace。大 base 只求
-有限 eigenpairs，并受到 `ngeo_resource_budget()` 约束。
+## 一个 subject 的低秩重建与 residual
 
-## 有效推断单位
+下面显式使用同一个 support-weighted basis 重建第一名 subject。这样可以直接看到
+low-rank endpoint 在解剖上保留了什么，而不是只读一列 energy 数字。
 
-投影产生 subject-level endpoints，但 4.5 尚不计算人口 p 值。后续置换必须
-移动完整 subject record，不能置换 vertices。
+```{r reconstruction}
+subject_map <- as.numeric(ngeo_values(x)[, 1L])
+low_rank <- numeric(68)
+for (component in basis$components) {
+  rows <- component$rows
+  mass <- component$support
+  observed <- subject_map[rows]
+  weighted_mean <- sum(mass * observed) / sum(mass)
+  centered <- observed - weighted_mean
+  retained <- 1:6
+  coefficient <- as.numeric(
+    crossprod(component$vectors[, retained, drop=FALSE], mass * centered)
+  )
+  low_rank[rows] <- weighted_mean + as.numeric(
+    component$vectors[, retained, drop=FALSE] %*% coefficient
+  )
+}
+high_rank_residual <- subject_map - low_rank
+```
 
-## Claim 与 non-claim
+```{r reconstruction-maps, fig.width=10, fig.height=4.8, fig.alt="Low-rank reconstruction and high-rank residual of one DK68 subject map", fig.cap="低秩重建和 residual 必须与原始 subject map 在同一 cortex 上比较。"}
+ngeo_tutorial_plot_flat(
+  x, values=low_rank, title="Subject low-rank reconstruction"
+)
+ngeo_tutorial_plot_flat(
+  x, values=high_rank_residual,
+  title="Subject high-rank residual", diverging=TRUE
+)
+```
 
-可以把结果解释为声明 graph operator 下的 rank-matched spatial modes。不能
-把 graph rank 自动解释成毫米波长，也不能使用二维 flatmap coordinates 构造
-统计 basis。
+应同时报告 eigen residual、weighted orthogonality error、zero-mode 数量、retained
+variance 与 residual energy。换到 Schaefer100/200/300 后必须重新建立各自 basis；
+“相同 rank”只是预声明的 rank-matched estimand，不代表不同 atlas 拥有相同物理尺度。

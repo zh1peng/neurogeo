@@ -8,20 +8,32 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-available <- all(vapply(
-  c("cifti", "freesurferformats", "gifti", "RNifti"),
+required_io <- c("cifti", "freesurferformats", "gifti", "RNifti")
+missing_io <- required_io[!vapply(
+  required_io,
   requireNamespace,
   logical(1),
   quietly = TRUE
-))
+)]
+if (length(missing_io)) {
+  stop(
+    "The format tutorial requires: ",
+    paste(missing_io, collapse=", "),
+    call.=FALSE
+  )
+}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  eval = available,
   fig.width = 6,
   fig.height = 4
 )
 library(neurogeo)
+source(system.file(
+  "tutorial-code", "brain-case-study.R", package="neurogeo",
+  mustWork=TRUE
+))
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
 ```
 
 ## 1. 范围与数据契约
@@ -31,8 +43,17 @@ library(neurogeo)
 [ROI × cohort](/tutorials/workflow-roi-cohort)。本页后续章节解释更完整的格式契约
 和 round-trip 细节。
 
-本工作流使用固定校验和的格式样例执行读取、结构检查、可视化、写出、再读入
-和对象比较。FreeSurfer、FSL 和 Connectome Workbench 不是运行时依赖。
+本工作流以 5 名 HC + 5 名 SCZ 的真实 Conte69 surface sample 为主线，并使用固定
+校验和的小型上游文件执行格式 round-trip。小文件只验证 reader/writer contract；
+脑图始终回到 64,984-vertex flat cortex。FreeSurfer、FSL 和 Connectome
+Workbench 不是运行时依赖。
+
+```{r format-main-brain, fig.width=10, fig.height=4.8, fig.alt="Vertex-level SCZ minus HC cortical thickness on the Conte69 flat surface before format round trips", fig.cap="后面每种 surface/grayordinate 格式都必须保持这套 vertex order、hemisphere identity 与 map alignment。"}
+ngeo_tutorial_plot_flat(
+  vertex$difference, atlas="DK68",
+  title="Vertex sample before I/O: SCZ - HC", diverging=TRUE
+)
+```
 
 读取神经影像文件时需要同时区分五层信息：
 
@@ -174,7 +195,21 @@ identical(nifti_restored$values, volume$values)
 在这个样例中要求完全一致。真实分析还应比较维度、map 顺序、unit 和
 history，不能只看图像“长得差不多”。
 
-## 4. GIFTI：geometry 与 distance_method alignment
+## 4. GIFTI：先看完整 cortical surface，再验证最小格式 contract
+
+主案例的 anatomical coordinates、triangular faces、flat chart、mask 与 values 都是
+严格 vertex-aligned 的。下面的图不是 generic surface point plot，而是由 faces
+渲染的 flat cortical map：
+
+```{r gifti-main-map, fig.width=10, fig.height=4.8, fig.alt="One simulated subject thickness map rendered through the neurogeo flat cortical surface module", fig.cap="GIFTI geometry/data 写读前，先确认一名 subject 的 vertex map 能回到正确 hemisphere 与 atlas boundary。"}
+ngeo_tutorial_plot_flat(
+  vertex$surface, layer=1L, atlas="Schaefer200",
+  title="vertex-sub-01 cortical thickness"
+)
+```
+
+接下来的 cube fixture 只用于快速触发零基 face index、geometry/data sidecar 和
+round-trip 检查，不代表分析 surface，也不承担教程主可视化。
 
 ```{r gifti-read}
 gifti_path <- ngeo_example_data(
@@ -199,16 +234,16 @@ head(geometry$base$geometry$faces)
 并在 `face_source_index_base` 中记录来源约定。错误地偏移一次会连接错误
 顶点，偏移两次则可能越界。
 
-GIFTI geometry 可以没有 values。下面为每个顶点定义教学 distance_method：
+GIFTI geometry 可以没有 values。下面为 fixture 的每个顶点定义一个数值列：
 
 $$
 m_v = x_v + y_v + z_v.
 $$
 
-它只用于演示“每个顶点一行 distance_method”，不应被解释成真正的皮层曲率。随后
+它只用于演示“每个顶点一行 value”，不应被解释成真正的皮层曲率。随后
 重新构造“一个 base + 一个对齐 values block”的表面对象：
 
-```{r gifti-values, fig.alt="带有教学 distance_method 和三角网格边线的 GIFTI 表面"}
+```{r gifti-values}
 coordinates <- geometry$base$geometry$coordinates
 active <- geometry$base$geometry$active_coordinates
 distance_method <- rowSums(coordinates[[active]])
@@ -229,7 +264,6 @@ surface <- ngeo_surface(
   source_index_base = 0L
 )
 
-suppressWarnings(plot(surface, show_edges = TRUE))
 c(
   vertices = nrow(surface$base$elements),
   metric_rows = nrow(surface$values),
@@ -237,7 +271,7 @@ c(
 )
 ```
 
-写入会生成 geometry、distance_method 和 JSON sidecar；如果对象含 labels，还会生成
+写入会生成 geometry、data 和 JSON sidecar；如果对象含 labels，还会生成
 label GIFTI：
 
 ```{r gifti-roundtrip}
@@ -254,7 +288,7 @@ all.equal(gifti_restored$values, surface$values, tolerance = 1e-6)
 identical(gifti_restored$base$geometry$faces, surface$base$geometry$faces)
 ```
 
-若 faces 完全相同而 distance_method 超过容差，说明数值存储没有保真；若 distance_method 相同
+若 faces 完全相同而 values 超过容差，说明数值存储没有保真；若 values 相同
 而 faces 改变，图形可能仍然看似合理，但 topology 已经不同。两者必须分别
 验证。
 
@@ -305,20 +339,24 @@ nrow(dense$values)
 ngeo_capabilities(dense)[c("surface_topology", "geodesic")]
 ```
 
-用抽样后的有序 grayordinate 绘制曲率，虚线位置对应左右皮层边界：
+把 CIFTI cortex brain models 映射回其明确记录的 surface vertex indices，而不是画
+一条按 grayordinate 行号排列的折线：
 
-```{r cifti-plot, fig.alt="按 grayordinate 顺序抽样绘制的 CIFTI 曲率值，虚线标记左右皮层边界"}
-selected <- unique(round(seq(1, nrow(dense$values), length.out = 2000)))
-boundary <- dense$base$geometry$components$cortex_left$n_element
-plot(
-  selected,
-  dense$values[selected, 1L],
-  pch = 16,
-  cex = 0.35,
-  xlab = "有序 grayordinate",
-  ylab = dense$layers$name[[1L]]
+```{r cifti-to-surface}
+cifti_vertex <- rep(NA_real_, nrow(ngeo_base_elements(vertex$surface)))
+left_component <- dense$base$geometry$components$cortex_left
+right_component <- dense$base$geometry$components$cortex_right
+cifti_vertex[left_component$internal_vertex_index] <-
+  dense$values[left_component$global_rows, 1L]
+cifti_vertex[32492L + right_component$internal_vertex_index] <-
+  dense$values[right_component$global_rows, 1L]
+```
+
+```{r cifti-plot, fig.width=10, fig.height=4.8, fig.alt="CIFTI scalar values restored to their left and right Conte69 surface vertices", fig.cap="brain-model vertex indices 决定每个 grayordinate 回到哪里；medial wall 保持缺失。"}
+ngeo_tutorial_plot_flat(
+  vertex$surface, values=cifti_vertex, atlas="Schaefer100",
+  title="CIFTI scalar restored to Conte69 vertices"
 )
-abline(v = boundary, lty = 2, col = "grey40")
 ```
 
 纯 R writer 可以完成 dscalar 回环，不调用 Connectome Workbench：

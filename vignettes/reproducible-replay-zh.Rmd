@@ -1,76 +1,220 @@
 ---
-title: "DK case-control cortical selection 的可复现 replay"
+title: "DK68 cortical selection 与 Conte69 结果的可复现 replay"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{DK case-control cortical selection 的可复现 replay}
+  %\VignetteIndexEntry{DK68 cortical selection 与 Conte69 结果的可复现 replay}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
-                      warning=FALSE, fig.align="center")
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", message = FALSE, warning = FALSE,
+  fig.align = "center"
+)
 library(neurogeo)
-source(system.file("tutorial-code", "brain-case-study.R",
-                   package="neurogeo", mustWork=TRUE))
-dk <- ngeo_tutorial_dk_case_control()
+source(system.file(
+  "tutorial-code", "brain-case-study.R",
+  package = "neurogeo", mustWork = TRUE
+))
+dk <- ngeo_tutorial_dk_case_control(
+  n_per_group = 100, seed = 20260810
+)
+vertex <- ngeo_tutorial_vertex_case_control(
+  n_per_group = 5, seed = 20260811
+)
 ```
 
-## 记录数据 identity 与预先声明的 cortical subset
+## Replay 从明确的脑数据 identity 开始
 
-可复现不只是保存最终数字。replay record 必须识别准确的 68 × 200 input、顺序
-operations、parameters、environment 与 expected hashes。本例预先声明的 cortical
-set 包含双侧 superior temporal、insula、anterior cingulate 与 medial orbitofrontal
-parcels。
+主研究包含 DK68 上的 100 名 HC + 100 名 SCZ，以及 Conte69 vertex
+support 上每组 5 名被试。replay record 必须识别 ordered brain elements、
+全部 subject layers、operations、parameters、environment 和预期 hashes；
+仅保存最后一个 p value 不足以重建分析。
 
-```{r selection}
-selected <- which(dk$regions$region %in% c(
-  "superior temporal", "insula", "caudal anterior cingulate",
-  "rostral anterior cingulate", "medial orbitofrontal"
-))
+```{r source-contract}
+list(
+  dk_dimensions = dim(ngeo_values(dk$cohort)),
+  vertex_dimensions = dim(ngeo_values(vertex$surface)),
+  dk_groups = table(dk$design$group),
+  vertex_groups = table(vertex$group)
+)
+```
+
+先固定全脑 vertex-level estimand，作为 replay 前的空间参照。
+
+```{r source-brain, fig.width=10, fig.height=4.8, fig.alt="Replay 前 Conte69 flat surface 上的 vertex SCZ 减 HC contrast", fig.cap="Replay manifest 必须绑定产生该 cortical pattern 的输入和参数。"}
+ngeo_tutorial_plot_flat(
+  vertex$difference,
+  layer = "SCZ_minus_HC",
+  title = "Replay source: SCZ - HC thickness",
+  diverging = TRUE
+)
+```
+
+## 预先声明 DK cortical set
+
+这里选择双侧 superior temporal、insula、anterior cingulate 和 medial
+orbitofrontal parcels，并保留全部 200 名被试。selection 使用 ordered
+element indices，但解释必须回到明确 region IDs。
+
+```{r record-selection}
+target_regions <- c(
+  "superiortemporal",
+  "insula",
+  "caudalanteriorcingulate",
+  "rostralanteriorcingulate",
+  "medialorbitofrontal"
+)
+selected <- which(dk$regions$region %in% target_regions)
+stopifnot(length(selected) == 2L * length(target_regions))
+
 steps <- list(ngeo_replay_step(
-  "cortical_set", "ngeo_subset", c(x="source"),
-  list(elements=selected, layers=seq_len(200))
+  id = "cortical_set",
+  operation = "ngeo_subset",
+  inputs = c(x = "source"),
+  arguments = list(
+    elements = selected,
+    layers = seq_len(ncol(ngeo_values(dk$cohort)))
+  )
 ))
-manifest <- ngeo_record_replay(
-  list(source=dk$cohort), steps, outputs="cortical_set"
+replay_manifest <- ngeo_record_replay(
+  inputs = list(source = dk$cohort),
+  steps = steps,
+  outputs = "cortical_set"
 )
-verified <- ngeo_replay(manifest, list(source=dk$cohort))
-verified$verified
-manifest$canonical_sha256
-```
-
-## 在脑图上验证 output
-
-replayed object 保留全部 200 个 subject layers，但只保留声明的 parcels。未选择的
-DK cortex 显示为灰色，因此 recorded spatial scope 可以直接检查。
-
-```{r replay-brain, fig.width=9, fig.height=4.6, fig.alt="一名 HC 的 replayed preregistered DK cortical subset", fig.cap="replay hash 验证 identity；脑图验证选择的 spatial scope 是否符合预期。"}
+verified <- ngeo_replay(
+  replay_manifest,
+  inputs = list(source = dk$cohort)
+)
 replayed <- verified$outputs$cortical_set
-ngeo_tutorial_plot_dk(
-  replayed, "sub-001", title="Verified replay：预先声明的 cortical set"
+list(
+  verified = verified$verified,
+  manifest_sha256 = replay_manifest$canonical_sha256,
+  replayed_dimensions = dim(ngeo_values(replayed))
 )
 ```
 
-logical hash 覆盖有序 base elements、values、layer/measure metadata、labels 与 file
-identity；timestamp 不改变它。replay 在返回 `verified = TRUE` 前检查 input、
-intermediate 与 output hash。受限 operation vocabulary 防止 manifest 变成任意代码
-容器。
+## Replay 前后 alignment 验证
 
-## 发布相关 derivatives
+hash verification 之外，再显式检查 region order、200 个 layer IDs 和
+values。这样可以区分“代码运行完了”与“恢复了同一个神经影像对象”。
 
-```{r publish, eval=FALSE}
-batch <- ngeo_write_artifact_batch(
-  "derivatives/neurogeo/group-scz-vs-hc",
-  c("group_desc-SCZminusHC_thickness.tsv", "group_desc-SCZminusHC_thickness.json"),
-  list(
-    function(path) write.table(parcel_effects, path, sep="\t", row.names=FALSE),
-    function(path) jsonlite::write_json(sidecar, path, auto_unbox=TRUE)
+```{r alignment-check}
+expected <- ngeo_subset(
+  dk$cohort,
+  elements = selected,
+  layers = seq_len(ncol(ngeo_values(dk$cohort)))
+)
+stopifnot(
+  identical(
+    ngeo_base_elements(replayed)$region_id,
+    ngeo_base_elements(expected)$region_id
   ),
-  roles=c("effect_map", "sidecar"),
-  entities=list(analysis="SCZminusHC", datatype="anat")
+  identical(
+    ngeo_layers(replayed)$layer_id,
+    ngeo_layers(expected)$layer_id
+  ),
+  isTRUE(all.equal(
+    ngeo_values(replayed),
+    ngeo_values(expected)
+  ))
+)
+head(ngeo_base_elements(replayed)[
+  c("region_id", "hemi", "region")
+])
+```
+
+未选择的 DK cortex 在图中留空，因此可以直接检查 replay 的 spatial
+scope，而不是只相信 manifest 中的一串数字。
+
+```{r replayed-brain, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上 replay 恢复的 DK cortical subset", fig.cap="Hash 验证 identity；flat-surface map 验证恢复的 cortical scope。"}
+ngeo_tutorial_plot_flat(
+  replayed,
+  layer = "sub-001",
+  title = "Verified replay: preregistered DK set"
 )
 ```
 
-artifacts 使用 root-relative paths 与 SHA-256 content hashes。`neurogeo` 发布声明的
-derivative batch，不发现或编排整个 BIDS dataset。
+## 发布 derivative 时继续保留证据链
+
+```{r publish}
+replayed_layers <- ngeo_layers(replayed)
+replayed_values <- ngeo_values(replayed)
+parcel_effects <- data.frame(
+  region_id = ngeo_base_elements(replayed)$region_id,
+  SCZ_minus_HC = rowMeans(replayed_values[
+    , replayed_layers$group == "SCZ", drop = FALSE
+  ]) - rowMeans(replayed_values[
+    , replayed_layers$group == "HC", drop = FALSE
+  ])
+)
+sidecar <- list(
+  Analysis = "SCZ minus HC cortical thickness",
+  SamplingUnit = "subject",
+  Subjects = list(HC = 100L, SCZ = 100L),
+  Support = "preregistered DK cortical set",
+  ReplayManifestSHA256 = replay_manifest$canonical_sha256
+)
+
+if (requireNamespace("jsonlite", quietly = TRUE)) {
+  batch_directory <- tempfile("replay-batch-")
+  batch <- ngeo_write_artifact_batch(
+    batch_directory,
+  c(
+    "group_desc-SCZminusHC_thickness.tsv",
+    "group_desc-SCZminusHC_thickness.json"
+  ),
+  list(
+    function(path) {
+      write.table(
+        parcel_effects, path,
+        sep = "\t", row.names = FALSE
+      )
+    },
+    function(path) {
+      jsonlite::write_json(
+        sidecar, path,
+        auto_unbox = TRUE, pretty = TRUE
+      )
+    }
+  ),
+  roles = c("effect_map", "sidecar"),
+  entities = list(
+    analysis = "SCZminusHC",
+    datatype = "anat"
+  )
+  )
+  restored_batch <- ngeo_read_artifact_batch(
+    batch_directory
+  )
+  batch_report <- ngeo_validate_artifact_batch(
+    restored_batch, batch_directory
+  )
+  stopifnot(
+    isTRUE(restored_batch$complete),
+    isTRUE(batch_report$valid),
+    file.exists(file.path(
+      batch_directory, "manifest.json"
+    )),
+    file.exists(file.path(
+      batch_directory, "artifacts.json"
+    ))
+  )
+  publication_result <- list(
+    files = restored_batch$artifacts$path,
+    complete = restored_batch$complete,
+    validated = batch_report$valid
+  )
+  unlink(
+    batch_directory,
+    recursive = TRUE,
+    force = TRUE
+  )
+  publication_result
+}
+```
+
+logical hash 应覆盖 ordered base、values、layer/measure metadata、labels
+和 file identity；timestamp 不应改变科学 identity。受限 operation
+vocabulary 防止 replay manifest 变成任意代码容器。

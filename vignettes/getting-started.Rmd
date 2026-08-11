@@ -16,6 +16,7 @@ source(system.file(
   mustWork = TRUE
 ))
 dk <- ngeo_tutorial_dk_case_control(n_per_group = 100, seed = 20260810)
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group = 5)
 ```
 
 ## The question, before the object
@@ -25,7 +26,8 @@ with schizophrenia (SCZ), measured in the 68 cortical Desikan--Killiany (DK)
 parcels. Age, sex, and site are subject-level covariates. The simulation embeds
 lower SCZ thickness in bilateral superior temporal, insular, anterior
 cingulate, and medial orbitofrontal cortex, with weaker effects in neighboring
-parcels. It is teaching data, not clinical evidence.
+parcels and a small smooth anterior--posterior background gradient. It is
+teaching data, not clinical evidence.
 
 ```{r study-design}
 with(dk$design, table(group, site))
@@ -42,17 +44,17 @@ The first map is one HC participant. The second is the descriptive SCZ-minus-HC
 contrast. Every subsequent number in this tutorial refers back to these maps.
 
 ```{r subject-brain, fig.width=9, fig.height=4.6, fig.alt="DK cortical thickness for one simulated healthy control shown on bilateral cortical views", fig.cap="One subject is one layer; DK parcels form the shared spatial base."}
-ngeo_tutorial_plot_dk(
+ngeo_tutorial_plot_flat(
   dk$cohort, layer = "sub-001",
-  title = "Simulated cortical thickness: sub-001 (HC)"
+  title = "sub-001 cortical thickness (HC)"
 )
 ```
 
 ```{r contrast-brain, fig.width=9, fig.height=4.6, fig.alt="Simulated SCZ minus HC cortical thickness difference on the DK atlas", fig.cap="The case-control contrast is spatially structured and is plotted before spatial inference."}
-ngeo_tutorial_plot_dk(
+ngeo_tutorial_plot_flat(
   dk$difference,
-  title = "SCZ minus HC cortical thickness (mm)",
-  midpoint = 0
+  title = "SCZ - HC cortical thickness (mm)",
+  diverging = TRUE
 )
 ```
 
@@ -96,6 +98,18 @@ weights
 summary(Matrix::rowSums(weights$raw_matrix != 0))
 ```
 
+The same vertex base also carries several published atlas label sets.
+
+```{r atlas-family, fig.width=10, fig.height=8, fig.alt="DK68 Schaefer100 Schaefer200 Schaefer300 and Glasser360 on Conte69 flat cortex", fig.cap="All atlases are strictly aligned to the same 64,984-vertex Conte69 base."}
+plot(
+  ngeo_tutorial_atlas_layout(
+    vertex,
+    c("DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360")
+  ),
+  show_legend=FALSE
+)
+```
+
 ## Ask a spatial question about the group contrast
 
 Global Moran's I below asks whether the *descriptive group-difference map* is
@@ -112,7 +126,8 @@ spatial_result <- ngeo_moran(
   seed = 2026
 )
 spatial_result
-ngeo_inference_contract(spatial_result)
+contract <- ngeo_inference_contract(spatial_result)
+contract
 ```
 
 The contract makes the distinction auditable: its sampling units are parcels

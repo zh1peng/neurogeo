@@ -1,8 +1,8 @@
 ---
-title: "NIfTI 体数据：从读入到可审计结果"
+title: "NIfTI 体数据：5+5 case-control brain volume 从模拟到 round-trip"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{NIfTI 体数据：从读入到可审计结果}
+  %\VignetteIndexEntry{NIfTI 体数据：5+5 case-control brain volume 从模拟到 round-trip}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,10 +11,11 @@ vignette: >
 或邻域前必须检查 affine 和 coordinate-space unit。除非显式 mask 另有声明，零值
 仍是数据，不会自动当作背景。
 
-下面的唯一 canonical 代码读取随包安装且有 checksum 的 NIfTI，检查
-base/layer/measure 语义，执行 QC、六邻域 Moran 分析和绘图，再做 round trip 并
-查看 history。这里的 Moran's I 只描述这些 voxel 的空间自相关，不是被试水平推断，
-也不是因果效应。
+下面的 canonical 代码构造一个 48×56×40 brain-shaped volume，模拟 5 名 HC 与
+5 名 SCZ 的 gray-matter intensity，保留约 5 万个 mask 内 voxels。它检查
+base/layer/measure 语义，计算描述性的 SCZ-minus-HC volume、执行 QC 与六邻域
+Moran 分析、显示 axial brain slice，再写为 NIfTI 并读回。这里的 Moran's I 只
+描述 group-contrast volume 的空间自相关，不是 subject-level group test。
 
 ```{r setup, include=FALSE}
 knitr::read_chunk(system.file(
@@ -22,9 +23,11 @@ knitr::read_chunk(system.file(
 ))
 ```
 
-```{r workflow-volume}
+```{r workflow-volume, fig.width=7.5, fig.height=6.2, message=FALSE, warning=FALSE, fig.alt="Axial slice of a simulated 5 HC versus 5 SCZ gray-matter volume", fig.cap="SCZ-minus-HC intensity 显示在真实 voxel lattice/affine contract 上；零值不会被自动当作背景。"}
 ```
 
-若 qform 和 sform 冲突，neurogeo 会保留两者并发出结构化 warning。应根据采集或
-BIDS metadata 解决冲突，而不是静默忽略。大文件请改用 file-backed reader 和有限
-的 `ngeo_resource_budget()`。
+values 是约 5 万 voxels × 10 subjects，而不是几个点。mask、affine、voxel order、
+subject layers 与 intensity measure 都进入对象和 round-trip history。若真实文件的
+qform/sform 冲突，neurogeo 会保留两者并发出结构化 warning；应根据采集或 BIDS
+metadata 解决，不能静默忽略。大文件请改用 file-backed reader 与显式
+`ngeo_resource_budget()`。

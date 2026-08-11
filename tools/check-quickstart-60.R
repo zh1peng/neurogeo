@@ -34,13 +34,25 @@ if (!identical(code[[1L]], code[[2L]])) {
 }
 
 environment <- new.env(parent = globalenv())
+old_mode <- Sys.getenv("NEUROGEO_TUTORIAL_DATA_MODE", unset = NA_character_)
+Sys.setenv(NEUROGEO_TUTORIAL_DATA_MODE = "synthetic")
+on.exit({
+  if (is.na(old_mode)) Sys.unsetenv("NEUROGEO_TUTORIAL_DATA_MODE") else
+    Sys.setenv(NEUROGEO_TUTORIAL_DATA_MODE = old_mode)
+}, add = TRUE)
 started <- proc.time()[["elapsed"]]
+plot_file <- tempfile(fileext = ".pdf")
+grDevices::pdf(plot_file)
+on.exit({
+  if (grDevices::dev.cur() > 1L) grDevices::dev.off()
+  unlink(plot_file)
+}, add = TRUE)
 sys.source(scripts[[1L]], envir = environment)
 elapsed <- proc.time()[["elapsed"]] - started
-if (!inherits(environment$global_result, "ngeo_global_stat") ||
-    !inherits(environment$local_result, "ngeo_lisa") ||
+if (!inherits(environment$spatial_result, "ngeo_global_stat") ||
+    !inherits(environment$local, "ngeo_lisa") ||
     !inherits(environment$contract, "ngeo_inference_contract") ||
-    !is.finite(environment$global_result$estimate)) {
+    !is.finite(environment$spatial_result$estimate)) {
   stop("Quickstart did not produce its documented scientific results.")
 }
 cat(

@@ -1,127 +1,199 @@
 ---
-title: "跨 support 的共同受试者推断"
+title: "DK 与 Schaefer/Glasser support family 的共同受试者推断"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{跨 support 的共同受试者推断}
+  %\VignetteIndexEntry{DK 与 Schaefer/Glasser support family 的共同受试者推断}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
-```
-
-## 为什么先独立生成 endpoint
-
-每个 atlas/support 都应先独立完成 change of support、topology/operator、固定 basis
-与 coupling endpoint。4.8 只在最后的受试者 endpoint 层合并，不会假设不同
-parcellation 具有同一 topology 或物理频率轴。
-
-```{r fine-data}
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
-
-set.seed(48)
-n_subject <- 14L
-n_fine <- 12L
-subject_id <- paste0("sub-", sprintf("%02d", 1:n_subject))
-group <- factor(rep(c("control", "case"), each = n_subject / 2L))
-layer <- rep(c("x", "y"), n_subject)
-subject <- rep(subject_id, each = 2L)
-base <- sin((1:n_fine) / 2)
-fine_values <- matrix(NA_real_, n_fine, 2L * n_subject)
-for (i in seq_len(n_subject)) {
-  fine_values[, 2L * i - 1L] <- base + rnorm(n_fine, sd = 0.15)
-  strength <- if (group[[i]] == "case") 0.85 else 0.45
-  fine_values[, 2L * i] <- strength * base + rnorm(n_fine, sd = 0.15)
-}
-layers <- data.frame(
-  layer_id = paste0("map-", seq_len(ncol(fine_values))),
-  name = paste(subject, layer, sep = "_"),
-  subject_id = subject,
-  feature = layer
-)
-measures <- do.call(rbind, replicate(
-  ncol(fine_values),
-  ngeo_measure(support_behavior = "intensive", unit = "a.u."),
-  simplify = FALSE
+source(system.file(
+  "tutorial-code", "brain-case-study.R", package="neurogeo",
+  mustWork=TRUE
 ))
-fine <- ngeo_point(
-  cbind(x = 1:n_fine, y = 0), values = fine_values,
-  layers = layers, measures = measures
+dk <- ngeo_tutorial_dk_case_control(n_per_group=100, seed=20260810)
+vertex_template <- ngeo_tutorial_vertex_case_control(
+  n_per_group=5, seed=20260811
 )
-fine_weights <- ngeo_spatial_weights(
-  fine, method = "distance_band", threshold = 1.01, style = "B"
-)
-fine_basis <- ngeo_spatial_basis(
-  fine, fine_weights, support = "identity", n_modes = 5L
-)
-fine_features <- ngeo_layer_coupling(
-  fine, ngeo_validate_layers(fine), basis = fine_basis,
-  bands = list(low = 1:3), estimands = "spectral_coupling"
+family_names <- c(
+  "DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360"
 )
 ```
 
-下面用成对平均构造一个教学用 coarse intensive support。真实分析应使用项目中显式的
-support map/change-of-support 工作流。
+## 200 名 subjects 始终是独立推断单位
 
-```{r coarse-data}
-coarse_values <- rowsum(
-  fine_values, rep(1:(n_fine / 2L), each = 2L)
-) / 2
-n_coarse <- nrow(coarse_values)
-adjacency <- Matrix::sparseMatrix(
-  i = c(1:(n_coarse - 1L), 2:n_coarse),
-  j = c(2:n_coarse, 1:(n_coarse - 1L)),
-  x = 1, dims = c(n_coarse, n_coarse)
-)
-coarse <- ngeo_parcellation(
-  data.frame(region_id = seq_len(n_coarse)),
-  values = coarse_values,
-  support_size = rep(2, n_coarse),
-  adjacency = adjacency,
-  layers = layers,
-  measures = measures
-)
-coarse_weights <- ngeo_spatial_weights(
-  coarse, method = "region_contiguity", style = "B"
-)
-coarse_basis <- ngeo_spatial_basis(
-  coarse, coarse_weights, n_modes = 5L
-)
-coarse_features <- ngeo_layer_coupling(
-  coarse, ngeo_validate_layers(coarse), basis = coarse_basis,
-  bands = list(low = 1:3), estimands = "spectral_coupling"
+本例有 100 名 HC 与 100 名 SCZ。每名 subject 的 DK68 thickness map 先提升到同一
+registered vertex surface，再分别聚合到 DK68、Schaefer100/200/300 和 Glasser360。
+提升只建立共享 source representation，不增加独立观测；推断仍只有 200 个 subjects。
+
+```{r input-brain, fig.width=10, fig.height=4.8, fig.alt="DK68 support 上的模拟 SCZ 减 HC cortical thickness", fig.cap="跨 support 推断从同一 200-subject case-control cohort 开始。"}
+ngeo_tutorial_plot_flat(
+  dk$difference,
+  title="DK68 source contrast: SCZ minus HC",
+  diverging=TRUE
 )
 ```
 
-## 一个 schedule，覆盖全部 support
+```{r design-contract}
+with(dk$design, table(group, site))
+dim(ngeo_values(dk$cohort))
+```
+
+## 一个 vertex source，五个 pinned atlas supports
+
+下面用真实 vertex surface 只建立 DK 与其他 atlas 的面积 overlap operators。
+68×200 DK maps 不必 materialize 成 64,984×200 的中间 dense matrix；
+`ngeo_cross_atlas()` 在明确的 piecewise-constant model 下直接传递每名 subject。
+
+```{r lift-cohort}
+included <- vertex_template$mask & Reduce(
+  `&`, lapply(vertex_template$supports[family_names], function(x) !is.na(x))
+)
+analysis_surface <- ngeo_subset(
+  vertex_template$difference, elements=which(included)
+)
+source_area <- vertex_template$vertex_area[included]
+c(
+  overlap_vertices=nrow(ngeo_values(analysis_surface)),
+  subjects=ncol(ngeo_values(dk$cohort))
+)
+```
+
+```{r atlas-layout, fig.width=11, fig.height=11, fig.alt="共同受试者推断中的 DK Schaefer 与 Glasser atlas family", fig.cap="每个 support 都对应同一 surface 上明确的 parcel boundaries。"}
+atlas_maps <- lapply(family_names, function(atlas) {
+  ngeo_tutorial_atlas_map(vertex_template, atlas=atlas, title=atlas)
+})
+plot(ngeo_cortical_layout(
+  atlas_maps,
+  ncol=2L,
+  labels=family_names,
+  shared_scale=FALSE
+), show_legend=FALSE)
+```
+
+```{r change-support}
+family_maps <- lapply(family_names, function(atlas) {
+  ngeo_atlas_map(
+    analysis_surface,
+    vertex_template$supports[[atlas]][included],
+    source_support=source_area
+  )
+})
+names(family_maps) <- family_names
+dk_target_id <- ngeo_base_elements(family_maps$DK68$target)$region_id
+dk_value_ordered <- ngeo_values(dk$cohort)[
+  match(dk_target_id, dk$regions$region_id), , drop=FALSE
+]
+stopifnot(!anyNA(dk_value_ordered))
+regional <- lapply(family_maps, function(map) {
+  ngeo_cross_atlas(
+    dk_value_ordered,
+    first=family_maps$DK68,
+    second=map,
+    semantics="intensive",
+    source_support=source_area
+  )$values
+})
+data.frame(
+  support=family_names,
+  parcels=vapply(regional, nrow, integer(1)),
+  subjects=vapply(regional, ncol, integer(1)),
+  support_hash=vapply(family_maps, ngeo_support_map_hash, character(1))
+)
+```
+
+## 每个 support 独立生成 subject endpoint
+
+为保持物理含义可比，本页使用 whole-cortex support-weighted mean thickness。每个
+atlas 先产生一个 200×1 `ngeo_subject_features`，并记录自己的 support hash；
+`ngeo_group_test()` 只在 endpoint 层绑定它们。
+
+```{r subject-features}
+make_support_feature <- function(map_values, support_map) {
+  support <- support_map$target_support
+  if (is.null(support)) {
+    support <- as.numeric(
+      support_map$operator %*% source_area
+    )
+  }
+  endpoint <- matrix(
+    colSums(map_values * support) / sum(support),
+    ncol=1L,
+    dimnames=list(NULL, "whole_cortex_mean")
+  )
+  result <- list(
+    values=endpoint,
+    unit=data.frame(
+      unit_id=dk$design$subject_id,
+      stringsAsFactors=FALSE
+    ),
+    endpoints=data.frame(
+      endpoint_id="whole_cortex_mean",
+      estimand="support_weighted_mean",
+      layer_x="thickness",
+      layer_y="none",
+      direction="none",
+      component="bilateral_cortex",
+      band="whole_cortex",
+      scale_type="physical_support",
+      recommended_transform="none",
+      stringsAsFactors=FALSE
+    ),
+    diagnostics=list(parcels=nrow(map_values)),
+    history=list(
+      method="support_weighted_subject_summary",
+      support_hash=ngeo_support_map_hash(support_map)
+    )
+  )
+  class(result) <- "ngeo_subject_features"
+  result
+}
+features <- Map(make_support_feature, regional, family_maps)
+names(features) <- family_names
+vapply(features, function(x) nrow(x$values), integer(1))
+```
+
+## 一个 schedule 同时覆盖全部 support
+
+同一个 schedule 在 site 内移动完整 subject records，并同时用于五个 supports。
+max-T family 覆盖全部 `support × endpoint`；vertex 和 parcel 从不被 permutation。
 
 ```{r common-inference}
-schedule <- ngeo_exchangeability(
-  subject_id, permutations = 99L, seed = 2026L,
-  unit_kind = "subject"
+design <- data.frame(
+  unit_id=dk$design$subject_id,
+  group=dk$design$group,
+  age=dk$design$age,
+  sex=dk$design$sex,
+  site=dk$design$site
 )
-design <- data.frame(unit_id = subject_id, group = group)
+schedule <- ngeo_exchangeability(
+  design$unit_id,
+  scheme="within_block",
+  blocks=design$site,
+  permutations=199,
+  seed=5001,
+  unit_kind="subject"
+)
 result <- ngeo_group_test(
-  features = list(fine = fine_features, coarse = coarse_features),
-  data = design,
-  model = ~ group,
-  test = "group",
-  exchangeability = schedule
+  features,
+  design,
+  model=~ age + sex + site + group,
+  test="group",
+  exchangeability=schedule,
+  adjustment="maxT"
 )
 result$tests[, c(
-  "support_id", "estimand", "band", "coefficient", "p_raw", "p_maxT"
+  "support_id", "estimand", "coefficient", "partial_r2", "p_raw", "p_maxT"
 )]
+result$support$members
 result$support$stability
 ```
 
-全部 support 在进入引擎前已合并，所以相同 schedule row 同时作用于所有 endpoint，
-默认 max-T 也覆盖完整 `support × endpoint` family。
-
-## 如何解释稳定性
-
-`direction_agreement`、effect range/IQR/SD、significance persistence 与
-leave-one-support-out influence 只描述这里明确列出的 support family。rank-matched
-band 不是相同毫米尺度；unmatched scale 不会被汇总。support dispersion 不会与
-sampling variance 相加，也不会自动产生 “stable”“unstable” 或
-“parcellation-invariant” 标签。
+effect range、direction agreement 与 leave-one-support-out influence 只描述这里明确
+列出的五个 supports。共同 schedule 解决的是跨 support multiplicity 与随机 null
+一致性；它不会把 atlas boundaries 当作随机样本，也不会自动产生
+“parcellation-invariant”结论。

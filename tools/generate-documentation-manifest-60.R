@@ -145,11 +145,39 @@ manifest$code_sha256 <- vapply(manifest$code_source, function(path) {
   if (!nzchar(path)) return("")
   canonical_text_hash(path)
 }, character(1))
+shared_tutorial_code <- file.path(
+  "inst", "tutorial-code", "brain-case-study.R"
+)
+uses_shared_tutorial_code <- vapply(seq_len(nrow(manifest)), function(i) {
+  source_text <- paste(
+    readLines(manifest$source[[i]], encoding = "UTF-8", warn = FALSE),
+    collapse = "\n"
+  )
+  code_text <- if (nzchar(manifest$code_source[[i]])) {
+    paste(
+      readLines(manifest$code_source[[i]], encoding = "UTF-8", warn = FALSE),
+      collapse = "\n"
+    )
+  } else {
+    ""
+  }
+  grepl("brain-case-study\\.R", paste(source_text, code_text), perl = TRUE)
+}, logical(1))
+manifest$shared_code_source <- ifelse(
+  uses_shared_tutorial_code,
+  gsub("\\\\", "/", shared_tutorial_code),
+  ""
+)
+manifest$shared_code_sha256 <- ifelse(
+  uses_shared_tutorial_code,
+  canonical_text_hash(shared_tutorial_code),
+  ""
+)
 manifest$route_sha256 <- vapply(seq_len(nrow(manifest)), function(i) {
   digest::digest(
     paste(
       manifest$route[[i]], manifest$source_sha256[[i]],
-      manifest$code_sha256[[i]],
+      manifest$code_sha256[[i]], manifest$shared_code_sha256[[i]],
       manifest$counterpart_route[[i]], sep = "\n"
     ),
     algo = "sha256", serialize = FALSE

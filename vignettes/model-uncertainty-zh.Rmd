@@ -1,70 +1,131 @@
 ---
-title: "包含不确定性的空间模型"
+title: "空间模型不确定性：DK68 case-control effect 的方差分解"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{包含不确定性的空间模型}
+  %\VignetteIndexEntry{空间模型不确定性：DK68 case-control effect 的方差分解}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
+values <- ngeo_values(dk$cohort)
+group <- dk$design$group
+effect <- ngeo_values(dk$difference)[, 1L]
+effect_se <- sqrt(
+  apply(values[, group == "SCZ", drop=FALSE], 1L, stats::var) / 100 +
+  apply(values[, group == "HC", drop=FALSE], 1L, stats::var) / 100
+)
+model_data <- ngeo_parcellation(
+  dk$regions,
+  values=cbind(effect=effect, standard_error=effect_se),
+  centroid=dk$centroids, support_size=dk$support_size,
+  adjacency=dk$adjacency,
+  measures=rbind(
+    ngeo_measure(name="SCZ minus HC thickness", support_behavior="intensive", unit="mm"),
+    ngeo_measure(name="standard error", support_behavior="intensive", unit="mm")
+  ),
+  coordinate_space=ngeo_spatial_base(dk$cohort)$coordinate_space
+)
 ```
 
-## 基础背景
+## 不确定性先是一张 brain map
 
-空间预测的不确定性可能包括 measurement error、residual process variance、
-covariance parameter uncertainty，以及 support 或 tuning choice 的敏感性。
-只有把这些成分分开命名，总 variance 才能被正确解释。
+空间预测的不确定性至少可能包含 subject sampling/measurement error、residual
+process variance、covariance-parameter uncertainty 与 support sensitivity。这里的
+measurement variance 不是凭空给每个点设为 0.01，而是从 100 名 HC 与 100 名 SCZ
+的 regional thickness 计算 case-control standard error。
 
-covariance 的行列必须绑定到一个 exact ordered base，防止 uncertainty 与
-observation 错位。
-
-## Measurement covariance
-
-```{r}
-coordinates <- as.matrix(expand.grid(x = 0:3, y = 0:3))
-predictor <- coordinates[, 1] + coordinates[, 2] / 4
-x <- ngeo_point(
-  coordinates,
-  values = cbind(
-    response = 1 + 2 * predictor +
-      sin(seq_along(predictor)) / 20,
-    predictor = predictor
-  )
+```{r input-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 case-control effect and its standard error on flat cortex", fig.cap="同一个 effect 在不同 cortical regions 具有不同 sampling uncertainty。"}
+ngeo_tutorial_plot_flat(
+  model_data, layer="effect", title="SCZ - HC thickness effect",
+  diverging=TRUE
 )
+ngeo_tutorial_plot_flat(
+  model_data, layer="standard_error", title="Case-control standard error",
+  palette="Inferno"
+)
+```
+
+## 把 covariance 绑定到 exact ordered DK base
+
+```{r covariance}
 measurement <- ngeo_support_covariance(
-  x, variance = rep(0.01, nrow(coordinates))
+  model_data, variance=effect_se^2
 )
+measurement
 ```
+
+对象保存 base hash 与 region order，所以 covariance 不可能在左右半球或 parcel
+重排后被静默复用。
 
 ## Variogram parameter uncertainty
 
-```{r}
+```{r variogram-uncertainty}
 variogram <- ngeo_variogram_uncertainty(
-  x, "response", measurement,
-  breaks = 5, model = "exponential",
-  nsim = 20, seed = 27
+  model_data, "effect", measurement,
+  breaks=8, model="exponential",
+  nsim=30, seed=2701, workers=1
 )
+variogram$fit$parameters
 variogram$parameter_interval
 ```
 
+区间来自 measurement-error draws 下的重复 variogram 拟合；它不是把 empirical
+variogram bin 当成独立样本得到的置信区间。
+
 ## Kriging variance components
 
-```{r}
+下面在全部 DK regions 上做 leave-location-style spatial prediction。示例用于展示
+variance contract，并不主张 DK contrast 必须被 kriging 平滑。
+
+```{r kriging}
 prediction <- ngeo_kriging_uncertainty(
-  x, "response", variogram$fit,
-  targets = 1:4, neighbors = 8,
-  value_covariance = measurement,
-  variogram_uncertainty = variogram
+  model_data, "effect", variogram$fit,
+  targets=1:68, neighbors=20,
+  value_covariance=measurement,
+  variogram_uncertainty=variogram
 )
-prediction[, c(
-  "process_variance", "measurement_variance",
-  "parameter_variance", "support_variance", "total_variance"
+prediction[1:6, c(
+  "prediction", "process_variance", "measurement_variance",
+  "parameter_variance", "total_variance", "lower", "upper"
 )]
 ```
 
-GWR 的 alternative-bandwidth range 是 sensitivity range，不是 confidence
-interval。只有对预先声明的 support family 才能使用 total variance law
-合并 within-support 和 between-support variation。
+```{r uncertainty-maps, fig.width=10, fig.height=4.8, fig.alt="Kriging prediction and total standard error on DK68 flat cortex", fig.cap="prediction map 必须与 total uncertainty map 同时报告。"}
+ngeo_tutorial_plot_flat(
+  model_data, values=prediction$prediction,
+  title="Spatial prediction of case-control effect", diverging=TRUE
+)
+ngeo_tutorial_plot_flat(
+  model_data, values=prediction$total_standard_error,
+  title="Total prediction standard error", palette="Inferno"
+)
+```
+
+## 哪些 regions 的区间跨过零
+
+```{r interval-map}
+interval_status <- ifelse(
+  prediction$upper < 0, -1,
+  ifelse(prediction$lower > 0, 1, 0)
+)
+```
+
+```{r interval-brain, fig.width=9.5, fig.height=4.8, fig.alt="DK regions whose uncertainty intervals are negative, cross zero, or positive", fig.cap="-1 表示 interval entirely below zero，0 表示跨零，1 表示 entirely above zero。它是 model-based interval classification，不是多重比较校正后的显著性图。"}
+ngeo_tutorial_plot_flat(
+  model_data, values=interval_status,
+  title="Interval sign classification", diverging=TRUE,
+  limits=c(-1, 1)
+)
+```
+
+GWR 的 alternative-bandwidth range 只能叫 sensitivity range，不能叫 confidence
+interval。若再比较 DK、Schaefer100/200/300，within-support 与 between-support
+variation 也必须分开记录；把它们直接加进一个“总 SE”需要明确的随机-support
+模型，而不是视觉上挑一个最好看的 atlas。

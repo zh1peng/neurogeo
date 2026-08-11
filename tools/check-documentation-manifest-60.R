@@ -37,6 +37,14 @@ if (any(!file.exists(code_sources)) || any(!nzchar(
 ))) {
   stop("Canonical tutorial code is missing or unhashed.")
 }
+shared_code_sources <- expected$shared_code_source[
+  nzchar(expected$shared_code_source)
+]
+if (any(!file.exists(shared_code_sources)) || any(!nzchar(
+    expected$shared_code_sha256[nzchar(expected$shared_code_source)]
+))) {
+  stop("Shared tutorial code is missing or unhashed.")
+}
 
 vignettes <- sort(gsub("\\\\", "/", list.files(
   "vignettes", pattern = "\\.Rmd$", full.names = TRUE

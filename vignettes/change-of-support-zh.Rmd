@@ -1,8 +1,8 @@
 ---
-title: "Support 转换：vertex SCZ--HC 脑图的 DK 与 Schaefer 多尺度分析"
+title: "Support 转换：vertex SCZ--HC 脑图的多 atlas 分析"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Support 转换：vertex SCZ--HC 脑图的 DK 与 Schaefer 多尺度分析}
+  %\VignetteIndexEntry{Support 转换：vertex SCZ--HC 脑图的多 atlas 分析}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,102 +11,135 @@ vignette: >
 knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
                       warning=FALSE, fig.align="center")
 library(neurogeo)
-source(system.file("tutorial-code", "brain-case-study.R",
-                   package="neurogeo", mustWork=TRUE))
-vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
+source(system.file(
+  "tutorial-code", "brain-case-study.R", package="neurogeo",
+  mustWork=TRUE
+))
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5, seed=20260811)
+maps <- ngeo_tutorial_support_maps(vertex$difference)
 ```
 
-## 从 vertex-level 脑图开始
+## 从 vertex-level case-control map 开始
 
-sample data 包含 5 名 HC 与 5 名 SCZ 的 surface maps。双侧教学 mesh 有 672 个
-vertices 和一个 flat chart，因此 support operator 足够小，可以直接检查。模拟的
-SCZ effect 位于前颞区域并具有平滑空间结构。
+输入包含 5 名 HC 与 5 名 SCZ，并使用一套双侧 cortical surface。SCZ effect 在
+DK temporal、insula、anterior cingulate 与 medial orbitofrontal 区域较低；连续
+vertex noise 使 effect 不会在 parcel boundary 处被人为截断。
 
-```{r vertex-map, fig.width=9, fig.height=4.5, fig.alt="双侧 surface 上的 vertex-level SCZ 减 HC 皮层厚度", fig.cap="Support 转换从有空间位置的 vertex map 开始，而不是匿名数值向量。"}
-plot(vertex$difference, chart="flat", layer="SCZ_minus_HC",
-     show_edges=FALSE, palette="Blue-Red 3")
+```{r vertex-map, fig.width=10, fig.height=4.8, fig.alt="双侧 flat surface 上的 vertex-level SCZ 减 HC thickness", fig.cap="所有 support 转换共享这一 ordered vertex source。"}
+ngeo_tutorial_plot_flat(
+  vertex$difference,
+  atlas="DK68",
+  title="Vertex-level SCZ minus HC cortical thickness",
+  diverging=TRUE
+)
 ```
 
-数据同时给出 DK68、Schaefer100/200/300 与 Glasser360 尺度的 memberships。
-它们只匹配 atlas 的 parcel **数量**，用于解释 operator；边界是模拟的，不能作为
-已发表 atlas 的真实解剖边界报告。
-
-```{r support-family}
-vertex$support_note
-vapply(vertex$supports, function(labels) length(unique(labels)), integer(1))
+```{r vertex-contract}
+c(
+  vertices=nrow(ngeo_values(vertex$surface)),
+  subjects=ncol(ngeo_values(vertex$surface)),
+  HC=sum(vertex$group == "HC"),
+  SCZ=sum(vertex$group == "SCZ")
+)
+vertex$density
 ```
 
-## 构建稀疏 vertex-to-parcel operators
+## 同一 surface 上的 atlas family
 
-对 cortical thickness，vertex area 是 source support，parcel summary 应为
-area-weighted mean。operator 的 rows 是 target parcels，columns 是 source vertices。
+atlas membership 与 flat geometry 严格按 vertex 对齐。这里同时声明 DK68、
+Schaefer100/200/300 与 Glasser360；不同 atlas 具有不同 parcel
+boundaries，但 source vertices、mask 和受试者保持不变。
 
-```{r build-maps}
-vertex_area <- ngeo_vertex_area(vertex$difference)
-maps <- lapply(vertex$supports, function(labels) {
-  ngeo_atlas_map(vertex$difference, labels, source_support=vertex_area)
-})
-diagnostics <- lapply(maps, ngeo_support_diagnostics)
+```{r atlas-layout, fig.width=11, fig.height=8, fig.alt="DK68 和 Schaefer100 200 300 的 flat-surface atlas layout", fig.cap="change of support 改变 boundary 和 parcel 数，不改变 source surface。"}
+plot(ngeo_tutorial_atlas_layout(
+  vertex,
+  atlases=c("DK68", "Schaefer100", "Schaefer200", "Schaefer300")
+), show_legend=FALSE)
+```
+
+```{r operator-table}
 data.frame(
-  support=names(maps),
-  targets=vapply(maps, function(map) nrow(map$operator), integer(1)),
-  sources=vapply(maps, function(map) ncol(map$operator), integer(1)),
-  coverage=vapply(maps, function(map) map$coverage, character(1))
+  atlas=names(maps),
+  target_parcels=vapply(maps, function(map) nrow(map$operator), integer(1)),
+  source_vertices=vapply(maps, function(map) ncol(map$operator), integer(1)),
+  coverage=vapply(maps, function(map) map$coverage, character(1)),
+  operator_hash=vapply(maps, ngeo_support_map_hash, character(1))
 )
 ```
 
-```{r operator-diagnostic, fig.width=7, fig.height=4, fig.alt="vertex 到 DK68 support operator 的 membership column sums", fig.cap="complete crisp atlas map 中每个 included vertex 恰好贡献给一个 parcel。"}
-plot(maps$DK68, type="membership", col="#2a9d8f", border="white")
+## 构建和检查 sparse vertex-to-parcel operators
+
+对 cortical thickness，source support 是 vertex area，聚合采用 area-weighted mean。
+每个 operator 都应覆盖同一批 included vertices；其 hash 绑定 source/target order，
+因此不能把 Schaefer operator 静默应用到另一个 surface。
+
+```{r diagnostics}
+diagnostics <- lapply(maps, ngeo_support_diagnostics)
+vapply(diagnostics, function(x) x$coverage, character(1))
 ```
 
-## 聚合后必须回到脑上查看
-
-`aggregate_to()` 按 measure semantics 工作：thickness 是 intensive，因此 operator
-传递 area-weighted numerator 与 denominator。下面把 parcel result lift 回 source
-vertices 只是为了画图；它仍然是 parcel-supported estimate。
-
-```{r aggregate}
-dk_result <- aggregate_to(vertex$difference, maps$DK68$target, maps$DK68)
-dk_id <- ngeo_base_elements(dk_result)$region_id
-dk_value <- ngeo_values(dk_result)[, "SCZ_minus_HC"]
-dk_lift <- dk_value[match(vertex$supports$DK68, dk_id)]
-dk_surface <- ngeo_tutorial_surface_map(
-  vertex$difference, dk_lift, "DK68-supported SCZ minus HC"
-)
+```{r operator-plot, fig.width=8, fig.height=4.2, fig.alt="Schaefer300 vertex-to-parcel operator 的 membership diagnostic", fig.cap="稀疏 operator 直接表达 source vertex 到 target parcel 的分配。"}
+plot(maps$Schaefer300, type="membership", col="#2a9d8f", border="white")
 ```
 
-```{r aggregate-brain, fig.width=9, fig.height=4.5, fig.alt="聚合到 DK68 后再显示在双侧 surface 上的 case-control thickness", fig.cap="piecewise-constant 颜色直接显示 vertex support 已变为 parcel support。"}
-plot(dk_surface, chart="flat", show_edges=FALSE, palette="Blue-Red 3")
-```
+## 在每个 support 上执行同一个 aggregation
 
-块状脑图不是重建的 vertex effect；同一 DK parcel 内的所有 vertices 只是显示同一个
-parcel estimate。
-
-## 比较声明的 atlas support family
-
-```{r family-aggregation}
-family_results <- lapply(maps, function(map) {
+```{r aggregate-family}
+selected_maps <- maps[c(
+  "DK68", "Schaefer100", "Schaefer200", "Schaefer300",
+  "Glasser360"
+)]
+regional <- lapply(selected_maps, function(map) {
   aggregate_to(vertex$difference, map$target, map)
 })
 data.frame(
-  support=names(family_results),
-  n_parcel=vapply(family_results, function(x) nrow(ngeo_values(x)), integer(1)),
-  contrast_sd=vapply(family_results, function(x) {
+  atlas=names(regional),
+  parcels=vapply(regional, function(x) nrow(ngeo_values(x)), integer(1)),
+  mean_contrast=vapply(regional, function(x) {
+    mean(ngeo_values(x)[, 1L])
+  }, numeric(1)),
+  contrast_sd=vapply(regional, function(x) {
     stats::sd(ngeo_values(x)[, 1L])
   }, numeric(1))
 )
 ```
 
-```{r overlap, fig.width=8, fig.height=5, fig.alt="模拟 DK68 与 Schaefer100 尺度 supports 的 Dice overlap heatmap", fig.cap="Atlas overlap 描述 support 关系，不表示一个 atlas 能重建另一个。"}
+下面将三个 parcel-supported results lift 回 source vertices 仅用于绘图。块状颜色
+表示同一 parcel 内共享一个 estimate，不应解释为重新获得了 vertex resolution。
+
+```{r lifted-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 Schaefer100 与 Schaefer300 support 上的 SCZ 减 HC flatmaps", fig.cap="相同 source effect 在不同 atlas support 下呈现不同边界与平滑程度。"}
+plot_regional <- function(atlas) {
+  result <- regional[[atlas]]
+  id <- ngeo_base_elements(result)$region_id
+  value <- ngeo_values(result)[, 1L]
+  lifted <- value[match(vertex$supports[[atlas]], id)]
+  ngeo_tutorial_plot_flat(
+    vertex$difference,
+    values=lifted,
+    atlas=atlas,
+    title=paste(atlas, "supported SCZ minus HC"),
+    diverging=TRUE
+  )
+}
+plot_regional("DK68")
+plot_regional("Schaefer100")
+plot_regional("Schaefer300")
+```
+
+## 跨 atlas overlap 是 support 关系，不是生物学一致性
+
+```{r overlap, fig.width=8, fig.height=5, fig.alt="DK68 与 Schaefer100 support 的 Dice overlap heatmap", fig.cap="overlap 描述两个 atlas 怎样覆盖同一 surface。"}
 overlap <- as.matrix(ngeo_atlas_overlap(
   maps$DK68, maps$Schaefer100, distance_method="dice"
 ))
-image(t(overlap[nrow(overlap):1, ]), axes=FALSE,
-      col=grDevices::hcl.colors(40, "Teal"),
-      xlab="Schaefer100-sized parcels", ylab="DK68-sized parcels",
-      main="Cross-support Dice overlap")
+image(
+  t(overlap[nrow(overlap):1, ]), axes=FALSE,
+  col=grDevices::hcl.colors(40, "Teal"),
+  xlab="Schaefer100 parcels", ylab="DK68 parcels",
+  main="Cross-support Dice overlap"
+)
 ```
 
-跨 atlas agreement 必须在预先声明的 support family 中评估。模拟尺度上的一致性只
-验证 operator 行为；科学 atlas robustness 需要已配准的 published labels，并在每个
-support 上使用相同 subject-level design。
+跨 atlas stability 必须在预先声明的 support family 中、使用相同 subject design
+和共同 null schedule 评估。多个 atlas 的 estimate 来自同一批数据，因此不能当作
+相互独立的研究，也不能仅凭方向一致就声称 parcellation invariant。

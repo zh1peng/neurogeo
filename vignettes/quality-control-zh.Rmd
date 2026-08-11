@@ -1,87 +1,148 @@
 ---
-title: "DK68 与 vertex case-control 数据的质量控制"
+title: "DK68 cohort 与 Conte69 vertex 数据的质量控制"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{DK68 与 vertex case-control 数据的质量控制}
+  %\VignetteIndexEntry{DK68 cohort 与 Conte69 vertex 数据的质量控制}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
-                      warning=FALSE, fig.align="center")
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", message = FALSE, warning = FALSE,
+  fig.align = "center"
+)
 library(neurogeo)
-source(system.file("tutorial-code", "brain-case-study.R",
-                   package="neurogeo", mustWork=TRUE))
-dk <- ngeo_tutorial_dk_case_control()
-vertex <- ngeo_tutorial_vertex_case_control()
+source(system.file(
+  "tutorial-code", "brain-case-study.R",
+  package = "neurogeo", mustWork = TRUE
+))
+dk <- ngeo_tutorial_dk_case_control(
+  n_per_group = 100, seed = 20260810
+)
+vertex <- ngeo_tutorial_vertex_case_control(
+  n_per_group = 5, seed = 20260811
+)
 ```
 
 ## Validation 与 QC 回答不同问题
 
-`ngeo_validate()` 检查 structural invariants：68 个 DK rows 在 200 名 subjects
-间对齐，layer metadata 与 columns 对齐，measure semantics 合法。`ngeo_qc()`
-报告需要科学判断的情况，但不会自动修复。
+`ngeo_validate()` 检查结构性 invariants：DK68 的 68 个 ordered parcels
+是否与 200 个 subject layers 对齐，vertex values 是否与 Conte69 topology
+逐行对应，measure 与 coordinate-space metadata 是否完整。`ngeo_qc()`
+则汇总需要研究者判断的 coverage、missingness、range 和 topology 情况；
+它不会自动修复数据。
 
 ```{r validate}
+stopifnot(
+  identical(dim(ngeo_values(dk$cohort)), c(68L, 200L)),
+  ncol(ngeo_values(vertex$surface)) == 10L
+)
 ngeo_validate(dk$cohort, "strict")
-qc <- ngeo_qc(dk$cohort)
-qc$summary
-qc$checks
-head(qc$layer_summary)
+ngeo_validate(vertex$surface, "strict")
+
+dk_qc <- ngeo_qc(dk$cohort)
+vertex_qc <- ngeo_qc(vertex$surface)
+dk_qc$summary
+head(dk_qc$layer_summary)
+vertex_qc$summary
 ```
 
-## QC 必须保持空间导向
+## 表格检查必须和 cortical map 一起看
 
-subject map、case-control contrast 与 tabular QC 应一起检查。global pass 无法显示
-局部但解剖上不合理的 pattern。
+一个 global `pass` 不能显示局部解剖 pattern 是否异常。先检查一名 HC
+的 DK68 thickness map；这张 flat-surface 图把 68 个 parcel values
+重新放回同一 Conte69 cortical foundation。
 
-```{r brain-qc, fig.width=9, fig.height=4.6, fig.alt="用于 visual QC 的一名模拟 HC DK68 皮层厚度图", fig.cap="Structural validation 与脑图回答互补的 QC 问题。"}
-ngeo_tutorial_plot_dk(
-  dk$cohort, "sub-001", title="Visual QC：sub-001 皮层厚度"
+```{r subject-map, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上一名 HC 的 DK68 cortical thickness", fig.cap="表格 QC 检查数值与 metadata；brain map 检查空间 pattern。"}
+ngeo_tutorial_plot_flat(
+  dk$cohort,
+  layer = "sub-001",
+  title = "Visual QC: HC sub-001 cortical thickness"
 )
 ```
 
-```{r qc-plot, fig.width=7, fig.height=4, fig.alt="neurogeo QC statuses summary plot", fig.cap="status plot 汇总 machine-readable checks，但不能在 cortex 上定位异常。"}
-plot(qc)
+再看 vertex-level group contrast。如果 group labels、vertex order 或
+hemisphere binding 被弄错，均值和标准差可能仍然看似合理，而 cortical
+pattern 会暴露 alignment 问题。
+
+```{r contrast-map, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上的 vertex SCZ 减 HC contrast", fig.cap="SCZ--HC contrast 是检查 group/layer alignment 的空间诊断。"}
+ngeo_tutorial_plot_flat(
+  vertex$difference,
+  layer = "SCZ_minus_HC",
+  title = "QC target: SCZ - HC thickness",
+  diverging = TRUE
+)
 ```
 
-## 显式限制 values scan
+## 有界 values scan
 
-大 cohort 可用 `max_value_cells` 限制 QC 读取的 cells。bounded scan 会明确报告
-未评估的内容，不会把未读取 block 静默当作 pass。
+大型 cohort 可以限制一次 QC 扫描的 cells。报告必须明确哪些 checks
+没有完整评估，不能把未读取的 block 静默记为通过。
 
-```{r budget}
-bounded_qc <- ngeo_qc(dk$cohort, max_value_cells=1000)
+```{r bounded-qc}
+bounded_qc <- ngeo_qc(
+  dk$cohort,
+  max_value_cells = 1000
+)
 bounded_qc$checks
 ```
 
-## 在 vertex 数据上检查 support coverage
+## Schaefer200 support coverage
 
-完整 Schaefer200-sized 教学 map 把 672 个 vertices 各自分给一个 target parcel。
-随后移除一部分前颞 vertices，同时在脑图和 sparse diagnostics 中查看 partial coverage。
+完整 map 应把每个可分析 cortical vertex 分配到 Schaefer200 parcel。
+为了展示 coverage failure，下面显式移除一组具有较强模拟 case-control
+effect 的 vertices，并同时查看 sparse support diagnostics 和 brain mask。
 
-```{r support}
+```{r support-coverage}
+complete_labels <- vertex$supports$Schaefer200
 complete_map <- ngeo_atlas_map(
-  vertex$difference, vertex$supports$Schaefer200,
-  source_support=ngeo_vertex_area(vertex$difference)
+  vertex$difference,
+  complete_labels,
+  source_support = ngeo_vertex_area(vertex$difference)
 )
-partial_labels <- vertex$supports$Schaefer200
-partial_labels[vertex$truth < -0.10] <- NA_character_
+
+partial_labels <- complete_labels
+missing_vertex <- vertex$truth < stats::quantile(
+  vertex$truth, probs = 0.08
+)
+partial_labels[missing_vertex] <- NA_character_
 partial_map <- ngeo_atlas_map(
-  vertex$difference, partial_labels,
-  source_support=ngeo_vertex_area(vertex$difference)
+  vertex$difference,
+  partial_labels,
+  source_support = ngeo_vertex_area(vertex$difference)
 )
-ngeo_qc(vertex$difference, support_map=partial_map)$checks
+
+coverage_qc <- ngeo_qc(
+  vertex$difference,
+  support_map = partial_map
+)
+coverage_qc$checks
 ```
 
-```{r coverage-brain, fig.width=9, fig.height=4.5, fig.alt="双侧 cortex 上前颞区域缺失的 vertex coverage mask", fig.cap="脑图显示 missing support，support-map QC 给出定量诊断。"}
+```{r coverage-map, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上缺失部分 Schaefer200 coverage 的 vertex mask", fig.cap="白色缺口显示未进入 support operator 的 cortical vertices。"}
 coverage_surface <- ngeo_tutorial_surface_map(
-  vertex$difference, as.numeric(!is.na(partial_labels)),
-  "support coverage", unit="binary"
+  vertex$difference,
+  as.numeric(!is.na(partial_labels)),
+  name = "Schaefer200 coverage",
+  unit = "binary"
 )
-plot(coverage_surface, chart="flat", show_edges=FALSE, palette="Blues 3")
+ngeo_tutorial_plot_flat(
+  coverage_surface,
+  layer = "Schaefer200 coverage",
+  title = "Schaefer200 vertex coverage",
+  palette = "Blues 3"
+)
 ```
 
-QC 不执行 registration、preprocessing、outlier removal 或 inference。passing report
-只是已执行 checks 的证据，不证明 study design 或 anatomy 正确。
+```{r atlas-reference, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上完整的 Schaefer200 分区", fig.cap="coverage mask 应与声明的 Schaefer200 target support 一起检查。"}
+ngeo_tutorial_plot_atlas(
+  vertex,
+  atlas = "Schaefer200",
+  title = "Complete Schaefer200 support"
+)
+```
+
+QC 不执行 registration、preprocessing、outlier removal 或 inference。
+通过报告只证明已执行 checks 的结果；它不证明 study design、诊断标签或
+解剖配准本身正确。

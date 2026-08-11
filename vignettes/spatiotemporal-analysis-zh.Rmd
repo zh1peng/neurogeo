@@ -1,72 +1,142 @@
 ---
-title: "显式时间与时空分析"
+title: "显式时间与时空分析：DK68 SCZ--HC longitudinal contrast"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{显式时间与时空分析}
+  %\VignetteIndexEntry{显式时间与时空分析：DK68 SCZ--HC longitudinal contrast}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
 ```
 
-## 基础背景
+## 从 200 名 subjects 的 baseline contrast 构造 longitudinal case study
 
-重复空间测量包含两个轴：固定 spatial elements 与 time-indexed layers。无需为每个
-时间点复制 geometry。instantaneous value、interval total 和 rate 的时间语义
-不同，不能使用同一种 contrast。
+空间 elements 固定为真实 DK68 regions，时间 layers 是 baseline、6 个月、1 年、
+2 年的 SCZ-minus-HC group contrast。这里模拟 follow-up evolution，但 baseline 来自
+同一组 100 HC + 100 SCZ；没有为每个时间点复制 geometry。
 
-## 添加 time axis
-
-```{r}
-coordinates <- matrix(c(0,0, 1,0, 2,0), ncol = 2, byrow = TRUE)
-values <- matrix(
-  c(1,2,4, 2,4,8, 4,8,16, 8,16,32), nrow = 3
+```{r longitudinal-object}
+set.seed(3301)
+baseline <- ngeo_values(dk$difference)[, 1L]
+time_year <- c(0, 0.5, 1, 2)
+progression <- outer(dk$truth, c(0, 0.12, 0.24, 0.42))
+noise <- matrix(rnorm(68 * 4, sd=0.008), 68, 4)
+longitudinal_values <- baseline + progression + noise
+colnames(longitudinal_values) <- c(
+  "baseline", "month_6", "year_1", "year_2"
 )
-x <- ngeo_point(coordinates, values = values)
-axis <- ngeo_time_axis(time = c(0, 1, 3, 6), unit = "second")
-x <- ngeo_set_time_axis(
-  x, axis, temporal_semantics = "instantaneous"
+longitudinal <- ngeo_parcellation(
+  dk$regions,
+  values=longitudinal_values,
+  centroid=dk$centroids, support_size=dk$support_size,
+  adjacency=dk$adjacency,
+  layers=data.frame(
+    layer_id=colnames(longitudinal_values),
+    name=colnames(longitudinal_values),
+    measure_id="case_control_contrast"
+  ),
+  measures=ngeo_measure(
+    measure_id="case_control_contrast",
+    name="SCZ minus HC cortical thickness",
+    support_behavior="intensive", unit="mm"
+  ),
+  coordinate_space=ngeo_spatial_base(dk$cohort)$coordinate_space
+)
+axis <- ngeo_time_axis(time=time_year, unit="year")
+longitudinal <- ngeo_set_time_axis(
+  longitudinal, axis, temporal_semantics="instantaneous"
 )
 ```
 
-## 时间切片
+```{r baseline-followup, fig.width=10, fig.height=4.8, fig.alt="Baseline and two-year SCZ minus HC effects on DK68 flat cortex", fig.cap="相同 DK geometry 与对称色阶让时间变化可直接比较。"}
+shared_limit <- max(abs(longitudinal_values))
+ngeo_tutorial_plot_flat(
+  longitudinal, layer="baseline", title="Baseline: SCZ - HC",
+  diverging=TRUE, limits=c(-shared_limit, shared_limit)
+)
+ngeo_tutorial_plot_flat(
+  longitudinal, layer="year_2", title="Year 2: SCZ - HC",
+  diverging=TRUE, limits=c(-shared_limit, shared_limit)
+)
+```
 
-```{r}
-slice <- ngeo_time_slice(x, index = c(1, 3))
-identical(base_hash(slice), base_hash(x))
+## 时间切片不改变 spatial identity
+
+```{r time-slice}
+slice <- ngeo_time_slice(longitudinal, index=c(1, 3))
+identical(base_hash(slice), base_hash(longitudinal))
 ngeo_get_time_axis(slice)$time
 ```
 
-切片只改变 aligned map dimension，spatial base hash 保持不变。
+切片只改变 aligned map dimension；DK region order、surface-derived adjacency 与
+coordinate-space hash 保持不变。
 
-## Space-time spatial_weights
+## Spatial、temporal 与 space-time operators 分开声明
 
-```{r}
+```{r operators}
 spatial <- ngeo_spatial_weights(
-  x, method = "distance_band", threshold = 1.1, style = "W"
+  longitudinal, method="region_contiguity", style="W"
 )
-temporal <- ngeo_temporal_weights(axis, style = "W")
+temporal <- ngeo_temporal_weights(axis, style="W")
 space_time <- ngeo_spatiotemporal_weights(
-  spatial, temporal, combination = "sum", spatial_scale = 0.5
+  spatial, temporal, combination="sum", spatial_scale=0.5
 )
-ngeo_spatiotemporal_moran(
-  x, space_time, permutations = 99, seed = 33
+space_time
+```
+
+对象保存 Kronecker-sum contract，而不是 materialize 272×272 以上的任意 dense
+matrix。两个 operators 的 normalization 与 time unit 都属于 estimand。
+
+```{r spacetime-statistic}
+st_moran <- ngeo_spatiotemporal_moran(
+  longitudinal, space_time, permutations=99, seed=3302
+)
+st_moran
+```
+
+这个 p value 针对一张 group-level longitudinal reference stack 的声明 null；它不是
+200 名 subjects 的 population-level longitudinal inference。
+
+## Change、rate 与 trend 是不同 temporal quantities
+
+```{r derived}
+change <- ngeo_longitudinal_change(
+  longitudinal, from="baseline", to="year_2", scale="difference",
+  name="two_year_change"
+)
+rate <- ngeo_longitudinal_change(
+  longitudinal, from="baseline", to="year_2", scale="rate",
+  name="annualized_change"
+)
+trend <- ngeo_temporal_trend(longitudinal)
+dim(ngeo_values(trend))
+```
+
+```{r derived-maps, fig.width=10, fig.height=4.8, fig.alt="Two-year change and annual temporal trend on DK68 flat cortex", fig.cap="difference 与 slope 的 unit 不同；两者都保留 exact DK support。"}
+ngeo_tutorial_plot_flat(
+  change, title="Two-year contrast change", diverging=TRUE
+)
+ngeo_tutorial_plot_flat(
+  trend, layer="slope", title="Annual contrast slope", diverging=TRUE
 )
 ```
 
-spatial 与 temporal operator 保持为独立 sparse component；对象记录 Kronecker
-sum contract，而不存储完整 coordinate_space-by-time matrix。
-
-## Change、trend 与 interval
-
-```{r}
-ngeo_temporal_variogram(x, breaks = 3, max_pairs = 100)
-ngeo_longitudinal_change(x, from = 1, to = 4, scale = "rate")
-ngeo_temporal_trend(x)
+```{r temporal-diagnostics}
+ngeo_temporal_variogram(longitudinal, breaks=3, max_pairs=500)
+ngeo_spatiotemporal_variogram(
+  longitudinal, spatial_breaks=5, temporal_breaks=3,
+  max_pairs=40000
+)
 ```
 
-interval data 必须显式提供 start/end boundary，并选择与 rate 或 total 相容的
-operation。
+若输入是 interval total，必须提供 start/end boundary，并选择 sum/integral-compatible
+operation。真正的 subject-level longitudinal study 还需要把 subject 作为 exchange
+unit、visit 作为 within-subject layer，并显式处理 missing visits；不能把这里的
+68×4 group contrast stack 当成 272 个独立 observations。

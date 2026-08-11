@@ -1,98 +1,195 @@
 ---
-title: "Support-aware inference（中文）"
+title: "多 atlas 皮层数据的 support-aware inference"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Support-aware inference（中文）}
+  %\VignetteIndexEntry{多 atlas 皮层数据的 support-aware inference}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file(
+  "tutorial-code", "brain-case-study.R", package="neurogeo",
+  mustWork=TRUE
+))
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5, seed=20260811)
+family_names <- c("DK68", "Schaefer100", "Schaefer200", "Schaefer300")
+source_maps <- .ngeo_tutorial_new_surface(
+  cbind(
+    SCZ_minus_HC=ngeo_values(vertex$difference)[, 1L],
+    HC_mean=vertex$group_mean[, "HC"]
+  ),
+  measures=rbind(
+    ngeo_measure(
+      measure_id="case_control_contrast",
+      name="SCZ minus HC thickness",
+      support_behavior="intensive",
+      unit="mm"
+    ),
+    ngeo_measure(
+      measure_id="hc_mean_thickness",
+      name="HC mean thickness",
+      support_behavior="intensive",
+      unit="mm"
+    )
+  )
+)
+included <- vertex$mask & Reduce(
+  `&`, lapply(vertex$supports[family_names], function(x) !is.na(x))
+)
+source_complete <- ngeo_subset(source_maps, elements=which(included))
+support_maps <- lapply(family_names, function(atlas) {
+  ngeo_atlas_map(
+    source_complete,
+    vertex$supports[[atlas]][included],
+    source_support=vertex$vertex_area[included]
+  )
+})
+names(support_maps) <- family_names
 ```
 
-## 基础背景
+## 一个 source，多个 atlas，只有一个 null realization
 
-同一 source data 使用不同 atlas 或尺度汇总后，effect estimate 可能改变。若每个
-atlas 独立 permutation，会混入不同随机 null draw，并增加 false positive 的
-机会。common-support test 将预先声明的 atlas 视为同一个 inferential family。
+我们研究 vertex-level SCZ-minus-HC thickness contrast 与 HC mean thickness 的空间
+关系。两张图共享同一个 ordered bilateral surface。若 DK68、Schaefer100/200/300
+分别独立 permutation，就会把 atlas choice 与不同的随机 null draw 混在一起；
+common-support test 应先在 source vertices 上生成一次 null realization，再用所有
+support operators 聚合同一 realization。
 
-每个 replicate 先在 source base 生成一次 null realization，再把相同
-realization 应用于所有 support map，由 joint null distribution 进行 maxT 等
-family-wise adjustment。
-
-## 定义 support family
-
-```{r}
-source <- ngeo_surface(
-  coordinates = cbind(
-    x = c(0,1,2,0,1,2), y = c(0,0,0,1,1,1), z = 0
-  ),
-  faces = matrix(
-    c(1,2,5, 1,5,4, 2,3,6, 2,6,5), ncol = 3, byrow = TRUE
-  ),
-  values = cbind(
-    outcome = c(1.1,2.9,5.2,2.8,7.1,10.9),
-    predictor = c(0,1,2,1,3,5)
-  ),
-  measures = rbind(
-    ngeo_measure(support_behavior = "intensive"),
-    ngeo_measure(support_behavior = "intensive")
-  ),
-  coordinate_space = ngeo_coordinate_space("support-inference-example", kind = "surface")
+```{r source-brain, fig.width=10, fig.height=4.8, fig.alt="vertex-level SCZ 减 HC thickness contrast flatmap", fig.cap="support-aware inference 的 source outcome 始终是同一张 vertex brain map。"}
+ngeo_tutorial_plot_flat(
+  vertex$difference,
+  atlas="DK68",
+  title="Source outcome: SCZ minus HC thickness",
+  diverging=TRUE
 )
-first <- ngeo_atlas_map(source, c("A","A","B","B","C","C"))
-second <- ngeo_atlas_map(
-  source, c("A","B","B","C","C","A"), target = first$target
-)
-layers <- list(first = first, second = second)
-targets <- rep(list(first$target), 2)
 ```
 
-## 选择 null model
+```{r source-contract}
+ngeo_layers(source_complete)[, c("layer_id", "name", "measure_id")]
+dim(ngeo_values(source_complete))
+ngeo_validate(source_complete, "strict")
+```
 
-```{r}
+## 预先声明 support family
+
+下面的 layout 不是装饰图：每个 boundary 对应一个随后实际进入 inference 的 sparse
+operator。所有 operator 共享 source base，但 target parcel 数不同。
+
+```{r family-atlases, fig.width=11, fig.height=8, fig.alt="support-aware inference 使用的 DK68 和 Schaefer atlas family", fig.cap="四个 atlas 在同一 flat surface 上明确显示各自 boundaries。"}
+plot(
+  ngeo_tutorial_atlas_layout(vertex, atlases=family_names),
+  show_legend=FALSE
+)
+```
+
+```{r family-contract}
+family_maps <- support_maps[family_names]
+family_targets <- lapply(family_maps, `[[`, "target")
+data.frame(
+  support=family_names,
+  parcels=vapply(family_maps, function(map) nrow(map$operator), integer(1)),
+  vertices=vapply(family_maps, function(map) ncol(map$operator), integer(1)),
+  coverage=vapply(family_maps, function(map) map$coverage, character(1)),
+  hash=vapply(family_maps, ngeo_support_map_hash, character(1))
+)
+```
+
+## 共同 source permutation 与 joint max-T
+
+`ngeo_common_support_test()` 在每个 replicate 中只重排一次 predictor vertices；同一个
+重排结果随后经过四个 atlas operators。这里的 p 值描述两张固定 reference maps 在
+声明 null 下的关系，不是 100 HC 与 100 SCZ 的 population-level diagnosis test。
+
+```{r common-null}
 family_test <- ngeo_common_support_test(
-  source, layers, targets,
-  outcome = "outcome", predictor = "predictor",
-  adjustment = "maxT", nsim = 99, seed = 2301
+  source_complete,
+  family_maps,
+  family_targets,
+  outcome="SCZ_minus_HC",
+  predictor="HC_mean",
+  statistic="slope",
+  null="permutation",
+  adjustment="maxT",
+  nsim=19,
+  seed=2301
 )
 family_test$estimates
+family_test[c("null", "null_status", "nsim", "adjustment", "claim")]
 ```
 
-unconstrained permutation 必须标记为 non-spatial。需要保持空间自相关时，应使用
-与 spatial_weights 对应的 Moran spectral null，或具有有效球面配准坐标的 surface spin。
+这里使用 19 次 permutation 只为让网页中的全 vertex、四 atlas 示例保持有界；其
+Monte Carlo 分辨率不足以支持研究报告。正式分析应在同一预注册 schedule 下提高到
+足够的 permutation 数，并报告由此得到的最小可达 p 值。
 
-## 跨 atlas 汇总中的相关性
+## covariance-aware cross-atlas summary
 
-同一批 source data 经过多个 atlas 得到的 estimate 通常相关，不能默认当作独立
-研究。`ngeo_cross_atlas_consensus()` 的默认结果因此只有描述性 estimate，不提供
-CI 或 p 值。若 subject-level model 或共同 source bootstrap 已经产生 atlas-by-atlas
-covariance matrix，可按下面的接口进行 covariance-aware fixed-effect GLS。
-`paired_atlas_covariance` 指研究流程实际估计的矩阵，不能从两个 point estimate 猜测。
+四个 estimates 来自相同 source maps，通常强相关，不能当作四项独立研究。
+`ngeo_atlas_robust_effect()` 首先保留每个 atlas 的 effect；默认 consensus 是描述性
+summary，不会从四个 point estimates 猜测 covariance。
 
-```{r}
+```{r robust-effect}
 effect <- ngeo_atlas_robust_effect(
-  source, layers, targets,
-  outcome = "outcome", predictor = "predictor"
+  source_complete,
+  family_maps,
+  family_targets,
+  outcome="SCZ_minus_HC",
+  predictor="HC_mean"
 )
+effect$estimates
 effect$meta_analysis$inference_mode
 ```
 
-```{r, eval=FALSE}
+```{r covariance-aware}
+# 49 次 common-source paired bootstrap 同时产生四个 atlas estimate。
+# 直接复用稀疏 support operators，避免每次重建完整 ngeo 对象。
+source_values <- ngeo_values(source_complete)[, c(
+  "SCZ_minus_HC", "HC_mean"
+), drop=FALSE]
+paired_effect <- function(index) {
+  resampled <- source_values[index, , drop=FALSE]
+  vapply(family_maps, function(map) {
+    source_support <- map$source_support
+    target_support <- map$target_support
+    if (is.null(target_support)) {
+      target_support <- as.numeric(map$operator %*% source_support)
+    }
+    target_values <- vapply(seq_len(2L), function(layer) {
+      as.numeric(
+        map$operator %*% (source_support * resampled[, layer])
+      ) / target_support
+    }, numeric(length(target_support)))
+    unname(stats::coef(stats::lm(
+      target_values[, 1L] ~ target_values[, 2L],
+      weights=target_support
+    ))[[2L]])
+  }, numeric(1))
+}
+set.seed(2302)
+bootstrap_estimates <- t(replicate(49, paired_effect(
+  sample.int(nrow(source_values), replace=TRUE)
+)))
+colnames(bootstrap_estimates) <- family_names
+
+# 对角 shrinkage 避免有限 bootstrap 导致的数值奇异。
+paired_atlas_covariance <- stats::cov(bootstrap_estimates)
+paired_atlas_covariance <-
+  0.9 * paired_atlas_covariance +
+  0.1 * diag(diag(paired_atlas_covariance))
+dimnames(paired_atlas_covariance) <- list(family_names, family_names)
+
 covariance_aware <- ngeo_cross_atlas_consensus(
   effect$estimates$estimate,
-  labels = effect$estimates$atlas,
-  covariance = paired_atlas_covariance
+  labels=effect$estimates$atlas,
+  covariance=paired_atlas_covariance
 )
-covariance_aware
+covariance_aware[c("estimate", "standard_error", "confidence_interval",
+                   "inference_mode")]
 ```
 
-只有研究设计确实支持 atlas estimate 相互独立时，才应显式设置
-`independence = TRUE`。这个设置适合作为消融，不是未知 covariance 的替代品。
-
-## 解释
-
-descriptive/covariance-aware consensus 和 leave-one-atlas-out influence 描述对
-所提供 support family 的稳健性，不证明局部 effect 与 parcellation 或 scale 无关。
+这里的 covariance 不是从四个 point estimates 反推出来，而是由同一批
+source vertices 的 paired bootstrap 估计。support sensitivity 只适用于这里明确列出的 DK/Schaefer family，
+不能自动推出 atlas-independent 或 parcellation-invariant 结论。

@@ -12,10 +12,13 @@ terms are not stated, so neurogeo does not redistribute the files and makes no
 broader reuse claim.
 
 Conte69 geometry and parcellation tables are used only to define the spatial
-domain and declared support family. Desikan-Killiany and Schaefer atlas use
-requires citation of their original publications. The validation report must
-record exact files, checksums, maps, support definitions, preprocessing
-provenance available from the source, and sample exclusions.
+domain and declared support family. Desikan-Killiany, Schaefer, and Glasser
+atlas use requires citation of their original publications. The Glasser table
+is consumed with the documented right-hemisphere code-180 correction in the
+tutorial helper; the immutable downloaded file is never modified. The
+validation report must record exact files, checksums, maps, support
+definitions, preprocessing provenance available from the source, and sample
+exclusions.
 
 The workflow is execution evidence for neurogeo, not a powered clinical study.
 No scientific claim about epilepsy is made from this small example dataset.

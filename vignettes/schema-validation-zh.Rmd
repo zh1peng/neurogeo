@@ -1,56 +1,143 @@
 ---
-title: "Schema 验证与可移植 manifest"
+title: "DK68 与 Conte69 对象的 schema、alignment 和 manifest"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Schema 验证与可移植 manifest}
+  %\VignetteIndexEntry{DK68 与 Conte69 对象的 schema、alignment 和 manifest}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
-library(neurogeo)
-```
-
-## 基础背景
-
-Schema validation 检查对象是否满足其声明的结构契约，包括 base 类型、
-element/value alignment、measurement metadata、coordinate_space identity，以及 topology
-和 map 的内部一致性。它不能证明研究设计正确，但能阻止结构错误进入统计计算。
-
-## 验证对象
-
-```{r}
-x <- ngeo_point(
-  cbind(x = c(0, 1, 0), y = c(0, 0, 1)),
-  values = cbind(signal = c(1, 2, 3)),
-  measures = ngeo_measure(support_behavior = "intensive"),
-  coordinate_space = ngeo_coordinate_space("reference-points", kind = "unknown")
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", message = FALSE, warning = FALSE,
+  fig.align = "center"
 )
-ngeo_validate(x)
+library(neurogeo)
+source(system.file(
+  "tutorial-code", "brain-case-study.R",
+  package = "neurogeo", mustWork = TRUE
+))
+dk <- ngeo_tutorial_dk_case_control(
+  n_per_group = 100, seed = 20260810
+)
+vertex <- ngeo_tutorial_vertex_case_control(
+  n_per_group = 5, seed = 20260811
+)
 ```
 
-严格验证失败时，应修正产生对象的步骤，而不是跳过验证。schema table 是内部
-实现细节；用户只需要公共验证入口。
+## Schema validation 先保护神经影像 alignment
 
-## Manifest 与哈希
+Schema 不只是检查一个 class 名称。对 DK68 cohort，它要验证 68 个 ordered
+parcels、200 个 subject layers、measure metadata 与 region support；对
+Conte69 vertex cohort，它还要验证 coordinates、faces、flat chart、
+vertex values 和 atlas labels 逐行一致。
 
-manifest 使用 canonical JSON 和 SHA-256 绑定规范性 metadata，但不重复保存
-values block。它适合完整性验证和交换，不替代原始数据。
+```{r strict-validation}
+stopifnot(
+  identical(dim(ngeo_values(dk$cohort)), c(68L, 200L)),
+  ncol(ngeo_values(vertex$surface)) == 10L
+)
+ngeo_validate(dk$cohort, "strict")
+ngeo_validate(vertex$surface, "strict")
 
-```{r}
-manifest <- ngeo_object_manifest(x)
-manifest
-ngeo_validate_manifest(manifest, x)
+list(
+  dk_base = ngeo_base_type(dk$cohort),
+  vertex_base = ngeo_base_type(vertex$surface),
+  dk_dimensions = dim(ngeo_values(dk$cohort)),
+  vertex_dimensions = dim(ngeo_values(vertex$surface)),
+  groups = table(vertex$group)
+)
 ```
 
-写入和读回采用原子 JSON 交换：
+结构通过后仍要看 cortical pattern。schema 可以阻止错位 matrix 进入计算，
+但不能单独判断模拟效应是否位于预期脑区。
 
-```{r eval=FALSE}
-output <- write_ngeo_manifest(manifest, "x.ngcs-manifest.json")
-restored <- read_ngeo_manifest(output$path)
-ngeo_validate_manifest(restored, x)
+```{r schema-brain, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上通过 strict validation 的 vertex SCZ 减 HC contrast", fig.cap="Schema 证明 geometry/value alignment；brain map 提供空间解释。"}
+ngeo_tutorial_plot_flat(
+  vertex$difference,
+  layer = "SCZ_minus_HC",
+  title = "Validated object: SCZ - HC thickness",
+  diverging = TRUE
+)
 ```
 
-如果 base、元素顺序、metadata 或文件身份发生改变，原 manifest 不应继续
-被视为同一对象的证明。
+## Atlas support 也有独立 schema
+
+Schaefer300 operator 的 rows 是 target parcels，columns 是 ordered source
+vertices。这个方向、support size 与 normalization 都不能靠矩阵尺寸猜测。
+
+```{r support-schema}
+schaefer300_map <- ngeo_atlas_map(
+  vertex$difference,
+  vertex$supports$Schaefer300,
+  source_support = ngeo_vertex_area(vertex$difference)
+)
+ngeo_validate_support_map(schaefer300_map)
+support_manifest <- ngeo_object_manifest(schaefer300_map)
+stopifnot(
+  isTRUE(ngeo_validate_manifest(
+    support_manifest, schaefer300_map
+  )$valid)
+)
+list(
+  operator_dimensions = dim(schaefer300_map$operator),
+  support_hash = ngeo_support_map_hash(schaefer300_map)
+)
+```
+
+```{r support-brain, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上通过 schema 检查的 Schaefer300 support", fig.cap="Manifest 绑定 operator identity；flat map 检查 target support 的空间排列。"}
+ngeo_tutorial_plot_atlas(
+  vertex,
+  atlas = "Schaefer300",
+  title = "Validated Schaefer300 support"
+)
+```
+
+## Portable manifest round trip
+
+manifest 使用 canonical JSON 与 SHA-256 绑定规范化 metadata。它不重复
+保存完整 values block，也不代替原始数据；它用来回答“恢复后还是不是
+同一个对象”。
+
+```{r manifest-round-trip}
+vertex_manifest <- ngeo_object_manifest(vertex$surface)
+second_manifest <- ngeo_object_manifest(vertex$surface)
+stopifnot(identical(
+  vertex_manifest$canonical_sha256,
+  second_manifest$canonical_sha256
+))
+
+if (requireNamespace("jsonlite", quietly = TRUE)) {
+  manifest_path <- tempfile(fileext = ".json")
+  write_ngeo_manifest(vertex_manifest, manifest_path)
+  restored_manifest <- read_ngeo_manifest(manifest_path)
+  validation <- ngeo_validate_manifest(
+    restored_manifest, vertex$surface
+  )
+  stopifnot(isTRUE(validation$valid))
+  unlink(manifest_path, force = TRUE)
+  list(
+    canonical_sha256 = restored_manifest$canonical_sha256,
+    round_trip_valid = validation$valid
+  )
+}
+```
+
+## 失败应该暴露，而不是绕过
+
+如果 ordered elements、metadata 或 content identity 发生改变，旧 manifest
+不能继续被视为证据。下面只修改 manifest 副本来展示 validator 的行为，
+不破坏原始 neurogeo 对象。
+
+```{r manifest-mismatch}
+corrupted <- vertex_manifest
+corrupted$metadata$element_count <-
+  corrupted$metadata$element_count + 1L
+mismatch <- ngeo_validate_manifest(corrupted)
+stopifnot(!mismatch$valid)
+mismatch$issues
+```
+
+Schema validation 不能证明 study design、SCZ diagnosis 或 registration
+科学上正确；它的职责是确保结构错误、support 错位和 identity 漂移不会
+静默进入后续统计。

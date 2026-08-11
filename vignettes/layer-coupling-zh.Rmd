@@ -1,99 +1,130 @@
 ---
-title: "多图层空间耦合"
+title: "多图层空间耦合：200 名受试者的 thickness--myelin 分析"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{多图层空间耦合}
+  %\VignetteIndexEntry{多图层空间耦合：200 名受试者的 thickness--myelin 分析}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
+library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
+multi <- ngeo_tutorial_dk_multilayer(dk)
+x <- multi$object
 ```
 
-## 问题与边界
+## 科学问题与数据形状
 
-4.6 比较同一受试者的两种脑图层，但不把 vertex 当成独立受试者，也不做
-vertex-wise GLM。输出仍是一个受试者 × endpoint 的小矩阵，供 4.7 的组间推断使用。
+每名 HC/SCZ subject 都有两张严格对齐到真实 DK68 support 的脑图：cortical
+thickness 与模拟 myelin proxy。我们要为每名受试者生成 coupling endpoints，再在
+下一步进行 subject-level group inference；68 个 parcels 从来不是独立样本。
 
-```{r construct}
-library(neurogeo)
-
-n <- 8L
-subject <- rep(c("sub-01", "sub-02"), each = 2L)
-layer <- rep(c("thickness", "myelin"), 2L)
-base <- sin((1:n) / 2)
-x <- ngeo_point(
-  cbind(x = 1:n, y = 0),
-  values = cbind(base, 0.7 * base + cos(1:n),
-                 1.2 * base, -0.4 * base + cos((1:n) / 2)),
-  layers = data.frame(
-    layer_id = paste0("map-", 1:4),
-    name = paste(subject, layer, sep = "_"),
-    subject_id = subject,
-    feature = layer
-  ),
-  measures = rbind(
-    ngeo_measure(support_behavior = "intensive", unit = "a.u."),
-    ngeo_measure(support_behavior = "intensive", unit = "a.u."),
-    ngeo_measure(support_behavior = "intensive", unit = "a.u."),
-    ngeo_measure(support_behavior = "intensive", unit = "a.u.")
-  )
+```{r contract}
+dim(ngeo_values(x))
+table(ngeo_layers(x)$group, ngeo_layers(x)$feature)
+index <- ngeo_validate_layers(
+  x, unit="subject_id", layer="feature",
+  required_layers=c("thickness", "myelin"), complete="error"
 )
-index <- ngeo_validate_layers(x, complete = "error")
-spatial_weights <- ngeo_spatial_weights(
-  x, method = "distance_band", threshold = 1.01, style = "B"
+index$availability[1:8, ]
+```
+
+68×400 的 values block 对应 200 subjects × 2 modalities。`layers` 恢复
+`subject_id × feature`，不会把数据塞进另一个隐藏 tensor。
+
+```{r modality-maps, fig.width=10, fig.height=4.8, fig.alt="Thickness and myelin SCZ minus HC effects on DK68 flat cortex", fig.cap="在计算一个全脑 coupling number 前，先检查两种 modality 的空间分布。"}
+ngeo_tutorial_plot_flat(
+  dk$difference, title="Thickness: SCZ - HC", diverging=TRUE
+)
+ngeo_tutorial_plot_flat(
+  multi$myelin_difference, title="Myelin proxy: SCZ - HC", diverging=TRUE
+)
+```
+
+## 用与组别无关的 DK graph 固定尺度
+
+```{r basis}
+w_binary <- ngeo_spatial_weights(
+  x, method="region_contiguity", style="B"
 )
 basis <- ngeo_spatial_basis(
-  x, spatial_weights, support = "identity", n_modes = 7L
+  x, w_binary, support="identity", n_modes=30,
+  components="separate"
 )
+basis$diagnostics
 ```
+
+basis 只读取 atlas topology 和 support，不读取 diagnosis 或 effect。左右半球是两个
+connected components；rank band 因此是 component-local graph scale，不自动等于
+毫米波长。
 
 ## 同位置与频谱耦合
 
 ```{r coupling}
 features <- ngeo_layer_coupling(
-  x,
-  index,
-  pairs = data.frame(x = "thickness", y = "myelin"),
-  basis = basis,
-  bands = list(low = 1:3, high = 4:7),
-  estimands = c("same_location", "spectral_coupling")
+  x, index,
+  pairs=data.frame(x="thickness", y="myelin"),
+  basis=basis,
+  bands=list(low_rank=1:6, middle_rank=7:14, high_rank=15:25),
+  estimands=c("same_location", "spectral_coupling", "band_energy")
 )
-features
-features$endpoints[, c(
-  "estimand", "layer_x", "layer_y", "component", "band", "unit"
-)]
-features$values
+dim(features$values)
+features$endpoints[, c("estimand", "layer_x", "layer_y", "component", "band")]
 ```
 
-`spectral_coupling` 不能脱离 `band_energy_x`、`band_energy_y` 与
-`spectral_cross_energy` 单独解释。如果某层在某频带的能量低于预声明阈值，标准化
-coupling 为 `NA`，但能量和 cross-energy 仍保留。
+`spectral_coupling` 必须和 `band_energy_x`、`band_energy_y`、
+`spectral_cross_energy` 一起读。某个 band 能量不足时，标准化 coupling 可以是
+`NA`；这不是可以静默删除 subject 的理由。
 
-## 方向不是可忽略的标签
+## coupling 差异发生在 cortex 的哪里
+
+全局 endpoint 不能告诉我们由哪些 parcels 驱动。下面用每名 subject 的
+standardized thickness×myelin product 形成一个描述性 regional contribution，
+再比较 SCZ 与 HC；它是诊断图，不替代上面的预声明 endpoint。
+
+```{r contribution}
+layer_table <- ngeo_layers(x)
+thickness <- ngeo_values(x)[, layer_table$feature == "thickness", drop=FALSE]
+myelin <- ngeo_values(x)[, layer_table$feature == "myelin", drop=FALSE]
+standardize_columns <- function(z) {
+  apply(z, 2L, function(column) as.numeric(scale(column)))
+}
+contribution <- standardize_columns(thickness) * standardize_columns(myelin)
+group <- dk$design$group
+contribution_difference <-
+  rowMeans(contribution[, group == "SCZ", drop=FALSE]) -
+  rowMeans(contribution[, group == "HC", drop=FALSE])
+```
+
+```{r contribution-map, fig.width=9.5, fig.height=4.8, fig.alt="SCZ minus HC local thickness-myelin coupling contribution on DK68 flat cortex", fig.cap="该脑图用于定位全脑 coupling endpoint 的可能驱动区，不提供 parcel-wise p values。"}
+ngeo_tutorial_plot_flat(
+  dk$difference, values=contribution_difference,
+  title="Local coupling contribution: SCZ - HC", diverging=TRUE
+)
+```
+
+## 方向性不是可忽略的标签
 
 ```{r directional}
+w_row <- ngeo_spatial_weights(
+  x, method="region_contiguity", style="W"
+)
 directional <- ngeo_layer_coupling(
-  x,
-  index,
-  spatial_weights = ngeo_spatial_weights(
-    x, method = "distance_band", threshold = 1.01, style = "W"
-  ),
-  estimands = c("directional_lag", "classic_cross_moran"),
-  lag_direction = "both"
+  x, index, spatial_weights=w_row,
+  pairs=data.frame(x="thickness", y="myelin"),
+  estimands=c("directional_lag", "classic_cross_moran"),
+  lag_direction="both"
 )
 directional$endpoints[, c(
   "estimand", "direction", "standardization", "weights_normalization"
 )]
 ```
 
-`directional_lag` 是 support 加权的 lag correlation；
-`classic_cross_moran` 是与经典实现对齐的兼容统计量。二者公式不同，
-`x_to_y` 与 `y_to_x` 也不会被平均。
-
-## 推断单位与 non-claim
-
-这里的每一行仍是完整受试者。4.6 只生成 endpoint，不产生组间人口推断。
-单一 reference map 可使用显式 spatial-null transformation group，但结果会强制记录
-`population_inference = FALSE`。组间协变量调整与完整受试者置换由 4.7 完成。
+`x_to_y` 与 `y_to_x` 不会被平均。这里仅生成 200 行 subject endpoints；真正的
+SCZ--HC 推断必须移动完整 subject record，并把 age、sex、site 作为 design-level
+covariates，而不能 permutation parcels。

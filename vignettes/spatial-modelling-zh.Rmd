@@ -1,8 +1,8 @@
 ---
-title: "DK68 SCZ--HC cortical contrast 的空间模型"
+title: "空间模型：从 200 名受试者 GLM 到 DK68 GWR/SAR/CAR"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{DK68 SCZ--HC cortical contrast 的空间模型}
+  %\VignetteIndexEntry{空间模型：从 200 名受试者 GLM 到 DK68 GWR/SAR/CAR}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -13,119 +13,147 @@ knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
 library(neurogeo)
 source(system.file("tutorial-code", "brain-case-study.R",
                    package="neurogeo", mustWork=TRUE))
-dk <- ngeo_tutorial_dk_case_control()
+dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
+```
+
+## 第一层模型：受试者才是 sampling unit
+
+先在每个 DK region 拟合同一个 subject-level model：
+`thickness ~ age + sex + site + group`。这一步使用 100 名 HC 与 100 名 SCZ，
+而不是把 68 个 regions 当成独立重复。
+
+```{r subject-glm}
+design_matrix <- model.matrix(
+  ~ age + sex + site + group, data=dk$design
+)
+group_column <- match("groupSCZ", colnames(design_matrix))
+subject_values <- t(ngeo_values(dk$cohort))
+coefficient <- standard_error <- numeric(68)
+design_inverse <- solve(crossprod(design_matrix))
+for (region in 1:68) {
+  fit <- lm.fit(design_matrix, subject_values[, region])
+  residual_variance <- sum(fit$residuals^2) / fit$df.residual
+  covariance <- residual_variance * design_inverse
+  coefficient[region] <- fit$coefficients[group_column]
+  standard_error[region] <- sqrt(covariance[group_column, group_column])
+}
+t_value <- coefficient / standard_error
+```
+
+```{r subject-glm-maps, fig.width=10, fig.height=4.8, fig.alt="Covariate-adjusted SCZ group coefficient and t statistic on DK68 flat cortex", fig.cap="effect 与 uncertainty-derived t map 都来自 200 名 subjects 的同一个 design。"}
+ngeo_tutorial_plot_flat(
+  dk$difference, values=coefficient,
+  title="Adjusted group coefficient: SCZ - HC", diverging=TRUE
+)
+ngeo_tutorial_plot_flat(
+  dk$difference, values=t_value,
+  title="Adjusted group t statistic", diverging=TRUE
+)
+```
+
+## 第二层空间诊断：regional estimates 不是独立点
+
+下面的 spatial models 作用于 68 个已估计的 group coefficients，用来描述 effect
+map 的空间结构；它们不能替代上面的 subject-level GLM。
+
+```{r model-object}
 model_data <- ngeo_parcellation(
   dk$regions,
   values=cbind(
-    SCZ_minus_HC=ngeo_values(dk$difference)[, 1L],
+    group_effect=coefficient,
+    group_se=standard_error,
     HC_mean=dk$group_mean[, "HC"]
   ),
   centroid=dk$centroids, support_size=dk$support_size,
   adjacency=dk$adjacency,
   measures=rbind(
-    ngeo_measure(name="case-control thickness contrast",
-                 support_behavior="intensive", unit="mm"),
-    ngeo_measure(name="HC mean thickness",
-                 support_behavior="intensive", unit="mm")
+    ngeo_measure(name="adjusted group effect", support_behavior="intensive", unit="mm"),
+    ngeo_measure(name="group effect SE", support_behavior="intensive", unit="mm"),
+    ngeo_measure(name="HC mean thickness", support_behavior="intensive", unit="mm")
   ),
   coordinate_space=ngeo_spatial_base(dk$cohort)$coordinate_space
 )
 ```
 
-## 模型对象是 cortical quantity，不是 point-grid signal
-
-我们询问 DK68 上 regional SCZ-minus-HC thickness contrast 是否随 HC mean
-thickness 变化，同时考虑空间结构。这是 68 个 parcel estimates 的模型，不能替代
-生成这些 estimates 的 subject-level case-control model。
-
-```{r input-map, fig.width=9, fig.height=4.6, fig.alt="DK68 SCZ 减 HC 皮层厚度 contrast", fig.cap="选择 spatial covariance 或 local model 前先在 cortex 上查看 response。"}
-ngeo_tutorial_plot_dk(
-  model_data, "SCZ_minus_HC", title="Model response：SCZ 减 HC thickness"
-)
-```
-
-## 诊断 spatial scale
+## Variogram：先声明 metric
 
 ```{r variogram}
 empirical <- ngeo_variogram(
-  model_data, "SCZ_minus_HC", breaks=8,
+  model_data, "group_effect", breaks=8,
   distance_method="region_centroid"
 )
 empirical
 ```
 
-```{r variogram-plot, fig.width=7, fig.height=4.5, fig.alt="DK case-control contrast semivariance 与 parcel centroid distance", fig.cap="empirical variogram 显示 distance scale，但本身不验证 covariance model。"}
-plot(empirical, pch=21, bg="#2a9d8f", col="white", cex=1.4)
+```{r variogram-plot, fig.width=7.2, fig.height=4.5, fig.alt="Empirical semivariogram of the adjusted DK68 group effect", fig.cap="距离来自 Conte69 3D DK centroids；flat chart 只用于显示，不用于 statistical distance。"}
+plot(empirical, pch=21, bg="#2a9d8f", col="white", cex=1.3)
 ```
 
-atlas drawing centroids 只适合本教学 diagnostic。真实 cortical model 应使用已配准
-physical centroids 或 surface geodesics。不能因为能画 variogram 就直接做 kriging；
-covariance family 与 metric 必须有科学依据。
+`region_centroid` 是 3D template Euclidean metric；若科学问题需要沿 cortical sheet
+的距离，应改用明确的 parcel geodesic operator，不能使用屏幕上的 flat x/y 坐标。
 
 ## Geographically weighted regression
 
-bandwidth candidates 来自声明的 centroid distances，并用 spatially blocked、
-element-ID-keyed cross-validation 选择。
-
 ```{r gwr}
 distance <- ngeo_distance(
-  model_data, seq_len(68), seq_len(68),
-  distance_method="region_centroid"
+  model_data, 1:68, 1:68, distance_method="region_centroid"
 )
 candidates <- as.numeric(stats::quantile(
-  distance[distance > 0], c(0.15, 0.30, 0.50)
+  distance[distance > 0], c(0.25, 0.40, 0.60)
 ))
 bandwidth <- ngeo_gwr_bandwidth(
-  model_data, "SCZ_minus_HC", "HC_mean",
+  model_data, response="group_effect", predictors="HC_mean",
   candidates=candidates, distance_method="region_centroid",
   cv="kfold", folds=5
 )
 gwr <- ngeo_gwr(
-  model_data, "SCZ_minus_HC", "HC_mean", bandwidth,
-  distance_method="region_centroid"
+  model_data, response="group_effect", predictors="HC_mean",
+  bandwidth=bandwidth, distance_method="region_centroid"
 )
 bandwidth
 ```
 
-fitted values 与 numerical diagnostics 都要返回 cortex。
-
-```{r gwr-maps, fig.width=9, fig.height=4.5, fig.alt="GWR fitted contrast 与 local condition number 的 DK 脑图", fig.cap="local fitted map 必须与 condition-number map 一起阅读。"}
-fitted_map <- ngeo_parcellation(
-  dk$regions, values=cbind(GWR_fitted=gwr$fitted),
-  centroid=dk$centroids, support_size=dk$support_size,
-  adjacency=dk$adjacency,
-  measures=ngeo_measure(name="GWR fitted contrast",
-                        support_behavior="intensive", unit="mm"),
-  coordinate_space=ngeo_spatial_base(dk$cohort)$coordinate_space
+```{r gwr-maps, fig.width=10, fig.height=4.8, fig.alt="GWR fitted group effect and local condition number on DK68 flat cortex", fig.cap="local fitted values 必须与 local numerical stability 一起显示。"}
+ngeo_tutorial_plot_flat(
+  model_data, values=gwr$fitted,
+  title="GWR fitted group effect", diverging=TRUE
 )
-condition_map <- ngeo_parcellation(
-  dk$regions, values=cbind(condition_number=gwr$condition_number),
-  centroid=dk$centroids, support_size=dk$support_size,
-  adjacency=dk$adjacency,
-  measures=ngeo_measure(name="GWR condition number",
-                        support_behavior="intensive", unit="dimensionless"),
-  coordinate_space=ngeo_spatial_base(dk$cohort)$coordinate_space
+ngeo_tutorial_plot_flat(
+  model_data, values=gwr$condition_number,
+  title="GWR local condition number", palette="Inferno"
 )
-ngeo_tutorial_plot_dk(fitted_map, title="GWR fitted SCZ 减 HC")
-ngeo_tutorial_plot_dk(condition_map, title="GWR local condition number")
 ```
 
-## Graph-based spatial regression 与 CAR
+## Graph-based SAR 与 CAR
 
 ```{r graph-models}
-weights <- ngeo_spatial_weights(
+w <- ngeo_spatial_weights(
   model_data, method="region_contiguity", style="W"
 )
 sar <- ngeo_spatial_regression(
-  model_data, "SCZ_minus_HC", "HC_mean", weights, model="sar"
+  model_data, response="group_effect", predictors="HC_mean",
+  spatial_weights=w, model="sar"
 )
 car <- ngeo_car(
-  model_data, "SCZ_minus_HC", weights, type="proper", precision=1
+  model_data, response="group_effect", spatial_weights=w,
+  type="proper", precision=1
 )
-sar
-car
+c(SAR_residual_Moran=sar$residual_moran,
+  CAR_residual_Moran=car$residual_moran)
 ```
 
-GWR、SAR 与 CAR 是不同 estimands，不是可以互换的 corrections。应报告 DK
-support、graph/metric、normalization、bandwidth/CV rule、covariates、numerical
-bounds，并明确 observations 是 regional contrast estimates，不是 independent subjects。
+```{r graph-residuals, fig.width=10, fig.height=4.8, fig.alt="SAR and CAR residual group-effect maps on DK68 flat cortex", fig.cap="不同 spatial estimands 的 residual pattern 不应被藏在一个 model summary 中。"}
+ngeo_tutorial_plot_flat(
+  model_data, values=sar$residuals,
+  title="SAR residual", diverging=TRUE
+)
+ngeo_tutorial_plot_flat(
+  model_data, values=car$residuals,
+  title="CAR residual", diverging=TRUE
+)
+```
+
+GWR、SAR 与 CAR 回答不同问题，不是可互换的“空间校正”。完整报告应同时给出
+subject design、DK support、metric/graph、normalization、bandwidth/CV、数值边界、
+effect 与 uncertainty；若换成 Schaefer support，应重新建立模型并把结果作为
+support sensitivity，而不是宣称 atlas-independent。

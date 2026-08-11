@@ -1,29 +1,125 @@
 ---
-title: "CIFTI grayordinates：统计前先检查 components"
+title: "CIFTI workflow：从 brain models 到 Conte69 cortical map"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{CIFTI grayordinates：统计前先检查 components}
+  %\VignetteIndexEntry{CIFTI workflow：从 brain models 到 Conte69 cortical map}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-CIFTI 的行可以同时包含 cortical vertices 和 subcortical voxels。建立 topology
-前必须检查 brain models、structures、source indices 和附加的 surface geometry。
-行顺序本身就是科学契约的一部分。
-
-下面的 workflow 给微型双侧 CIFTI fixture 附加匹配的四 vertex surfaces，执行
-QC，建立不会跨 structure 连边的 component-contiguity weights，以显式 zero
-policy 计算 Moran's I，绘制有序数值，写出 dscalar CIFTI 并验证 round trip。
-
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", message = FALSE, warning = FALSE,
+  fig.align = "center"
+)
+library(neurogeo)
+source(system.file(
+  "tutorial-code", "brain-case-study.R",
+  package = "neurogeo", mustWork = TRUE
+))
+dk <- ngeo_tutorial_dk_case_control(
+  n_per_group = 100, seed = 20260810
+)
+vertex <- ngeo_tutorial_vertex_case_control(
+  n_per_group = 5, seed = 20260811
+)
 knitr::read_chunk(system.file(
-  "tutorial-code", "workflow-cifti.R", package = "neurogeo"
+  "tutorial-code", "workflow-cifti.R",
+  package = "neurogeo", mustWork = TRUE
 ))
 ```
+
+## CIFTI rows 是有结构的 grayordinates
+
+CIFTI 可以在同一 axis 中包含左右 cortical vertices 和 subcortical
+voxels。建立 topology 前必须读取 brain models、structures、source
+indices 和匹配 surface geometry；grayordinate row order 本身就是科学
+contract。
+
+本教程的科学目标仍是同一个 case-control study：DK68 有 100 HC +
+100 SCZ；Conte69 vertex sample 有每组 5 人。CIFTI reader 最终必须把
+cortical rows 恢复到能够生成下图的 ordered surface support。
+
+```{r study-contract}
+list(
+  dk_dimensions = dim(ngeo_values(dk$cohort)),
+  vertex_dimensions = dim(ngeo_values(vertex$surface)),
+  groups = table(vertex$group),
+  atlas_supports = vapply(
+    vertex$supports[c(
+      "DK68", "Schaefer100", "Schaefer200",
+      "Schaefer300", "Glasser360"
+    )],
+    function(x) length(unique(x)),
+    integer(1)
+  )
+)
+```
+
+```{r cifti-target-map, fig.width=10, fig.height=4.8, fig.alt="CIFTI cortical components 应恢复的 Conte69 flat-surface SCZ 减 HC map", fig.cap="附加并验证左右 surface geometry 后，CIFTI cortical rows 才能回到 brain map。"}
+ngeo_tutorial_plot_flat(
+  vertex$difference,
+  layer = "SCZ_minus_HC",
+  title = "CIFTI cortical target: SCZ - HC",
+  diverging = TRUE
+)
+```
+
+## Cortical structures 与 atlas support
+
+同一 Conte69 foundation 可以承载 DK68、Schaefer100/200/300 和
+Glasser360，但 atlas membership 不能从 CIFTI 文件名猜测。它必须来自
+明确 label axis、sidecar 或经过验证的外部 support。
+
+```{r cifti-atlas-map, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上的 Glasser360 support", fig.cap="Grayordinate rows 与 Glasser360 labels 必须使用同一 cortical vertex order。"}
+ngeo_tutorial_plot_atlas(
+  vertex,
+  atlas = "Glasser360",
+  title = "Glasser360 on the cortical foundation"
+)
+```
+
+## 格式 contract 侧栏：真实 tiny CIFTI round trip
+
+下面保留 canonical tiny fixture workflow，用于检查真实 CIFTI-2/NIfTI-2
+编码、brain components、QC、component-contiguity weights、dscalar
+写出和 round trip。tiny fixture 不是科学主案例。
 
 ```{r workflow-cifti}
 ```
 
-这里的 line plot 是 ordering diagnostic，不是 cortical map。没有经过验证的
-surface geometry 时，surface topology、area、geodesic distance 和 cortical
-plotting 都必须保持不可用。
+workflow 返回的 `dense` 与 `dense_roundtrip` 仍留在当前环境，因此可以
+显式检查写出前后的 grayordinate/layer alignment，而不只检查文件存在。
+
+```{r cifti-roundtrip-alignment}
+cifti_alignment <- list(
+  dimensions = identical(
+    dim(ngeo_values(dense)),
+    dim(ngeo_values(dense_roundtrip))
+  ),
+  values = isTRUE(all.equal(
+    ngeo_values(dense),
+    ngeo_values(dense_roundtrip)
+  )),
+  element_order = identical(
+    ngeo_base_elements(dense)$element_id,
+    ngeo_base_elements(dense_roundtrip)$element_id
+  ),
+  layer_order = identical(
+    ngeo_layers(dense)$layer_id,
+    ngeo_layers(dense_roundtrip)$layer_id
+  )
+)
+cifti_alignment
+stopifnot(
+  cifti_alignment$dimensions,
+  cifti_alignment$values,
+  cifti_alignment$element_order,
+  cifti_alignment$layer_order
+)
+```
+
+canonical workflow 中的 ordering line plot 只是编码诊断，不是 cortical
+brain plot。只有在左右 surface geometry 和 source indices 通过验证之后，
+surface topology、area、geodesic distance 与 flat-surface plotting
+才可用。reader 与 writer 都不会隐式执行 registration 或 resampling。

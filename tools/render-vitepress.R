@@ -3,10 +3,42 @@
 if (dir.exists(".r-lib")) {
   .libPaths(c(normalizePath(".r-lib"), .libPaths()))
 }
-required <- c("digest", "jsonlite", "knitr", "rmarkdown", "neurogeo")
+required <- c(
+  "digest", "jsonlite", "knitr", "ragg", "rmarkdown", "neurogeo"
+)
 missing <- required[!vapply(required, requireNamespace, logical(1), quietly = TRUE)]
 if (length(missing)) {
   stop("Rendering documentation requires: ", paste(missing, collapse = ", "))
+}
+
+arguments <- commandArgs(trailingOnly = TRUE)
+locale_argument <- grep("^--locale=", arguments, value = TRUE)
+if (length(locale_argument) > 1L) {
+  stop("Supply at most one `--locale=<locale>` argument.")
+}
+from_argument <- grep("^--from=", arguments, value = TRUE)
+if (length(from_argument) > 1L) {
+  stop("Supply at most one `--from=<document-id>` argument.")
+}
+only_argument <- grep("^--only=", arguments, value = TRUE)
+if (length(only_argument) > 1L) {
+  stop("Supply at most one comma-separated `--only=<document-id,...>` argument.")
+}
+if (length(from_argument) && length(only_argument)) {
+  stop("`--from` and `--only` cannot be combined.")
+}
+selected_locale <- if (length(locale_argument)) {
+  sub("^--locale=", "", locale_argument[[1L]])
+} else {
+  NULL
+}
+clean <- "--clean" %in% arguments
+unknown <- setdiff(
+  arguments,
+  c(locale_argument, from_argument, only_argument, "--clean")
+)
+if (length(unknown)) {
+  stop("Unknown render argument(s): ", paste(unknown, collapse = ", "))
 }
 
 rscript <- file.path(R.home("bin"), if (.Platform$OS.type == "windows") {
@@ -25,6 +57,109 @@ manifest <- utils::read.csv(
   fileEncoding = "UTF-8"
 )
 documents <- manifest[grepl("^vignettes/", manifest$source), , drop = FALSE]
+if (!is.null(selected_locale)) {
+  if (!selected_locale %in% unique(manifest$locale)) {
+    stop("Unknown documentation locale: ", selected_locale)
+  }
+  documents <- documents[documents$locale == selected_locale, , drop = FALSE]
+}
+if (length(from_argument)) {
+  from <- sub("^--from=", "", from_argument[[1L]])
+  start <- which(documents$document_id == from)
+  if (length(start) != 1L) {
+    stop("`--from` must select exactly one document in the render set: ", from)
+  }
+  documents <- documents[seq.int(start, nrow(documents)), , drop = FALSE]
+}
+if (length(only_argument)) {
+  only <- strsplit(
+    sub("^--only=", "", only_argument[[1L]]), ",", fixed = TRUE
+  )[[1L]]
+  if (!length(only) || any(!nzchar(only)) || anyDuplicated(only)) {
+    stop("`--only` requires unique, non-empty document IDs.")
+  }
+  selected <- match(only, documents$document_id)
+  if (anyNA(selected)) {
+    stop(
+      "Unknown document ID(s) in `--only`: ",
+      paste(only[is.na(selected)], collapse = ", ")
+    )
+  }
+  documents <- documents[selected, , drop = FALSE]
+}
+
+# Published tutorials must use the checksum-pinned imported cortical charts.
+# A missing fixture is a build failure, never permission to publish the
+# synthetic closed-surface fallback.
+old_vitepress_env <- Sys.getenv("NEUROGEO_VITEPRESS", unset = NA_character_)
+old_tutorial_mode <- Sys.getenv(
+  "NEUROGEO_TUTORIAL_DATA_MODE", unset = NA_character_
+)
+old_flatmap_cache <- Sys.getenv(
+  "NEUROGEO_TUTORIAL_FLATMAP_CACHE", unset = NA_character_
+)
+old_reference50_cache <- Sys.getenv(
+  "NEUROGEO_TUTORIAL_REFERENCE50_CACHE", unset = NA_character_
+)
+flatmap_cache <- if (is.na(old_flatmap_cache) || !nzchar(old_flatmap_cache)) {
+  normalizePath(
+    file.path(".tools", "reference-flatmap"),
+    winslash = "/", mustWork = FALSE
+  )
+} else {
+  old_flatmap_cache
+}
+reference50_cache <- if (
+  is.na(old_reference50_cache) || !nzchar(old_reference50_cache)
+) {
+  normalizePath(
+    file.path(".tools", "reference-5.0"),
+    winslash = "/", mustWork = FALSE
+  )
+} else {
+  old_reference50_cache
+}
+Sys.setenv(
+  NEUROGEO_VITEPRESS = "true",
+  NEUROGEO_TUTORIAL_DATA_MODE = "real",
+  NEUROGEO_TUTORIAL_FLATMAP_CACHE = flatmap_cache,
+  NEUROGEO_TUTORIAL_REFERENCE50_CACHE = reference50_cache
+)
+on.exit({
+  if (is.na(old_vitepress_env)) Sys.unsetenv("NEUROGEO_VITEPRESS") else
+    Sys.setenv(NEUROGEO_VITEPRESS = old_vitepress_env)
+  if (is.na(old_tutorial_mode)) {
+    Sys.unsetenv("NEUROGEO_TUTORIAL_DATA_MODE")
+  } else {
+    Sys.setenv(NEUROGEO_TUTORIAL_DATA_MODE = old_tutorial_mode)
+  }
+  if (is.na(old_flatmap_cache)) {
+    Sys.unsetenv("NEUROGEO_TUTORIAL_FLATMAP_CACHE")
+  } else {
+    Sys.setenv(NEUROGEO_TUTORIAL_FLATMAP_CACHE = old_flatmap_cache)
+  }
+  if (is.na(old_reference50_cache)) {
+    Sys.unsetenv("NEUROGEO_TUTORIAL_REFERENCE50_CACHE")
+  } else {
+    Sys.setenv(
+      NEUROGEO_TUTORIAL_REFERENCE50_CACHE = old_reference50_cache
+    )
+  }
+}, add = TRUE)
+tutorial_environment <- new.env(parent = globalenv())
+sys.source(
+  system.file(
+    "tutorial-code", "brain-case-study.R",
+    package = "neurogeo", mustWork = TRUE
+  ),
+  envir = tutorial_environment
+)
+tutorial_environment$.ngeo_tutorial_data_mode("real")
+knitr::opts_chunk$set(
+  dev = "ragg_png",
+  dpi = 100,
+  fig.retina = 1
+)
 
 flatmap_figures <- c(
   "conte69-vertex-flatmap.png",
@@ -45,6 +180,17 @@ if (all(file.exists(flatmap_sources))) {
 route_target <- function(route) {
   route <- sub("^/", "", route)
   file.path("website", paste0(route, ".md"))
+}
+
+if (isTRUE(clean)) {
+  for (route in documents$route) {
+    target <- route_target(route)
+    figure_directory <- sub("\\.md$", "_files", target)
+    if (file.exists(target)) unlink(target, force = TRUE)
+    if (dir.exists(figure_directory)) {
+      unlink(figure_directory, recursive = TRUE, force = TRUE)
+    }
+  }
 }
 
 replace_front_matter <- function(path, document) {
@@ -117,13 +263,6 @@ replace_front_matter <- function(path, document) {
   )
 }
 
-old_env <- Sys.getenv("NEUROGEO_VITEPRESS", unset = NA_character_)
-Sys.setenv(NEUROGEO_VITEPRESS = "true")
-on.exit({
-  if (is.na(old_env)) Sys.unsetenv("NEUROGEO_VITEPRESS") else
-    Sys.setenv(NEUROGEO_VITEPRESS = old_env)
-}, add = TRUE)
-
 for (index in seq_len(nrow(documents))) {
   source <- documents$source[[index]]
   target <- route_target(documents$route[[index]])
@@ -142,17 +281,19 @@ for (index in seq_len(nrow(documents))) {
   message("Rendered ", source, " -> ", target)
 }
 
-artifact <- list(
-  schema = "neurogeo/documentation-artifact/1",
-  package_version = as.character(utils::packageVersion("neurogeo")),
-  manifest_sha256 = digest::digest(
-    manifest_path, algo = "sha256", file = TRUE, serialize = FALSE
-  ),
-  route_count = nrow(manifest)
-)
-jsonlite::write_json(
-  artifact,
-  file.path("website", "public", "documentation-build.json"),
-  auto_unbox = TRUE,
-  pretty = TRUE
-)
+if (is.null(selected_locale)) {
+  artifact <- list(
+    schema = "neurogeo/documentation-artifact/1",
+    package_version = as.character(utils::packageVersion("neurogeo")),
+    manifest_sha256 = digest::digest(
+      manifest_path, algo = "sha256", file = TRUE, serialize = FALSE
+    ),
+    route_count = nrow(manifest)
+  )
+  jsonlite::write_json(
+    artifact,
+    file.path("website", "public", "documentation-build.json"),
+    auto_unbox = TRUE,
+    pretty = TRUE
+  )
+}

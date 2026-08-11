@@ -1,28 +1,154 @@
 ---
-title: "皮层表面：geometry、topology 与 metric"
+title: "Surface workflow：Conte69 geometry、vertex cohort 与多 atlas flat maps"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{皮层表面：geometry、topology 与 metric}
+  %\VignetteIndexEntry{Surface workflow：Conte69 geometry、vertex cohort 与多 atlas flat maps}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-surface measure 与有序 vertex 对齐；faces 定义 topology，coordinate set 定义
-metric embedding。二者相关但不能互换。若无法确认 metric array 的 vertex order，
-不要把它附加到 geometry。
-
-下面的 executable workflow 读取 GIFTI geometry，构造一个显式 intensive
-measure，严格验证后建立 mesh-contiguity weights，计算并解释 Moran's I，创建声明
-过的 viewing chart、绘图、写出 GIFTI，并检查恢复对象的 history。
-
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", message = FALSE, warning = FALSE,
+  fig.align = "center"
+)
+library(neurogeo)
+source(system.file(
+  "tutorial-code", "brain-case-study.R",
+  package = "neurogeo", mustWork = TRUE
+))
+dk <- ngeo_tutorial_dk_case_control(
+  n_per_group = 100, seed = 20260810
+)
+vertex <- ngeo_tutorial_vertex_case_control(
+  n_per_group = 5, seed = 20260811
+)
 knitr::read_chunk(system.file(
-  "tutorial-code", "workflow-surface.R", package = "neurogeo"
+  "tutorial-code", "workflow-surface.R",
+  package = "neurogeo", mustWork = TRUE
 ))
 ```
+
+## Geometry、topology、chart 与 values 各司其职
+
+surface values 按 ordered vertices 对齐；faces 定义 mesh topology；
+anatomical coordinates 定义三维 embedding；flat coordinates 是经过验证
+并绑定回同一 vertices/faces 的 viewing chart。任何一个数组的 row order
+不明确时，都不能把它附加到 geometry。
+
+主案例使用同一研究 foundation：
+
+- DK68 cohort：100 名 HC + 100 名 SCZ；
+- Conte69 vertex cohort：5 名 HC + 5 名 SCZ；
+- DK68、Schaefer100/200/300、Glasser360 都与同一 cortical vertices
+  对齐。
+
+```{r surface-contract}
+surface_base <- ngeo_spatial_base(vertex$surface)
+list(
+  dk_dimensions = dim(ngeo_values(dk$cohort)),
+  vertex_dimensions = dim(ngeo_values(vertex$surface)),
+  vertices = nrow(surface_base$geometry$coordinates$anatomical),
+  faces = nrow(surface_base$geometry$faces),
+  charts = names(surface_base$geometry$coordinates),
+  groups = table(vertex$group)
+)
+```
+
+## Vertex-level case-control map
+
+下图直接使用 neurogeo 内部 cortical cartography：同一 surface object
+提供 topology、flat chart、sulcal underlay、mask 与 vertex values。
+
+```{r vertex-effect, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上的 vertex SCZ 减 HC cortical thickness", fig.cap="5 名 HC 与 5 名 SCZ 的 vertex-level sample 在同一 validated flat chart 上比较。"}
+ngeo_tutorial_plot_flat(
+  vertex$difference,
+  layer = "SCZ_minus_HC",
+  title = "Vertex cortical thickness: SCZ - HC",
+  diverging = TRUE
+)
+```
+
+## 同一 surface 上比较 atlas supports
+
+atlas 不是脱离 geometry 的名称表。每个 support 都必须以相同 vertex
+order 绑定到 surface，才可以画边界、构造 operator 或聚合 values。
+
+```{r atlas-family, fig.width=12, fig.height=12, fig.alt="Conte69 flat surface 上的 DK68、Schaefer100、Schaefer200、Schaefer300 和 Glasser360", fig.cap="五个 atlas resolutions 共享同一 surface geometry 和 flat chart。"}
+atlas_layout <- ngeo_tutorial_atlas_layout(
+  vertex,
+  atlases = c(
+    "DK68", "Schaefer100", "Schaefer200",
+    "Schaefer300", "Glasser360"
+  )
+)
+plot(
+  atlas_layout,
+  show_boundaries = TRUE,
+  show_legend = FALSE
+)
+```
+
+## Mesh topology 驱动空间关系
+
+空间邻接来自 faces，而不是 flat-map 上的二维欧氏近邻。flat chart 用于
+展示；mesh contiguity 或 geodesic metric 用于 surface analysis。
+
+```{r mesh-weights}
+vertex_weights <- ngeo_spatial_weights(
+  vertex$difference,
+  method = "mesh_contiguity",
+  style = "W"
+)
+vertex_result <- ngeo_moran(
+  vertex$difference,
+  vertex_weights,
+  layer = "SCZ_minus_HC",
+  permutations = 99,
+  seed = 20260811,
+  zero_policy = TRUE
+)
+vertex_result
+ngeo_inference_contract(vertex_result)
+```
+
+## 格式 contract 侧栏：真实 tiny GIFTI round trip
+
+下面保留 canonical GIFTI fixture workflow。它验证真实 geometry 编码、
+strict validation、mesh weights、GIFTI writer 和 read-back history；
+四 vertex fixture 只承担格式 contract，不承担科学示例。
 
 ```{r workflow-surface}
 ```
 
-教程中的 chart 只是 viewing projection，不是 cortical registration 或解剖学
-flattening。跨被试 mapping 必须使用已经注册的 surface pair，并记录来源和方向。
+```{r surface-roundtrip-alignment}
+before_base <- ngeo_spatial_base(surface)
+after_base <- ngeo_spatial_base(surface_roundtrip)
+before_coordinates <- before_base$geometry$coordinates[[1L]]
+after_coordinates <- after_base$geometry$coordinates[[1L]]
+
+surface_alignment <- list(
+  vertex_count = identical(
+    nrow(before_coordinates),
+    nrow(after_coordinates)
+  ),
+  face_order = identical(
+    before_base$geometry$faces,
+    after_base$geometry$faces
+  ),
+  coordinates = isTRUE(all.equal(
+    before_coordinates,
+    after_coordinates
+  ))
+)
+surface_alignment
+stopifnot(
+  surface_alignment$vertex_count,
+  surface_alignment$face_order,
+  surface_alignment$coordinates
+)
+```
+
+canonical workflow 创建的 chart 只用于 viewing；它不是跨被试 cortical
+registration。跨被试 mapping 必须使用经过验证的 registered surface pair，
+并记录来源、方向、vertex identity 与任何 resampling operator。

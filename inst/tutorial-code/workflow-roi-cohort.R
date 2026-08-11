@@ -20,9 +20,9 @@ roi_result <- ngeo_moran(
   permutations = 499, seed = 2026
 )
 ngeo_inference_contract(roi_result)
-ngeo_tutorial_plot_dk(
+ngeo_tutorial_plot_flat(
   group_difference,
-  title = "SCZ minus HC cortical thickness (mm)", midpoint = 0
+  title = "SCZ minus HC cortical thickness (mm)", diverging = TRUE
 )
 
 history_output <- tempfile(fileext = ".json")

@@ -17,6 +17,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      NEUROGEO_TUTORIAL_DATA_MODE: real
+      NEUROGEO_TUTORIAL_FLATMAP_CACHE: ${{ github.workspace }}/.tools/reference-flatmap
+      NEUROGEO_TUTORIAL_REFERENCE50_CACHE: ${{ github.workspace }}/.tools/reference-5.0
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
@@ -41,6 +45,12 @@ jobs:
           Rscript tools/check-documentation-manifest-60.R
           Rscript tools/check-localization-contract-60.R
           Rscript tools/check-tutorial-fixtures-60.R
+          Rscript tools/check-neuroimaging-tutorials-60.R
+
+      - name: Fetch checksum-pinned cortical tutorial fixtures
+        run: |
+          Rscript tools/fetch-reference-431.R
+          Rscript tools/fetch-reference-50.R
 
       - name: Build API reference
         shell: Rscript {0}
@@ -55,6 +65,9 @@ jobs:
 
       - name: Render Rmd tutorials
         run: Rscript tools/render-vitepress.R
+
+      - name: Verify neuroimaging tutorial figures
+        run: Rscript tools/check-neuroimaging-tutorials-60.R --rendered
 
       - name: Build tutorial site
         run: |

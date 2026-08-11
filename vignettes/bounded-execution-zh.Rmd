@@ -1,63 +1,127 @@
 ---
-title: "Vertex 与 DK case-control 数据的 bounded execution"
+title: "Conte69 vertex 与 DK68 case-control 数据的有界执行"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vertex 与 DK case-control 数据的 bounded execution}
+  %\VignetteIndexEntry{Conte69 vertex 与 DK68 case-control 数据的有界执行}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
-                      warning=FALSE, fig.align="center")
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", message = FALSE, warning = FALSE,
+  fig.align = "center"
+)
 library(neurogeo)
-source(system.file("tutorial-code", "brain-case-study.R",
-                   package="neurogeo", mustWork=TRUE))
-vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
+source(system.file(
+  "tutorial-code", "brain-case-study.R",
+  package = "neurogeo", mustWork = TRUE
+))
+dk <- ngeo_tutorial_dk_case_control(
+  n_per_group = 100, seed = 20260810
+)
+vertex <- ngeo_tutorial_vertex_case_control(
+  n_per_group = 5, seed = 20260811
+)
 ```
 
-## Chunked execution 不改变科学脑图
+## 研究数据与执行约束
 
-672 × 10 vertex matrix 包含 5 名 HC 与 5 名 SCZ。真实 32k 或 164k surface cohort
-可能超过内存。resource budget 只决定 operation 能否运行，不能静默改变 estimator。
+主案例始终是同一个 SCZ--HC 皮层厚度研究：DK68 数据包含 100 名 HC
+和 100 名 SCZ；vertex 数据包含每组 5 名被试。DK parcels 是空间
+support，被试才是独立 sampling units。下面的 bounded execution
+只改变一次读入或运算多少 rows，不改变 vertex 顺序、被试、atlas、
+measure 或 estimand。
 
-```{r brain, fig.width=9, fig.height=4.5, fig.alt="vertex-level case-control 皮层厚度 contrast", fig.cap="Chunking 改变执行方式，不改变 spatial map 或 support。"}
-plot(vertex$difference, chart="flat", show_edges=FALSE, palette="Blue-Red 3")
+```{r data-contract}
+c(
+  dk_parcels = nrow(ngeo_values(dk$cohort)),
+  dk_subjects = ncol(ngeo_values(dk$cohort)),
+  vertices = nrow(ngeo_values(vertex$surface)),
+  vertex_subjects = ncol(ngeo_values(vertex$surface))
+)
+table(vertex$group)
 ```
 
-## 分块计算 cortical vertex summaries
+先画出将要被分块处理的整张 cortical contrast。后面的数值检查都必须能
+回到这张相同 support、相同 vertex order 的 flat-surface brain map。
+
+```{r vertex-contrast, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上的模拟 SCZ 减 HC vertex 皮层厚度差异", fig.cap="有界执行改变访问方式，不改变 SCZ 减 HC 的 cortical estimand。"}
+ngeo_tutorial_plot_flat(
+  vertex$difference,
+  layer = "SCZ_minus_HC",
+  title = "Vertex cortical thickness: SCZ - HC",
+  diverging = TRUE
+)
+```
+
+## 分块 summary 与直接计算必须一致
+
+`ngeo_stream_summary()` 按 vertex blocks 扫描 10 个 subject layers。
+这里用完整矩阵的直接结果做教学核对；真正的大型 CIFTI/surface 数据
+不需要同时 materialize 全部 values。
 
 ```{r streaming}
-streamed <- ngeo_stream_summary(vertex$surface, chunk_size=96)
-streamed
-direct <- apply(ngeo_values(vertex$surface), 2L, function(value) {
-  c(mean=mean(value), sd=stats::sd(value))
-})
-all.equal(unname(streamed$mean), unname(direct["mean", ]))
+streamed <- ngeo_stream_summary(
+  vertex$surface,
+  chunk_size = 512
+)
+direct_mean <- colMeans(ngeo_values(vertex$surface))
+direct_sd <- apply(ngeo_values(vertex$surface), 2L, stats::sd)
+
+stopifnot(
+  isTRUE(all.equal(unname(streamed$mean), unname(direct_mean))),
+  isTRUE(all.equal(unname(sqrt(streamed$variance)), unname(direct_sd)))
+)
+head(data.frame(
+  subject = ngeo_layers(vertex$surface)$subject_id,
+  streamed_mean = streamed$mean,
+  direct_mean = direct_mean
+))
 ```
 
-chunk size 是 execution parameter；element order、subject layers、measurement
-units 与数值 summary 都不改变。
+这个核对的重点不是“chunk size 选多少最好”，而是 chunking 前后 layer IDs
+和结果完全对齐。如果实现按数值重新排序 rows，即使均值看起来合理，也已经
+破坏了神经影像空间身份。
 
-## 限制 sparse support change
+## 在预算内构造 Schaefer300 support
 
-```{r support}
-map <- ngeo_atlas_map(
-  vertex$difference, vertex$supports$Schaefer300,
-  source_support=ngeo_vertex_area(vertex$difference)
+下面把同一个 vertex contrast 聚合到 Schaefer300。operator 保持 sparse；
+预算不足时应该明确报错，而不是静默换成更粗 atlas、删除被试或改变统计量。
+
+```{r schaefer300-support}
+schaefer300_map <- ngeo_atlas_map(
+  vertex$difference,
+  vertex$supports$Schaefer300,
+  source_support = ngeo_vertex_area(vertex$difference)
 )
 budget <- ngeo_resource_budget(
-  memory_bytes=8 * 1024^2,
-  materialized_elements=300
+  memory_bytes = 16 * 1024^2,
+  materialized_elements = 300
 )
-regional <- aggregate_to(vertex$difference, map$target, map, budget=budget)
-regional
+schaefer300 <- aggregate_to(
+  vertex$difference,
+  schaefer300_map$target,
+  schaefer300_map,
+  budget = budget
+)
+c(
+  source_vertices = nrow(ngeo_values(vertex$difference)),
+  target_parcels = nrow(ngeo_values(schaefer300))
+)
 ```
 
-```{r diagnostic, fig.width=7, fig.height=4, fig.alt="672 vertex 到 300 parcel support map 的 sparse membership diagnostic", fig.cap="bounded operation 直接使用 sparse operator，不 materialize dense whole-brain matrix。"}
-plot(map, type="membership", col="#2a9d8f", border="white")
+```{r schaefer300-atlas, fig.width=10, fig.height=4.8, fig.alt="同一 Conte69 flat surface 上的 Schaefer300 support", fig.cap="预算控制 operator 的执行；Schaefer300 的空间 support 本身保持不变。"}
+ngeo_tutorial_plot_atlas(
+  vertex,
+  atlas = "Schaefer300",
+  title = "Schaefer300 support"
+)
 ```
 
-如果声明的 limit 太小，operation 会抛出 resource error，而不是切换 atlas scale、
-丢弃 subjects 或换一个 statistic。resource budget 应与 analysis history 和 replay
-manifest 一起保存。
+## 应记录什么
+
+可复现记录至少应包含 input identity、vertex/layer selection、chunk size、
+resource budget、atlas 名称、operator hash 和输出 hash。`memory_bytes`
+属于执行参数；`Schaefer300`、被试集合和 SCZ--HC estimand 属于科学
+分析定义，两者不能混为一谈。

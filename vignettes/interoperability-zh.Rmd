@@ -1,67 +1,244 @@
 ---
-title: "互操作与可审计交换"
+title: "Conte69、DK 与 Schaefer support 的可审计交换"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{互操作与可审计交换}
+  %\VignetteIndexEntry{Conte69、DK 与 Schaefer support 的可审计交换}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", message = FALSE, warning = FALSE,
+  fig.align = "center"
+)
 library(neurogeo)
+source(system.file(
+  "tutorial-code", "brain-case-study.R",
+  package = "neurogeo", mustWork = TRUE
+))
+dk <- ngeo_tutorial_dk_case_control(
+  n_per_group = 100, seed = 20260810
+)
+vertex <- ngeo_tutorial_vertex_case_control(
+  n_per_group = 5, seed = 20260811
+)
 ```
 
-## 基础背景
+## 交换的是有空间身份的脑数据
 
-互操作不仅要求双方能读取同一种文件，还要求双方对 element order、coordinate_space、
-measurement semantics 和完整性有相同解释。标准格式解决编码问题；validator、
-metadata 和 hash 解决语义及身份问题。
+文件能被另一个软件打开，只解决了编码问题。可审计 interoperability
+还必须保留 element order、coordinate space、surface topology、subject
+layers、measure semantics、atlas membership 和 history。主案例仍是
+DK68 的 100 HC + 100 SCZ，以及 Conte69 vertex support 上每组 5 人的
+SCZ--HC study。
 
-这些交换接口不执行 registration、resampling、preprocessing 或 dataset
-orchestration。
+```{r study-identity}
+list(
+  dk_dimensions = dim(ngeo_values(dk$cohort)),
+  vertex_dimensions = dim(ngeo_values(vertex$surface)),
+  vertex_groups = table(vertex$group),
+  vertex_space = ngeo_spatial_base(vertex$surface)$coordinate_space$space_id
+)
+```
 
-## BIDS derivative 名称
+```{r effect-map, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上待交换的 SCZ 减 HC vertex effect map", fig.cap="交换前先固定 vertex order、coordinate space 与科学 estimand。"}
+ngeo_tutorial_plot_flat(
+  vertex$difference,
+  layer = "SCZ_minus_HC",
+  title = "Exchange target: SCZ - HC thickness",
+  diverging = TRUE
+)
+```
 
-名称由经过验证且顺序确定的实体生成：
+## Schaefer200 operator 的 bundle round trip
 
-```{r}
-entities <- list(sub = "01", space = "fsLR", desc = "effect")
-name <- ngeo_bids_build_name(
+下面不是把一个 atlas 名称写进 JSON 就结束，而是交换完整 sparse
+operator、source/target support metadata 与 logical hash。读取后必须得到
+相同 operator identity。
+
+```{r support-bundle}
+schaefer200_map <- ngeo_atlas_map(
+  vertex$difference,
+  vertex$supports$Schaefer200,
+  source_support = ngeo_vertex_area(vertex$difference)
+)
+
+if (requireNamespace("jsonlite", quietly = TRUE)) {
+  bundle_path <- tempfile("schaefer200-support-")
+  bundle <- write_ngeo_support_bundle(
+    schaefer200_map,
+    bundle_path,
+    chunk_size = 64L
+  )
+  ngeo_validate_support_bundle(bundle_path)
+  restored_map <- read_ngeo_support_bundle(bundle_path)
+  stopifnot(
+    identical(
+      ngeo_support_map_hash(restored_map),
+      ngeo_support_map_hash(schaefer200_map)
+    ),
+    isTRUE(all.equal(
+      restored_map$operator,
+      schaefer200_map$operator
+    ))
+  )
+  bundle_summary <- list(
+    chunks = bundle$chunks,
+    source_vertices = ncol(restored_map$operator),
+    target_parcels = nrow(restored_map$operator),
+    hash_preserved = TRUE
+  )
+  unlink(bundle_path, recursive = TRUE, force = TRUE)
+  bundle_summary
+}
+```
+
+```{r schaefer200-map, fig.width=10, fig.height=4.8, fig.alt="Conte69 flat surface 上的 Schaefer200 support", fig.cap="bundle round trip 前后，Schaefer200 membership 与 cortical alignment 必须相同。"}
+ngeo_tutorial_plot_atlas(
+  vertex,
+  atlas = "Schaefer200",
+  title = "Schaefer200 support"
+)
+```
+
+## 对象 manifest 与 BIDS derivative 名称
+
+对象 manifest 绑定 base、ordered elements、metadata 和 content identity；
+BIDS 名称则表达文件在 derivative dataset 中的位置。两者作用不同，应该
+一起使用。
+
+```{r manifest-and-name}
+effect_manifest <- ngeo_object_manifest(vertex$difference)
+stopifnot(
+  isTRUE(ngeo_validate_manifest(
+    effect_manifest, vertex$difference
+  )$valid)
+)
+
+entities <- list(
+  sub = "group",
+  space = "fsLR",
+  desc = "SCZminusHC"
+)
+derivative_name <- ngeo_bids_build_name(
   entities,
-  suffix = "dscalar",
+  suffix = "thickness",
   extension = ".dscalar.nii"
 )
-name
-ngeo_bids_parse_name(name)
+derivative_name
+ngeo_bids_parse_name(derivative_name)
 ```
 
-## 稀疏 support map
+## CIFTI/GIFTI 输出边界
 
-support operator 适合使用 Matrix Market 保存，JSON sidecar 记录 base、
-语义与完整逻辑 hash。大矩阵可以分块，但分块不能改变逻辑对象。
+CIFTI writer 需要 grayordinate axis contract；GIFTI writer 需要 surface
+geometry 与 vertex-aligned arrays。写出接口不会自动注册两个被试，也不会
+把 DK、Schaefer 或 vertex supports 静默互换。
 
-```{r eval=FALSE}
-bundle <- write_ngeo_support_bundle(
-  support_map, "support-map.ngcs", chunk_size = 100000L
-)
-ngeo_validate_support_bundle(bundle$path)
-restored <- read_ngeo_support_bundle(bundle$path)
+```{r format-writers}
+format_roundtrips <- list()
+
+if (requireNamespace("cifti", quietly = TRUE)) {
+  cifti_fixture <- system.file(
+    "extdata", "golden", "tiny.dscalar.nii",
+    package = "neurogeo", mustWork = TRUE
+  )
+  dense_effect <- read_ngeo_cifti(
+    cifti_fixture, checksum = TRUE
+  )
+  ngeo_validate_cifti_contract(
+    dense_effect, "dscalar", datatype = "float64"
+  )
+  cifti_output <- tempfile(
+    fileext = ".dscalar.nii"
+  )
+  write_ngeo_cifti(
+    dense_effect,
+    cifti_output,
+    type = "dscalar",
+    datatype = "float64"
+  )
+  dense_restored <- read_ngeo_cifti(
+    cifti_output, checksum = TRUE
+  )
+  stopifnot(
+    isTRUE(all.equal(
+      ngeo_values(dense_restored),
+      ngeo_values(dense_effect),
+      tolerance = 1e-12
+    )),
+    identical(
+      ngeo_base_elements(dense_restored)$element_id,
+      ngeo_base_elements(dense_effect)$element_id
+    ),
+    identical(
+      ngeo_layers(dense_restored)$layer_id,
+      ngeo_layers(dense_effect)$layer_id
+    )
+  )
+  format_roundtrips$cifti <- list(
+    dimensions = dim(ngeo_values(dense_restored)),
+    alignment_preserved = TRUE
+  )
+  unlink(cifti_output, force = TRUE)
+}
+
+if (all(vapply(
+  c("gifti", "freesurferformats"),
+  requireNamespace, logical(1), quietly = TRUE
+))) {
+  golden <- function(name) {
+    system.file(
+      "extdata", "golden", name,
+      package = "neurogeo", mustWork = TRUE
+    )
+  }
+  subject_surface <- read_ngeo_gifti(
+    geometry = golden("tetra.surf.gii"),
+    data = c(thickness = golden("tetra.shape.gii")),
+    labels = c(atlas = golden("tetra.label.gii")),
+    checksum = TRUE
+  )
+  gifti_output <- tempfile(fileext = ".surf.gii")
+  gifti_manifest <- write_ngeo_gifti(
+    subject_surface, gifti_output
+  )
+  surface_restored <- read_ngeo_gifti(
+    geometry = gifti_manifest$geometry,
+    data = gifti_manifest$data,
+    labels = gifti_manifest$labels,
+    measures = ngeo_measures(subject_surface),
+    coordinate_roles = unname(
+      gifti_manifest$coordinate_roles
+    ),
+    checksum = TRUE
+  )
+  stopifnot(
+    identical(
+      ngeo_spatial_base(surface_restored)$geometry$faces,
+      ngeo_spatial_base(subject_surface)$geometry$faces
+    ),
+    isTRUE(all.equal(
+      ngeo_values(surface_restored),
+      ngeo_values(subject_surface),
+      tolerance = 1e-6
+    ))
+  )
+  format_roundtrips$gifti <- list(
+    vertices = nrow(ngeo_values(surface_restored)),
+    alignment_preserved = TRUE
+  )
+  unlink(c(
+    unname(gifti_manifest$geometry),
+    unname(gifti_manifest$data),
+    unname(gifti_manifest$labels),
+    gifti_manifest$sidecar
+  ), force = TRUE)
+}
+format_roundtrips
 ```
 
-## CIFTI 输出契约
-
-写出前应验证 CIFTI 类型、datatype 和 axis semantics：
-
-```{r eval=FALSE}
-ngeo_validate_cifti_contract(x, "dscalar", datatype = "float64")
-write_ngeo_cifti(
-  x,
-  "sub-01_desc-effect.dscalar.nii",
-  type = "dscalar",
-  datatype = "float64"
-)
-```
-
-conformance fixtures 用于实现验证；实际分析对象仍通过格式专用 validator 和
-`ngeo_validate()` 检查。
+一个可用的 exchange test 至少应同时核对 dimensions、ordered IDs、
+coordinate-space identity、operator hash 和 representative values；
+仅比较文件大小或对象 class 不足以证明 cortical alignment。

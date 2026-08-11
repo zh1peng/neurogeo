@@ -1,73 +1,147 @@
 ---
-title: "显式空间与 transform path"
+title: "皮层 surface 的显式空间与 transform path"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{显式空间与 transform path}
+  %\VignetteIndexEntry{皮层 surface 的显式空间与 transform path}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file(
+  "tutorial-code", "brain-case-study.R", package="neurogeo",
+  mustWork=TRUE
+))
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5, seed=20260811)
+source_surface <- ngeo_subset(vertex$surface, layers=1L)
 ```
 
-## 基础背景
+## coordinate space 是 surface identity 的一部分
 
-坐标只有放在 coordinate reference coordinate_space 中才有含义。两个文件都使用毫米，
-并不能证明它们属于同一 subject、template、orientation 或 surface
-registration。transform 是一个有方向、可审计的声明：某个 exact coordinate_space 的坐标
-可以映射到另一个 exact coordinate_space。
+两个文件都使用毫米并不能证明它们属于同一 subject、template 或 surface
+registration。这里从一名 HC 的完整 cortical surface 开始；values、faces、DK/
+Schaefer/Glasser labels 与 flat chart 都已按 vertex order 对齐。
 
-## 注册空间
+```{r source-atlas, fig.width=10, fig.height=4.8, fig.alt="transform 前的 Glasser360 flat-surface atlas", fig.cap="atlas labels 与 source surface coordinate space 绑定。"}
+ngeo_tutorial_plot_atlas(
+  source_surface,
+  atlas="Glasser360",
+  title="Source surface: Glasser360 support"
+)
+```
 
-```{r}
-native <- ngeo_coordinate_space("native", template = "subject-01")
-intermediate <- ngeo_coordinate_space("intermediate", template = "study-template")
-standard <- ngeo_coordinate_space("standard", template = "public-template")
+## 注册三个 surface spaces
+
+`native` 直接取自 source object，而不是新建一个同名字符串。study template 与
+public template 是两个新的规范 coordinate-space identities；registry alias 解析的是
+完整 identity/hash。
+
+```{r spaces}
+native <- ngeo_spatial_base(source_surface)$coordinate_space
+study <- ngeo_coordinate_space(
+  "conte69-study-template",
+  kind="surface",
+  unit="mm",
+  template="SCZ-HC-study"
+)
+standard <- ngeo_coordinate_space(
+  "conte69-public-template",
+  kind="surface",
+  unit="mm",
+  template="tutorial-standard"
+)
 registry <- ngeo_coordinate_space_registry(
-  list(native, intermediate, standard),
-  aliases = c(subject = "native", reference = "standard")
+  list(native, study, standard),
+  aliases=c(subject=native$space_id,
+            reference=standard$space_id)
 )
 ngeo_coordinate_space_audit(native, standard)
 ```
 
-名称相同不是等价证明；registry 使用完整规范描述和 hash 解析 alias。
+## 构造有方向的 transform graph
 
-## 构造 transform graph
+下面两个 affine 是已提供的教学 transforms：第一步轻微平移，第二步加入尺度和
+平移。graph 只登记它们，不估计缺失 registration。
 
-```{r}
-translation <- function(from, to, shift, method) {
-  matrix <- diag(4)
-  matrix[1:3, 4] <- shift
-  ngeo_transform(
-    from, to, "affine", method = method,
-    parameters = list(matrix = matrix)
-  )
-}
-t1 <- translation(native, intermediate, c(1, 0, 0), "supplied step 1")
-t2 <- translation(intermediate, standard, c(0, 2, 0), "supplied step 2")
+```{r graph}
+first_matrix <- diag(4)
+first_matrix[1:3, 4] <- c(1.5, -2.0, 0.5)
+second_matrix <- diag(c(1.01, 0.99, 1.00, 1))
+second_matrix[1:3, 4] <- c(-0.5, 1.0, 2.0)
+
+native_to_study <- ngeo_transform(
+  native,
+  study,
+  type="affine",
+  method="supplied subject-to-study surface affine",
+  parameters=list(matrix=first_matrix)
+)
+study_to_standard <- ngeo_transform(
+  study,
+  standard,
+  type="affine",
+  method="supplied study-to-public surface affine",
+  parameters=list(matrix=second_matrix)
+)
 graph <- ngeo_transform_graph(
-  registry, list(t1, t2),
-  edge_ids = c("native-study", "study-standard")
+  registry,
+  transforms=list(native_to_study, study_to_standard),
+  edge_ids=c("native-study", "study-standard")
 )
 path <- ngeo_transform_path(graph, "subject", "reference")
 ngeo_transform_path_history(path)
 ```
 
-graph 只包含调用者提供的 transform；path resolution 不会估计缺失 registration。
+## 应用 path 前后都回到 flat surface 检查
 
-## 应用 path
+`ngeo_apply_transform_path()` 只改变 anatomical geometry 和 coordinate-space
+identity；vertex order、faces、subject values 与 atlas labels 必须保持不变。为了让
+几何变化在 flatmap 上可见，颜色表示 transform 前后的 anatomical x coordinate。
 
-```{r}
-x <- ngeo_point(
-  cbind(x = c(0, 1), y = c(0, 1)),
-  values = cbind(signal = c(1, 2)),
-  coordinate_space = native
+```{r before-brain, fig.width=10, fig.height=4.8, fig.alt="transform 前 anatomical x coordinate 的 cortical flatmap", fig.cap="flat chart 作为 viewing geometry；颜色来自 transform 前的 anatomical coordinates。"}
+before_geometry <- ngeo_spatial_base(source_surface)$geometry
+before_coordinates <- before_geometry$coordinates[[
+  before_geometry$active_coordinates
+]]
+ngeo_tutorial_plot_flat(
+  source_surface,
+  values=before_coordinates[, 1L],
+  atlas="DK68",
+  title="Before transform: anatomical x",
+  palette="viridis"
 )
-changed <- ngeo_apply_transform_path(x, path, authorize = TRUE)
-changed$base$geometry$coordinates
 ```
 
-应用只改变 geometry 并需要显式授权；lossy 或不支持的 non-affine path 可以审计，
-但不会被执行。
+```{r apply-path}
+changed <- ngeo_apply_transform_path(
+  source_surface,
+  path,
+  authorize=TRUE
+)
+after_geometry <- ngeo_spatial_base(changed)$geometry
+after_coordinates <- after_geometry$coordinates[[
+  after_geometry$active_coordinates
+]]
+c(
+  values_preserved=identical(ngeo_values(changed), ngeo_values(source_surface)),
+  faces_preserved=identical(after_geometry$faces, before_geometry$faces),
+  base_hash_changed=!identical(base_hash(changed), base_hash(source_surface))
+)
+```
+
+```{r after-brain, fig.width=10, fig.height=4.8, fig.alt="transform 后 anatomical x coordinate 的 cortical flatmap", fig.cap="前后对照验证方向；数据值与 topology 不因 affine application 改变。"}
+ngeo_tutorial_plot_flat(
+  changed,
+  values=after_coordinates[, 1L],
+  atlas="DK68",
+  title="After transform: anatomical x",
+  palette="viridis"
+)
+```
+
+应用 transform 需要显式 `authorize=TRUE`。lossy 或不支持的 non-affine path 可以
+保存在 graph 中供审计，但不能被该 affine application API 静默执行。flat chart
+只负责检查结果，不应被误称为 registration 本身。

@@ -11,79 +11,174 @@ vignette: >
 knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
                       warning=FALSE, fig.align="center")
 library(neurogeo)
-source(system.file("tutorial-code", "brain-case-study.R",
-                   package="neurogeo", mustWork=TRUE))
-vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
-```
-
-## value 与 uncertainty 共享同一个 cortical base
-
-source 是 672-vertex SCZ-minus-HC thickness map。value uncertainty 与 operator
-uncertainty 不同：前者描述 vertex effects 的噪声，后者描述 vertices 到 parcels
-assignment 的不确定性。
-
-```{r brain, fig.width=9, fig.height=4.5, fig.alt="双侧 cortex 上的 vertex-level SCZ 减 HC thickness contrast", fig.cap="uncertainty 必须与 plotted effect 使用同一 ordered cortical base。"}
-plot(vertex$difference, chart="flat", show_edges=FALSE, palette="Blue-Red 3")
-```
-
-## 把相关 vertex uncertainty 传播到 DK68-sized parcels
-
-```{r analytic}
-vertex_area <- ngeo_vertex_area(vertex$difference)
+source(system.file(
+  "tutorial-code", "brain-case-study.R", package="neurogeo",
+  mustWork=TRUE
+))
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5, seed=20260811)
+included <- vertex$mask & !is.na(vertex$supports$DK68)
+analysis_surface <- ngeo_subset(
+  vertex$difference,
+  elements=which(included)
+)
+membership <- vertex$supports$DK68[included]
 hard <- ngeo_atlas_map(
-  vertex$difference, vertex$supports$DK68,
-  source_support=vertex_area
+  analysis_surface,
+  membership,
+  source_support=vertex$vertex_area[included]
+)
+```
+
+## value uncertainty 与 support uncertainty 不是一回事
+
+source 是 5 名 HC 与 5 名 SCZ 的 vertex-level thickness contrast。value uncertainty
+描述每个 vertex effect 的采样噪声；support uncertainty 描述同一 vertex 如何分配到
+DK parcels。两者必须绑定同一 ordered surface base，但不能合并成一个含糊的误差项。
+
+```{r effect-brain, fig.width=10, fig.height=4.8, fig.alt="vertex-level SCZ 减 HC thickness flatmap", fig.cap="effect、value covariance 与 atlas membership 使用同一 vertex order。"}
+ngeo_tutorial_plot_flat(
+  vertex$difference,
+  atlas="DK68",
+  title="Vertex-level SCZ minus HC thickness",
+  diverging=TRUE
+)
+```
+
+```{r dk-atlas, fig.width=10, fig.height=4.8, fig.alt="support uncertainty 分析中的 DK68 flat atlas", fig.cap="hard support 由明确的 DK68 boundaries 定义。"}
+ngeo_tutorial_plot_atlas(vertex, atlas="DK68", title="Hard DK68 support")
+```
+
+## 从 5+5 subjects 估计 vertex contrast variance
+
+下面的 diagonal variance 来自两组 subject maps 的均值差方差；一个 sulcal
+low-rank factor 表示跨 vertices 的共享 measurement component。该 factor 是透明的
+教学假设，不是从真实 scanner reliability study 校准出的 covariance。
+
+```{r value-covariance}
+values <- ngeo_values(vertex$surface)[included, , drop=FALSE]
+hc <- values[, vertex$group == "HC", drop=FALSE]
+scz <- values[, vertex$group == "SCZ", drop=FALSE]
+contrast_variance <- apply(hc, 1L, stats::var) / ncol(hc) +
+  apply(scz, 1L, stats::var) / ncol(scz)
+underlay <- vertex$underlay[included]
+underlay[!is.finite(underlay)] <- 0
+shared_factor <- matrix(
+  0.004 * as.numeric(scale(underlay)),
+  ncol=1L
 )
 value_covariance <- ngeo_support_covariance(
-  vertex$difference,
-  variance=rep(0.0025, length(vertex_area)),
-  factor=matrix(rep(0.01, length(vertex_area)), ncol=1)
+  analysis_surface,
+  variance=contrast_variance,
+  factor=shared_factor
 )
+summary(contrast_variance)
+```
+
+## 将相关 vertex uncertainty 传播到 DK68
+
+```{r analytic}
 analytic <- ngeo_support_uncertainty(
-  vertex$difference, hard$target, hard, value_covariance,
+  analysis_surface,
+  hard$target,
+  hard,
+  value_covariance,
   output="covariance"
 )
 analytic
 ```
 
-对 intensive thickness，传播使用 area-normalized ratio 的 derivative。low-rank
-factor 表示 shared uncertainty，因此会产生 target covariance；只提供 672 个独立
-standard errors 会遗漏它。
+对 intensive thickness，传播使用 area-normalized ratio 的 derivative。输出中的
+off-diagonal target covariance 来自 shared factor；如果只提供逐 vertex SE，就会
+遗漏这部分相关 uncertainty。
 
 ```{r monte-carlo}
 monte_carlo <- ngeo_support_uncertainty(
-  vertex$difference, hard$target, hard, value_covariance,
-  method="monte_carlo", nsim=200, seed=2202
+  analysis_surface,
+  hard$target,
+  hard,
+  value_covariance,
+  method="monte_carlo",
+  nsim=50,
+  seed=2202
 )
 monte_carlo
 ```
 
-## 比较 hard 与 uncertain parcel boundaries
+网页示例使用 50 次 draws 保持全 vertex covariance 传播有界；研究报告
+应预先设定更高的 Monte Carlo 精度并报告数值误差。
 
-soft operator 保留 90% hard parcel membership，并把 10% 移到相邻 target。这是
-透明的 boundary-sensitivity scenario，不是 calibrated segmentation probability。
+## 只在真实 parcel boundary 上构造 soft alternative
+
+soft operator 不再通过循环平移 parcel columns 伪造。我们先从 surface faces 找到
+跨 DK labels 的 edges，再仅对 boundary vertices 把 10% membership 分给其实际相邻
+parcel。内部 vertices 保持 100% hard membership。
+
+```{r boundary-operator}
+faces <- ngeo_spatial_base(analysis_surface)$geometry$faces
+edges <- rbind(
+  faces[, c(1L, 2L), drop=FALSE],
+  faces[, c(2L, 3L), drop=FALSE],
+  faces[, c(3L, 1L), drop=FALSE]
+)
+edges <- rbind(edges, edges[, 2:1, drop=FALSE])
+crosses <- membership[edges[, 1L]] != membership[edges[, 2L]]
+boundary_edges <- edges[crosses, , drop=FALSE]
+boundary_edges <- boundary_edges[
+  !duplicated(boundary_edges[, 1L]), , drop=FALSE
+]
+
+hard_probability <- as.matrix(Matrix::t(hard$operator))
+soft_probability <- hard_probability
+target_id <- ngeo_base_elements(hard$target)$region_id
+for (row in seq_len(nrow(boundary_edges))) {
+  vertex_id <- boundary_edges[row, 1L]
+  current <- match(membership[[vertex_id]], target_id)
+  neighbor <- match(membership[[boundary_edges[row, 2L]]], target_id)
+  soft_probability[vertex_id, current] <-
+    soft_probability[vertex_id, current] - 0.10
+  soft_probability[vertex_id, neighbor] <-
+    soft_probability[vertex_id, neighbor] + 0.10
+}
+soft <- ngeo_probabilistic_atlas_map(
+  analysis_surface,
+  soft_probability,
+  region_id=target_id,
+  target=hard$target,
+  source_support=vertex$vertex_area[included]
+)
+c(
+  boundary_vertices=nrow(boundary_edges),
+  all_memberships_sum_to_one=all(abs(rowSums(soft_probability)-1) < 1e-10)
+)
+```
+
+```{r boundary-brain, fig.width=10, fig.height=4.8, fig.alt="DK68 boundary membership entropy flatmap", fig.cap="只有实际跨 parcel mesh edges 的 vertices 具有非零 boundary entropy。"}
+entropy <- -rowSums(ifelse(
+  soft_probability > 0,
+  soft_probability * log(soft_probability),
+  0
+))
+full_entropy <- rep(NA_real_, nrow(ngeo_values(vertex$difference)))
+full_entropy[included] <- entropy
+ngeo_tutorial_plot_flat(
+  vertex$difference,
+  values=full_entropy,
+  atlas="DK68",
+  title="DK68 boundary membership entropy",
+  palette="Inferno"
+)
+```
 
 ```{r ensemble}
-hard_probability <- as.matrix(Matrix::t(hard$operator))
-soft_probability <- 0.9 * hard_probability +
-  0.1 * hard_probability[, c(2:ncol(hard_probability), 1L)]
-target_id <- ngeo_base_elements(hard$target)$region_id
-soft <- ngeo_probabilistic_atlas_map(
-  vertex$difference, soft_probability, region_id=target_id,
-  target=hard$target, source_support=vertex_area
-)
 ensemble <- ngeo_segmentation_ensemble(list(hard=hard, soft=soft))
 sensitivity <- ngeo_support_sensitivity(
-  vertex$difference, hard$target, ensemble
+  analysis_surface,
+  hard$target,
+  ensemble
 )
 sensitivity$summary
 ```
 
-```{r operator-plot, fig.width=7, fig.height=4, fig.alt="soft cortical support operator 的 membership-sum diagnostic", fig.cap="probabilistic operator 在 boundary 上分配 membership，同时保持 complete。"}
-plot(soft, type="membership", col="#e76f51", border="white")
-```
-
-between-operator variance 只衡量 supplied hard/soft alternatives 的 sensitivity，
-不会自动成为 registration confidence interval。应报告 value covariance assumptions、
-operator alternatives、target support、simulation count、seed，以及 interval 属于
-analytic、Monte Carlo 还是 between-operator sensitivity range。
+between-operator variance 只衡量这里提供的 hard/soft DK alternatives。正式报告应
+同时给出 vertex covariance assumptions、boundary rule、operator hashes、target
+support、Monte Carlo 次数与 seed；它不能自动解释为 registration confidence interval。

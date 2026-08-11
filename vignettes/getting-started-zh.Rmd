@@ -16,6 +16,7 @@ source(system.file(
   mustWork = TRUE
 ))
 dk <- ngeo_tutorial_dk_case_control(n_per_group = 100, seed = 20260810)
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group = 5)
 ```
 
 ## 先说研究问题，再说对象
@@ -23,7 +24,8 @@ dk <- ngeo_tutorial_dk_case_control(n_per_group = 100, seed = 20260810)
 我们模拟 100 名健康对照（HC）和 100 名精神分裂症被试（SCZ）的皮层厚度，
 空间 support 是 68 个 Desikan--Killiany（DK）皮层分区。年龄、性别与中心是
 受试者层面的协变量。模拟中预设 SCZ 在双侧颞上回、岛叶、前扣带和内侧眶额
-皮层厚度较低，并让相邻分区带有较弱效应。这是教学数据，不是临床证据。
+皮层厚度较低，让相邻分区带有较弱效应，并叠加一个小的前后向平滑梯度。
+这是教学数据，不是临床证据。
 
 ```{r study-design}
 with(dk$design, table(group, site))
@@ -39,18 +41,18 @@ dim(ngeo_values(dk$cohort))
 第一幅图是一名 HC 的厚度图，第二幅图是描述性的 SCZ 减 HC contrast。后面每个
 数值都应能回到这两幅脑图上解释。
 
-```{r subject-brain, fig.width=9, fig.height=4.6, fig.alt="一名模拟健康对照的双侧 DK 皮层厚度脑图", fig.cap="一个 subject 是一个 layer；DK parcels 构成共享 spatial base。"}
-ngeo_tutorial_plot_dk(
+```{r subject-brain, fig.width=9, fig.height=4.6, fig.alt="DK cortical thickness for one simulated healthy control shown on bilateral cortical views", fig.cap="One subject is one layer; DK parcels form the shared spatial base."}
+ngeo_tutorial_plot_flat(
   dk$cohort, layer = "sub-001",
-  title = "模拟皮层厚度：sub-001（HC）"
+  title = "sub-001 cortical thickness (HC)"
 )
 ```
 
-```{r contrast-brain, fig.width=9, fig.height=4.6, fig.alt="DK atlas 上的模拟 SCZ 减 HC 皮层厚度差异脑图", fig.cap="先查看 case-control contrast 的空间形态，再进行空间推断。"}
-ngeo_tutorial_plot_dk(
+```{r contrast-brain, fig.width=9, fig.height=4.6, fig.alt="Simulated SCZ minus HC cortical thickness difference on the DK atlas", fig.cap="The case-control contrast is spatially structured and is plotted before spatial inference."}
+ngeo_tutorial_plot_flat(
   dk$difference,
-  title = "SCZ 减 HC 皮层厚度（mm）",
-  midpoint = 0
+  title = "SCZ - HC cortical thickness (mm)",
+  diverging = TRUE
 )
 ```
 
@@ -77,10 +79,9 @@ metadata；毫米单位和 intensive support 语义属于 measure。单独一个
 
 ## 显式声明皮层空间关系
 
-教学数据带有固定、对称的 DK 邻接图，它由 atlas 图形的局部邻近关系构造；
-`region_contiguity` 直接使用该图。真实研究应从已经配准的 cortical surface
-构建邻接或 geodesic weights，并记录来源，不能把教学图形推导的邻接冒充为
-科学分析中的表面邻接。
+数据带有固定、对称的 DK 邻接图，它直接由 Conte69 triangular mesh 上跨 parcel
+boundary 的 edges 构造；`region_contiguity` 使用该图。flat chart 只负责显示，
+不会参与 adjacency 或 distance 计算。
 
 ```{r weights}
 weights <- ngeo_spatial_weights(
@@ -90,6 +91,19 @@ weights <- ngeo_spatial_weights(
 )
 weights
 summary(Matrix::rowSums(weights$raw_matrix != 0))
+```
+
+同一个 vertex base 还对齐了多套 published atlas labels。快速开始先把它们画出来，
+后续 change-of-support 教程再构造显式 sparse operators。
+
+```{r atlas-family, fig.width=10, fig.height=8, fig.alt="DK68 Schaefer100 Schaefer200 Schaefer300 and Glasser360 on Conte69 flat cortex", fig.cap="All atlases are strictly aligned to the same 64,984-vertex Conte69 base."}
+plot(
+  ngeo_tutorial_atlas_layout(
+    vertex,
+    c("DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360")
+  ),
+  show_legend=FALSE
+)
 ```
 
 ## 对 group contrast 提出空间问题
@@ -107,7 +121,8 @@ spatial_result <- ngeo_moran(
   seed = 2026
 )
 spatial_result
-ngeo_inference_contract(spatial_result)
+contract <- ngeo_inference_contract(spatial_result)
+contract
 ```
 
 契约把两者区分开：这里的 sampling units 是空间随机化 null 下的 parcels；

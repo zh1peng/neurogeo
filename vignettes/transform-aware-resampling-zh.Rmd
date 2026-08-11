@@ -1,76 +1,136 @@
 ---
-title: "显式 transform 的 resampling"
+title: "显式 surface transform 的可审计 resampling"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{显式 transform 的 resampling}
+  %\VignetteIndexEntry{显式 surface transform 的可审计 resampling}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(eval = FALSE)
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
+library(neurogeo)
+source(system.file(
+  "tutorial-code", "brain-case-study.R", package="neurogeo",
+  mustWork=TRUE
+))
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5, seed=20260811)
+source_surface <- ngeo_subset(vertex$surface, layers=1L)
 ```
 
-## 基础背景
+## registration 与 resampling 是两个步骤
 
-registration 估计两个空间的关系；resampling 使用已经提供的关系，在 target
-base 上评价 source measurements。一次可审计 resampling 必须分别声明：
+registration 提供 source space 到 target space 的关系；resampling 使用该关系在
+target base 上评价 source measurements。本例使用一名 HC 的完整 vertex thickness
+map 和已验证的 surface geometry。输入和结果都必须回到同一 flat cortical view 检查。
 
-1. 连接两个 coordinate_space 的 transform path；
-2. nearest、linear 或 barycentric 等 interpolation method；
-3. coverage、conservation、missing value 和 uncertainty policy。
+```{r before-map, fig.width=10, fig.height=4.8, fig.alt="resampling 前的一名 HC vertex thickness flatmap", fig.cap="source measurement、surface geometry、atlas labels 与 vertex order 同时可审计。"}
+ngeo_tutorial_plot_flat(
+  source_surface,
+  atlas="Schaefer200",
+  title="Before resampling: HC vertex thickness"
+)
+```
 
-surface 的 `barycentric` 在这里是守恒的 source-scatter remap：每个 source vertex
-把权重分配到一个 target triangle。它不是 target-gather interpolation，也不等同于
-Workbench 的 area-aware resampling。需要后两种语义时，不应把当前方法当作替代品。
+## 注册 coordinate spaces 与已知 affine
 
-## 注册 coordinate_space 与 transform
+`native` 直接来自 source object。target space 与 affine 是调用者明确提供的；
+neurogeo 不会从两个 surfaces 猜测 registration。
 
-```{r, eval=FALSE}
-library(neurogeo)
-native <- ngeo_coordinate_space("native", kind = "volume")
-standard <- ngeo_coordinate_space("standard", kind = "volume")
-affine <- diag(4)
-affine[1, 4] <- 10
+```{r transform}
+native <- ngeo_spatial_base(source_surface)$coordinate_space
+standard <- ngeo_coordinate_space(
+  "conte69-resampling-target",
+  kind="surface",
+  unit="mm",
+  template="tutorial-standard"
+)
+affine <- diag(c(1.005, 0.995, 1.000, 1))
+affine[1:3, 4] <- c(1.2, -0.8, 0.6)
 known <- ngeo_transform(
-  native, standard, type = "affine",
-  method = "supplied scanner-to-template affine",
-  parameters = list(matrix = affine)
+  native,
+  standard,
+  type="affine",
+  method="supplied source-to-target surface affine",
+  parameters=list(matrix=affine)
 )
 registry <- ngeo_coordinate_space_registry(list(native, standard))
 graph <- ngeo_transform_graph(
-  registry, transforms = list(known),
-  edge_ids = "native-to-standard", invertible = FALSE, lossy = FALSE
+  registry,
+  transforms=list(known),
+  edge_ids="native-to-standard"
 )
-path <- ngeo_transform_path(graph, "native", "standard")
+path <- ngeo_transform_path(
+  graph,
+  native$space_id,
+  standard$space_id
+)
+target_surface <- ngeo_apply_transform_path(
+  source_surface,
+  path,
+  authorize=TRUE
+)
+ngeo_transform_path_history(path)
 ```
 
-## 创建 inert plan
+```{r target-atlas, fig.width=10, fig.height=4.8, fig.alt="target surface 上的 Glasser360 atlas flatmap", fig.cap="target 仍保留与 vertices 对齐的 pinned atlas labels。"}
+ngeo_tutorial_plot_atlas(
+  target_surface,
+  atlas="Glasser360",
+  title="Target surface: Glasser360 support"
+)
+```
 
-```{r, eval=FALSE}
+## 先创建 inert plan，再显式授权执行
+
+plan 同时固定 transform path、barycentric method、coverage、conservation、missing
+policy、source support 与 resource budget。`coverage="drop"` 只显式排除 atlas ROI
+之外的 medial-wall vertices；创建 plan 本身不执行 mapping。
+
+```{r plan}
 plan <- ngeo_resampling_plan(
-  source, target, path,
-  method = "linear",
-  coverage = "error",
-  conservation = "strict",
-  missing = "error",
-  unknown = "error",
-  uncertainty = "none",
-  budget = ngeo_resource_budget(
-    memory_bytes = 256 * 1024^2,
-    materialized_elements = 2e7
+  source_surface,
+  target_surface,
+  path,
+  method="barycentric",
+  coverage="drop",
+  conservation="strict",
+  missing="error",
+  unknown="error",
+  uncertainty="none",
+  source_support=ngeo_vertex_area(source_surface),
+  budget=ngeo_resource_budget(
+    memory_bytes=128 * 1024^2,
+    materialized_elements=2e6
   )
 )
+plan
 ```
 
-plan 创建时不执行运算。建立 map 或 resample 需要显式授权：
-
-```{r, eval=FALSE}
-support_map <- ngeo_build_resampling_map(plan, authorize = TRUE)
+```{r execute}
+support_map <- ngeo_build_resampling_map(plan, authorize=TRUE)
 ngeo_resampling_diagnostics(plan, support_map)
-result <- ngeo_resample(plan, authorize = TRUE)
+result <- ngeo_resample(plan, authorize=TRUE)
+resampled <- result$data
+c(
+  source_vertices=nrow(ngeo_values(source_surface)),
+  target_vertices=nrow(ngeo_values(resampled)),
+  max_absolute_difference=max(abs(
+    ngeo_values(resampled)[, 1L] - ngeo_values(source_surface)[, 1L]
+  ), na.rm=TRUE)
+)
 ```
 
-coverage 描述 target 外的几何贡献，conservation 描述 extensive/count allocation
-是否守恒；两者不能混为一个参数。warp 可以记录在 graph 中，但不支持的 path
-不会被隐式执行。
+```{r after-map, fig.width=10, fig.height=4.8, fig.alt="barycentric resampling 后的 HC vertex thickness flatmap", fig.cap="前后脑图与数值误差共同检查 orientation、coverage 和 interpolation fidelity。"}
+ngeo_tutorial_plot_flat(
+  resampled,
+  atlas="Schaefer200",
+  title="After barycentric resampling: HC vertex thickness"
+)
+```
+
+这里 source 和 target topology 一一对应，因此前后图应高度一致；该结果验证的是
+已声明 affine 与 resampling implementation，不证明未知 subject registration 已经
+估计正确。surface barycentric 在当前 API 中是 source-scatter remap，也不能冒充
+Workbench 的 area-aware target-gather resampling。

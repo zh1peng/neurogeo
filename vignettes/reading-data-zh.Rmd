@@ -1,76 +1,222 @@
 ---
-title: "读取神经影像数据"
+title: "把 surface、CIFTI 与 ROI/cohort 读成同一神经影像数据模型"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{读取神经影像数据}
+  %\VignetteIndexEntry{把 surface、CIFTI 与 ROI/cohort 读成同一神经影像数据模型}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", message = FALSE, warning = FALSE,
+  fig.align = "center"
+)
 library(neurogeo)
+source(system.file(
+  "tutorial-code", "brain-case-study.R",
+  package = "neurogeo", mustWork = TRUE
+))
+dk <- ngeo_tutorial_dk_case_control(
+  n_per_group = 100, seed = 20260810
+)
+vertex <- ngeo_tutorial_vertex_case_control(
+  n_per_group = 5, seed = 20260811
+)
 ```
 
-## 基础背景
+## 读取器的目标不是一个裸 matrix
 
-神经影像文件除数值外，还包含 element indexing、affine、brain structure、
-map name、label table、单位和源文件身份。读取器的首要任务是保留这些信息，
-而不是只返回 array。
+神经影像文件除 values 外，还包含 vertex/voxel indexing、surface faces、
+brain structures、map names、coordinate space、单位和源文件 identity。
+读取器的任务是把这些信息绑定成一个可验证对象，而不是只返回 array。
 
-neurogeo 的读取器不会调用 FreeSurfer、FSL 或 Connectome Workbench，也不会
-执行 registration 或 resampling。读取成功只表示文件已转换为可审计对象，
-不表示不同数据已经对齐。
+本教程后续分析所需的目标 contract 由两组模拟数据展示：
 
-## 格式读取器
+- DK68：100 名 HC + 100 名 SCZ，`68 x 200` values；
+- Conte69 vertex：5 名 HC + 5 名 SCZ，ordered cortical vertices ×
+  10 subject layers。
 
-```{r readers, eval=FALSE}
-volume <- read_ngeo_nifti("sub-01_T1w.nii.gz")
-
-surface <- read_ngeo_gifti(
-  geometry = "sub-01.L.midthickness.surf.gii",
-  data = c(thickness = "sub-01.L.thickness.shape.gii"),
-  labels = c(aparc = "sub-01.L.aparc.label.gii")
+```{r target-contract}
+list(
+  dk_dimensions = dim(ngeo_values(dk$cohort)),
+  vertex_dimensions = dim(ngeo_values(vertex$surface)),
+  vertex_faces = nrow(
+    ngeo_spatial_base(vertex$surface)$geometry$faces
+  ),
+  groups = table(vertex$group),
+  measures = ngeo_measures(vertex$surface)
 )
+```
 
-dense <- read_ngeo_cifti(
-  "sub-01_task-rest.dtseries.nii",
-  surfaces = list(
-    CORTEX_LEFT = "sub-01.L.midthickness.surf.gii",
-    CORTEX_RIGHT = "sub-01.R.midthickness.surf.gii"
+读取 surface/CIFTI 后，最重要的第一张图不是随手画 values 曲线，而是把
+数据放回经过验证的 flat chart，确认左右半球、vertex order 和 spatial
+pattern。
+
+```{r read-target-map, fig.width=10, fig.height=4.8, fig.alt="读取后的目标 contract：Conte69 flat surface 上的 vertex SCZ 减 HC contrast", fig.cap="任何 reader 输出都应保留生成这张 cortical map 所需的 geometry、chart 与 vertex alignment。"}
+ngeo_tutorial_plot_flat(
+  vertex$difference,
+  layer = "SCZ_minus_HC",
+  title = "Reader target: SCZ - HC thickness",
+  diverging = TRUE
+)
+```
+
+## 格式专用读取入口
+
+下面使用真实路径时，reader 不会调用 FreeSurfer、FSL 或 Connectome
+Workbench，也不会隐式执行 registration 或 resampling。
+
+```{r readers}
+golden <- function(name) {
+  system.file(
+    "extdata", "golden", name,
+    package = "neurogeo", mustWork = TRUE
   )
-)
+}
+reader_contracts <- list()
 
-freesurfer <- read_ngeo_freesurfer(
-  geometry = "lh.white",
-  data = c(thickness = "lh.thickness"),
-  labels = "lh.aparc.annot"
-)
+if (requireNamespace("RNifti", quietly = TRUE)) {
+  volume <- read_ngeo_nifti(
+    golden("tiny.nii.gz"), checksum = TRUE
+  )
+  ngeo_validate(volume, "strict")
+  reader_contracts$nifti <- list(
+    base = ngeo_base_type(volume),
+    dimensions = dim(ngeo_values(volume))
+  )
+}
+
+if (requireNamespace("gifti", quietly = TRUE)) {
+  surface <- read_ngeo_gifti(
+    geometry = golden("tetra.surf.gii"),
+    data = c(thickness = golden("tetra.shape.gii")),
+    labels = c(atlas = golden("tetra.label.gii")),
+    checksum = TRUE
+  )
+  ngeo_validate(surface, "strict")
+  reader_contracts$gifti <- list(
+    base = ngeo_base_type(surface),
+    vertices = nrow(ngeo_values(surface)),
+    faces = nrow(ngeo_spatial_base(surface)$geometry$faces)
+  )
+}
+
+if (requireNamespace("cifti", quietly = TRUE)) {
+  dense <- read_ngeo_cifti(
+    golden("tiny.dscalar.nii"), checksum = TRUE
+  )
+  ngeo_validate(dense, "strict")
+  reader_contracts$cifti <- list(
+    base = ngeo_base_type(dense),
+    dimensions = dim(ngeo_values(dense)),
+    components = table(
+      ngeo_base_elements(dense)$component_id
+    )
+  )
+}
+
+if (requireNamespace("freesurferformats", quietly = TRUE)) {
+  freesurfer <- read_ngeo_freesurfer(
+    geometry = golden("tetra.surface"),
+    data = c(thickness = golden("tetra.curv")),
+    labels = golden("tetra.annot"),
+    checksum = TRUE
+  )
+  ngeo_validate(freesurfer, "strict")
+  reader_contracts$freesurfer <- list(
+    base = ngeo_base_type(freesurfer),
+    vertices = nrow(ngeo_values(freesurfer)),
+    faces = nrow(
+      ngeo_spatial_base(freesurfer)$geometry$faces
+    )
+  )
+}
+reader_contracts
 ```
 
-`read_ngeo()` 可以根据标准后缀分派。MGH/MGZ 的用途可能不明确，此时应使用
-格式专用读取器并显式声明 base。
+## 读入后立即检查 alignment
 
-## 读入后的检查
+至少检查 object invariants、values rows、surface topology、coordinate
+space 和 measurement semantics。随后才能建立 mesh weights 或执行空间
+统计。
 
-分析前至少检查四项：
-
-1. `ngeo_validate(x, "strict")` 是否通过；
-2. 元素数与 values 行数是否一致；
-3. coordinate_space、affine 或 surface structure 是否符合预期；
-4. 文件没有编码的 measurement semantics 是否已由分析者补充。
-
-```{r workflow, eval=FALSE}
-ngeo_validate(surface, "strict")
-surface <- ngeo_update_measure(
-  surface,
-  measure_id = measures(surface)$measure_id[[1]],
-  support_behavior = "intensive",
-  unit = "mm"
+```{r post-read-checks}
+ngeo_validate(vertex$surface, "strict")
+stopifnot(
+  nrow(ngeo_values(vertex$surface)) ==
+    nrow(ngeo_base_elements(vertex$surface)),
+  nrow(ngeo_values(vertex$surface)) ==
+    nrow(ngeo_spatial_base(vertex$surface)$geometry$coordinates$anatomical),
+  ncol(ngeo_values(vertex$surface)) ==
+    nrow(ngeo_layers(vertex$surface))
 )
-w <- ngeo_spatial_weights(surface, method = "mesh_contiguity", style = "W")
-ngeo_moran(surface, w, "thickness", permutations = 999, seed = 2026)
+
+vertex_weights <- ngeo_spatial_weights(
+  vertex$difference,
+  method = "mesh_contiguity",
+  style = "W"
+)
+vertex_moran <- ngeo_moran(
+  vertex$difference,
+  vertex_weights,
+  layer = "SCZ_minus_HC",
+  permutations = 99,
+  seed = 20260811,
+  zero_policy = TRUE
+)
+vertex_moran
 ```
 
-BIDS sidecar 和相关空间实体会在存在时被解析，但完整 dataset orchestration
-不属于本包范围。
+`zero_policy=TRUE` 只处理 atlas-ROI mask 外被保留的 medial-wall
+vertices：它们没有可见 mesh neighbors，不会为了消除 isolate 而伪造连边。
+
+## 格式 contract 侧栏：bundled tiny GIFTI round trip
+
+这个 tiny surface 只验证 GIFTI 编码和 geometry round trip，不承担科学
+示例。主分析仍是上面的 Conte69 cohort。
+
+```{r tiny-gifti-contract}
+if (all(vapply(
+  c("gifti", "freesurferformats"),
+  requireNamespace, logical(1), quietly = TRUE
+))) {
+  fixture_path <- system.file(
+    "extdata", "golden", "tetra.surf.gii",
+    package = "neurogeo", mustWork = TRUE
+  )
+  tiny_before <- read_ngeo_gifti(
+    fixture_path, checksum = TRUE
+  )
+  output_path <- tempfile(fileext = ".surf.gii")
+  tiny_manifest <- write_ngeo_gifti(
+    tiny_before, output_path
+  )
+  tiny_after <- read_ngeo_gifti(
+    tiny_manifest$geometry, checksum = TRUE
+  )
+
+  before_base <- ngeo_spatial_base(tiny_before)
+  after_base <- ngeo_spatial_base(tiny_after)
+  stopifnot(
+    identical(
+      before_base$geometry$faces,
+      after_base$geometry$faces
+    ),
+    identical(
+      dim(before_base$geometry$coordinates[[1L]]),
+      dim(after_base$geometry$coordinates[[1L]])
+    )
+  )
+  unlink(unlist(tiny_manifest), force = TRUE)
+  list(
+    vertices = nrow(before_base$geometry$coordinates[[1L]]),
+    faces = nrow(before_base$geometry$faces),
+    round_trip_aligned = TRUE
+  )
+}
+```
+
+BIDS sidecar 和 spatial entities 在存在时应进入 object history。读取成功
+只表示文件已经转换成可审计对象，不表示两个被试、两个 atlas 或两个
+coordinate spaces 已经完成对齐。

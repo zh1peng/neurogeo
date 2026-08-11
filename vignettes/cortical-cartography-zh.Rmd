@@ -1,242 +1,176 @@
 ---
-title: "真实皮层二维地图：vertex 数据、沟回底图与任意 atlas"
+title: "皮层制图：neurogeo flat-surface brain plots"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{真实皮层二维地图：vertex 数据、沟回底图与任意 atlas}
+  %\VignetteIndexEntry{皮层制图：neurogeo flat-surface brain plots}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
-flatmap_figure <- function(name, alt) {
-  if (identical(Sys.getenv("NEUROGEO_VITEPRESS"), "true")) {
-    knitr::asis_output(sprintf(
-      '<img src="/images/%s" alt="%s" style="width: 100%%;" />',
-      name,
-      alt
-    ))
-  } else {
-    knitr::include_graphics(file.path("figures", name))
-  }
-}
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
+dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
+surface <- vertex$surface
 ```
 
-## 目标：绘制真正展开的皮层，而不是简化多边形
+## 这套绘图系统在画什么
 
-这个模块的目标是把真实 cortical surface 摊到二维平面，并同时保留脑形
-轮廓、沟回底图、vertex 数据、atlas 分区、边界和标签。它不是 `ggseg`
-式的固定 atlas 模板，也不是用几个三角形代替大脑的演示图。
+`ngeo_cortical_map()` 直接从 surface triangles 生成 face geometry、mask、underlay、
+vertex values、atlas boundaries 与 outline。它不是把 region 名称交给外部
+parcel-polygon 绘图库，也
+不是 surface generic plot 产生的 colored point cloud。
 
-下面两幅图由 `tools/run-flatmap-431-validation.R` 使用 HCP S1200 Conte69
-32k 左右半球 flat surface 生成。第一幅叠加连续 vertex distance_method；第二幅叠加
-Schaefer 2018 分区聚合得到的 7 个网络。灰度层来自源表面的几何曲率诊断，
-用于显示沟回结构。
+本页使用 checksum-pinned 的 bilateral Conte69：每半球 32,492 vertices，合计
+64,984 vertices 与 129,960 source faces；5 名 HC 与 5 名 SCZ 的 values 是模拟的，
+但 cortical geometry、flat coordinates、mask 和 atlas labels 不是模拟的。
 
-```{r real-continuous-figure, echo=FALSE, results="asis", out.width="100%"}
-flatmap_figure(
-  "conte69-vertex-flatmap.png",
-  "真实 Conte69 双侧 flat surface：连续 vertex 数据、沟回底图、atlas 边界和皮层轮廓。"
+```{r geometry-contract}
+c(
+  vertices=nrow(ngeo_base_elements(surface)),
+  faces=nrow(ngeo_spatial_base(surface)$geometry$faces),
+  included=sum(ngeo_spatial_base(surface)$geometry$mask),
+  layers=ncol(ngeo_values(surface))
 )
+names(ngeo_spatial_base(surface)$geometry$coordinates)
+ngeo_validate(surface, "strict")
 ```
 
-*真实 Conte69 双侧 flat surface：连续 vertex 数据、沟回底图、atlas
-边界和皮层轮廓。*
+## imported flat chart 保留 provenance
 
-```{r real-atlas-figure, echo=FALSE, results="asis", out.width="100%"}
-flatmap_figure(
-  "conte69-atlas-flatmap.png",
-  "同一套真实几何上的任意 atlas：Schaefer 100 分区聚合为 7 个网络，并绘制边界、标签和皮层轮廓。"
-)
+真实 flat coordinates 通过 `ngeo_flatten_surface(..., method="imported")` 绑定到
+source topology。chart 是 visualization coordinate system；3D anatomical
+coordinates 仍是 active scientific geometry。
+
+```{r chart-contract}
+geometry <- ngeo_spatial_base(surface)$geometry
+geometry$active_coordinates
+geometry$coordinate_meta
+distortion <- ngeo_chart_distortion(surface, chart="flat")
+with(distortion, c(
+  source_faces=nrow(distortion),
+  charted_faces=sum(charted),
+  folded_charted_faces=sum(folded & charted),
+  median_area_ratio=stats::median(area_ratio[charted])
+))
 ```
 
-*同一套真实几何上的任意 atlas：Schaefer 100 分区聚合为 7 个网络，并绘制
-边界、标签和皮层轮廓。*
+`ngeo_project_surface()` 只能产生 view projection；它不能伪装成 metric-preserving
+flat surface。统计距离必须显式选择 edge geodesic、3D Euclidean 或其它已审计
+metric，不能使用页面像素距离。
 
-## 数据契约
+## 连续 vertex values
 
-一张可信的图需要五个严格对齐、但彼此独立的输入：
-
-1. `source_surface`：原始三维皮层坐标和拓扑；
-2. `flat_surface`：已经由可信流程生成并与源表面对齐的二维 GIFTI surface；
-3. `mask`：排除 medial wall 等不可绘制顶点；
-4. `underlay`：sulc、curv 等解剖底图；
-5. `values` 或 `atlas`：要显示的 vertex 数据或分区 membership。
-
-`neurogeo` 验证 flat surface 的 vertex 顺序，并把每个 flat triangle 映射回
-源表面的 face。真实 flat surface 可能因为切口或 medial wall 少于源表面的
-face；这种经过验证的 `face_subset` 是允许的。无法映射的 triangle 会立即
-报错。
-
-## 读取并绑定真实 surface
-
-下面以单个半球为例。路径替换成自己的 GIFTI 文件。`distance_method.shape.gii` 可以
-是 thickness、myelin、统计量或其他连续 vertex 数据，`sulc.shape.gii` 用作
-灰度解剖底图。
-
-```{r read-real-surface, eval=FALSE}
-source_surface <- read_ngeo_gifti(
-  geometry = "S1200.L.midthickness_MSMAll.32k_fs_LR.surf.gii",
-  data = c(
-    distance_method = "distance_method.shape.gii",
-    sulc = "sulc.shape.gii",
-    atlasroi = "L.atlasroi.32k_fs_LR.shape.gii"
-  ),
-  labels = c(
-    schaefer100 = "schaefer-100_conte69_lh.label.gii"
-  ),
-  checksum = TRUE
+```{r direct-map-object}
+effect <- as.numeric(ngeo_values(vertex$difference)[, 1L])
+maximum <- max(abs(effect), na.rm=TRUE)
+effect_map <- ngeo_cortical_map(
+  vertex$difference,
+  values=effect,
+  chart="flat",
+  atlas="DK68",
+  mask=ngeo_spatial_base(vertex$difference)$geometry$mask,
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.82,
+  palette="Blue-Red 3",
+  limits=c(-maximum, maximum),
+  na_color=NA_character_
 )
-
-flat_surface <- read_ngeo_gifti(
-  "S1200.L.flat.32k_fs_LR.surf.gii",
-  checksum = TRUE
-)
-
-left <- ngeo_flatten_surface(
-  source_surface,
-  method = "imported",
-  coordinates = flat_surface,
-  name = "flat"
-)
-
-left$base$charts$flat$invariants[
-  c("topology_verified", "topology_relation")
-]
+effect_map
 ```
 
-这里不会自动 registration、resampling 或制造皮层切口。若 flat surface 与
-源表面不对齐，正确结果是失败，而不是画出一幅无法审计的图。
-
-## 连续 vertex 数据
-
-连续值按 face 的有限 vertex 均值着色；原始 vertex 值仍保留在交换数据中。
-`overlay_alpha < 1` 让沟回底图透过彩色数据层显示。提供 atlas 时还可以在
-连续数据上画出分区边界。
-
-```{r continuous-map, eval=FALSE}
-continuous_map <- ngeo_cortical_map(
-  left,
-  layer = "distance_method",
-  chart = "flat",
-  atlas = "schaefer100",
-  mask = left$values[, "atlasroi"] > 0,
-  underlay = "sulc",
-  underlay_palette = "Grays",
-  overlay_alpha = 0.78,
-  palette = "viridis",
-  na_color = NA_character_
-)
-
+```{r continuous-map, fig.width=10, fig.height=4.8, fig.alt="Vertex-level SCZ minus HC cortical thickness on bilateral Conte69 flat surface", fig.cap="连续 face color 来自三个 vertex values；DK boundary 仅帮助解剖定位，并未把 vertex effect 聚合成 parcel value。"}
 plot(
-  continuous_map,
-  show_boundaries = TRUE,
-  boundary_color = adjustcolor("white", 0.4),
-  boundary_lwd = 0.2,
-  show_outline = TRUE,
-  outline_lwd = 1.4
+  effect_map,
+  show_boundaries=TRUE,
+  boundary_color=adjustcolor("white", 0.55),
+  boundary_lwd=0.2,
+  show_outline=TRUE,
+  show_legend=TRUE
 )
 ```
 
-## 任意 atlas、Brodmann 区或功能分区
+一个 face 只有在三个 vertices 都通过 mask 时才显示，因此 medial wall 不会被填成
+任意数值。连续图的色阶显式固定为 `[-M, M]`，SCZ--HC 的零点不会随 panel 改变。
 
-atlas 可以是：
+## atlas membership 与 boundaries
 
-- 与 vertex 严格对齐的 atomic vector；
-- `ngeo_partition`；
-- `read_ngeo_gifti(labels = ...)` 已读入对象的 label map 名称。
-
-因此 Brodmann、Schaefer、Glasser、视觉拓扑分区或研究者自己的 atlas 都使用
-同一绘图路径；atlas 不会替换 surface geometry。
-
-```{r atlas-map, eval=FALSE}
-atlas_map <- ngeo_cortical_map(
-  left,
-  chart = "flat",
-  atlas = "schaefer100",
-  fill = "atlas",
-  mask = left$values[, "atlasroi"] > 0,
-  underlay = "sulc",
-  underlay_palette = "Grays",
-  overlay_alpha = 0.82,
-  na_color = NA_character_
+```{r atlas-object}
+schaefer200_map <- ngeo_cortical_map(
+  surface,
+  chart="flat",
+  atlas="Schaefer200",
+  fill="atlas",
+  mask=ngeo_spatial_base(surface)$geometry$mask,
+  underlay=vertex$underlay,
+  underlay_palette="Grays",
+  overlay_alpha=0.78,
+  palette="Dynamic",
+  na_color=NA_character_
 )
+```
 
+```{r atlas-map, fig.width=10, fig.height=4.8, fig.alt="Real Schaefer200 labels and parcel boundaries on bilateral Conte69 flat surface", fig.cap="颜色表示 atlas membership；边界由相邻 vertices 的真实 label change 计算。"}
 plot(
-  atlas_map,
-  show_boundaries = TRUE,
-  boundary_lwd = 0.55,
-  show_labels = TRUE,
-  label_cex = 0.45,
-  show_outline = TRUE
+  schaefer200_map,
+  show_boundaries=TRUE,
+  boundary_lwd=0.25,
+  show_outline=TRUE,
+  show_legend=FALSE
 )
 ```
 
-GIFTI label table 中的名称和 RGBA 颜色会在 `fill = "atlas"` 时自动使用。
-也可通过命名颜色向量精确指定：
+## 不同 atlas 必须有各自的 surface visualization
 
-```{r custom-colors, eval=FALSE}
-network_colors <- c(
-  Visual = "#6A3D9A",
-  Somatomotor = "#2B8CBE",
-  DorsalAttention = "#41AB5D",
-  Default = "#FFD92F"
+```{r atlas-family, fig.width=10, fig.height=8.2, fig.alt="DK68 Schaefer100 Schaefer200 Schaefer300 and Glasser360 on the same flat cortical surface", fig.cap="五套 atlas 均为 vertex-aligned published labels；相同底图让 boundary 与 spatial scale 的差异可见。"}
+atlas_layout <- ngeo_tutorial_atlas_layout(
+  vertex,
+  c("DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360")
 )
+plot(atlas_layout, show_legend=FALSE)
+```
 
-network_map <- ngeo_cortical_map(
-  left,
-  atlas = network_membership,
-  fill = "atlas",
-  underlay = "sulc",
-  colors = network_colors,
-  overlay_alpha = 0.82,
-  na_color = NA_character_
+`shared_scale=FALSE` 对 categorical atlas 是正确选择。对多个连续 case-control maps，
+应先为每张 map 显式设置同一个 symmetric limits，再组合 layout，避免自动 range
+破坏零点可比性。
+
+## parcel estimate 也要 lift 回对应 atlas surface
+
+```{r aggregate-schaefer}
+maps <- ngeo_tutorial_support_maps(vertex)
+schaefer200 <- aggregate_to(
+  vertex$difference,
+  maps$Schaefer200$target,
+  maps$Schaefer200
+)
+dim(ngeo_values(schaefer200))
+```
+
+```{r aggregate-map, fig.width=10, fig.height=4.8, fig.alt="Vertex case-control effect aggregated to Schaefer200 and lifted back to the flat surface", fig.cap="piecewise-constant face color 使用 Schaefer200 parcel estimate；白色线仍是同一 atlas boundary。"}
+ngeo_tutorial_plot_support_values(
+  schaefer200, atlas="Schaefer200",
+  title="Schaefer200 aggregated effect", diverging=TRUE
 )
 ```
 
-若只想突出部分区域，可将其他 membership 设为 `NA`；透明缺失色会保留
-灰度皮层底图，这对应“局部功能区覆盖在完整皮层上”的绘图方式。
+这里的 lift 只是可视化：target×source support operator 的 transpose 把 parcel value
+复制回其 member vertices。它不会凭空恢复 parcel 内丢失的 vertex variation。
 
-## 左右半球与交换数据
+## 输出 plotting-system-neutral geometry
 
-左右半球分别构造 map，再排列到同一画布。排版不会合并两个 base：
-
-```{r bilateral, eval=FALSE}
-bilateral <- ngeo_cortical_layout(
-  left_map,
-  right_map,
-  ncol = 2,
-  labels = c("Left hemisphere", "Right hemisphere"),
-  shared_scale = TRUE
-)
-plot(bilateral)
+```{r exchange}
+map_data <- ngeo_cortical_map_data(effect_map)
+names(map_data)
+dim(map_data$vertices)
+dim(map_data$faces)
+head(map_data$boundaries)
 ```
 
-下游使用 `ggplot2`、SVG 或交互式渲染器时，从交换对象取得完整几何语义：
-
-```{r exchange, eval=FALSE}
-plot_data <- ngeo_cortical_map_data(atlas_map)
-names(plot_data)
-# vertices, faces, boundaries, outline, label_positions, legend, metadata
-
-head(plot_data$geometry$faces[
-  c("source_face", "underlay_value", "value", "included")
-])
-plot_data$metadata$chart_metadata$invariants$source_face_in_chart
-plot_data$metadata$history
-```
-
-## 科学边界
-
-本模块不执行 surface reconstruction、自动 cutting、registration、
-resampling、统计推断或 QC。PCA/正交投影只适合查看，不是皮层展开。
-正式结果应记录源表面、flat chart 来源、vertex/face 对齐验证、mask、底图、
-atlas、颜色范围和 history。
-
-本教程的验证数据受
-[HCP Open Access Data Use Terms](https://www.humanconnectome.org/study/hcp-young-adult/document/wu-minn-hcp-consortium-open-access-data-use-terms)
-约束；Schaefer 分区应引用 Schaefer 等（2018），*Cerebral Cortex*，
-28(9):3095–3114。校验固定的下载清单位于
-`inst/extdata/reference-4.3.1/manifest.csv`，这些神经影像文件不会打包进
-`neurogeo`。
+`ngeo_cortical_map_data()` 提供 vertices、faces、boundaries、outline、labels 与 scale，
+便于导出到其它渲染器；这些表仍携带 ordered vertex identity。教程其余页面的所有
+brain plots 都应沿用这条 `surface -> cortical_map -> plot/layout` 路径。

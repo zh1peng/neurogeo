@@ -16,6 +16,7 @@ source(system.file("tutorial-code", "brain-case-study.R",
 dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
 multi <- ngeo_tutorial_dk_multilayer(dk)
 x <- multi$object
+vertex <- ngeo_tutorial_vertex_case_control(n_per_group=5)
 ```
 
 ## 科学问题与数据契约
@@ -26,10 +27,13 @@ coupling 是否在 SCZ 与 HC 之间不同。独立 sampling unit 是 subject；
 与两种 modalities 是重复空间测量，不是独立重复。
 
 ```{r maps, fig.width=9, fig.height=4.5, fig.alt="模拟 SCZ 减 HC thickness 与 myelin proxy 的 DK 脑图", fig.cap="coupling inference 前先在共享 cortical support 上查看两种 modalities。"}
-ngeo_tutorial_plot_dk(dk$difference,
-                      title="Thickness：SCZ 减 HC（mm）")
-ngeo_tutorial_plot_dk(multi$myelin_difference,
-                      title="Myelin proxy：SCZ 减 HC（a.u.）")
+ngeo_tutorial_plot_flat(
+  dk$difference, title="Thickness: SCZ - HC (mm)", diverging=TRUE
+)
+ngeo_tutorial_plot_flat(
+  multi$myelin_difference,
+  title="Myelin proxy: SCZ - HC (a.u.)", diverging=TRUE
+)
 ```
 
 ```{r data-contract}
@@ -94,10 +98,22 @@ result$omnibus
 
 ## 扩展到 support family
 
-在已经配准的 DK68、Schaefer100/200/300 或其它预先声明 atlas 上分别构造
-features，再把 named feature list 传给一次 `ngeo_group_test()`。必须共享 subject
-schedule 并进行 full-family max-T adjustment。atlas dispersion 描述 sensitivity，
-不证明 parcellation invariance。
+同一 Conte69 vertex order 上已经对齐真实 DK68、Schaefer100/200/300 与
+Glasser360 labels。先把 support family 直接画出来，而不是只在文字里声称“换过
+atlas”。
 
-simulator 的 Schaefer-sized boundaries 只用于 operator 教学。科学 cross-atlas claim
-需要 published labels 配准到相同 subjects，并记录 physical scale。
+```{r support-family-plot, fig.width=10, fig.height=8.2, fig.alt="DK68 Schaefer100 Schaefer200 Schaefer300 and Glasser360 atlas boundaries on Conte69 flat cortex", fig.cap="五套 published atlas labels 严格对齐到同一个 Conte69 vertex base；颜色只标识 parcel membership。"}
+plot(
+  ngeo_tutorial_atlas_layout(
+    vertex,
+    c("DK68", "Schaefer100", "Schaefer200", "Schaefer300", "Glasser360")
+  ),
+  show_legend=FALSE
+)
+```
+
+在每个 support 上分别构造 features 后，把 named feature list 传给一次
+`ngeo_group_test()`。所有 atlases 必须共享同一个 subject schedule，并进行
+full-family max-T adjustment。atlas dispersion 描述 sensitivity，不证明
+parcellation invariance；support labels、template、vertex order 与 checksum 都要进入
+provenance。

@@ -1,84 +1,109 @@
 ---
-title: "多图层数据与严格索引"
+title: "多图层数据与严格索引：68 regions × 200 subjects × 2 modalities"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{多图层数据与严格索引}
+  %\VignetteIndexEntry{多图层数据与严格索引：68 regions × 200 subjects × 2 modalities}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
-```
-
-## 科学问题
-
-同一空间 base 上的多位受试者、多种 feature 如何进入 neurogeo，而不
-引入新的 cohort 或 tensor 容器？答案仍然是一个 element × map values
-block；`layers` 表只负责恢复逻辑上的 `subject × feature` 索引。
-
-```{r construct}
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
-
-coordinates <- cbind(x = 1:6, y = 0)
-subjects <- rep(c("sub-01", "sub-02"), each = 2)
-features <- rep(c("thickness", "myelin"), 2)
-values <- outer(1:6, 1:4, function(i, j) sin(i / 2) + j / 5)
-
-x <- ngeo_point(
-  coordinates,
-  values = values,
-  layers = data.frame(
-    layer_id = paste0("map-", 1:4),
-    name = paste(subjects, features, sep = "_"),
-    subject_id = subjects,
-    feature = features
-  ),
-  measures = do.call(rbind, lapply(features, function(feature) {
-    ngeo_measure(
-      support_behavior = "intensive",
-      unit = if (feature == "thickness") "mm" else "ratio"
-    )
-  }))
-)
-
-index <- ngeo_validate_layers(
-  x,
-  required_layers = c("thickness", "myelin"),
-  complete = "error"
-)
-index
-index$availability
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
+multi <- ngeo_tutorial_dk_multilayer(dk)
+x <- multi$object
 ```
 
-## 数据契约
+## 一个 spatial base，一个 aligned values block
 
-每个 `subject_id × feature` 必须唯一。重复 run 不会被自动平均；缺少必需
-layer 时，可以先用 `complete = "report"` 查看 availability，再由研究者显式
-选择、聚合或构造 contrast。受试者层面的 group、age、sex、site 应保存在
-独立 design data frame 中，而不是在每张 map 上反复复制。
+这里的数据不是 6 个点、2 名虚构 subject。对象包含真实 DK68 support、100 名 HC、
+100 名 SCZ，以及每人的 cortical thickness 与模拟 myelin proxy：
 
-## 精确绑定
+```{r dimensions}
+dim(ngeo_values(x))
+head(ngeo_layers(x)[, c(
+  "layer_id", "subject_id", "feature", "group", "measure_id"
+)])
+table(ngeo_layers(x)$feature, ngeo_layers(x)$group)
+```
 
-`ngeo_bind_layers()` 只拼接已经具有完全相同 ordered base 的列：
+68×400 仍只是一个 `element × map` matrix。`layers` 表负责恢复逻辑上的
+`subject × feature` index；它不会改变 spatial base，也不会产生第二套 region order。
+
+```{r subject-maps, fig.width=10, fig.height=4.8, fig.alt="Thickness and myelin maps for the same simulated HC subject on DK68 flat cortex", fig.cap="同一 subject 的两种 modality 共享完全相同的 ordered DK support，但 measurement unit 不同。"}
+first_subject <- dk$design$subject_id[[1L]]
+thickness_layer <- which(
+  ngeo_layers(x)$subject_id == first_subject &
+    ngeo_layers(x)$feature == "thickness"
+)
+myelin_layer <- which(
+  ngeo_layers(x)$subject_id == first_subject &
+    ngeo_layers(x)$feature == "myelin"
+)
+ngeo_tutorial_plot_flat(
+  x, layer=thickness_layer,
+  title=paste(first_subject, "cortical thickness")
+)
+ngeo_tutorial_plot_flat(
+  x, layer=myelin_layer,
+  title=paste(first_subject, "myelin proxy")
+)
+```
+
+## 验证完整的 subject × modality index
+
+```{r index}
+index <- ngeo_validate_layers(
+  x, unit="subject_id", layer="feature",
+  required_layers=c("thickness", "myelin"), complete="error"
+)
+dim(index$availability)
+index$availability[1:10, , drop=FALSE]
+```
+
+每个 `subject_id × feature` 必须唯一。重复 acquisition 不会被自动平均；缺少 layer
+时可先用 `complete="report"` 检查，再由研究者显式选择 run、聚合或构造 contrast。
+
+```{r missing-layer}
+incomplete <- ngeo_subset(
+  x, seq_len(68), layers=seq_len(ncol(ngeo_values(x)) - 1L)
+)
+report <- ngeo_validate_layers(
+  incomplete, unit="subject_id", layer="feature",
+  required_layers=c("thickness", "myelin"), complete="report"
+)
+tail(report$availability, 3)
+report$incomplete_units
+```
+
+## 精确绑定，不猜测 registration
 
 ```{r bind}
-first <- ngeo_subset(x, 1:6, layers = 1:2)
-second <- ngeo_subset(x, 1:6, layers = 3:4)
-bound <- ngeo_bind_layers(first = first, second = second)
-dim(values(bound))
-layers(bound)[, c("subject_id", "feature")]
+first_half <- ngeo_subset(x, seq_len(68), layers=1:200)
+second_half <- ngeo_subset(x, seq_len(68), layers=201:400)
+bound <- ngeo_bind_layers(first=first_half, second=second_half)
+identical(base_hash(bound), base_hash(x))
+identical(dim(ngeo_values(bound)), c(68L, 400L))
 ```
 
-它不会估计 registration、重采样、按名称猜测对应关系，也不会把 metadata
-变成第二个 values block。若输入是 delayed/file-backed，输出保持延迟读取。
+`ngeo_bind_layers()` 只拼接 base hash 完全相同的 map columns；它不会按 region name
+猜 registration，也不会把 metadata 变成另一块 values。
 
-## 有效推断单位
+## 多图层 cohort 的组间空间检查
 
-这一阶段只建立索引。`subject_id` 是后续人口推断的完整交换单位；vertex 或
-region 不是独立受试者。
+```{r group-effects, fig.width=10, fig.height=4.8, fig.alt="Group effects for thickness and myelin layers on DK68 flat cortex", fig.cap="两种 modality 的 group contrasts 仍落在同一个真实 DK surface support。"}
+ngeo_tutorial_plot_flat(
+  dk$difference, title="Thickness: SCZ - HC", diverging=TRUE
+)
+ngeo_tutorial_plot_flat(
+  multi$myelin_difference, title="Myelin proxy: SCZ - HC", diverging=TRUE
+)
+```
 
-## Claim 与 non-claim
-
-可以声称 map columns 已按明确 unit/layer contract 对齐；不能因此声称已经
-完成组间检验，也不能把 base 相同解释为不同原始数据已经自动配准。
+这一页只建立 alignment 与 indexing contract。有效人口推断单位仍是完整 subject；
+region、vertex、modality 都是同一 subject 内的重复结构。相同 base 也只说明当前对象
+已对齐，不能倒推出两份原始影像在读入前已经完成 registration。

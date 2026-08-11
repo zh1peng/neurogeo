@@ -11,84 +11,122 @@ vignette: >
 knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
                       warning=FALSE, fig.align="center")
 library(neurogeo)
-source(system.file("tutorial-code", "brain-case-study.R",
-                   package="neurogeo", mustWork=TRUE))
-dk <- ngeo_tutorial_dk_case_control()
+source(system.file(
+  "tutorial-code", "brain-case-study.R", package="neurogeo",
+  mustWork=TRUE
+))
+dk <- ngeo_tutorial_dk_case_control(n_per_group=100, seed=20260810)
 x <- dk$difference
 ```
 
-## 先看要定义邻接的脑图
+## 邻接是 cortical estimand 的一部分
 
-`x` 是 DK68 上的 SCZ-minus-HC 皮层厚度 contrast。neighborhood 是 estimand
-的一部分：皮层 contiguity、centroid KNN 与 surface geodesic distance 回答的是
-不同问题。
+`x` 是 100 名 SCZ 减 100 名 HC 的 DK68 thickness contrast。DK parcels 不是 68 个
+独立 subjects；它们是定义在同一 bilateral surface 上的空间元素。mesh boundary
+contiguity、parcel-centroid distance 与 vertex geodesic distance 对应不同问题，不能
+只因为函数都返回一个 matrix 就互换。
 
-```{r input-map, fig.width=9, fig.height=4.6, fig.alt="DK68 上的 SCZ 减 HC 皮层厚度", fig.cap="先在将要分析的脑图上定位空间关系。"}
-ngeo_tutorial_plot_dk(x, title="SCZ 减 HC 皮层厚度（mm）")
+```{r input-map, fig.width=10, fig.height=4.8, fig.alt="DK68 flat surface 上的 SCZ 减 HC cortical thickness", fig.cap="先查看将要定义 neighbors 的 contrast map。"}
+ngeo_tutorial_plot_flat(
+  x,
+  title="DK68 SCZ minus HC cortical thickness",
+  diverging=TRUE
+)
 ```
 
-## 使用显式 DK graph
+## 从 surface boundaries 得到 DK region contiguity
 
-教学对象保存了由 atlas 图形局部邻近构造的对称 graph，并保持左右半球断开。
-真实 surface 分析应从已配准 mesh faces 或有记录的 geodesic rule 构建 topology。
+教学 DK graph 由共享 flat-surface mesh 上跨 parcel 的 faces 构造，并保持左右半球
+不跨 medial wall 连边。`style="B"` 保留 binary topology；`style="W"` 再做 row
+standardization。
 
 ```{r weights}
-binary <- ngeo_spatial_weights(x, method="region_contiguity", style="B")
+binary <- ngeo_spatial_weights(
+  x, method="region_contiguity", style="B"
+)
 row_standardized <- ngeo_spatial_weights(
   x, method="region_contiguity", style="W"
 )
+degree <- Matrix::rowSums(binary$raw_matrix != 0)
 c(
   parcels=nrow(ngeo_values(x)),
   undirected_edges=sum(binary$raw_matrix != 0) / 2,
-  isolated_parcels=sum(Matrix::rowSums(binary$raw_matrix != 0) == 0)
+  isolated_parcels=sum(degree == 0)
 )
-summary(Matrix::rowSums(binary$raw_matrix != 0))
+summary(degree)
 ```
 
-binary weights 让每条相邻边权重相同；row-standardized weights 让每个 parcel
-的 outgoing weight 总和为 1，因此邻居多的 parcel 单条边贡献更小。这个选择会
-改变统计量，必须报告。
-
-```{r weight-diagnostic, fig.width=7, fig.height=4, fig.alt="DK parcel 邻居数直方图", fig.cap="degree diagnostic 与脑图配套使用，不能替代脑图。"}
+```{r weight-diagnostic, fig.width=8, fig.height=4.2, fig.alt="DK68 parcel graph 的 degree diagnostic", fig.cap="graph diagnostic 用来检查 islands 和 degree distribution，但不能替代 brain map。"}
 plot(binary)
+```
+
+binary weights 让每条相邻边贡献相同；row-standardized weights 让每个 parcel 的
+outgoing weight 总和为 1。邻居较多时单条边贡献会变小，因此 normalization 属于
+统计 specification，必须报告。
+
+## 同一 surface 上的 atlas 不共享同一个 graph
+
+Schaefer100 与 DK68 使用相同 vertex geometry，但 boundary 不同，因此必须各自从
+labels 与 faces 构造 topology，不能按 parcel 名称或数量猜邻接。
+
+```{r schaefer-atlas, fig.width=10, fig.height=4.8, fig.alt="Schaefer100 flat-surface atlas boundaries", fig.cap="相同 surface 不意味着 DK68 与 Schaefer100 具有相同 region graph。"}
+ngeo_tutorial_plot_atlas(
+  dk$surface,
+  atlas="Schaefer100",
+  title="Schaefer100: a different boundary graph"
+)
 ```
 
 ## 全局与局部空间关联
 
+global Moran's I 检查固定 DK graph 上 contrast values 是否比 value-label permutation
+更聚集；它不是 diagnosis 的 subject-level test。
+
 ```{r inference}
 global <- ngeo_moran(
-  x, row_standardized, "SCZ_minus_HC",
-  permutations=499, seed=2026
+  x,
+  row_standardized,
+  layer="SCZ_minus_HC",
+  permutations=499,
+  seed=2026
 )
 local <- ngeo_local_moran(
-  x, row_standardized, "SCZ_minus_HC",
-  permutations=499, seed=2026, adjust="BH",
+  x,
+  row_standardized,
+  layer="SCZ_minus_HC",
+  permutations=499,
+  seed=2026,
+  adjust="BH",
   null_model="conditional"
 )
 global
+ngeo_inference_contract(global)
 ```
 
-把 local Moran's I 放回原来的 cortical support，而不是阅读一个没有空间位置的
-数值向量。
+local statistic 必须回到同一 cortical support 定位。表格给精确值，flatmap 显示
+这些值位于哪些 gyri 和 hemispheres。
 
-```{r local-map, fig.width=9, fig.height=4.6, fig.alt="DK68 上的 case-control contrast local Moran I", fig.cap="局部统计量返回对应皮层分区后再解释。"}
+```{r local-map, fig.width=10, fig.height=4.8, fig.alt="DK68 flat surface 上的 local Moran I", fig.cap="局部统计量保持 DK parcel identity，并绘回原 cortical support。"}
 local_map <- ngeo_parcellation(
-  dk$regions, values=cbind(local_I=local$local_i),
+  dk$regions,
+  values=cbind(local_I=local$local_i),
   centroid=dk$centroids,
-  support_size=dk$support_size, adjacency=dk$adjacency,
-  measures=ngeo_measure(name="local Moran I", support_behavior="intensive",
-                        unit="dimensionless"),
+  support_size=dk$support_size,
+  adjacency=dk$adjacency,
+  measures=ngeo_measure(
+    name="local Moran I",
+    support_behavior="intensive",
+    unit="dimensionless"
+  ),
   coordinate_space=ngeo_spatial_base(dk$cohort)$coordinate_space
 )
-ngeo_tutorial_plot_dk(local_map, title="SCZ 减 HC 的 local Moran's I")
+ngeo_tutorial_plot_flat(
+  local_map,
+  title="Local Moran I for SCZ minus HC contrast",
+  palette="viridis"
+)
 ```
 
-这里的 permutation null 在固定 graph 上重新分配 parcel values；它刻画 contrast
-的空间结构，不是 diagnosis 的 subject-level 检验。后者必须按照 case-control
-设计交换完整 subjects。
-
-## 应报告的 specification
-
-记录 base（DK68）、graph 来源、metric、neighborhood rule、normalization、island
-处理、diagonal convention、permutation 数、seed 与独立 sampling unit。改变任何
-一项都可能改变科学结论。
+报告中至少记录 atlas/support、surface 与 graph 来源、distance metric、neighbor
+rule、normalization、island policy、permutation 数、seed 和独立 sampling unit。
+组间总体推断必须交换完整的 200 名 subjects，不能 permutation parcels 或 vertices。

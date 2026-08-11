@@ -34,10 +34,12 @@ const zhTheme = {
       items: [
         { text: '读取神经影像数据', link: '/modules/reading-data' },
         { text: '对象与测量语义', link: '/modules/core-concepts' },
+        { text: '多图层数据与严格索引', link: '/modules/multilayer-data' },
         { text: '质量控制', link: '/modules/quality-control' },
         { text: '皮层二维地图', link: '/modules/cortical-cartography' },
         { text: '互操作与交换', link: '/modules/interoperability' },
-        { text: '可扩展与文件后端 I/O', link: '/modules/scalable-io' }
+        { text: '可扩展与文件后端 I/O', link: '/modules/scalable-io' },
+        { text: '文件后端 values', link: '/modules/file-backed-io' }
       ]
     },
     {
@@ -49,7 +51,8 @@ const zhTheme = {
         { text: '空间 support 转换', link: '/modules/change-of-support' },
         { text: '真实数据 support mapping', link: '/modules/real-world-support-mapping' },
         { text: '显式 transform 重采样', link: '/modules/transform-aware-resampling' },
-        { text: '空间与 transform path', link: '/modules/space-transform-graph' }
+        { text: '空间与 transform path', link: '/modules/space-transform-graph' },
+        { text: '固定空间基与多尺度投影', link: '/modules/spatial-basis' }
       ]
     },
     {
@@ -58,8 +61,12 @@ const zhTheme = {
       items: [
         { text: 'Support uncertainty', link: '/modules/support-uncertainty' },
         { text: 'Support-aware inference', link: '/modules/support-aware-inference' },
+        { text: 'Support-family inference', link: '/modules/support-family-inference' },
+        { text: 'Reference 与 subject inference', link: '/modules/reference-vs-subject-inference' },
         { text: '多 layer 与组水平推断', link: '/modules/group-inference' },
+        { text: '多图层空间耦合', link: '/modules/layer-coupling' },
         { text: '空间模型', link: '/modules/spatial-modelling' },
+        { text: '有界迭代空间模型', link: '/modules/iterative-spatial-models' },
         { text: '模型不确定性', link: '/modules/model-uncertainty' },
         { text: '时空分析', link: '/modules/spatiotemporal-analysis' },
         { text: '实验方法边界', link: '/modules/advanced-spatial-methods' }

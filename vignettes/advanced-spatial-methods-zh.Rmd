@@ -1,77 +1,145 @@
 ---
-title: "实验性高级空间方法：何时使用，何时停止"
+title: "高级空间方法：从 DK68 多模态脑图到局部系数"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{实验性高级空间方法：何时使用，何时停止}
+  %\VignetteIndexEntry{高级空间方法：从 DK68 多模态脑图到局部系数}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(collapse=TRUE, comment="#>", message=FALSE,
+                      warning=FALSE, fig.align="center")
 library(neurogeo)
+source(system.file("tutorial-code", "brain-case-study.R",
+                   package="neurogeo", mustWork=TRUE))
+dk <- ngeo_tutorial_dk_case_control(n_per_group=100)
+multi <- ngeo_tutorial_dk_multilayer(dk)
+x <- multi$object
 ```
 
-## 科学问题与边界
+## 同一个问题贯穿三个高级方法
 
-三个高级方向用于评估多图层共同空间轴、共享变异尺度，以及预测变量具有不同局部带宽的回归。它们只用于探索方法可行性，不替代当前稳定的固定空间基、尺度耦合和受试者置换推断主线。
+这里不再用一串抽象坐标。数据是 100 名 HC 与 100 名 SCZ，每名受试者在真实
+Conte69 surface 对应的 DK68 support 上各有 cortical thickness 与模拟 myelin
+proxy。三个方法回答不同问题：空间排序寻找两种 modality 的共同 cortical axis；
+LMC 描述 cross-variogram 的共享尺度；MGWR 检查局部回归系数是否随 cortex 改变。
+它们都是 reference-map 探索，不会把 68 个 parcels 当成 68 名受试者。
 
-数据仍遵守一个 base 加一个严格对齐 values block。reference-map 的推断单位是空间地图，不是 vertex/region，也不是受试者；因此其结果不包含总体推断。
+```{r input-maps, fig.width=10, fig.height=4.8, fig.alt="DK68 thickness and myelin SCZ minus HC effects on bilateral flat cortex", fig.cap="所有高级方法都从同一组 SCZ-minus-HC cortical maps 出发。白色边界是真实 DK atlas boundary。"}
+ngeo_tutorial_plot_flat(
+  dk$difference, title="Thickness: SCZ - HC", diverging=TRUE
+)
+ngeo_tutorial_plot_flat(
+  multi$myelin_difference, title="Myelin proxy: SCZ - HC", diverging=TRUE
+)
+```
 
-## 空间排序
+## 空间排序：共同 cortical axis
+
+先把两张 group contrast 绑定在同一个 DK68 base；topology 来自 surface-derived
+DK adjacency，而不是二维 flat-chart 距离。
+
+```{r ordination-data}
+contrast <- ngeo_parcellation(
+  dk$regions,
+  values=cbind(
+    thickness=ngeo_values(dk$difference)[, 1L],
+    myelin=ngeo_values(multi$myelin_difference)[, 1L]
+  ),
+  centroid=dk$centroids, support_size=dk$support_size,
+  adjacency=dk$adjacency,
+  measures=rbind(
+    ngeo_measure(name="thickness contrast", support_behavior="intensive", unit="mm"),
+    ngeo_measure(name="myelin contrast", support_behavior="intensive", unit="a.u.")
+  ),
+  coordinate_space=ngeo_spatial_base(dk$cohort)$coordinate_space
+)
+w <- ngeo_spatial_weights(
+  contrast, method="region_contiguity", style="W"
+)
+```
+
+`ngeo_spatial_ordination()` 使用可选的 `adespatial` 后端；安装后下面的 chunk 会
+真正拟合空间排序。未安装时，教程仍用同一输入的标准 PCA axis 展示 estimand，
+而不会换成 toy data。
 
 ```{r ordination}
-coordinates <- cbind(1:24, sin((1:24) / 3))
-a <- scale(coordinates[, 1])[, 1]
-b <- 0.7 * a + 0.3 * scale(coordinates[, 2])[, 1]
-x <- ngeo_point(coordinates, values = cbind(a = a, b = b))
-w <- ngeo_spatial_weights(x, method = "knn", k = 2, style = "W",
-                  symmetry = "union")
-
 if (all(vapply(c("adespatial", "ade4", "spdep"),
-               requireNamespace, logical(1), quietly = TRUE))) {
-  ord <- ngeo_spatial_ordination(x, c("a", "b"), w, axes = 2)
+               requireNamespace, logical(1), quietly=TRUE))) {
+  ord <- ngeo_spatial_ordination(
+    contrast, c("thickness", "myelin"), w, axes=2
+  )
+  axis1 <- ord$training_scores[, 1L]
   ord
-  ord$population_inference
+} else {
+  axis1 <- stats::prcomp(scale(ngeo_values(contrast)))$x[, 1L]
+  cat("Optional ordination backend is unavailable; plotting PCA axis 1.\n")
 }
 ```
 
-这里的 estimand 是兼顾图层协方差和空间滞后结构的共同轴。允许的 claim 是“该 reference map stack 存在某个描述性共同空间轴”；不允许的 claim 是“该轴在某个人群中显著”。如果需要后续组间推断，训练基必须来自独立数据，或采用经过校准的 cross-fitting，或在每次 permutation 内重新拟合。
+```{r ordination-map, fig.width=9.5, fig.height=4.6, fig.alt="First shared thickness-myelin cortical axis on DK68 flat surface", fig.cap="共同轴必须回填到 cortex 后检查；轴的正负号本身没有生物学方向。"}
+ngeo_tutorial_plot_flat(
+  contrast, values=axis1, title="Shared cortical axis 1", diverging=TRUE
+)
+```
 
-## 交叉变异函数与 LMC
+## LMC：共享空间尺度，不是 co-kriging
 
-`ngeo_coregionalization()` 先从所有无序元素对中进行显式、可复现的均匀抽样，再由 `gstat` 拟合共享尺度。输出保留 pair sampling、distance_method、bin edges、seed、cross-semivariance convention 和 PSD diagnostics。
+在 68 个 DK parcels 的所有无序 pair 中显式抽样；距离来自 3D template centroid。
+该模型只描述两张 reference maps 的二阶结构。
 
 ```{r lmc}
 if (all(vapply(c("gstat", "sf"), requireNamespace,
-               logical(1), quietly = TRUE))) {
+               logical(1), quietly=TRUE))) {
   lmc <- ngeo_coregionalization(
-    x, c("a", "b"), pair_sample = 150,
-    breaks = 5, model = "Exp", range = 8, seed = 49
+    contrast, c("thickness", "myelin"),
+    pair_sample=1200, breaks=8, model="Exp", range=70, seed=4901
   )
-  lmc
   lmc$psd_diagnostics
   lmc$assumptions
+} else {
+  cat("Install gstat and sf to fit the LMC on this DK68 object.\n")
 }
 ```
 
-该结果只支持“在声明的二阶平稳、各向同性模型下观察到共享尺度结构”。它不提供 co-kriging，也不能把 support sensitivity 称为 atlas-independent。
+## MGWR：把局部 coefficient 与 condition number 一起画回脑表面
 
-## MGWR 可行性适配
+MGWR 需要稠密的 68×68 距离矩阵，所以这里严格限于 DK68；它不是 32k vertex
+分析的捷径。即使可选 `GWmodel` 后端未安装，也可以用稳定的单带宽 GWR 检查同一
+局部模型的 fitted value 与 condition number。
 
-MGWR 后端需要稠密距离矩阵。因此 neurogeo 在分配前设置小规模资源上限，并要求用户给定 intercept 和每个 predictor 的固定带宽。它适合验证局部系数、effective N、condition number 和带宽敏感性，不适合直接运行 32k/91k 皮层。
-
-```{r mgwr, eval=FALSE}
-fit <- ngeo_mgwr(
-  x, response = "a", predictors = "b",
-  bandwidths = c(`(Intercept)` = 8, b = 6)
+```{r local-model}
+distance <- ngeo_distance(
+  contrast, 1:68, 1:68, distance_method="region_centroid"
 )
-fit$local
-fit$promotion_blockers
+bandwidth <- as.numeric(stats::quantile(distance[distance > 0], 0.55))
+local_fit <- ngeo_gwr(
+  contrast, response="thickness", predictors="myelin",
+  bandwidth=bandwidth, distance_method="region_centroid"
+)
+if (all(vapply(c("GWmodel", "sf"), requireNamespace,
+               logical(1), quietly=TRUE))) {
+  mgwr <- ngeo_mgwr(
+    contrast, response="thickness", predictors="myelin",
+    bandwidths=c(`(Intercept)`=bandwidth, myelin=0.8 * bandwidth),
+    distance_method="region_centroid"
+  )
+  local_fit <- mgwr$local
+}
 ```
 
-不报告 nominal local p map 是有意的科学限制。若 bandwidth uncertainty、local collinearity、spatial null 和跨 support 复现没有同时解决，MGWR 不进入稳定 API。
+```{r local-maps, fig.width=10, fig.height=4.8, fig.alt="Local fitted thickness contrast and condition number on DK68 flat cortex", fig.cap="局部拟合图必须与 numerical condition map 同时报告。"}
+ngeo_tutorial_plot_flat(
+  contrast, values=local_fit$fitted,
+  title="Local fitted thickness contrast", diverging=TRUE
+)
+ngeo_tutorial_plot_flat(
+  contrast, values=local_fit$condition_number,
+  title="Local condition number", palette="Inferno"
+)
+```
 
-## 推荐路径
-
-确认性研究仍应使用固定、与组别无关的 topology basis，生成每位受试者的小型尺度耦合 endpoint，再由完整受试者置换和共同 support schedule 完成推断。4.9 的三个入口用于提出新假设和审查方法假设，而不是绕过这一闭环。
+这些结果可以生成空间假设，但不能提供 population-level SCZ--HC p value。确认性
+研究仍应回到完整受试者记录，在独立训练或每次 permutation 内重新拟合，并在
+DK、Schaefer100/200/300 等预先声明的 support family 上复现。

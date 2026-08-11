@@ -1715,7 +1715,7 @@ plot.ngeo_cortical_layout <- function(x, ...) {
   for (i in seq_along(x$layers)) {
     current <- dots
     current$x <- x$layers[[i]]
-    current$main <- x$base$labels[[i]]
+    current$main <- x$labels[[i]]
     do.call(graphics::plot, current)
   }
   if (isTRUE(x$shared_scale) && show_legend) {
