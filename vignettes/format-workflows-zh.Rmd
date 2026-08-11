@@ -390,34 +390,45 @@ ngeo_capabilities(dense)[c("surface_topology", "geodesic")]
 没有对应灰质坐标，因此保持缺失。按灰质坐标行号画折线无法完成这项空间还原。
 
 ```{r cifti-to-surface}
-cifti_vertex <- rep(NA_real_, nrow(ngeo_base_elements(vertex$surface)))
 left_component <- dense$base$geometry$components$cortex_left
 right_component <- dense$base$geometry$components$cortex_right
+left_vertex_count <- left_component$surface_vertex_count
+right_vertex_count <- right_component$surface_vertex_count
+cifti_vertex <- rep(NA_real_, left_vertex_count + right_vertex_count)
 cifti_vertex[left_component$internal_vertex_index] <-
   dense$values[left_component$global_rows, 1L]
-cifti_vertex[32492L + right_component$internal_vertex_index] <-
+cifti_vertex[left_vertex_count + right_component$internal_vertex_index] <-
   dense$values[right_component$global_rows, 1L]
+cifti_surface_aligned <-
+  nrow(ngeo_base_elements(vertex$surface)) == length(cifti_vertex)
 ```
 
 ```{r cifti-plot, fig.width=10, fig.height=4.8, fig.alt="CIFTI 标量值按脑结构模型恢复到左右 Conte69 皮层顶点", fig.cap="脑结构模型中的顶点索引决定每个灰质坐标画在哪里，内侧壁保持缺失。"}
-cifti_surface_map <- ngeo_cortical_map(
-  vertex$surface,
-  values=cifti_vertex,
-  chart="flat",
-  atlas="Schaefer100",
-  underlay=vertex$underlay,
-  underlay_palette="Grays",
-  overlay_alpha=0.82,
-  palette="viridis",
-  na_color=NA_character_
-)
-plot(
-  cifti_surface_map,
-  main="CIFTI scalar restored to Conte69 vertices",
-  boundary_color=grDevices::adjustcolor("white", 0.55),
-  boundary_lwd=0.25,
-  outline_lwd=1.1
-)
+if (cifti_surface_aligned) {
+  cifti_surface_map <- ngeo_cortical_map(
+    vertex$surface,
+    values=cifti_vertex,
+    chart="flat",
+    atlas="Schaefer100",
+    underlay=vertex$underlay,
+    underlay_palette="Grays",
+    overlay_alpha=0.82,
+    palette="viridis",
+    na_color=NA_character_
+  )
+  plot(
+    cifti_surface_map,
+    main="CIFTI scalar restored to Conte69 vertices",
+    boundary_color=grDevices::adjustcolor("white", 0.55),
+    boundary_lwd=0.25,
+    outline_lwd=1.1
+  )
+} else {
+  message(
+    "当前教学表面与 CIFTI 声明的 Conte69 顶点数不同；",
+    "为避免把灰质坐标投到错误几何上，本次构建不绘制这张图。"
+  )
+}
 ```
 
 左右半球和图谱边界看起来合理后，直接在 R 中完成 dscalar 写出—读回，不需要调用

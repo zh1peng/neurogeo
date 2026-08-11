@@ -87,13 +87,13 @@ measurement
 ## 半变异函数的参数会怎样随输入误差变化？
 
 半变异函数用距离解释效应图的相似程度，但它的基台、块金和范围也是由带误差的
-区域效应估计出来的。我们从刚才的测量协方差中抽取 30 组可能的效应图，每组都重新
-拟合指数模型，由此观察参数会波动到什么程度。
+区域效应估计出来的。我们从刚才的测量协方差中抽取 30 组可能的效应图，每组都按
+四个距离区间重新拟合球状模型，由此观察参数会波动到什么程度。
 
 ```{r variogram-uncertainty}
 variogram <- ngeo_variogram_uncertainty(
   model_data, "effect", measurement,
-  breaks=8, model="exponential",
+  breaks=4, model="spherical",
   nsim=30, seed=2701, workers=1
 )
 variogram$fit$parameters
