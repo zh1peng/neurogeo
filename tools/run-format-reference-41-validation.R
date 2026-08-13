@@ -68,7 +68,7 @@ surface <- ngeo_surface(
     support_behavior = "intensive",
     unit = "a.u."
   ),
-  space = gifti_geometry$base$coordinate_space,
+  coordinate_space = gifti_geometry$base$coordinate_space,
   coordinate_roles = gifti_geometry$base$geometry$coordinate_meta$role,
   index_base = "one",
   source_index_base = 0L

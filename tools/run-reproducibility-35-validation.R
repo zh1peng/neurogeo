@@ -101,14 +101,14 @@ cycle_detected <- rejected_as(
       list(from = "b", to = "a", role = "x")
     )
   ),
-  "ngeo_error_provenance_cycle"
+  "ngeo_error_history_cycle"
 )
 parent_detected <- rejected_as(
   ngeo_history_dag(
     nodes,
     list(list(from = "missing", to = "b", role = "x"))
   ),
-  "ngeo_error_provenance_parent"
+  "ngeo_error_history_parent"
 )
 assert(cycle_detected && parent_detected,
        "DAG cycle or missing parent was not detected.")
