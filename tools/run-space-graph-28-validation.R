@@ -157,7 +157,7 @@ mismatch_space <- ngeo_coordinate_space(
   source_metadata = list(dimension = 2L)
 )
 mismatch_audit <- ngeo_coordinate_space_audit(space_a, mismatch_space)
-required_mismatch <- c("units", "dimension", "structure")
+required_mismatch <- c("unit", "dimension", "structure")
 if (attr(mismatch_audit, "compatible") ||
     !all(required_mismatch %in%
          mismatch_audit$field[
@@ -206,7 +206,7 @@ name_ambiguity_rejected <- inherits(tryCatch(
     NULL
   },
   error = identity
-), "ngeo_error_space_ambiguity")
+), "ngeo_error_coordinate_space_ambiguity")
 if (!lossy_inverse_rejected || !mutation_rejected ||
     !name_ambiguity_rejected) {
   stop("Transform-graph adversarial boundary validation failed.")
