@@ -12,11 +12,12 @@ suppressPackageStartupMessages(library(neurogeo))
 
 definitions <- neurogeo:::.ngeo_schema_definitions()
 required_schema_ids <- c(
-  "ngcs/ngeo-surface", "ngcs/ngeo-volume", "ngcs/ngeo-points",
-  "ngcs/ngeo-grayordinates", "ngcs/ngeo-regions", "ngcs/space",
+  "ngcs/ngeo-surface", "ngcs/ngeo-volume", "ngcs/ngeo-point",
+  "ngcs/ngeo-grayordinate", "ngcs/ngeo-parcellation",
+  "ngcs/coordinate_space",
   "ngcs/transform", "ngcs/spatial_weights", "ngcs/partition",
   "ngcs/support-map", "ngcs/support-covariance",
-  "ngcs/support-ensemble", "ngcs/space-registry",
+  "ngcs/support-ensemble", "ngcs/coordinate_space-registry",
   "ngcs/transform-graph", "ngcs/resource-budget"
 )
 definitions_complete <- all(
@@ -35,7 +36,7 @@ x <- ngeo_point(
   cbind(x = c(0, 1, 0), y = c(0, 0, 1)),
   values = cbind(signal = c(1, 2, 3)),
   measures = ngeo_measure(support_behavior = "intensive"),
-  space = space
+  coordinate_space = space
 )
 ngeo_validate(x)
 manifest_a <- ngeo_object_manifest(x)

@@ -122,7 +122,7 @@ for (iteration in seq_along(conservation_errors)) {
   current_target <- ngeo_parcellation(
     data.frame(region_id = paste0("r", seq_len(target_n))),
     support_size = rep(NA_real_, target_n),
-    space = current_source$base$coordinate_space
+    coordinate_space = current_source$base$coordinate_space
   )
   current_map <- ngeo_support_map(
     current_source,

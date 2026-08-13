@@ -102,7 +102,7 @@ surface <- function(space, shift = 0, values = NULL) {
     values = values,
     measures = if (is.null(values)) NULL else
       ngeo_measure(support_behavior = "intensive"),
-    space = space
+    coordinate_space = space
   )
 }
 mib <- function(x) as.numeric(x) / 1024^2
@@ -404,9 +404,9 @@ schema_registered <- identical(
   TRUE
 }
 manifest_verified <- identical(
-  plan_manifest$specification, "NGCS 3.2"
+  plan_manifest$specification, "NGCS 6.0"
 ) && identical(
-  result_manifest$specification, "NGCS 3.2"
+  result_manifest$specification, "NGCS 6.0"
 ) && ngeo_validate_manifest(plan_manifest, plan)$valid &&
   ngeo_validate_manifest(result_manifest, result)$valid
 assert(schema_registered && manifest_verified,
