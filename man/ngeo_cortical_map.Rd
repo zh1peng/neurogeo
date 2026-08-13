@@ -50,13 +50,6 @@ coordinate-space and source-base provenance must travel with the values.}
 \item{mask}{Optional logical vertex mask. By default the base mask is used.
 A face is visible only when all three vertices are included.}
 
-\item{atlas_coverage}{How atlas-unlabelled vertices are displayed. `"auto"`
-uses `"labeled"` for atlas fills and parcel values, but `"surface"`
-when vertex values merely use an atlas for boundaries. `"surface"` keeps
-the surface mask, so a transparent missing overlay can reveal the
-anatomical underlay outside atlas coverage. `"labeled"` intersects the
-surface mask with non-missing atlas membership.}
-
 \item{underlay}{Optional numeric vertex vector or map selector used as a
 grayscale or colored anatomical underlay.}
 
@@ -69,6 +62,13 @@ category labels. Label-table colors are used automatically for
 `fill = "atlas"` when available.}
 
 \item{overlay_alpha}{Opacity of the value or atlas layer over the underlay.}
+
+\item{atlas_coverage}{How atlas-unlabelled vertices are displayed. `"auto"`
+uses `"labeled"` for atlas fills and parcel values, but `"surface"`
+when vertex values merely use an atlas for boundaries. `"surface"` keeps
+the surface mask, so a transparent missing overlay can reveal the
+anatomical underlay outside atlas coverage. `"labeled"` intersects the
+surface mask with non-missing atlas membership.}
 }
 \value{
 An `ngeo_cortical_map`.

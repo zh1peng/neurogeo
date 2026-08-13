@@ -351,7 +351,7 @@ ngeo_validate_resampling_plan <- function(x) {
   invisible(x)
 }
 
-.ngeo_resampling_budget_map <- function(plan) {
+.ngeo_resampling_budget_map <- function(plan, budget = plan$budget) {
   n_source <- nrow(plan$source$base$elements)
   multiplier <- switch(
     plan$method,
@@ -367,16 +367,17 @@ ngeo_validate_resampling_plan <- function(x) {
     multiplier * n_source
   }
   .ngeo_budget_assert(
-    plan$budget, "materialized_elements", nonzero
+    budget, "materialized_elements", nonzero
   )
   .ngeo_budget_assert(
-    plan$budget, "memory_bytes", 24 * nonzero
+    budget, "memory_bytes", 24 * nonzero
   )
-  .ngeo_budget_assert(plan$budget, "blocks", 1)
+  .ngeo_budget_assert(budget, "blocks", 1)
   nonzero
 }
 
-.ngeo_resampling_build <- function(plan, authorize) {
+.ngeo_resampling_build <- function(plan, authorize, budget = plan$budget) {
+  budget_context <- .ngeo_budget_context(budget)
   ngeo_validate_resampling_plan(plan)
   if (!isTRUE(authorize)) {
     .ngeo_abort(
@@ -384,7 +385,7 @@ ngeo_validate_resampling_plan <- function(x) {
       "ngeo_error_authorization"
     )
   }
-  maximum_nonzero <- .ngeo_resampling_budget_map(plan)
+  maximum_nonzero <- .ngeo_resampling_budget_map(plan, budget_context)
   transformed <- ngeo_apply_transform_path(
     plan$source, plan$path, authorize = TRUE
   )
@@ -437,6 +438,7 @@ ngeo_validate_resampling_plan <- function(x) {
       )
     }
   }
+  .ngeo_budget_checkpoint(budget_context)
   column_sum <- Matrix::colSums(map$operator)
   tolerance <- plan$parameters$tolerance %||% 1e-10
   incomplete <- abs(column_sum - 1) > tolerance
@@ -656,17 +658,18 @@ ngeo_resample <- function(
     output_path = NULL,
     writer = NULL,
     overwrite = FALSE) {
-  built <- .ngeo_resampling_build(plan, authorize)
+  budget_context <- .ngeo_budget_context(plan$budget)
+  built <- .ngeo_resampling_build(plan, authorize, budget_context)
   layer_index <- .ngeo_layer_selection(built$source, layers)
   materialized <- (
     nrow(built$source$base$elements) +
       nrow(plan$target$base$elements)
   ) * length(layer_index)
   .ngeo_budget_assert(
-    plan$budget, "materialized_elements", materialized
+    budget_context, "materialized_elements", materialized
   )
   .ngeo_budget_assert(
-    plan$budget, "memory_bytes",
+    budget_context, "memory_bytes",
     8 * materialized +
       as.numeric(utils::object.size(built$map$operator))
   )
@@ -679,7 +682,8 @@ ngeo_resample <- function(
       identical(plan$policies$conservation, "normalize")
     ) "normalize" else "error",
     unmapped = plan$policies$missing,
-    unknown = plan$policies$unknown
+    unknown = plan$policies$unknown,
+    budget = budget_context
   )
   uncertainty <- plan$policies$uncertainty
   if (identical(uncertainty, "none") &&
@@ -754,6 +758,7 @@ ngeo_resample <- function(
     ),
     class = "ngeo_resampling_result"
   )
+  .ngeo_budget_checkpoint(budget_context)
   .ngeo_validate_resampling_result(result)
   result
 }

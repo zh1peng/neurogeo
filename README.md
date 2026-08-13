@@ -3,8 +3,9 @@
 `neurogeo` is the R reference implementation of the Neuroimaging
 Geoinformatics Core Specification (NGCS).
 
-> **Development status (6.0 audit):** public API additions are temporarily
-> frozen while correctness, documentation, and release evidence are audited.
+> **Development status (6.1 audit):** the NGCS 6.0 data model remains frozen.
+> The approved additive 6.1 brain-GIS API is undergoing correctness,
+> documentation, and release-evidence review.
 > Surface-spin and Moran eigen-sign nulls are experimental and require explicit
 > opt-in; they must not be used as calibrated inferential procedures.
 
@@ -30,13 +31,13 @@ ngeo
 
 ## Installation
 
-There is not yet a signed or tagged 6.0 release. Do not treat the moving
+There is not yet a signed or tagged 6.1 release. Do not treat the moving
 `main` branch as a stable release. From a local source checkout, install the
 audited source currently in that checkout with:
 
 ```sh
 R CMD build .
-R CMD INSTALL neurogeo_6.0.0.tar.gz
+R CMD INSTALL neurogeo_6.1.0.tar.gz
 ```
 
 On Windows PowerShell, use `R.exe CMD ...` if `R` is an existing shell alias.
@@ -49,7 +50,7 @@ remotes::install_github("zh1peng/neurogeo@main")
 
 See the [platform commands and optional-backend
 matrix](https://zh1peng.github.io/neurogeo/en/guide/installation) before
-reading neuroimaging files. A stable command pinned to `v6.0.0` will be
+reading neuroimaging files. A stable command pinned to `v6.1.0` will be
 published only after that tag and its release evidence exist.
 
 ## Minimal workflow

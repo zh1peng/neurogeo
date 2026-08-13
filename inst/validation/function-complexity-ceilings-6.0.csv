@@ -14,7 +14,11 @@ R/support-diagnostics.R,ngeo_support_sensitivity,168,17
 R/support-diagnostics.R,ngeo_support_diagnostics,167,18
 R/iterative-models.R,ngeo_spatial_regression_iterative,161,23
 R/layers-45.R,ngeo_validate_layers,160,24
-R/spatial-basis-45.R,ngeo_spatial_basis,159,13
+R/spatial-basis-45.R,ngeo_spatial_basis,180,16
+R/spatial-basis-45.R,.ngeo_validate_spatial_basis,48,39
+R/experimental-point-spacetime-61.R,ngeo_brain_point_process,192,29
+R/experimental-point-spacetime-61.R,ngeo_nonseparable_hotspots,208,31
+R/experimental-landscape-resistance-61.R,ngeo_resistance_distance,181,33
 R/basis-projection-45.R,ngeo_basis_project,158,21
 R/io-cifti.R,read_ngeo_cifti,158,18
 R/support-inference-23.R,ngeo_common_support_test,156,15

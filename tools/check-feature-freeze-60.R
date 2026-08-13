@@ -14,10 +14,24 @@ if (!identical(exports, declared)) {
   stop(
     paste(
       "Every public export must be declared in the lifecycle registry.",
-      "Run tools/generate-api-lifecycle-60.R after an approved API change."
+      "Regenerate NAMESPACE and then run tools/generate-api-lifecycle-60.R."
+    ),
+    call. = FALSE
+  )
+}
+s3_methods <- sort(grep("^S3method\\(", namespace, value = TRUE))
+declared_s3 <- sort(registry$namespace_entry[registry$type == "s3_method"])
+if (!identical(s3_methods, declared_s3)) {
+  stop(
+    paste(
+      "Every registered S3 method must be declared in the lifecycle registry.",
+      "Regenerate NAMESPACE and then run tools/generate-api-lifecycle-60.R."
     ),
     call. = FALSE
   )
 }
 
-cat("Lifecycle gate:", length(exports), "public exports are declared.\n")
+cat(
+  "Lifecycle gate:", length(exports), "public exports and",
+  length(s3_methods), "registered S3 methods are declared.\n"
+)

@@ -167,3 +167,42 @@ test_that("basis budget rejects dense output before eigensolving", {
     class = "ngeo_error_resource"
   )
 })
+
+test_that("graph symmetry detection is invariant to global weight scale", {
+  fixture <- path_basis_fixture(3L)
+  cycle <- Matrix::sparseMatrix(
+    i = c(1L, 2L, 3L), j = c(2L, 3L, 1L), x = 1,
+    dims = c(3L, 3L)
+  )
+  for (scale in c(1e-12, 1, 1e12)) {
+    directed <- fixture$spatial_weights
+    directed$raw_matrix <- neurogeo:::.ngeo_as_dgCMatrix(cycle * scale)
+    directed$matrix <- directed$raw_matrix
+    expect_error(
+      ngeo_spatial_basis(
+        fixture$x, directed, support = "identity", symmetrize = "error"
+      ),
+      class = "ngeo_error_operator"
+    )
+    basis <- ngeo_spatial_basis(
+      fixture$x, directed, support = "identity", symmetrize = "mean",
+      n_modes = 2L
+    )
+    expect_true(basis$symmetrized)
+  }
+})
+
+test_that("weighted standardization preserves representable offset contrasts", {
+  values <- 2 * (0:7)
+  support <- seq_along(values)
+  reference <- neurogeo:::.ngeo_weighted_standardize(values, support)$values
+  shifted <- neurogeo:::.ngeo_weighted_standardize(
+    values + 1e16, support
+  )$values
+  expect_equal(shifted, reference, tolerance = 1e-12)
+
+  tiny <- neurogeo:::.ngeo_weighted_standardize(values * 1e-200, support)$values
+  huge <- neurogeo:::.ngeo_weighted_standardize(values * 1e200, support)$values
+  expect_equal(tiny, reference, tolerance = 1e-12)
+  expect_equal(huge, reference, tolerance = 1e-12)
+})

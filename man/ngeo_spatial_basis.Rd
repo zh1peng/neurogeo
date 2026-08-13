@@ -22,10 +22,11 @@ ngeo_spatial_basis(
 
 \item{spatial_weights}{Matching symmetric `ngeo_spatial_weights`.}
 
-\item{operator}{Spatial operator. The cotangent option is reserved for its
-validation gate and is not yet stable.}
+\item{operator}{Graph Laplacian or surface cotangent finite-element
+Laplace--Beltrami operator.}
 
-\item{coordinates}{Coordinate set for a future cotangent operator.}
+\item{coordinates}{Metric-eligible surface coordinate set used by a
+cotangent operator.}
 
 \item{support}{Domain support or identity mass.}
 

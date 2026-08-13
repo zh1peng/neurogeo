@@ -23,3 +23,8 @@ The contract itself is a registered NGCS manifest object. Its `print()`,
 result classes are excluded until their promotion evidence and contract are
 accepted. Adding or promoting a scientific result requires updating this ADR,
 the registry, examples, and the registry gate in the same change.
+
+`ADR-6.1-brain-gis-promotion.md` is the accepted additive amendment for seven
+stable brain-GIS scientific result classes. Their normative interpretation
+rows are stored in the same canonical 6.x registry,
+`inference-contracts-6.0.csv`.

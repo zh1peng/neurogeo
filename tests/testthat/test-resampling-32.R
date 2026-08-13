@@ -128,6 +128,23 @@ test_that("identity volume resampling agrees for every 3.2 method", {
   }
 })
 
+test_that("resampling passes its plan budget to change of support", {
+  coordinate_space <- ngeo_coordinate_space("grid", kind = "volume")
+  source <- resampling_volume(
+    coordinate_space,
+    values = array(seq_len(16L), dim = c(2, 2, 2, 2))
+  )
+  target <- resampling_volume(coordinate_space)
+  plan <- ngeo_resampling_plan(
+    source, target, resampling_path(coordinate_space), method = "nearest",
+    budget = ngeo_resource_budget(blocks = 1)
+  )
+  expect_error(
+    ngeo_resample(plan, authorize = TRUE),
+    class = "ngeo_error_resource"
+  )
+})
+
 test_that("supplied affine paths bridge volume grids exactly", {
   source_space <- ngeo_coordinate_space("native", kind = "volume")
   target_space <- ngeo_coordinate_space("standard", kind = "volume")

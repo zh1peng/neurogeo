@@ -33,7 +33,9 @@
 .ngeo_inference_identifiers <- function(x) {
   fields <- c(
     "base_hash", "source_base_hash", "target_base_hash", "weights_hash",
-    "support_map_hash", "ensemble_hash", "layer_id", "axis_hash"
+    "support_hash", "support_map_hash", "ensemble_hash", "layer_id",
+    "axis_hash", "index_hash", "basis_hash", "operator_hash",
+    "value_hash", "analysis_hash", "estimand_hash", "result_hash"
   )
   values <- lapply(fields, function(field) {
     value <- if (is.list(x) && field %in% names(x)) {
@@ -98,6 +100,9 @@ ngeo_inference_contract <- function(x) {
     return(x)
   }
   registry <- .ngeo_inference_registry()
+  if (inherits(x, "ngeo_gis_analysis")) {
+    .ngeo_validate_gis_result(x)
+  }
   matched_class <- class(x)[class(x) %in% registry$result_class]
   result_class <- if (length(matched_class)) matched_class[[1L]] else NULL
   if (is.null(result_class)) {

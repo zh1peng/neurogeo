@@ -13,6 +13,9 @@ test_that("each resource-budget dimension has a positive and negative gate", {
     materialized_elements = 4
   )
   context <- neurogeo:::.ngeo_budget_context(budget)
+  inherited <- neurogeo:::.ngeo_budget_context(context)
+  expect_identical(inherited$started_elapsed, context$started_elapsed)
+  expect_identical(inherited$budget, context$budget)
   expect_invisible(neurogeo:::.ngeo_budget_assert(context, "memory_bytes", 16))
   expect_invisible(neurogeo:::.ngeo_budget_assert(context, "blocks", 2))
   expect_invisible(neurogeo:::.ngeo_budget_assert(
@@ -42,6 +45,12 @@ test_that("each resource-budget dimension has a positive and negative gate", {
   expect_s3_class(condition, "ngeo_error_resource_deadline")
   expect_identical(condition$code, "NGEO_ERROR_RESOURCE_DEADLINE")
   expect_identical(condition$field, "elapsed_seconds")
+
+  inherited_expired <- neurogeo:::.ngeo_budget_context(expired)
+  expect_error(
+    neurogeo:::.ngeo_budget_checkpoint(inherited_expired),
+    class = "ngeo_error_resource_deadline"
+  )
 })
 
 test_that("change of support enforces its scheduled-block budget", {

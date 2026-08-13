@@ -72,7 +72,7 @@ contracts <- Map(function(symbol, type) {
 }, stable$symbol, stable$type)
 report <- list(
   schema = "neurogeo/api-contracts/1",
-  package_version = "6.0.0",
+  package_version = read.dcf("DESCRIPTION", fields = "Version")[[1L]],
   stable_count = length(contracts),
   contracts = contracts
 )

@@ -420,6 +420,7 @@
       }
       if (retain_null) endpoint_null[rows, ] <- statistics
     }
+    .ngeo_budget_checkpoint(budget_context)
   }
   raw <- (1 + exceedance) / (b + 1)
   adjusted <- rep.int(NA_real_, p)

@@ -11,6 +11,9 @@ Status: accepted for implementation, 2026-08-09.
   methods, including the migration report and inference-contract methods. Any later count change
   requires an ADR update together with regenerated lifecycle and contract
   registries.
+- `ADR-6.1-brain-gis-promotion.md` is the accepted additive amendment: the 6.1
+  baseline contains 248 exports and 99 registered S3 methods. The NGCS 6.0
+  container and the remaining 6.x compatibility rules are unchanged.
 - The unprefixed accessors (`values()`, `layers()`, `measures()`, `history()`,
   `spatial_base()`, `base_elements()`, `base_type()`, and `base_hash()`) remain
   functional without warning for all 6.x releases. Their preferred replacements

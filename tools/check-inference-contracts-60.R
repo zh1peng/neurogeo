@@ -25,4 +25,20 @@ if (length(missing_class)) {
     paste(missing_class, collapse = ", ")
   )
 }
+required_61 <- c(
+  "ngeo_brain_landscape",
+  "ngeo_brain_point_process",
+  "ngeo_local_layer_coupling",
+  "ngeo_maup_sensitivity",
+  "ngeo_nonseparable_hotspots",
+  "ngeo_resistance_distance",
+  "ngeo_wavelet_coupling"
+)
+missing_61 <- setdiff(required_61, registry$result_class)
+if (length(missing_61)) {
+  stop(
+    "Stable 6.1 scientific result classes lack inference contracts: ",
+    paste(missing_61, collapse = ", ")
+  )
+}
 cat("Inference contracts:", nrow(registry), "stable scientific result classes.\n")

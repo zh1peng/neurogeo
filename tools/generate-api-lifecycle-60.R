@@ -23,7 +23,8 @@ source <- paste(unlist(lapply(
 )), collapse = "\n")
 class_patterns <- c(
   'class\\s*\\([^)]*\\)\\s*<-\\s*(?:c\\s*\\()?\\s*"(ngeo_[A-Za-z0-9_]+)"',
-  'class\\s*=\\s*(?:c\\s*\\()?\\s*"(ngeo_[A-Za-z0-9_]+)"'
+  'class\\s*=\\s*(?:c\\s*\\()?\\s*"(ngeo_[A-Za-z0-9_]+)"',
+  '\\.ngeo_gis_result\\s*\\([^,]+,\\s*"(ngeo_[A-Za-z0-9_]+)"'
 )
 source_classes <- unique(unlist(lapply(class_patterns, function(pattern) {
   matches <- gregexpr(pattern, source, perl = TRUE)
@@ -31,7 +32,12 @@ source_classes <- unique(unlist(lapply(class_patterns, function(pattern) {
   if (!length(hits) || identical(hits, character(0))) return(character())
   sub(pattern, "\\1", hits, perl = TRUE)
 })))
-classes <- sort(unique(c(s3_class[grepl("^ngeo", s3_class)], source_classes)))
+classes <- sort(unique(c(
+  s3_class[grepl("^ngeo", s3_class)], source_classes,
+  if (grepl("ngeo_gis_analysis", source, fixed = TRUE)) "ngeo_gis_analysis"
+)))
+# Execution-budget contexts are internal call-state, not user-facing results.
+classes <- setdiff(classes, "ngeo_budget_context")
 generics <- sort(unique(s3_generic))
 
 experimental <- c(
@@ -49,8 +55,24 @@ compatibility <- c(
   base_hash = "ngeo_base_hash",
   ngeo_validate_layers = "ngeo_layer_index"
 )
+owner_61 <- c(
+  ngeo_brain_landscape = "statistical-methods",
+  ngeo_brain_point_process = "statistical-methods",
+  ngeo_contiguous_regionalization = "statistical-methods",
+  ngeo_gis_analysis = "statistical-methods",
+  ngeo_local_layer_coupling = "statistical-methods",
+  ngeo_maup_sensitivity = "neuroimaging-methods",
+  ngeo_nonseparable_hotspots = "statistical-methods",
+  ngeo_operator_graph = "neuroimaging-methods",
+  ngeo_operator_path = "neuroimaging-methods",
+  ngeo_resistance_distance = "statistical-methods",
+  ngeo_wavelet_coupling = "statistical-methods"
+)
 owner <- function(symbol) {
-  if (grepl("read|write|file|bids|cifti|nifti|gifti|mgh", symbol)) {
+  base_symbol <- sub("^[^.]+\\.", "", symbol)
+  if (base_symbol %in% names(owner_61)) {
+    unname(owner_61[[base_symbol]])
+  } else if (grepl("read|write|file|bids|cifti|nifti|gifti|mgh", symbol)) {
     "io"
   } else if (grepl("support|atlas|resampl|aggregate|partition", symbol)) {
     "neuroimaging-methods"

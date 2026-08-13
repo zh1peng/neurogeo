@@ -1,7 +1,7 @@
 {
   "schema": "neurogeo/api-contracts/1",
-  "package_version": "6.0.0",
-  "stable_count": 327,
+  "package_version": "6.1.0",
+  "stable_count": 338,
   "contracts": {
     "aggregate_to": {
       "symbol": "aggregate_to",
@@ -382,6 +382,42 @@
       "condition_classes": [],
       "documentation_sha256": "d87496abf94e1c52667d702961ab4fe28742ad4766cfb7a2cb2a54e7aacbd068"
     },
+    "ngeo_brain_landscape": {
+      "symbol": "ngeo_brain_landscape",
+      "type": "export",
+      "formals": {
+        "x": "",
+        "spatial_weights": "",
+        "layers": "",
+        "threshold": "0.9",
+        "threshold_type": "c(\"quantile\", \"value\")",
+        "tail": "c(\"high\", \"low\")",
+        "boundary_quantile": "0.9",
+        "budget": "ngeo_resource_budget()"
+      },
+      "condition_classes": ["ngeo_error_alignment", "ngeo_error_argument", "ngeo_error_base_mismatch", "ngeo_error_topology"],
+      "documentation_sha256": "80a8c1284dc168bfc1427ff78804a29c7e0fd6b52386e993d1104cb4261b67be"
+    },
+    "ngeo_brain_point_process": {
+      "symbol": "ngeo_brain_point_process",
+      "type": "export",
+      "formals": {
+        "x": "",
+        "events": "",
+        "radii": "",
+        "pairs": "NULL",
+        "exposure": "NULL",
+        "distance_method": "NULL",
+        "simulations": "0L",
+        "seed": "NULL",
+        "occupancy": "c(\"coincident\", \"simple\")",
+        "retain_simulations": "FALSE",
+        "max_elements": "1000L",
+        "budget": "ngeo_resource_budget()"
+      },
+      "condition_classes": ["ngeo_error_argument", "ngeo_error_resource", "ngeo_error_support"],
+      "documentation_sha256": "22ba19d8078935c26770af9618bec7f8e29b1717fe28cce6748f24499f46e1f9"
+    },
     "ngeo_build_resampling_map": {
       "symbol": "ngeo_build_resampling_map",
       "type": "export",
@@ -497,10 +533,11 @@
       "type": "export",
       "formals": {
         "first": "",
-        "second": ""
+        "second": "",
+        "budget": "ngeo_resource_budget()"
       },
       "condition_classes": ["ngeo_error_base_mismatch", "ngeo_error_uncertainty"],
-      "documentation_sha256": "e4867428556389fffec06676c3832a80069aad3c9d19201d7ca2d1a547c00a1f"
+      "documentation_sha256": "dddd58ea9688f941b8c78964c9405807794a3818a42d98a364264b788025f7f4"
     },
     "ngeo_compose_transform": {
       "symbol": "ngeo_compose_transform",
@@ -511,6 +548,22 @@
       },
       "condition_classes": ["ngeo_error_coordinate_space_mismatch", "ngeo_error_transform_direction"],
       "documentation_sha256": "b0e3887899d17ce54b404a359de6f238edf6206e4723843a6c7d59306c700c39"
+    },
+    "ngeo_contiguous_regionalization": {
+      "symbol": "ngeo_contiguous_regionalization",
+      "type": "export",
+      "formals": {
+        "x": "",
+        "spatial_weights": "",
+        "layers": "",
+        "n_regions": "",
+        "min_elements": "1L",
+        "min_support": "0",
+        "max_search_states": "100000L",
+        "budget": "ngeo_resource_budget()"
+      },
+      "condition_classes": ["ngeo_error_argument", "ngeo_error_base_mismatch", "ngeo_error_partition", "ngeo_error_resource"],
+      "documentation_sha256": "255651ce3a2cf67b5bf6878dc28fa65cf811ae7f329a1de9d44228a48a7900d2"
     },
     "ngeo_coordinate_space": {
       "symbol": "ngeo_coordinate_space",
@@ -610,7 +663,7 @@
         "atlas_coverage": "c(\"auto\", \"surface\", \"labeled\")"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_coverage"],
-      "documentation_sha256": "dcd98e54bbcdf70718cc6d6877db67ab26760005ce7e82c549388579103657cd"
+      "documentation_sha256": "3e99423d3bfdfdeae5ac99b9314697685ee5e692e50716da301e6607849cd1ad"
     },
     "ngeo_cortical_map_data": {
       "symbol": "ngeo_cortical_map_data",
@@ -1069,6 +1122,25 @@
       "condition_classes": [],
       "documentation_sha256": "0de2f378f636c60d32bba5bdf7b01a80f20d0421ddd33bc24024b2a9cc80fa0f"
     },
+    "ngeo_local_layer_coupling": {
+      "symbol": "ngeo_local_layer_coupling",
+      "type": "export",
+      "formals": {
+        "x": "",
+        "index": "",
+        "spatial_weights": "",
+        "pairs": "NULL",
+        "metrics": "c(\"local_cross_moran\", \"local_geary\", \"coexceedance\")",
+        "direction": "c(\"both\", \"x_to_y\", \"y_to_x\")",
+        "exceedance": "0",
+        "permutations": "0L",
+        "seed": "NULL",
+        "adjust": "c(\"maxT\", \"none\")",
+        "budget": "ngeo_resource_budget()"
+      },
+      "condition_classes": ["ngeo_error_argument", "ngeo_error_layer_missing"],
+      "documentation_sha256": "c2c79f969e578e44f14f19732fb496990bb116ed1459cec33bc662bede564731"
+    },
     "ngeo_local_moran": {
       "symbol": "ngeo_local_moran",
       "type": "export",
@@ -1134,6 +1206,23 @@
       },
       "condition_classes": "ngeo_error_resource",
       "documentation_sha256": "6e64dbc3a91e6729bf67294c421287290ad21e71e7fda01d43c81b62248e888a"
+    },
+    "ngeo_maup_sensitivity": {
+      "symbol": "ngeo_maup_sensitivity",
+      "type": "export",
+      "formals": {
+        "x": "",
+        "support_maps": "",
+        "targets": "",
+        "outcome": "",
+        "predictor": "",
+        "scale": "",
+        "zoning": "",
+        "statistic": "c(\"correlation\", \"slope\")",
+        "budget": "ngeo_resource_budget()"
+      },
+      "condition_classes": [],
+      "documentation_sha256": "1dea65d51b856592c339bf061f6c5badc531e5bcffe958a0c2bdf092ed09e5c2"
     },
     "ngeo_measure": {
       "symbol": "ngeo_measure",
@@ -1250,6 +1339,24 @@
       "condition_classes": "ngeo_error_capability",
       "documentation_sha256": "f1d546ef19f0fce51b5a1768b82ff17ee25e21d4e08ac9bb7a32ecb5893bfb92"
     },
+    "ngeo_nonseparable_hotspots": {
+      "symbol": "ngeo_nonseparable_hotspots",
+      "type": "export",
+      "formals": {
+        "x": "",
+        "spatial_weights": "",
+        "spatial_bandwidth": "1",
+        "temporal_bandwidth": "NULL",
+        "interaction": "1",
+        "spatial_cutoff": "NULL",
+        "temporal_cutoff": "NULL",
+        "z_threshold": "1.96",
+        "retain_matrix": "FALSE",
+        "budget": "ngeo_resource_budget()"
+      },
+      "condition_classes": ["ngeo_error_argument", "ngeo_error_base_mismatch", "ngeo_error_missing", "ngeo_error_support", "ngeo_error_temporal_measure"],
+      "documentation_sha256": "7e3e85ea0069d54d18107b03ada2e7af07097a92884dc7a543bf64317b877f5c"
+    },
     "ngeo_object_manifest": {
       "symbol": "ngeo_object_manifest",
       "type": "export",
@@ -1258,6 +1365,29 @@
       },
       "condition_classes": [],
       "documentation_sha256": "8fbac4d764decf4d8f3b06f39d451c4543e059eed61f90fa5f0a4dc5f1bdd8b8"
+    },
+    "ngeo_operator_graph": {
+      "symbol": "ngeo_operator_graph",
+      "type": "export",
+      "formals": {
+        "bases": "",
+        "edges": ""
+      },
+      "condition_classes": "ngeo_error_argument",
+      "documentation_sha256": "959756cd2f87cf8893c4c2969e5115639c63fb084d283c3e9cea9595941a4bc0"
+    },
+    "ngeo_operator_path": {
+      "symbol": "ngeo_operator_path",
+      "type": "export",
+      "formals": {
+        "graph": "",
+        "from": "",
+        "to": "",
+        "edge_id": "NULL",
+        "budget": "ngeo_resource_budget()"
+      },
+      "condition_classes": ["ngeo_error_argument", "ngeo_error_path", "ngeo_error_path_ambiguous"],
+      "documentation_sha256": "e28185f7263d443e5c6d6258ea88d672d0df8a07d73930533854fa58a05d1b94"
     },
     "ngeo_parcellation": {
       "symbol": "ngeo_parcellation",
@@ -1505,6 +1635,25 @@
       "condition_classes": ["ngeo_error_argument", "ngeo_error_resampling_method", "ngeo_error_uncertainty"],
       "documentation_sha256": "0c187e6353f792516806c3ed4b80c7a8d6d93735ba75a9af959b298b1bb94c19"
     },
+    "ngeo_resistance_distance": {
+      "symbol": "ngeo_resistance_distance",
+      "type": "export",
+      "formals": {
+        "x": "",
+        "spatial_weights": "",
+        "layer": "",
+        "pairs": "NULL",
+        "interpretation": "c(\"barrier\", \"conductance\")",
+        "method": "c(\"least_cost\", \"effective_resistance\", \"diffusion_distance\")",
+        "beta": "1",
+        "diffusion_time": "1",
+        "edge_cost": "c(\"unit\", \"spatial_weights\")",
+        "exact_limit": "500L",
+        "budget": "ngeo_resource_budget()"
+      },
+      "condition_classes": ["ngeo_error_argument", "ngeo_error_base_mismatch", "ngeo_error_measure", "ngeo_error_support", "ngeo_error_topology"],
+      "documentation_sha256": "92d35f5565265eba1fac955c2a68fbf544d3bd9021574c140f6d234c06a04cf7"
+    },
     "ngeo_resolve_space": {
       "symbol": "ngeo_resolve_space",
       "type": "export",
@@ -1603,8 +1752,8 @@
         "tolerance": "1e-08",
         "budget": "ngeo_resource_budget()"
       },
-      "condition_classes": ["ngeo_error_argument", "ngeo_error_capability", "ngeo_error_operator", "ngeo_error_topology"],
-      "documentation_sha256": "e6e51da30e170f5ee817310658c26bdbce5b6af21eb0a9dc7704ca1db282c647"
+      "condition_classes": ["ngeo_error_argument", "ngeo_error_operator", "ngeo_error_topology"],
+      "documentation_sha256": "16d47e584ddf478352521c434bf1fa3dbeb7c8f753294c77c722b61e2cdc0482"
     },
     "ngeo_spatial_lm": {
       "symbol": "ngeo_spatial_lm",
@@ -2617,6 +2766,20 @@
       "condition_classes": "ngeo_error_argument",
       "documentation_sha256": "aa79346da8448868faafac3b9fb21bfb7bd9c2a3961dbb6e28239ed33cb386c9"
     },
+    "ngeo_wavelet_coupling": {
+      "symbol": "ngeo_wavelet_coupling",
+      "type": "export",
+      "formals": {
+        "x": "",
+        "index": "",
+        "basis": "",
+        "pairs": "NULL",
+        "scales": "c(0.25, 0.5, 1, 2, 4)",
+        "budget": "ngeo_resource_budget()"
+      },
+      "condition_classes": "ngeo_error_layer_missing",
+      "documentation_sha256": "38304ff2cb68323fca9503fca2e15dddbd537b76d1648d43de65203f7898620c"
+    },
     "ngeo_write_artifact_batch": {
       "symbol": "ngeo_write_artifact_batch",
       "type": "export",
@@ -3392,6 +3555,16 @@
     },
     "print.ngeo_getis": {
       "symbol": "print.ngeo_getis",
+      "type": "s3_method",
+      "formals": {
+        "x": "",
+        "...": ""
+      },
+      "condition_classes": [],
+      "documentation_sha256": ""
+    },
+    "print.ngeo_gis_analysis": {
+      "symbol": "print.ngeo_gis_analysis",
       "type": "s3_method",
       "formals": {
         "x": "",

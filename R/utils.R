@@ -115,13 +115,17 @@
 
 .ngeo_as_integer <- function(x, name) {
   if (!is.numeric(x) || anyNA(x) || any(!is.finite(x)) ||
-      any(x != floor(x))) {
+      any(x != floor(x)) || any(abs(x) > .Machine$integer.max)) {
     .ngeo_abort(
-      sprintf("`%s` must contain finite integer values.", name),
+      sprintf(
+        "`%s` must contain finite integer values representable by R.", name
+      ),
       "ngeo_error_index",
       code = "NGEO_ERROR_INDEX_INTEGER",
       field = name,
-      hint = sprintf("Remove missing or non-integer values from `%s`.", name)
+      hint = sprintf(
+        "Remove missing, non-integer, or out-of-range values from `%s`.", name
+      )
     )
   }
   as.integer(x)
@@ -138,7 +142,7 @@
 .ngeo_package_version <- function() {
   tryCatch(
     as.character(utils::packageVersion("neurogeo")),
-    error = function(...) "6.0.0"
+    error = function(...) "6.1.0"
   )
 }
 

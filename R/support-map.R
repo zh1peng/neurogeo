@@ -594,6 +594,7 @@ aggregate_to <- function(
         "ngeo_error_measure"
       )
     )
+    .ngeo_budget_checkpoint(budget_context)
   }
   output <- do.call(cbind, output)
   maps_out <- x$layers[layer_index, , drop = FALSE]
@@ -768,12 +769,14 @@ ngeo_support_variance <- function(
 #'
 #' @param first Source-to-intermediate support map.
 #' @param second Intermediate-to-target support map.
+#' @param budget Hard execution limits from [ngeo_resource_budget()].
 #'
 #' @return A composed `ngeo_support_map`.
 #' @templateVar example_call ngeo_compose_support_map(source_to_mid, mid_to_target)
 #' @template stable-neuroimaging-method
 #' @export
-ngeo_compose_support_map <- function(first, second) {
+ngeo_compose_support_map <- function(
+    first, second, budget = ngeo_resource_budget()) {
   ngeo_validate_support_map(first)
   ngeo_validate_support_map(second)
   if (!is.null(first$weight_variance) ||
@@ -795,9 +798,30 @@ ngeo_compose_support_map <- function(first, second) {
       "ngeo_error_base_mismatch"
     )
   }
+  context <- .ngeo_budget_context(budget)
+  second_column_nnz <- diff(second$operator@p)
+  first_row_nnz <- tabulate(
+    Matrix::summary(first$operator)$i,
+    nbins = nrow(first$operator)
+  )
+  possible_nonzero <- min(
+    as.double(nrow(second$operator)) * ncol(first$operator),
+    sum(as.double(second_column_nnz) * first_row_nnz)
+  )
+  .ngeo_budget_assert(context, "blocks", 1)
+  .ngeo_budget_assert(
+    context, "materialized_elements", possible_nonzero
+  )
+  .ngeo_budget_assert(
+    context, "memory_bytes",
+    24 * possible_nonzero + 8 * (
+      length(first$operator@x) + length(second$operator@x)
+    )
+  )
   operator <- .ngeo_as_dgCMatrix(
     second$operator %*% first$operator
   )
+  .ngeo_budget_checkpoint(context)
   column_sum <- Matrix::colSums(operator)
   column_nnz <- diff(operator@p)
   type <- if (

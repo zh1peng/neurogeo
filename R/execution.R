@@ -71,6 +71,9 @@ ngeo_resource_budget <- function(
 }
 
 .ngeo_budget_context <- function(budget) {
+  if (inherits(budget, "ngeo_budget_context")) {
+    return(budget)
+  }
   if (!inherits(budget, "ngeo_resource_budget")) {
     .ngeo_abort(
       "A valid resource budget is required.",

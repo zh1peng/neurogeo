@@ -1,3 +1,21 @@
+# neurogeo 6.1.0
+
+* Added ten stable brain-GIS APIs for support-design sensitivity, local
+  cross-layer coupling, support-operator paths, graph-wavelet coupling,
+  contiguous regionalization, brain landscapes, anatomy-conditioned graph
+  distances, finite-domain point-pattern enrichment, and exploratory
+  nonseparable space-time hotspots.
+* Promoted the surface cotangent finite-element Laplace--Beltrami operator in
+  `ngeo_spatial_basis()`, with metric-geometry, manifold, mass, eigenspace,
+  numerical-scaling, provenance, and resource checks.
+* Added measurement-semantics gates, support-aware standardization, bounded
+  execution contracts, exact small-reference tests, and explicit limitations
+  for descriptive versus calibrated inference across the 6.1 modules.
+* Fixed result-level defects found during promotion review, including
+  permutation exceedance accumulation, finite-domain event references,
+  directed-edge symmetrization, ill-conditioned resistance spectra, and
+  constrained regionalization failure reporting.
+
 # neurogeo 6.0.0
 
 * Replaced the core `domain / maps / provenance` schema with

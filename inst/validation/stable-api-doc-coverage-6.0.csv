@@ -26,6 +26,8 @@
 "ngeo_boundary","core-api","man/ngeo_boundary.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_boundary_sensitivity","core-api","man/ngeo_boundary_sensitivity.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_boundary_test","core-api","man/ngeo_boundary_test.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_brain_landscape","statistical-methods","man/ngeo_brain_landscape.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_brain_point_process","statistical-methods","man/ngeo_brain_point_process.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_build_resampling_map","neuroimaging-methods","man/ngeo_build_resampling_map.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_capabilities","core-api","man/ngeo_capabilities.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_car","statistical-methods","man/ngeo_car.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -36,6 +38,7 @@
 "ngeo_components","core-api","man/ngeo_components.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_compose_support_map","neuroimaging-methods","man/ngeo_compose_support_map.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_compose_transform","core-api","man/ngeo_compose_transform.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_contiguous_regionalization","statistical-methods","man/ngeo_contiguous_regionalization.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_coordinate_space","core-api","man/ngeo_coordinate_space.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_coordinate_space_audit","core-api","man/ngeo_coordinate_space_audit.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_coordinate_space_hash","reproducibility-engineering","man/ngeo_coordinate_space_hash.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -76,11 +79,13 @@
 "ngeo_layer_coupling","core-api","man/ngeo_layer_coupling.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_layer_index","core-api","man/ngeo_layer_index.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_layers","core-api","man/ngeo_prefixed_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_local_layer_coupling","statistical-methods","man/ngeo_local_layer_coupling.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_local_moran","statistical-methods","man/ngeo_local_moran.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_logdet_approx","core-api","man/ngeo_logdet_approx.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_logical_hash","reproducibility-engineering","man/ngeo_logical_hash.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_longitudinal_change","core-api","man/ngeo_longitudinal_change.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_materialize_spatiotemporal_weights","core-api","man/ngeo_materialize_spatiotemporal_weights.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_maup_sensitivity","neuroimaging-methods","man/ngeo_maup_sensitivity.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_measure","core-api","man/ngeo_measure.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_measures","core-api","man/ngeo_prefixed_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_migrate_5x","core-api","man/ngeo_migrate_5x.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -89,7 +94,10 @@
 "ngeo_moran","statistical-methods","man/ngeo_moran.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_multiscale_inference","core-api","man/ngeo_multiscale_inference.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_neighbors","core-api","man/ngeo_neighbors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_nonseparable_hotspots","statistical-methods","man/ngeo_nonseparable_hotspots.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_object_manifest","reproducibility-engineering","man/ngeo_object_manifest.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_operator_graph","neuroimaging-methods","man/ngeo_operator_graph.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_operator_path","neuroimaging-methods","man/ngeo_operator_path.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_parcellation","core-api","man/ngeo_parcellation.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_parcellation_inference","core-api","man/ngeo_parcellation_inference.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_partition","neuroimaging-methods","man/ngeo_partition.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -108,6 +116,7 @@
 "ngeo_resample","neuroimaging-methods","man/ngeo_resample.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_resampling_diagnostics","neuroimaging-methods","man/ngeo_resampling_diagnostics.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_resampling_plan","neuroimaging-methods","man/ngeo_resampling_plan.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_resistance_distance","statistical-methods","man/ngeo_resistance_distance.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_resolve_space","core-api","man/ngeo_resolve_space.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_resource_budget","reproducibility-engineering","man/ngeo_resource_budget.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_segmentation_ensemble","core-api","man/ngeo_segmentation_ensemble.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -196,6 +205,7 @@
 "ngeo_volume","core-api","man/ngeo_volume.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_voxel_overlap_map","core-api","man/ngeo_voxel_overlap_map.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_voxel_volume","core-api","man/ngeo_voxel_volume.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_wavelet_coupling","statistical-methods","man/ngeo_wavelet_coupling.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_write_artifact_batch","io","man/ngeo_write_artifact_batch.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "read_ngeo","io","man/read_ngeo.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "read_ngeo_artifact_manifest","io","man/ngeo_artifact_manifest_io.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE

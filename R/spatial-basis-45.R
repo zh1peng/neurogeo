@@ -27,8 +27,64 @@
 }
 
 .ngeo_weighted_center <- function(values, support) {
-  mean <- sum(support * values) / sum(support)
+  normalized_support <- support / max(support)
+  normalized_support <- normalized_support / sum(normalized_support)
+  mean <- sum(normalized_support * values)
   list(values = values - mean, mean = mean)
+}
+
+.ngeo_weighted_standardize <- function(values, support) {
+  if (!is.numeric(values) || anyNA(values) || any(!is.finite(values))) {
+    return(list(
+      values = rep.int(NA_real_, length(values)),
+      mean = NA_real_,
+      standard_deviation = 0,
+      variance = 0
+    ))
+  }
+  weight <- support / max(support)
+  weight <- weight / sum(weight)
+  anchor <- values[[1L]]
+  deviation <- values - anchor
+  deviation_scale <- max(abs(deviation))
+  if (!is.finite(deviation_scale)) {
+    amplitude <- max(abs(values))
+    scaled <- values / amplitude
+    anchor_scaled <- scaled[[1L]]
+    deviation <- scaled - anchor_scaled
+    deviation_scale <- max(abs(deviation))
+    location_scale <- amplitude
+    anchor_location <- anchor_scaled
+  } else {
+    location_scale <- 1
+    anchor_location <- anchor
+  }
+  if (!is.finite(deviation_scale) || deviation_scale <= 0) {
+    return(list(
+      values = rep.int(NA_real_, length(values)),
+      mean = anchor,
+      standard_deviation = 0,
+      variance = 0
+    ))
+  }
+  scaled <- deviation / deviation_scale
+  mean_scaled <- sum(weight * scaled)
+  centered <- scaled - mean_scaled
+  variance <- sum(weight * centered^2)
+  standard_deviation <- location_scale * deviation_scale * sqrt(variance)
+  weighted_mean <- location_scale * (
+    anchor_location + deviation_scale * mean_scaled
+  )
+  list(
+    values = if (is.finite(variance) && variance > 0) {
+      centered / sqrt(variance)
+    } else {
+      rep.int(NA_real_, length(values))
+    },
+    mean = weighted_mean,
+    standard_deviation = standard_deviation,
+    variance = variance
+  )
 }
 
 .ngeo_weighted_inner <- function(x, y, support) {
@@ -61,12 +117,20 @@
                 "ngeo_error_base_mismatch")
   }
   raw <- .ngeo_as_dgCMatrix(spatial_weights$raw_matrix)
-  if (any(!is.finite(raw@x)) || any(raw@x < -tolerance)) {
+  scale <- if (length(raw@x)) max(abs(raw@x)) else 0
+  negative_tolerance <- tolerance * scale
+  if (any(!is.finite(raw@x)) || any(raw@x < -negative_tolerance)) {
     .ngeo_abort("Graph Laplacian spatial_weights must be finite and non-negative.",
                 "ngeo_error_operator")
   }
   if (length(raw@x)) raw@x[raw@x < 0] <- 0
-  symmetric <- isTRUE(Matrix::isSymmetric(raw, tol = tolerance))
+  asymmetry <- raw - Matrix::t(raw)
+  asymmetric_scale <- if (length(asymmetry@x)) {
+    max(abs(asymmetry@x))
+  } else {
+    0
+  }
+  symmetric <- asymmetric_scale <= tolerance * scale
   if (!symmetric && identical(symmetrize, "error")) {
     .ngeo_abort(
       "Graph Laplacian construction requires symmetric raw spatial_weights.",
@@ -91,10 +155,14 @@
   cluster <- integer(length(eigenvalues))
   cluster[[1L]] <- 1L
   threshold <- max(100 * tolerance, sqrt(.Machine$double.eps))
+  spectral_scale <- max(abs(eigenvalues))
   if (length(eigenvalues) > 1L) {
     for (i in 2:length(eigenvalues)) {
       gap <- abs(eigenvalues[[i]] - eigenvalues[[i - 1L]]) /
-        max(1, abs(eigenvalues[[i]]), abs(eigenvalues[[i - 1L]]))
+        max(
+          abs(eigenvalues[[i]]), abs(eigenvalues[[i - 1L]]),
+          .Machine$double.eps * spectral_scale
+        )
       cluster[[i]] <- cluster[[i - 1L]] + as.integer(gap > threshold)
     }
   }
@@ -102,6 +170,7 @@
 }
 
 .ngeo_partial_eigen <- function(operator, support, n_modes, tolerance, budget) {
+  .ngeo_budget_checkpoint(budget)
   n <- nrow(operator)
   nonzero_requested <- min(n_modes, max(0L, n - 1L))
   if (!nonzero_requested) {
@@ -114,13 +183,11 @@
   transformed <- Matrix::Diagonal(x = inverse_root) %*%
     operator %*% Matrix::Diagonal(x = inverse_root)
   transformed <- .ngeo_as_dgCMatrix((transformed + Matrix::t(transformed)) / 2)
-  requested <- nonzero_requested + 1L
+  requested <- min(n, nonzero_requested + 2L)
   dense_threshold <- getOption("neurogeo.max_dense_basis_elements", 512L)
   if (requested >= n && n > dense_threshold) {
-    .ngeo_abort(
-      "A full eigensystem is not permitted for this base size.",
-      "ngeo_error_resource"
-    )
+    .ngeo_abort("A full eigensystem is not permitted for this base size.",
+                "ngeo_error_resource")
   }
   decomposition <- if (n <= dense_threshold || requested >= n) {
     cells <- as.double(n) * n
@@ -145,18 +212,94 @@
     list(values = current$values, vectors = current$vectors,
          method = "RSpectra_eigs_sym")
   }
+  .ngeo_budget_checkpoint(budget)
   order <- order(decomposition$values)
   values <- as.numeric(decomposition$values[order])
   vectors <- decomposition$vectors[, order, drop = FALSE]
-  zero_tolerance <- max(tolerance, tolerance * max(1, max(abs(values))))
-  zero <- abs(values) <= zero_tolerance
-  observed_zero <- sum(zero)
-  nonzero <- which(!zero & values > -zero_tolerance)
+  spectral_scale <- max(abs(values))
+  if (!is.finite(spectral_scale) || spectral_scale <= 0) {
+    .ngeo_abort(
+      "The spatial eigensolver returned a degenerate spectrum.",
+      "ngeo_error_convergence"
+    )
+  }
+  exact_null <- sqrt(support)
+  exact_null <- exact_null / sqrt(sum(exact_null^2))
+  null_overlap <- abs(as.numeric(crossprod(vectors, exact_null)))
+  null_index <- which.max(null_overlap)
+  null_tolerance <- max(
+    10 * tolerance * spectral_scale,
+    .Machine$double.eps * spectral_scale * n * 100
+  )
+  if (abs(values[[null_index]]) > null_tolerance ||
+      null_overlap[[null_index]] < 0.5) {
+    .ngeo_abort(
+      "The connected spatial operator did not recover its constant null mode.",
+      "ngeo_error_convergence"
+    )
+  }
+  candidate <- setdiff(seq_along(values), null_index)
+  negative_tolerance <- max(
+    10 * tolerance * spectral_scale,
+    .Machine$double.eps * spectral_scale * n * 100
+  )
+  negative <- candidate[values[candidate] < -negative_tolerance]
+  if (any(negative)) {
+    .ngeo_abort(
+      "The spatial operator contains a negative eigenvalue.",
+      "ngeo_error_operator"
+    )
+  }
+  unresolved <- candidate[
+    abs(values[candidate]) <= negative_tolerance &
+      null_overlap[candidate] > sqrt(.Machine$double.eps)
+  ]
+  if (length(unresolved)) {
+    .ngeo_abort(
+      paste(
+        "The iterative eigensolver could not separate a near-null spatial",
+        paste(
+          "mode from the exact constant null; a dense/reference solver or",
+          "explicit null deflation is required; a tighter tolerance may help",
+          "but is not guaranteed to overcome an iterative precision floor."
+        )
+      ),
+      "ngeo_error_convergence"
+    )
+  }
+  if (any(values[candidate] <= 0)) {
+    .ngeo_abort(
+      "The eigensolver returned an unresolved non-positive nonconstant mode.",
+      "ngeo_error_convergence"
+    )
+  }
+  observed_zero <- 1L
+  nonzero <- candidate[values[candidate] > 0]
   if (length(nonzero) < nonzero_requested) {
     .ngeo_abort(
       "The partial eigensolver did not recover the requested nonzero modes.",
       "ngeo_error_convergence"
     )
+  }
+  if (nonzero_requested < n - 1L &&
+      length(nonzero) > nonzero_requested) {
+    boundary <- values[nonzero[c(nonzero_requested,
+                                 nonzero_requested + 1L)]]
+    relative_gap <- abs(diff(boundary)) / max(
+      abs(boundary), .Machine$double.eps * spectral_scale
+    )
+    degeneracy_tolerance <- max(
+      100 * tolerance, sqrt(.Machine$double.eps)
+    )
+    if (relative_gap <= degeneracy_tolerance) {
+      .ngeo_abort(
+        paste(
+          "`n_modes` splits a numerically degenerate eigenspace;",
+          "increase the mode count to retain the complete cluster."
+        ),
+        "ngeo_error_band"
+      )
+    }
   }
   nonzero <- nonzero[seq_len(nonzero_requested)]
   values <- values[nonzero]
@@ -202,6 +345,93 @@
   )
 }
 
+.ngeo_spatial_basis_hash <- function(basis) {
+  payload <- if (identical(basis$operator, "cotangent")) {
+    list(
+      operator_hash = basis$operator_hash,
+      support = basis$support[c("type", "values")],
+      n_modes = basis$n_modes_requested,
+      components = lapply(basis$components, function(z) list(
+        component_id = z$component_id,
+        rows = z$rows,
+        element_id = z$element_id,
+        support = z$support,
+        eigenvalues = z$eigenvalues,
+        vectors = z$vectors,
+        degenerate_cluster = z$degenerate_cluster
+      )),
+      tolerance = basis$tolerance
+    )
+  } else {
+    list(
+      base_hash = basis$base_hash,
+      operator_hash = basis$operator_hash,
+      support = basis$support[c("type", "values")],
+      n_modes = basis$n_modes_requested,
+      components = lapply(basis$components, function(z) list(
+        component_id = z$component_id,
+        rows = z$rows,
+        element_id = z$element_id,
+        support = z$support,
+        eigenvalues = z$eigenvalues,
+        vectors = z$vectors,
+        degenerate_cluster = z$degenerate_cluster
+      )),
+      tolerance = basis$tolerance
+    )
+  }
+  .ngeo_layer_digest(payload)
+}
+
+.ngeo_validate_spatial_basis <- function(basis, x = NULL) {
+  if (!inherits(basis, "ngeo_spatial_basis") || !is.list(basis) ||
+      !is.character(basis$operator) || length(basis$operator) != 1L ||
+      is.na(basis$operator) ||
+      !basis$operator %in% c("graph_laplacian", "cotangent") ||
+      !is.character(basis$base_hash) || length(basis$base_hash) != 1L ||
+      !is.list(basis$support) || !is.numeric(basis$support$values) ||
+      anyNA(basis$support$values) || any(!is.finite(basis$support$values)) ||
+      any(basis$support$values <= 0) || !is.list(basis$components) ||
+      !length(basis$components)) {
+    .ngeo_abort(
+      "`basis` is not a structurally valid spatial basis.",
+      "ngeo_error_argument"
+    )
+  }
+  if (!is.null(x) && !identical(basis$base_hash, base_hash(x))) {
+    .ngeo_abort("The spatial basis does not match the data base.",
+                "ngeo_error_base_mismatch")
+  }
+  n <- length(basis$support$values)
+  rows <- unlist(lapply(basis$components, `[[`, "rows"), use.names = FALSE)
+  valid_component <- vapply(basis$components, function(z) {
+    is.character(z$component_id) && length(z$component_id) == 1L &&
+      is.integer(z$rows) && length(z$rows) > 0L && !anyDuplicated(z$rows) &&
+      all(z$rows >= 1L & z$rows <= n) &&
+      is.character(z$element_id) && length(z$element_id) == length(z$rows) &&
+      (is.null(x) || identical(
+        z$element_id, x$base$elements$element_id[z$rows]
+      )) &&
+      is.numeric(z$support) && identical(
+        as.numeric(z$support), as.numeric(basis$support$values[z$rows])
+      ) &&
+      is.numeric(z$eigenvalues) && all(is.finite(z$eigenvalues)) &&
+      all(z$eigenvalues > 0) && is.matrix(z$vectors) &&
+      identical(dim(z$vectors), c(length(z$rows), length(z$eigenvalues))) &&
+      all(is.finite(z$vectors)) &&
+      length(z$degenerate_cluster) == length(z$eigenvalues)
+  }, logical(1))
+  if (!all(valid_component) || !identical(sort(rows), seq_len(n)) ||
+      anyDuplicated(rows) ||
+      !identical(basis$basis_hash, .ngeo_spatial_basis_hash(basis))) {
+    .ngeo_abort(
+      "The spatial basis content or identity hash was modified.",
+      "ngeo_error_identity"
+    )
+  }
+  invisible(basis)
+}
+
 #' Construct a fixed support-weighted spatial basis
 #'
 #' The stable graph-Laplacian path uses symmetric non-negative raw spatial_weights and
@@ -210,9 +440,10 @@
 #'
 #' @param x An `ngeo` object.
 #' @param spatial_weights Matching symmetric `ngeo_spatial_weights`.
-#' @param operator Spatial operator. The cotangent option is reserved for its
-#'   validation gate and is not yet stable.
-#' @param coordinates Coordinate set for a future cotangent operator.
+#' @param operator Graph Laplacian or surface cotangent finite-element
+#'   Laplace--Beltrami operator.
+#' @param coordinates Metric-eligible surface coordinate set used by a
+#'   cotangent operator.
 #' @param support Domain support or identity mass.
 #' @param n_modes Number of non-constant modes per connected component.
 #' @param components Whether disconnected components are separated or rejected.
@@ -242,6 +473,7 @@ ngeo_spatial_basis <- function(
     symmetrize = c("error", "mean"),
     tolerance = 1e-8,
     budget = ngeo_resource_budget()) {
+  budget_context <- .ngeo_budget_context(budget)
   ngeo_validate(x, "basic")
   operator <- match.arg(operator)
   support <- match.arg(support)
@@ -257,15 +489,34 @@ ngeo_spatial_basis <- function(
     .ngeo_abort("`tolerance` must be one positive finite number.",
                 "ngeo_error_argument")
   }
-  if (!identical(operator, "graph_laplacian")) {
-    .ngeo_abort(
-      "The cotangent basis is experimental and requires explicit opt-in.",
-      "ngeo_error_capability"
-    )
+  if (identical(operator, "cotangent")) {
+    if (!is.null(spatial_weights)) {
+      .ngeo_abort(
+        "A cotangent basis derives its operator from the surface mesh; do not supply `spatial_weights`.",
+        "ngeo_error_argument"
+      )
+    }
+    if (!identical(support, "auto") || !identical(symmetrize, "error")) {
+      .ngeo_abort(
+        paste(
+          "A cotangent basis fixes lumped barycentric-area mass and a",
+          "symmetric mesh operator; use `support = \"auto\"` and",
+          "`symmetrize = \"error\"`."
+        ),
+        "ngeo_error_argument"
+      )
+    }
+    return(.ngeo_cotangent_basis(
+      x = x,
+      coordinates = coordinates,
+      n_modes = n_modes,
+      components = components,
+      tolerance = tolerance,
+      budget = budget_context
+    ))
   }
   if (is.null(spatial_weights)) {
-    .ngeo_abort("A graph-Laplacian basis requires explicit spatial weights.",
-                "ngeo_error_argument")
+    .ngeo_abort("A graph-Laplacian basis requires explicit spatial weights.", "ngeo_error_argument")
   }
 
   mass <- .ngeo_support_weights(x, support)
@@ -284,8 +535,8 @@ ngeo_spatial_basis <- function(
   estimated_bytes <- 8 * output_cells +
     8 * nrow(graph$adjacency) * (3 * n_modes + 10) +
     16 * length(graph$adjacency@x)
-  .ngeo_budget_assert(budget, "materialized_elements", output_cells)
-  .ngeo_budget_assert(budget, "memory_bytes", estimated_bytes)
+  .ngeo_budget_assert(budget_context, "materialized_elements", output_cells)
+  .ngeo_budget_assert(budget_context, "memory_bytes", estimated_bytes)
 
   basis_components <- vector("list", length(component_ids))
   observed_zero <- integer(length(component_ids))
@@ -295,7 +546,7 @@ ngeo_spatial_basis <- function(
     local_stiffness <- graph$stiffness[rows, rows, drop = FALSE]
     local_support <- mass$values[rows]
     decomposition <- .ngeo_partial_eigen(
-      local_stiffness, local_support, n_modes, tolerance, budget
+      local_stiffness, local_support, n_modes, tolerance, budget_context
     )
     if (any(decomposition$values < -tolerance)) {
       .ngeo_abort("The graph basis contains a negative eigenvalue.",
@@ -387,6 +638,7 @@ ngeo_spatial_basis <- function(
       implicit_resampling = FALSE
     )
   )
+  result$basis_hash <- .ngeo_spatial_basis_hash(result)
   class(result) <- "ngeo_spatial_basis"
   result
 }
