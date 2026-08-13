@@ -167,6 +167,8 @@ reference:
   - ngeo_support_map_hash
   - ngeo_support_map_from_partition
   - ngeo_compose_support_map
+  - ngeo_operator_graph
+  - ngeo_operator_path
   - aggregate_to
   - ngeo_support_variance
   - ngeo_atlas_overlap
@@ -245,7 +247,6 @@ reference:
   contents:
   - ngeo_maup_sensitivity
   - ngeo_local_layer_coupling
-  - ngeo_support_path
   - ngeo_wavelet_coupling
   - ngeo_contiguous_regionalization
   - ngeo_freeze_regionalization
