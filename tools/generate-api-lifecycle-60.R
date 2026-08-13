@@ -40,10 +40,6 @@ classes <- sort(unique(c(
 classes <- setdiff(classes, "ngeo_budget_context")
 generics <- sort(unique(s3_generic))
 
-experimental <- c(
-  "ngeo_spin_null", "ngeo_moran_null", "ngeo_spatial_ordination",
-  "ngeo_coregionalization", "ngeo_mgwr", "ngeo_null"
-)
 compatibility <- c(
   spatial_base = "ngeo_spatial_base",
   base_elements = "ngeo_base_elements",
@@ -55,11 +51,23 @@ compatibility <- c(
   base_hash = "ngeo_base_hash",
   ngeo_validate_layers = "ngeo_layer_index"
 )
+approved <- utils::read.csv(
+  file.path("inst", "spec", "api-lifecycle-6.0.csv"),
+  stringsAsFactors = FALSE,
+  check.names = FALSE
+)
+approved_lifecycle <- stats::setNames(approved$lifecycle, approved$id)
+approved_owner <- stats::setNames(approved$owner, approved$id)
+
 owner_61 <- c(
+  ngeo_apply_regionalization = "statistical-methods",
   ngeo_brain_landscape = "statistical-methods",
   ngeo_brain_point_process = "statistical-methods",
   ngeo_contiguous_regionalization = "statistical-methods",
+  ngeo_freeze_regionalization = "statistical-methods",
+  ngeo_frozen_regionalization = "statistical-methods",
   ngeo_gis_analysis = "statistical-methods",
+  ngeo_hotspot_group_features = "statistical-methods",
   ngeo_local_layer_coupling = "statistical-methods",
   ngeo_maup_sensitivity = "neuroimaging-methods",
   ngeo_nonseparable_hotspots = "statistical-methods",
@@ -84,26 +92,27 @@ owner <- function(symbol) {
     "core-api"
   }
 }
-lifecycle <- function(symbol) {
-  if (symbol %in% experimental ||
-      any(vapply(experimental, function(value) grepl(value, symbol, fixed = TRUE), logical(1)))) {
-    "experimental"
-  } else if (symbol %in% names(compatibility)) {
-    "stable-compatibility"
-  } else {
-    "stable"
-  }
-}
 replacement <- function(symbol) {
   if (symbol %in% names(compatibility)) unname(compatibility[[symbol]]) else ""
 }
 make_rows <- function(type, symbol, namespace_entry = "") {
+  id <- paste(type, symbol, sep = ":")
+  lifecycle <- unname(approved_lifecycle[id])
+  explicit_owner <- unname(approved_owner[id])
+  if (anyNA(lifecycle) || any(!nzchar(lifecycle))) {
+    stop(
+      "Unreviewed public API symbol: ",
+      paste(symbol[is.na(lifecycle) | !nzchar(lifecycle)], collapse = ", "),
+      ". Add an explicitly reviewed lifecycle row before regeneration."
+    )
+  }
   data.frame(
-    id = paste(type, symbol, sep = ":"),
+    id = id,
     type = type,
     symbol = symbol,
-    lifecycle = vapply(symbol, lifecycle, character(1)),
-    owner = vapply(symbol, owner, character(1)),
+    lifecycle = lifecycle,
+    owner = ifelse(nzchar(explicit_owner), explicit_owner,
+                   vapply(symbol, owner, character(1))),
     replacement = vapply(symbol, replacement, character(1)),
     earliest_removal = ifelse(symbol %in% names(compatibility), "7.0.0", ""),
     namespace_entry = namespace_entry,

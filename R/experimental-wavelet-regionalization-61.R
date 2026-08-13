@@ -904,16 +904,11 @@ ngeo_wavelet_coupling <- function(
 #'   x, spatial_weights, layers = c("thickness", "myelin"), n_regions = 10
 #' )
 #' }
-#' @export
-ngeo_contiguous_regionalization <- function(
-    x,
-    spatial_weights,
-    layers,
-    n_regions,
-    min_elements = 1L,
-    min_support = 0,
-    max_search_states = 100000L,
-    budget = ngeo_resource_budget()) {
+#' @name ngeo_contiguous_regionalization
+#' @usage NULL
+.ngeo_regionalization_prepare <- function(
+    x, spatial_weights, layers, n_regions, min_elements, min_support,
+    max_search_states, budget) {
   budget_context <- .ngeo_budget_context(budget)
   ngeo_validate(x, "basic")
   if (!inherits(spatial_weights, "ngeo_spatial_weights") ||
@@ -954,6 +949,35 @@ ngeo_contiguous_regionalization <- function(
     )
   }
   selected_budget <- .ngeo_layer_selection(x, layers)
+  list(
+    budget_context = budget_context, n = n, n_regions = n_regions,
+    min_elements = min_elements, max_search_states = max_search_states,
+    support_info = support_info, selected_budget = selected_budget
+  )
+}
+
+#' @rdname ngeo_contiguous_regionalization
+#' @export
+ngeo_contiguous_regionalization <- function(
+    x,
+    spatial_weights,
+    layers,
+    n_regions,
+    min_elements = 1L,
+    min_support = 0,
+    max_search_states = 100000L,
+    budget = ngeo_resource_budget()) {
+  prepared <- .ngeo_regionalization_prepare(
+    x, spatial_weights, layers, n_regions, min_elements, min_support,
+    max_search_states, budget
+  )
+  budget_context <- prepared$budget_context
+  n <- prepared$n
+  n_regions <- prepared$n_regions
+  min_elements <- prepared$min_elements
+  max_search_states <- prepared$max_search_states
+  support_info <- prepared$support_info
+  selected_budget <- prepared$selected_budget
   value_cells <- as.double(n) * length(selected_budget)
   weight_nonzero <- length(
     .ngeo_as_dgCMatrix(spatial_weights$raw_matrix)@x
@@ -1071,6 +1095,10 @@ ngeo_contiguous_regionalization <- function(
 #'   [ngeo_contiguous_regionalization()].
 #'
 #' @return An `ngeo_frozen_regionalization`.
+#' @examples
+#' \dontrun{
+#' frozen <- ngeo_freeze_regionalization(trained_partition)
+#' }
 #' @template stable-statistical-method
 #' @export
 ngeo_freeze_regionalization <- function(partition) {
@@ -1115,6 +1143,10 @@ ngeo_freeze_regionalization <- function(partition) {
 #'
 #' @return A fixed `ngeo_partition` aligned to `x`, suitable for
 #'   [ngeo_aggregate()].
+#' @examples
+#' \dontrun{
+#' applied <- ngeo_apply_regionalization(independent_data, frozen)
+#' }
 #' @template stable-statistical-method
 #' @export
 ngeo_apply_regionalization <- function(

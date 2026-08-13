@@ -12,8 +12,7 @@
 #'
 #' @section Validation evidence:
 #' Manifest schemas, cross-machine replay fixtures, and source-identity checks
-#' are declared in `inst/spec/validation-registry-6.0.csv` and linked to claims
-#' in `inst/validation/claim-evidence-matrix-6.0.csv`.
+#' are declared in `inst/spec/validation-registry-6.0.csv`.
 #'
 #' @references
 #' Sandve, G. K. et al. (2013). Ten simple rules for reproducible computational

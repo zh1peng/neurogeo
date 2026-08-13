@@ -76,3 +76,27 @@ test_that("unregistered and experimental results do not acquire stable claims", 
     class = "ngeo_error_inference_contract"
   )
 })
+
+test_that("6.2 brain-GIS inference amendments are explicit", {
+  point_process <- ngeo_inference_contract(structure(
+    list(),
+    class = "ngeo_brain_point_process"
+  ))
+  hotspots <- ngeo_inference_contract(structure(
+    list(),
+    class = "ngeo_nonseparable_hotspots"
+  ))
+  coupling <- ngeo_inference_contract(structure(
+    list(),
+    class = "ngeo_local_layer_coupling"
+  ))
+
+  expect_match(
+    point_process$uncertainty_target,
+    "simultaneous studentized global"
+  )
+  expect_match(hotspots$null_model, "joint permutation")
+  expect_match(hotspots$uncertainty_target, "within one independent unit")
+  expect_match(coupling$null_model, "Moran spectral")
+  expect_match(coupling$uncertainty_target, "not population")
+})

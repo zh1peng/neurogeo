@@ -12,8 +12,7 @@
 #'
 #' @section Validation evidence:
 #' Temporal-axis, lag, sparse-weight, boundary, and longitudinal fixtures are
-#' declared in `inst/spec/validation-registry-6.0.csv`; linked claim status is in
-#' `inst/validation/claim-evidence-matrix-6.0.csv`.
+#' declared in `inst/spec/validation-registry-6.0.csv`.
 #'
 #' @references
 #' Shumway, R. H. and Stoffer, D. S. (2017). *Time Series Analysis and Its

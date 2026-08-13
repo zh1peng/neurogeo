@@ -398,7 +398,7 @@
       coordinates = base$geometry$coordinates,
       coordinate_meta = base$geometry$coordinate_meta,
       faces = base$geometry$faces,
-      active_coordinate = base$active_coordinate
+      active_coordinates = base$geometry$active_coordinates
     ),
     volume = list(
       dimensions = base$geometry$dim,
@@ -448,37 +448,46 @@
   )
 }
 
+.ngeo_dataset_manifest_metadata <- function(x) {
+  list(
+    base_type = x$base$type,
+    base_sha256 = .ngeo_portable_base_hash(x$base),
+    ordered_element_id_sha256 = .ngeo_order_hash(
+      x$base$elements$element_id
+    ),
+    element_count = nrow(x$base$elements),
+    coordinate_space = list(
+      space_id = x$base$coordinate_space$space_id,
+      sha256 = ngeo_coordinate_space_hash(x$base$coordinate_space)
+    ),
+    values = list(
+      storage = .ngeo_storage_name(x$values),
+      dimensions = if (is.null(x$values)) c(0L, 0L) else dim(x$values),
+      file_identity = if (inherits(x$values, "ngeo_file_values")) {
+        ngeo_file_values_identity(x$values)
+      } else {
+        NULL
+      }
+    ),
+    layer_count = nrow(x$layers),
+    ordered_layer_id_sha256 = .ngeo_order_hash(x$layers$layer_id),
+    layers = x$layers,
+    measures = x$measures,
+    active_coordinates = if (identical(x$base$type, "surface")) {
+      x$base$geometry$active_coordinates
+    } else {
+      NULL
+    }
+  )
+}
+
 .ngeo_object_manifest_metadata <- function(x, schema_id) {
   if (inherits(x, "ngeo_inference_contract")) {
     .ngeo_validate_inference_contract(x)
     return(unclass(x))
   }
   if (inherits(x, "ngeo")) {
-    return(list(
-      base_type = x$base$type,
-      base_sha256 = .ngeo_portable_base_hash(x$base),
-      ordered_element_id_sha256 = .ngeo_order_hash(
-        x$base$elements$element_id
-      ),
-      element_count = nrow(x$base$elements),
-      coordinate_space = list(
-        space_id = x$base$coordinate_space$space_id,
-        sha256 = ngeo_coordinate_space_hash(x$base$coordinate_space)
-      ),
-      values = list(
-        storage = .ngeo_storage_name(x$values),
-        dimensions = if (is.null(x$values)) c(0L, 0L) else dim(x$values),
-        file_identity = if (inherits(x$values, "ngeo_file_values")) {
-          ngeo_file_values_identity(x$values)
-        } else {
-          NULL
-        }
-      ),
-      layer_count = nrow(x$layers),
-      ordered_layer_id_sha256 = .ngeo_order_hash(x$layers$layer_id),
-      layers = x$layers,
-      measures = x$measures
-    ))
+    return(.ngeo_dataset_manifest_metadata(x))
   }
   if (inherits(x, "ngeo_coordinate_space")) {
     return(list(
@@ -650,7 +659,7 @@
 ngeo_object_manifest <- function(x) {
   report <- .ngeo_schema_report(x)
   manifest <- list(
-    schema = "NGCS-object-manifest-1",
+    schema = "NGCS-object-manifest-2",
     specification = paste("NGCS", report$schema_version),
     object_schema = report$schema_id,
     object_schema_version = report$schema_version,
@@ -700,7 +709,7 @@ ngeo_validate_manifest <- function(
     } else {
       NA_character_
     }
-    if (!identical(manifest$schema, "NGCS-object-manifest-1") ||
+    if (!identical(manifest$schema, "NGCS-object-manifest-2") ||
         !identical(
           manifest$specification,
           paste("NGCS", manifest$object_schema_version)

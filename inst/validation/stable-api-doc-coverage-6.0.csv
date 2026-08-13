@@ -7,6 +7,7 @@
 "ngeo_adjacency","core-api","man/ngeo_adjacency.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_affine_grid_map","core-api","man/ngeo_affine_grid_map.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_aggregate","neuroimaging-methods","man/ngeo_aggregate.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_apply_regionalization","statistical-methods","man/ngeo_apply_regionalization.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_apply_transform","core-api","man/ngeo_apply_transform.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_apply_transform_path","core-api","man/ngeo_apply_transform_path.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_artifact_manifest","reproducibility-engineering","man/ngeo_artifact_manifest.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -58,6 +59,7 @@
 "ngeo_file_values_identity","io","man/ngeo_file_values_validation.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_fit_variogram","statistical-methods","man/ngeo_fit_variogram.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_flatten_surface","core-api","man/ngeo_flatten_surface.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_freeze_regionalization","statistical-methods","man/ngeo_freeze_regionalization.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_geary","statistical-methods","man/ngeo_geary.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_get_time_axis","core-api","man/ngeo_get_time_axis.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_getis_ord","core-api","man/ngeo_getis_ord.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -68,6 +70,7 @@
 "ngeo_gwr_uncertainty","statistical-methods","man/ngeo_gwr_uncertainty.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_history","core-api","man/ngeo_prefixed_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_history_dag","core-api","man/ngeo_history_dag.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_hotspot_group_features","statistical-methods","man/ngeo_hotspot_group_features.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_inference_contract","core-api","man/ngeo_inference_contract.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_invert_transform","core-api","man/ngeo_invert_transform.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_iterative_solve","core-api","man/ngeo_iterative_solve.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -92,6 +95,7 @@
 "ngeo_migrate_support_map_exchange","neuroimaging-methods","man/ngeo_migrate_support_map_exchange.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_model_calibration","statistical-methods","man/ngeo_model_calibration.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_moran","statistical-methods","man/ngeo_moran.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_moran_null","statistical-methods","man/ngeo_moran_null.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_multiscale_inference","core-api","man/ngeo_multiscale_inference.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_neighbors","core-api","man/ngeo_neighbors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_nonseparable_hotspots","statistical-methods","man/ngeo_nonseparable_hotspots.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE

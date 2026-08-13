@@ -92,8 +92,7 @@ surrogate <- ngeo_moran_null(
   "signal",
   nsim = 12,
   seed = 6003,
-  zero_policy = TRUE,
-  experimental = TRUE
+  zero_policy = TRUE
 )
 source_values <- irregular$values[, "signal"]
 moran_value <- getFromNamespace(".ngeo_moran_value", "neurogeo")
@@ -166,10 +165,10 @@ checks <- list(
     identical(readLines(atomic_path), "old"),
   haar_rotation = max(abs(rotation_means)) < rotation_mean_tolerance &&
     max(abs(rotation_seconds - 1 / 3)) < 0.03,
-  moran_surrogate_disclosure =
-    identical(surrogate$status, "experimental_uncalibrated") &&
-    !isTRUE(surrogate$preserves_spatial_autocorrelation) &&
-    all(unlist(invariant_deltas) > 1e-8),
+  moran_surrogate_invariants =
+    identical(surrogate$status, "stable") &&
+    isTRUE(surrogate$preserves_spatial_autocorrelation) &&
+    all(unlist(invariant_deltas) < 1e-10),
   metric_role_gate = inherits(metric_condition, "ngeo_error_metric"),
   inverse_distance_gate = inherits(inverse_condition, "ngeo_error_metric"),
   kriging_covariance_gate = inherits(

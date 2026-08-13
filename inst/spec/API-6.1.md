@@ -40,7 +40,8 @@ dimensionless unless separately calibrated.
 
 The stable result contracts are normative in
 `inference-contracts-6.0.csv`; the retained filename denotes the canonical 6.x
-registry. In particular:
+registry. The statements below describe the 6.1 contract; `API-6.2.md` records
+the later null-model and multiplicity amendments. In 6.1:
 
 - MAUP sensitivity, landscape geometry, resistance distance, wavelet
   scale-space, and nonseparable hotspot states are descriptive under their

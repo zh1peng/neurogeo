@@ -16,8 +16,7 @@ stopifnot(
 ignore <- readLines(".Rbuildignore", warn = FALSE)
 required_ignores <- c(
   "^design$", "^release$", "^website$", "^check-output.*$",
-  "^neurogeo5\\.1_refactor_plan_zh\\.md$",
-  "^neurogeo_6\\.0_audit_and_improvement_plan_zh\\.md$"
+  "^neurogeo5\\.1_refactor_plan_zh\\.md$"
 )
 if (!all(required_ignores %in% ignore)) {
   stop(".Rbuildignore does not exclude every reviewed internal boundary.")

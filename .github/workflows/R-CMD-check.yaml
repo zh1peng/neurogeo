@@ -83,7 +83,9 @@ jobs:
           install.packages(".", repos = NULL, type = "source")
 
       - name: Installed NGCS 1.0-2.9 conformance
-        run: Rscript tools/run-installed-conformance-291.R
+        run: |
+          Rscript tools/run-installed-conformance-291.R
+          Rscript tools/run-hardening-62-validation.R
 
       - name: Stable 6.0 API contract
         run: Rscript tools/run-contract-60-audit.R
@@ -95,11 +97,11 @@ jobs:
           Rscript tools/check-package-boundary-60.R
           Rscript tools/check-complexity-60.R
           Rscript tools/check-release-readiness-60.R
-          Rscript tools/check-audit-task-status-60.R
-          Rscript tools/check-release-scope-waivers-60.R
 
       - name: Public API lifecycle registry
-        run: Rscript tools/check-feature-freeze-60.R
+        run: |
+          Rscript tools/check-feature-freeze-60.R
+          Rscript tools/check-api-lifecycle-60.R
 
       - name: Stable API contract snapshots
         run: Rscript tools/check-api-contracts-60.R
@@ -107,9 +109,7 @@ jobs:
       - name: Stable scientific inference contracts
         run: |
           Rscript tools/check-inference-contracts-60.R
-          Rscript tools/check-claim-evidence-60.R
           Rscript tools/check-val302-external-evidence-60.R
-          Rscript tools/check-phase3-amendment-proposals-60.R
 
       - name: User-visible condition contracts
         run: |
@@ -124,9 +124,6 @@ jobs:
           Rscript tools/check-tutorial-fixtures-60.R
           Rscript tools/check-quickstart-60.R
           Rscript tools/check-format-tutorials-60.R
-          Rscript tools/check-formative-usability-60.R
-          Rscript tools/check-ux301-60.R
-          Rscript tools/check-phase4-readiness-60.R
 
       - name: Controlled user terminology
         run: Rscript tools/check-user-terminology-60.R

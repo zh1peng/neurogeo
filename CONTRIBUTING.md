@@ -57,7 +57,7 @@ cleanup with a scientific change.
 
 Every science or public-API change requires approval from at least one reviewer
 who did not author the change. Scientific changes must update the inference
-contract and claim-evidence entry before results are inspected. A maintainer
+contract and its executable validation before release. A maintainer
 may merge documentation-only or CI-maintenance changes after the relevant
 automated gates pass. Version tags and GitHub Releases additionally require the
 release attestation and the release-owner approval.

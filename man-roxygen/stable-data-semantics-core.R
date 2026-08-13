@@ -12,8 +12,8 @@
 #'
 #' @section Validation evidence:
 #' Alignment, layer-index, measure, chunking, projection, and coupling fixtures
-#' are declared in `inst/spec/validation-registry-6.0.csv`; claim status is in
-#' `inst/validation/claim-evidence-matrix-6.0.csv`.
+#' and their evidence outputs are declared in
+#' `inst/spec/validation-registry-6.0.csv`.
 #'
 #' @references
 #' Wickham, H. (2014). Tidy data. *Journal of Statistical Software*, 59, 1--23.

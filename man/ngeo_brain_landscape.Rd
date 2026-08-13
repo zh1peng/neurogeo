@@ -67,9 +67,8 @@ and an analysis support that matches the spatial weights.
 
 \section{Validation evidence}{
 
-The validation target and evidence status for stable statistical methods are
-recorded in `inst/validation/claim-evidence-matrix-6.0.csv`; executable
-simulation and conformance suites are declared in
+Executable simulation and conformance suites for stable statistical methods
+and their evidence outputs are declared in
 `inst/spec/validation-registry-6.0.csv`.
 }
 

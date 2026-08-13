@@ -41,4 +41,20 @@ if (length(missing_61)) {
     paste(missing_61, collapse = ", ")
   )
 }
+contract <- function(result_class) {
+  registry[registry$result_class == result_class, , drop = FALSE]
+}
+point_process <- contract("ngeo_brain_point_process")
+hotspots <- contract("ngeo_nonseparable_hotspots")
+local_coupling <- contract("ngeo_local_layer_coupling")
+if (!grepl("simultaneous studentized global", point_process$uncertainty_target,
+           fixed = TRUE) ||
+    !grepl("joint permutation", hotspots$null_model, fixed = TRUE) ||
+    !grepl("max-T reference-map", hotspots$uncertainty_target,
+           fixed = TRUE) ||
+    !grepl("Moran spectral", local_coupling$null_model, fixed = TRUE) ||
+    !grepl("not population", local_coupling$uncertainty_target,
+           fixed = TRUE)) {
+  stop("Stable 6.2 inference-contract amendments are missing or stale.")
+}
 cat("Inference contracts:", nrow(registry), "stable scientific result classes.\n")

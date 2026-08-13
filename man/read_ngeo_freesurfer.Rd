@@ -76,8 +76,8 @@ qform/sform or surface-space identity, and authorize overwrite operations.
 \section{Validation evidence}{
 
 Round-trip, malformed-header, checksum, path-privacy, and golden-file suites
-are declared in `inst/spec/validation-registry-6.0.csv`; claim status is
-recorded in `inst/validation/claim-evidence-matrix-6.0.csv`.
+and their evidence outputs are declared in
+`inst/spec/validation-registry-6.0.csv`.
 }
 
 \examples{

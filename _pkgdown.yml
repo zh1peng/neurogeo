@@ -61,6 +61,7 @@ articles:
   - workflow-cifti
   - workflow-roi-cohort
   - multilayer-inference
+  - brain-gis-inference-62
   - core-concepts
   - reading-data
   - schema-validation
@@ -240,6 +241,20 @@ reference:
   - ngeo_layer_coupling
   - ngeo_exchangeability
   - ngeo_group_test
+- title: Brain GIS analysis
+  contents:
+  - ngeo_maup_sensitivity
+  - ngeo_local_layer_coupling
+  - ngeo_support_path
+  - ngeo_wavelet_coupling
+  - ngeo_contiguous_regionalization
+  - ngeo_freeze_regionalization
+  - ngeo_apply_regionalization
+  - ngeo_brain_landscape
+  - ngeo_resistance_distance
+  - ngeo_brain_point_process
+  - ngeo_nonseparable_hotspots
+  - ngeo_hotspot_group_features
 - title: Experimental spatial methods
   desc: Optional exploratory methods outside the stable 5.0 inference surface.
   contents:

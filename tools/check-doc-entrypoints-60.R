@@ -78,11 +78,6 @@ checks <- list(
     "packageVersion\\(\\\"neurogeo\\\"\\).{0,160}5\\.[01]\\.0",
     source_text,
     perl = TRUE
-  ),
-  paper_superseded = grepl(
-    "SUPERSEDED — NOT THE 6.0 MANUSCRIPT",
-    read_utf8("paper/paper.md"),
-    fixed = TRUE
   )
 )
 

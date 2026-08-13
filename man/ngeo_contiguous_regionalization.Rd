@@ -2,6 +2,7 @@
 % Please edit documentation in R/experimental-wavelet-regionalization-61.R
 \name{ngeo_contiguous_regionalization}
 \alias{ngeo_contiguous_regionalization}
+\alias{.ngeo_regionalization_prepare}
 \title{Learn contiguous regions from aligned layers}
 \usage{
 ngeo_contiguous_regionalization(
@@ -67,9 +68,8 @@ and an analysis support that matches the spatial weights.
 
 \section{Validation evidence}{
 
-The validation target and evidence status for stable statistical methods are
-recorded in `inst/validation/claim-evidence-matrix-6.0.csv`; executable
-simulation and conformance suites are declared in
+Executable simulation and conformance suites for stable statistical methods
+and their evidence outputs are declared in
 `inst/spec/validation-registry-6.0.csv`.
 }
 

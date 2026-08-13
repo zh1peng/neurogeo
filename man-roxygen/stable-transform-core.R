@@ -12,8 +12,7 @@
 #'
 #' @section Validation evidence:
 #' Direction, composition, inversion, ambiguity, and path-history fixtures are
-#' declared in `inst/spec/validation-registry-6.0.csv`; claim status is linked in
-#' `inst/validation/claim-evidence-matrix-6.0.csv`.
+#' declared in `inst/spec/validation-registry-6.0.csv`.
 #'
 #' @references
 #' Avants, B. B. et al. (2011). A reproducible evaluation of ANTs similarity

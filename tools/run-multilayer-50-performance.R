@@ -134,10 +134,12 @@ run_layer_case <- function(subjects, layers) {
     spatial_weights <- ngeo_spatial_weights(
       fixture$x, method = "region_contiguity", style = "B"
     )
-    basis <- ngeo_spatial_basis(fixture$x, spatial_weights, n_modes = 8L)
+    # The 16 x 8 grid has a two-dimensional eigenspace at this boundary.
+    # Retain the complete cluster instead of weakening the degeneracy guard.
+    basis <- ngeo_spatial_basis(fixture$x, spatial_weights, n_modes = 9L)
     features <- ngeo_basis_project(
       fixture$x, basis, index = index,
-      bands = list(retained = 1:8),
+      bands = list(retained = 1:9),
       summaries = c("absolute_energy", "roughness"),
       chunk_rows = 64L, chunk_layers = 10L
     )

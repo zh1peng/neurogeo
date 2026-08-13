@@ -700,21 +700,11 @@ ngeo_maup_sensitivity <- function(
 #' \dontrun{
 #' ngeo_local_layer_coupling(x, index, spatial_weights, permutations = 0)
 #' }
-#' @export
-ngeo_local_layer_coupling <- function(
-    x,
-    index,
-    spatial_weights,
-    pairs = NULL,
-    metrics = c("local_cross_moran", "local_geary", "coexceedance"),
-    direction = c("both", "x_to_y", "y_to_x"),
-    exceedance = 0,
-    permutations = 0L,
-    seed = NULL,
-    null = c("moran", "free"),
-    adjust = c("maxT", "none"),
-    maxT_scope = c("subject", "map"),
-    budget = ngeo_resource_budget()) {
+#' @name ngeo_local_layer_coupling
+#' @usage NULL
+.ngeo_local_coupling_prepare <- function(
+    x, index, spatial_weights, pairs, metrics, direction, exceedance,
+    permutations, null, adjust, maxT_scope, budget) {
   ngeo_validate(x, "basic")
   lookup <- .ngeo_coupling_index(x, index)
   allowed <- c("local_cross_moran", "local_geary", "coexceedance")
@@ -725,7 +715,7 @@ ngeo_local_layer_coupling <- function(
       "ngeo_error_argument"
     )
   }
-  direction <- match.arg(direction)
+  direction <- match.arg(direction, c("both", "x_to_y", "y_to_x"))
   directions <- if (identical(direction, "both")) {
     c("x_to_y", "y_to_x")
   } else {
@@ -739,7 +729,7 @@ ngeo_local_layer_coupling <- function(
     )
   }
   permutations <- .ngeo_permutations(permutations)
-  null <- match.arg(null)
+  null <- match.arg(null, c("moran", "free"))
   if (permutations > 0L && identical(direction, "both")) {
     .ngeo_abort(
       paste(
@@ -758,8 +748,8 @@ ngeo_local_layer_coupling <- function(
       "ngeo_error_argument"
     )
   }
-  adjust <- match.arg(adjust)
-  maxT_scope <- match.arg(maxT_scope)
+  adjust <- match.arg(adjust, c("maxT", "none"))
+  maxT_scope <- match.arg(maxT_scope, c("subject", "map"))
   pair_table <- .ngeo_coupling_pairs(index, pairs, TRUE)
   .ngeo_coupling_measures(
     x, unique(c(pair_table$x, pair_table$y))
@@ -777,6 +767,47 @@ ngeo_local_layer_coupling <- function(
   .ngeo_budget_assert(
     context, "memory_bytes", 256 * maximum_rows
   )
+  list(
+    lookup = lookup, metrics = metrics, directions = directions,
+    permutations = permutations, null = null, adjust = adjust,
+    maxT_scope = maxT_scope, pair_table = pair_table,
+    support_info = support_info, weights_info = weights_info, specs = specs,
+    context = context
+  )
+}
+
+#' @rdname ngeo_local_layer_coupling
+#' @export
+ngeo_local_layer_coupling <- function(
+    x,
+    index,
+    spatial_weights,
+    pairs = NULL,
+    metrics = c("local_cross_moran", "local_geary", "coexceedance"),
+    direction = c("both", "x_to_y", "y_to_x"),
+    exceedance = 0,
+    permutations = 0L,
+    seed = NULL,
+    null = c("moran", "free"),
+    adjust = c("maxT", "none"),
+    maxT_scope = c("subject", "map"),
+    budget = ngeo_resource_budget()) {
+  prepared <- .ngeo_local_coupling_prepare(
+    x, index, spatial_weights, pairs, metrics, direction, exceedance,
+    permutations, null, adjust, maxT_scope, budget
+  )
+  lookup <- prepared$lookup
+  metrics <- prepared$metrics
+  directions <- prepared$directions
+  permutations <- prepared$permutations
+  null <- prepared$null
+  adjust <- prepared$adjust
+  maxT_scope <- prepared$maxT_scope
+  pair_table <- prepared$pair_table
+  support_info <- prepared$support_info
+  weights_info <- prepared$weights_info
+  specs <- prepared$specs
+  context <- prepared$context
   blocks <- lapply(specs, function(spec) {
     .ngeo_budget_checkpoint(context)
     .ngeo_local_coupling_block(

@@ -51,3 +51,36 @@ internally, a shared sign action also preserves their cross-layer spectral
 dependence. A dense eigendecomposition is guarded by
 `options(neurogeo.max_spectral_null_elements)`.
 }
+\section{When to use and limitations}{
+
+Use this finite-map reference randomization only when sign exchangeability
+in the centered Moran eigenbasis answers the scientific question. It must
+not be interpreted as population or subject-level inference.
+}
+
+\section{Units and assumptions}{
+
+Simulations retain the selected layer's unit and preserve sample mean,
+centered sum of squares, and the Moran quadratic form for the declared
+spatial-weights matrix. The input graph and retained observations are fixed.
+}
+
+\section{Validation}{
+
+Exact invariant checks on irregular row-standardized graphs are registered
+in the Phase-0 audit corpus and claim C09.
+}
+
+\examples{
+\dontrun{
+null <- ngeo_moran_null(x, spatial_weights, layer = "signal", nsim = 999)
+}
+}
+\references{
+Wagner, H. H. and Dray, S. (2015). Generating spatially constrained null
+models for irregularly spaced data using Moran spectral randomization
+methods. *Methods in Ecology and Evolution*, 6, 1169--1178.
+}
+\seealso{
+[ngeo_moran()], [ngeo_spin_null()], [ngeo_spatial_weights()]
+}

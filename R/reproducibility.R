@@ -255,7 +255,7 @@ ngeo_environment_snapshot <- function() {
       )
     }
     return(list(
-      schema = "NGCS-logical-object-1",
+      schema = "NGCS-logical-object-2",
       manifest = unclass(manifest),
       values = values,
       labels = x$base$labels

@@ -1,9 +1,10 @@
-# neurogeo 5.0 validation and manuscript evidence
+# neurogeo 5.0 software validation
 
-This document defines the evidence that may support a software or methods
-manuscript. Generated JSON reports are build artifacts, not hand-edited
-results. Each report records package and dependency versions, seeds or hashes,
-and its own pass criteria.
+This document records the executable validation supplied for neurogeo 5.0.
+Generated JSON reports are build artifacts, not hand-edited results. Each
+report records package and dependency versions, seeds or hashes, and its own
+pass criteria. Decisions about using these reports in a paper belong to the
+paper project, not to this package.
 
 | Evidence domain | Frozen source | Required machine report |
 |---|---|---|

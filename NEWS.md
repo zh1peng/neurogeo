@@ -1,5 +1,14 @@
 # neurogeo 6.2.0
 
+* Advanced portable dataset and logical-object identities to schema 2 so a
+  surface's active coordinate set is part of its identity; schema-1 manifests
+  now fail explicitly instead of reusing caches under changed semantics.
+* Strengthened strict validation for active coordinates, coordinate spaces,
+  measurement vocabularies, history records, support identity, and
+  provenance mutations.
+* Made the API lifecycle registry approval-based: an unreviewed public symbol
+  now blocks CI, and synchronized the 6.2 inference contracts and evidence
+  claims with the promoted implementations.
 * Added centered singleton Moran spectral randomization to local cross-layer
   coupling, with exact mean, centered-sum-of-squares, and Moran-quadratic-form
   checks plus independent-unit max-T families.

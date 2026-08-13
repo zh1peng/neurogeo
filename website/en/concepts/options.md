@@ -43,7 +43,7 @@ limits declared by `ngeo_resource_budget()`.
 | `neurogeo.max_qc_elements` | `1000000L` | positive integer | stable | `R/qc.R` |
 | `neurogeo.max_sf_features` | `100000L` | positive integer | stable | `R/chart-sf.R` |
 | `neurogeo.max_spatiotemporal_pairs` | `1e+06` | positive number | stable | `R/spatiotemporal.R` |
-| `neurogeo.max_spectral_null_elements` | `2000L` | positive integer | stable | `R/null-models.R` |
+| `neurogeo.max_spectral_null_elements` | `2000L` | positive integer | stable | `R/experimental-multilayer-gis-61.R;R/null-models.R` |
 | `neurogeo.max_support_contributions` | `1e+07` | positive number | stable | `R/support-builders.R` |
 | `neurogeo.max_support_draws` | `1000L` | positive integer | stable | `R/support-diagnostics.R` |
 | `neurogeo.max_temporal_pairs` | `1e+06` | positive number | stable | `R/spatiotemporal.R` |

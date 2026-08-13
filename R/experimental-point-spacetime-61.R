@@ -304,77 +304,10 @@
   list(lower = lower, upper = upper, p_value = p_value)
 }
 
-#' Analyze events on a finite brain base
-#'
-#' Computes an ordered-pair summary for one or more event types over the
-#' declared base metric. At each radius, the observed fraction of event pairs
-#' within that radius is divided by its exposure-weighted discrete CSR
-#' probability on the same finite base. This reference is analytic for the
-#' coincident process and equal-exposure simple process; unequal-exposure
-#' simple processes use the Monte Carlo mean under the matched sampling design.
-#' The result is dimensionless cumulative
-#' pair enrichment: one is the finite-domain CSR reference, values above one
-#' indicate excess close pairs, and values below one indicate fewer close
-#' pairs. It is not the classical Euclidean area-valued Ripley K and need not
-#' be monotone in radius.
-#'
-#' @param x An `ngeo` object whose elements form the finite event domain.
-#' @param events One atomic vector of element IDs/one-based indices, or a named
-#'   list for marked event types. Repeated IDs require
-#'   `occupancy = "coincident"`.
-#' @param radii Unique non-negative distances in the selected metric.
-#' @param pairs Optional marked-pair table with `x`/`y` or
-#'   `type_x`/`type_y` columns.
-#' @param exposure Positive finite base-aligned opportunity weights. Defaults
-#'   to the base support measure.
-#' @param distance_method Explicit [ngeo_distance()] method; `NULL` uses its
-#'   base-specific default.
-#' @param simulations Number of exposure-weighted discrete CSR simulations for
-#'   envelopes and one-sided clustering p-values.
-#' @param seed Reproducible simulation seed.
-#' @param envelope Pointwise envelopes, a simultaneous studentized maximum-
-#'   deviation envelope across radii within each marked-pair family, or both.
-#' @param envelope_level Coverage level for the selected envelope.
-#' @param occupancy Whether to sample an independent discrete CSR process with
-#'   replacement (the default, permitting coincident events), or a simple
-#'   process by exposure-weighted successive sampling without replacement.
-#'   Unequal-exposure simple processes require simulations so their CSR
-#'   normalization is estimated under the same sampling design. Cross-type
-#'   overlap remains possible in both modes.
-#' @param retain_simulations Whether to retain the complete simulation matrix.
-#'   Pointwise summaries and p-values are returned either way.
-#' @param budget Hard execution limits from [ngeo_resource_budget()].
-#' @param max_elements Hard cap for the finite-domain distance matrix, from 1
-#'   through the stable maximum of 1000 elements.
-#'
-#' @return An `ngeo_brain_point_process` with cumulative pair-enrichment estimates,
-#'   finite-domain CSR references, event records, and optional pointwise or
-#'   simultaneous null envelopes. Population inference is not implied.
-#' @templateVar example_call ngeo_brain_point_process(x, events, radii = c(1, 2, 5))
-#' @template stable-statistical-method
-#' @references
-#' Baddeley, A., Rubak, E., and Turner, R. (2015). *Spatial Point Patterns:
-#' Methodology and Applications with R*. Chapman and Hall/CRC.
-#' @examples
-#' \dontrun{
-#' ngeo_brain_point_process(x, events, radii = c(1, 2, 5))
-#' }
-#' @export
-ngeo_brain_point_process <- function(
-    x,
-    events,
-    radii,
-    pairs = NULL,
-    exposure = NULL,
-    distance_method = NULL,
-    simulations = 0L,
-    seed = NULL,
-    envelope = c("pointwise", "global", "both"),
-    envelope_level = 0.95,
-    occupancy = c("coincident", "simple"),
-    retain_simulations = FALSE,
-    max_elements = 1000L,
-    budget = ngeo_resource_budget()) {
+.ngeo_point_process_prepare <- function(
+    x, events, radii, pairs, exposure, distance_method, simulations,
+    envelope, envelope_level, occupancy, retain_simulations, max_elements,
+    budget) {
   ngeo_validate(x, "basic")
   if (!is.numeric(radii) || !length(radii) || anyNA(radii) ||
       any(!is.finite(radii)) || any(radii < 0) || anyDuplicated(radii)) {
@@ -384,8 +317,8 @@ ngeo_brain_point_process <- function(
     )
   }
   radii <- sort(as.numeric(radii))
-  occupancy <- match.arg(occupancy)
-  envelope <- match.arg(envelope)
+  occupancy <- match.arg(occupancy, c("coincident", "simple"))
+  envelope <- match.arg(envelope, c("pointwise", "global", "both"))
   simulations <- .ngeo_permutations(simulations)
   if (!is.numeric(envelope_level) || length(envelope_level) != 1L ||
       is.na(envelope_level) || !is.finite(envelope_level) ||
@@ -466,10 +399,8 @@ ngeo_brain_point_process <- function(
   )
   resolved_distance_method <- distance_method %||% switch(
     x$base$type,
-    surface = "edge_geodesic",
-    volume = "world_euclidean",
-    point = "euclidean",
-    parcellation = "region_centroid",
+    surface = "edge_geodesic", volume = "world_euclidean",
+    point = "euclidean", parcellation = "region_centroid",
     grayordinate = "edge_geodesic"
   )
   resolved_distance_method <- .ngeo_metric_name(resolved_distance_method)
@@ -487,6 +418,109 @@ ngeo_brain_point_process <- function(
     )
   }
   colnames(reference_probability) <- as.character(radii)
+  list(
+    radii = radii, occupancy = occupancy, envelope = envelope,
+    simulations = simulations, event = event, pair_table = pair_table,
+    exposure = exposure, unequal_exposure = unequal_exposure,
+    normalized_exposure = normalized_exposure,
+    resolved_distance_method = resolved_distance_method, distance = distance,
+    reference_probability = reference_probability, context = context,
+    envelope_level = envelope_level,
+    retain_simulations = retain_simulations
+  )
+}
+
+#' Analyze events on a finite brain base
+#'
+#' Computes an ordered-pair summary for one or more event types over the
+#' declared base metric. At each radius, the observed fraction of event pairs
+#' within that radius is divided by its exposure-weighted discrete CSR
+#' probability on the same finite base. This reference is analytic for the
+#' coincident process and equal-exposure simple process; unequal-exposure
+#' simple processes use the Monte Carlo mean under the matched sampling design.
+#' The result is dimensionless cumulative
+#' pair enrichment: one is the finite-domain CSR reference, values above one
+#' indicate excess close pairs, and values below one indicate fewer close
+#' pairs. It is not the classical Euclidean area-valued Ripley K and need not
+#' be monotone in radius.
+#'
+#' @param x An `ngeo` object whose elements form the finite event domain.
+#' @param events One atomic vector of element IDs/one-based indices, or a named
+#'   list for marked event types. Repeated IDs require
+#'   `occupancy = "coincident"`.
+#' @param radii Unique non-negative distances in the selected metric.
+#' @param pairs Optional marked-pair table with `x`/`y` or
+#'   `type_x`/`type_y` columns.
+#' @param exposure Positive finite base-aligned opportunity weights. Defaults
+#'   to the base support measure.
+#' @param distance_method Explicit [ngeo_distance()] method; `NULL` uses its
+#'   base-specific default.
+#' @param simulations Number of exposure-weighted discrete CSR simulations for
+#'   envelopes and one-sided clustering p-values.
+#' @param seed Reproducible simulation seed.
+#' @param envelope Pointwise envelopes, a simultaneous studentized maximum-
+#'   deviation envelope across radii within each marked-pair family, or both.
+#' @param envelope_level Coverage level for the selected envelope.
+#' @param occupancy Whether to sample an independent discrete CSR process with
+#'   replacement (the default, permitting coincident events), or a simple
+#'   process by exposure-weighted successive sampling without replacement.
+#'   Unequal-exposure simple processes require simulations so their CSR
+#'   normalization is estimated under the same sampling design. Cross-type
+#'   overlap remains possible in both modes.
+#' @param retain_simulations Whether to retain the complete simulation matrix.
+#'   Pointwise summaries and p-values are returned either way.
+#' @param budget Hard execution limits from [ngeo_resource_budget()].
+#' @param max_elements Hard cap for the finite-domain distance matrix, from 1
+#'   through the stable maximum of 1000 elements.
+#'
+#' @return An `ngeo_brain_point_process` with cumulative pair-enrichment estimates,
+#'   finite-domain CSR references, event records, and optional pointwise or
+#'   simultaneous null envelopes. Population inference is not implied.
+#' @templateVar example_call ngeo_brain_point_process(x, events, radii = c(1, 2, 5))
+#' @template stable-statistical-method
+#' @references
+#' Baddeley, A., Rubak, E., and Turner, R. (2015). *Spatial Point Patterns:
+#' Methodology and Applications with R*. Chapman and Hall/CRC.
+#' @examples
+#' \dontrun{
+#' ngeo_brain_point_process(x, events, radii = c(1, 2, 5))
+#' }
+#' @export
+ngeo_brain_point_process <- function(
+    x,
+    events,
+    radii,
+    pairs = NULL,
+    exposure = NULL,
+    distance_method = NULL,
+    simulations = 0L,
+    seed = NULL,
+    envelope = c("pointwise", "global", "both"),
+    envelope_level = 0.95,
+    occupancy = c("coincident", "simple"),
+    retain_simulations = FALSE,
+    max_elements = 1000L,
+    budget = ngeo_resource_budget()) {
+  prepared <- .ngeo_point_process_prepare(
+    x, events, radii, pairs, exposure, distance_method, simulations,
+    envelope, envelope_level, occupancy, retain_simulations, max_elements,
+    budget
+  )
+  event <- prepared$event
+  pair_table <- prepared$pair_table
+  radii <- prepared$radii
+  distance <- prepared$distance
+  exposure <- prepared$exposure
+  reference_probability <- prepared$reference_probability
+  simulations <- prepared$simulations
+  occupancy <- prepared$occupancy
+  envelope <- prepared$envelope
+  envelope_level <- prepared$envelope_level
+  context <- prepared$context
+  unequal_exposure <- prepared$unequal_exposure
+  normalized_exposure <- prepared$normalized_exposure
+  resolved_distance_method <- prepared$resolved_distance_method
+  retain_simulations <- prepared$retain_simulations
   estimates <- .ngeo_k_values(
     event, pair_table, radii, distance, exposure,
     reference_probability
@@ -830,6 +864,158 @@ ngeo_brain_point_process <- function(
   )
 }
 
+.ngeo_hotspot_prepare <- function(
+    x, spatial_weights, spatial_bandwidth, temporal_bandwidth, interaction,
+    spatial_cutoff, temporal_cutoff, z_threshold, permutations, seed, adjust,
+    retain_matrix, budget) {
+  input_axis <- ngeo_get_time_axis(x)
+  permutations <- .ngeo_permutations(permutations)
+  adjust <- match.arg(adjust, c("maxT", "none"))
+  if (permutations > 0L && length(input_axis$time) < 3L) {
+    .ngeo_abort(
+      "Joint space-time inference requires at least three declared time coordinates.",
+      "ngeo_error_time_axis"
+    )
+  }
+  if (!inherits(spatial_weights, "ngeo_spatial_weights") ||
+      !identical(spatial_weights$base_hash, base_hash(x))) {
+    .ngeo_abort(
+      "`spatial_weights` must match the hotspot base.",
+      "ngeo_error_base_mismatch"
+    )
+  }
+  selected <- seq_len(nrow(x$layers))
+  .ngeo_projection_measures(x, selected)
+  measure <- .ngeo_measures_for_layers(x, selected)
+  temporal_semantics <- unique(measure$temporal_semantics)
+  if (length(temporal_semantics) != 1L ||
+      !identical(temporal_semantics, "instantaneous")) {
+    .ngeo_abort(
+      paste(
+        "Hotspot scores currently require one instantaneous temporal",
+        "semantics; interval totals, means, and rates need an explicit",
+        "support transformation before analysis."
+      ),
+      "ngeo_error_temporal_measure"
+    )
+  }
+  if (length(unique(measure$unit)) != 1L) {
+    .ngeo_abort(
+      "Hotspot time maps must share one measurement unit.",
+      "ngeo_error_temporal_measure"
+    )
+  }
+  if (!is.logical(retain_matrix) || length(retain_matrix) != 1L ||
+      is.na(retain_matrix)) {
+    .ngeo_abort("`retain_matrix` must be TRUE or FALSE.",
+                "ngeo_error_argument")
+  }
+  temporal_bandwidth <- temporal_bandwidth %||%
+    if (length(input_axis$time) > 1L) {
+      stats::median(diff(input_axis$time))
+    } else {
+      NA_real_
+    }
+  scalars <- c(spatial_bandwidth, temporal_bandwidth, interaction, z_threshold)
+  if (anyNA(scalars) || any(!is.finite(scalars)) ||
+      spatial_bandwidth <= 0 || temporal_bandwidth <= 0 ||
+      interaction <= 0 || z_threshold <= 0) {
+    .ngeo_abort(
+      "Hotspot bandwidths, interaction, and threshold must be positive.",
+      "ngeo_error_argument"
+    )
+  }
+  spatial_cutoff <- spatial_cutoff %||% ceiling(3 * spatial_bandwidth)
+  temporal_cutoff <- temporal_cutoff %||% 3 * temporal_bandwidth
+  if (!is.numeric(spatial_cutoff) || length(spatial_cutoff) != 1L ||
+      is.na(spatial_cutoff) || !is.finite(spatial_cutoff) ||
+      spatial_cutoff > .Machine$integer.max || spatial_cutoff < 1 ||
+      spatial_cutoff != floor(spatial_cutoff) ||
+      !is.numeric(temporal_cutoff) || length(temporal_cutoff) != 1L ||
+      is.na(temporal_cutoff) || !is.finite(temporal_cutoff) ||
+      temporal_cutoff <= 0) {
+    .ngeo_abort(
+      "Hotspot cutoffs must be positive graph hops and time distance.",
+      "ngeo_error_argument"
+    )
+  }
+  neighborhoods <- .ngeo_hotspot_neighborhoods(
+    x, spatial_weights, input_axis, spatial_cutoff, temporal_cutoff,
+    permutations, budget
+  )
+  c(list(
+    input_axis = input_axis, permutations = permutations, adjust = adjust,
+    temporal_semantics = temporal_semantics,
+    temporal_bandwidth = temporal_bandwidth, spatial_cutoff = spatial_cutoff,
+    temporal_cutoff = temporal_cutoff, seed = seed
+  ), neighborhoods)
+}
+
+.ngeo_hotspot_neighborhoods <- function(
+    x, spatial_weights, input_axis, spatial_cutoff, temporal_cutoff,
+    permutations, budget) {
+  budget_context <- .ngeo_budget_context(budget)
+  n_value <- as.double(nrow(x$base$elements)) * nrow(x$layers)
+  .ngeo_budget_assert(budget_context, "materialized_elements", 6 * n_value)
+  .ngeo_budget_assert(budget_context, "memory_bytes", 192 * n_value)
+  .ngeo_budget_assert(
+    budget_context, "blocks",
+    nrow(x$base$elements) + nrow(x$layers) +
+      as.double(permutations) * nrow(x$layers)
+  )
+  values <- as.matrix(x$values)
+  if (any(!is.finite(values))) {
+    .ngeo_abort(
+      "Emerging-hotspot analysis requires finite values.",
+      "ngeo_error_missing"
+    )
+  }
+  adjacency <- .ngeo_undirected_adjacency(spatial_weights)
+  spatial_neighborhood <- .ngeo_hop_neighborhood(
+    adjacency, as.integer(spatial_cutoff), budget_context
+  )
+  temporal_neighborhood <- lapply(seq_along(input_axis$time), function(i) {
+    distance <- abs(input_axis$time - input_axis$time[[i]])
+    keep <- which(distance <= temporal_cutoff)
+    list(index = keep, distance = distance[keep])
+  })
+  spatial_interaction_available <- any(vapply(
+    spatial_neighborhood, function(z) any(z$hop > 0), logical(1)
+  ))
+  temporal_interaction_available <- any(vapply(
+    temporal_neighborhood, function(z) any(z$distance > 0), logical(1)
+  ))
+  if (!spatial_interaction_available || !temporal_interaction_available) {
+    .ngeo_abort(
+      paste(
+        "The retained neighborhoods contain no positive spatial and",
+        "temporal distances, so a nonseparable interaction is not defined."
+      ),
+      "ngeo_error_support"
+    )
+  }
+  neighborhood_cells <- attr(spatial_neighborhood, "materialized_nodes") +
+    sum(vapply(temporal_neighborhood, function(z) length(z$index), integer(1)))
+  maximum_local_cells <- max(vapply(
+    spatial_neighborhood, function(z) length(z$node), integer(1)
+  )) * max(vapply(
+    temporal_neighborhood, function(z) length(z$index), integer(1)
+  ))
+  .ngeo_budget_assert(
+    budget_context, "materialized_elements",
+    max(6 * n_value + neighborhood_cells, maximum_local_cells)
+  )
+  .ngeo_budget_assert(
+    budget_context, "memory_bytes", 192 * n_value + 24 * neighborhood_cells
+  )
+  list(
+    budget_context = budget_context, values = values, adjacency = adjacency,
+    spatial_neighborhood = spatial_neighborhood,
+    temporal_neighborhood = temporal_neighborhood,
+    maximum_local_cells = maximum_local_cells
+  )
+}
+
 #' Map exploratory nonseparable space-time hotspots
 #'
 #' Computes local Getis--Ord-style standardized scores over graph-hop and
@@ -887,138 +1073,24 @@ ngeo_nonseparable_hotspots <- function(
     adjust = c("maxT", "none"),
     retain_matrix = FALSE,
     budget = ngeo_resource_budget()) {
-  input_axis <- ngeo_get_time_axis(x)
-  permutations <- .ngeo_permutations(permutations)
-  adjust <- match.arg(adjust)
-  if (permutations > 0L && length(input_axis$time) < 3L) {
-    .ngeo_abort(
-      "Joint space-time inference requires at least three declared time coordinates.",
-      "ngeo_error_time_axis"
-    )
-  }
-  if (!inherits(spatial_weights, "ngeo_spatial_weights") ||
-      !identical(spatial_weights$base_hash, base_hash(x))) {
-    .ngeo_abort(
-      "`spatial_weights` must match the hotspot base.",
-      "ngeo_error_base_mismatch"
-    )
-  }
-  budget_context <- .ngeo_budget_context(budget)
-  selected <- seq_len(nrow(x$layers))
-  .ngeo_projection_measures(x, selected)
-  measure <- .ngeo_measures_for_layers(x, selected)
-  temporal_semantics <- unique(measure$temporal_semantics)
-  if (length(temporal_semantics) != 1L ||
-      !identical(temporal_semantics, "instantaneous")) {
-    .ngeo_abort(
-      paste(
-        "Hotspot scores currently require one instantaneous temporal",
-        "semantics; interval totals, means, and rates need an explicit",
-        "support transformation before analysis."
-      ),
-      "ngeo_error_temporal_measure"
-    )
-  }
-  if (length(unique(measure$unit)) != 1L) {
-    .ngeo_abort(
-      "Hotspot time maps must share one measurement unit.",
-      "ngeo_error_temporal_measure"
-    )
-  }
-  if (!is.logical(retain_matrix) || length(retain_matrix) != 1L ||
-      is.na(retain_matrix)) {
-    .ngeo_abort("`retain_matrix` must be TRUE or FALSE.",
-                "ngeo_error_argument")
-  }
-  temporal_bandwidth <- temporal_bandwidth %||% if (length(input_axis$time) > 1L) {
-    stats::median(diff(input_axis$time))
-  } else {
-    NA_real_
-  }
-  scalars <- c(spatial_bandwidth, temporal_bandwidth, interaction, z_threshold)
-  if (anyNA(scalars) || any(!is.finite(scalars)) ||
-      spatial_bandwidth <= 0 || temporal_bandwidth <= 0 ||
-      interaction <= 0 || z_threshold <= 0) {
-    .ngeo_abort(
-      "Hotspot bandwidths, interaction, and threshold must be positive.",
-      "ngeo_error_argument"
-    )
-  }
-  spatial_cutoff <- spatial_cutoff %||% ceiling(3 * spatial_bandwidth)
-  temporal_cutoff <- temporal_cutoff %||% 3 * temporal_bandwidth
-  if (!is.numeric(spatial_cutoff) || length(spatial_cutoff) != 1L ||
-      is.na(spatial_cutoff) || !is.finite(spatial_cutoff) ||
-      spatial_cutoff > .Machine$integer.max || spatial_cutoff < 1 ||
-      spatial_cutoff != floor(spatial_cutoff) ||
-      !is.numeric(temporal_cutoff) || length(temporal_cutoff) != 1L ||
-      is.na(temporal_cutoff) || !is.finite(temporal_cutoff) ||
-      temporal_cutoff <= 0) {
-    .ngeo_abort(
-      "Hotspot cutoffs must be positive graph hops and time distance.",
-      "ngeo_error_argument"
-    )
-  }
-  n_value <- as.double(nrow(x$base$elements)) * nrow(x$layers)
-  .ngeo_budget_assert(
-    budget_context, "materialized_elements", 6 * n_value
+  prepared <- .ngeo_hotspot_prepare(
+    x, spatial_weights, spatial_bandwidth, temporal_bandwidth, interaction,
+    spatial_cutoff, temporal_cutoff, z_threshold, permutations, seed, adjust,
+    retain_matrix, budget
   )
-  .ngeo_budget_assert(
-    budget_context, "memory_bytes", 192 * n_value
-  )
-  .ngeo_budget_assert(
-    budget_context, "blocks",
-    nrow(x$base$elements) + nrow(x$layers) +
-      as.double(permutations) * nrow(x$layers)
-  )
-  values <- as.matrix(x$values)
-  if (any(!is.finite(values))) {
-    .ngeo_abort(
-      "Emerging-hotspot analysis requires finite values.",
-      "ngeo_error_missing"
-    )
-  }
-  adjacency <- .ngeo_undirected_adjacency(spatial_weights)
-  spatial_neighborhood <- .ngeo_hop_neighborhood(
-    adjacency, as.integer(spatial_cutoff), budget_context
-  )
-  temporal_neighborhood <- lapply(seq_along(input_axis$time), function(i) {
-    distance <- abs(input_axis$time - input_axis$time[[i]])
-    keep <- which(distance <= temporal_cutoff)
-    list(index = keep, distance = distance[keep])
-  })
-  spatial_interaction_available <- any(vapply(
-    spatial_neighborhood, function(z) any(z$hop > 0), logical(1)
-  ))
-  temporal_interaction_available <- any(vapply(
-    temporal_neighborhood, function(z) any(z$distance > 0), logical(1)
-  ))
-  if (!spatial_interaction_available || !temporal_interaction_available) {
-    .ngeo_abort(
-      paste(
-        "The retained neighborhoods contain no positive spatial and",
-        "temporal distances, so a nonseparable interaction is not defined."
-      ),
-      "ngeo_error_support"
-    )
-  }
-  neighborhood_cells <- attr(spatial_neighborhood, "materialized_nodes") +
-    sum(vapply(
-      temporal_neighborhood, function(z) length(z$index), integer(1)
-    ))
-  .ngeo_budget_assert(
-    budget_context, "materialized_elements", 6 * n_value + neighborhood_cells
-  )
-  .ngeo_budget_assert(
-    budget_context, "memory_bytes", 192 * n_value + 24 * neighborhood_cells
-  )
-  maximum_local_cells <- max(vapply(
-    spatial_neighborhood, function(z) length(z$node), integer(1)
-  )) * max(vapply(
-    temporal_neighborhood, function(z) length(z$index), integer(1)
-  ))
-  .ngeo_budget_assert(
-    budget_context, "materialized_elements", maximum_local_cells
-  )
+  values <- prepared$values
+  spatial_neighborhood <- prepared$spatial_neighborhood
+  temporal_neighborhood <- prepared$temporal_neighborhood
+  budget_context <- prepared$budget_context
+  input_axis <- prepared$input_axis
+  adjacency <- prepared$adjacency
+  temporal_semantics <- prepared$temporal_semantics
+  temporal_bandwidth <- prepared$temporal_bandwidth
+  spatial_cutoff <- prepared$spatial_cutoff
+  temporal_cutoff <- prepared$temporal_cutoff
+  permutations <- prepared$permutations
+  adjust <- prepared$adjust
+  maximum_local_cells <- prepared$maximum_local_cells
   z <- .ngeo_local_gistar(
     values, spatial_neighborhood, temporal_neighborhood,
     spatial_bandwidth, temporal_bandwidth, interaction, budget_context
@@ -1144,6 +1216,10 @@ ngeo_nonseparable_hotspots <- function(
 #' @param summaries Elementwise time summaries to expose as group endpoints.
 #'
 #' @return An `ngeo_subject_features` object.
+#' @examples
+#' \dontrun{
+#' features <- ngeo_hotspot_group_features(subject_hotspot_results)
+#' }
 #' @template stable-statistical-method
 #' @export
 ngeo_hotspot_group_features <- function(

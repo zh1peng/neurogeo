@@ -1,3 +1,105 @@
+.ngeo_validate_coordinate_space <- function(coordinate_space) {
+  if (!inherits(coordinate_space, "ngeo_coordinate_space") ||
+      !is.list(coordinate_space)) {
+    .ngeo_abort(
+      "Domain coordinate_space fields are invalid.",
+      "ngeo_error_coordinate_space"
+    )
+  }
+  required <- c(
+    "space_id", "kind", "unit", "structure", "template", "density",
+    "resolution", "source_metadata"
+  )
+  scalar_character <- function(value) {
+    is.character(value) && length(value) == 1L && !is.na(value) && nzchar(value)
+  }
+  optional_scalar_character <- function(value) {
+    is.null(value) || scalar_character(value)
+  }
+  valid_resolution <- is.null(coordinate_space$resolution) ||
+    (is.atomic(coordinate_space$resolution) &&
+      length(coordinate_space$resolution) %in% c(1L, 3L) &&
+      !anyNA(coordinate_space$resolution) &&
+      if (is.numeric(coordinate_space$resolution)) {
+        all(is.finite(coordinate_space$resolution)) &&
+          all(coordinate_space$resolution > 0)
+      } else {
+        is.character(coordinate_space$resolution) &&
+          all(nzchar(coordinate_space$resolution))
+      })
+  if (any(!required %in% names(coordinate_space)) ||
+      !scalar_character(coordinate_space$space_id) ||
+      !scalar_character(coordinate_space$kind) ||
+      !coordinate_space$kind %in% c(
+        "unknown", "surface", "volume", "hybrid"
+      ) ||
+      !scalar_character(coordinate_space$unit) ||
+      !optional_scalar_character(coordinate_space$structure) ||
+      !optional_scalar_character(coordinate_space$template) ||
+      !optional_scalar_character(coordinate_space$density) ||
+      !valid_resolution ||
+      !is.list(coordinate_space$source_metadata)) {
+    .ngeo_abort(
+      "Domain coordinate_space fields are invalid.",
+      "ngeo_error_coordinate_space"
+    )
+  }
+  invisible(TRUE)
+}
+
+.ngeo_validate_measures <- function(measures) {
+  required <- c(
+    "measure_id", "unit", "value_type", "support_behavior",
+    "missing_policy", "aggregation"
+  )
+  if (any(!required %in% names(measures)) ||
+      any(vapply(measures[required], function(value) {
+        !is.character(value) || anyNA(value) || any(!nzchar(value))
+      }, logical(1))) ||
+      any(!measures$support_behavior %in% c(
+        "unknown", "intensive", "extensive", "count", "categorical"
+      )) ||
+      any(!measures$missing_policy %in% c("preserve", "exclude"))) {
+    .ngeo_abort(
+      "Measurement metadata contains invalid fields or vocabulary.",
+      "ngeo_error_measure"
+    )
+  }
+  invisible(TRUE)
+}
+
+.ngeo_validate_history <- function(history) {
+  scalar_character <- function(value) {
+    is.character(value) && length(value) == 1L && !is.na(value) && nzchar(value)
+  }
+  if (!is.list(history) ||
+      !scalar_character(history$spec_version) ||
+      !scalar_character(history$package_version) ||
+      (!is.null(history$operations) && !is.list(history$operations))) {
+    .ngeo_abort("Dataset history is invalid.", "ngeo_error_history")
+  }
+  for (operation in history$operations %||% list()) {
+    valid <- is.list(operation) &&
+      scalar_character(operation$operation) &&
+      is.list(operation$software) &&
+      scalar_character(operation$software$package) &&
+      scalar_character(operation$software$version) &&
+      scalar_character(operation$timestamp_utc) &&
+      grepl(
+        "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+        operation$timestamp_utc
+      ) &&
+      is.list(operation$parameters)
+    if (!valid) {
+      .ngeo_abort(
+        "Dataset history contains an invalid operation record.",
+        "ngeo_error_history"
+      )
+    }
+  }
+  invisible(TRUE)
+}
+
 .ngeo_validate_common <- function(x) {
   required <- c("base", "values", "layers", "measures", "history")
   if (!inherits(x, "ngeo") || !is.list(x) ||
@@ -62,6 +164,9 @@
       "Every layer must reference exactly one defined measure.",
       "ngeo_error_measure"
     )
+  }
+  if (!is.list(x$history)) {
+    .ngeo_abort("`history` must be a list.", "ngeo_error_history")
   }
   .ngeo_validate_labels(
     x$base$labels %||% list(),
@@ -192,14 +297,7 @@
   invisible(TRUE)
 }
 
-.ngeo_validate_surface <- function(x, strict) {
-  base <- x$base
-  if (!inherits(base, "ngeo_surface_base") ||
-      !is.list(base$geometry$coordinates) || !length(base$geometry$coordinates)) {
-    .ngeo_abort("Invalid surface base.", "ngeo_error_base")
-  }
-
-  n_vertex <- nrow(base$elements)
+.ngeo_validate_surface_coordinates <- function(base, n_vertex) {
   coordinate_rows <- vapply(base$geometry$coordinates, nrow, integer(1))
   if (any(coordinate_rows != n_vertex)) {
     .ngeo_abort(
@@ -214,6 +312,7 @@
   if (!is.data.frame(coordinate_meta) ||
       any(!required_meta %in% names(coordinate_meta)) ||
       nrow(coordinate_meta) != length(base$geometry$coordinates) ||
+      anyNA(coordinate_meta[required_meta]) ||
       !identical(
         as.character(coordinate_meta$name),
         names(base$geometry$coordinates)
@@ -230,6 +329,15 @@
       anyNA(coordinate_meta$metric_eligible)) {
     .ngeo_abort(
       "Surface coordinate metadata is inconsistent.",
+      "ngeo_error_geometry"
+    )
+  }
+  active_coordinates <- base$geometry$active_coordinates
+  if (!is.character(active_coordinates) ||
+      length(active_coordinates) != 1L || is.na(active_coordinates) ||
+      !active_coordinates %in% names(base$geometry$coordinates)) {
+    .ngeo_abort(
+      "Surface active coordinates must name one available coordinate set.",
       "ngeo_error_geometry"
     )
   }
@@ -250,6 +358,10 @@
       )
     }
   }
+  invisible(TRUE)
+}
+
+.ngeo_validate_surface_faces <- function(base, n_vertex, strict) {
   faces <- base$geometry$faces
   if (!is.matrix(faces) || ncol(faces) != 3L ||
       (length(faces) && (min(faces) < 1L || max(faces) > n_vertex))) {
@@ -275,6 +387,18 @@
       )
     }
   }
+  invisible(TRUE)
+}
+
+.ngeo_validate_surface <- function(x, strict) {
+  base <- x$base
+  if (!inherits(base, "ngeo_surface_base") ||
+      !is.list(base$geometry$coordinates) || !length(base$geometry$coordinates)) {
+    .ngeo_abort("Invalid surface base.", "ngeo_error_base")
+  }
+  n_vertex <- nrow(base$elements)
+  .ngeo_validate_surface_coordinates(base, n_vertex)
+  .ngeo_validate_surface_faces(base, n_vertex, strict)
   invisible(TRUE)
 }
 
@@ -378,11 +502,10 @@ ngeo_validate <- function(x, level = c("basic", "strict", "scientific")) {
     )
   }
 
-  if (level != "basic" && !inherits(x$base$coordinate_space, "ngeo_coordinate_space")) {
-    .ngeo_abort(
-      "Domain coordinate_space must be an `ngeo_coordinate_space` object.",
-      "ngeo_error_coordinate_space"
-    )
+  if (level != "basic") {
+    .ngeo_validate_coordinate_space(x$base$coordinate_space)
+    .ngeo_validate_measures(x$measures)
+    .ngeo_validate_history(x$history)
   }
   if (level == "scientific") {
     if (identical(x$base$coordinate_space$space_id, "unknown")) {

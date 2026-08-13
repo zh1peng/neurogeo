@@ -1,6 +1,7 @@
 ^\.git$
 ^\.github$
 ^\.r-lib$
+^\.codex_(tmp|work)$
 ^\.tools$
 ^_pkgdown\.yml$
 ^benchmarks$
@@ -11,10 +12,8 @@
 ^codemeta\.json$
 ^design$
 ^GOVERNANCE\.md$
-^paper$
 ^neuroimaging_geoinformatics_development_plan\(1\)\.md$
 ^neurogeo_4\.5-5\.0_development_plan_zh\.md$
-^neurogeo_6\.0_audit_and_improvement_plan_zh\.md$
 ^neurogeo5\.1_refactor_plan_zh\.md$
 ^check-output.*$
 ^docs$

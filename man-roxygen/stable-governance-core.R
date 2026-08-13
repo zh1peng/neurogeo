@@ -12,8 +12,7 @@
 #'
 #' @section Validation evidence:
 #' QC, DAG, environment, fixture-integrity, and migration golden tests are
-#' declared in `inst/spec/validation-registry-6.0.csv`; evidence status is linked
-#' in `inst/validation/claim-evidence-matrix-6.0.csv`.
+#' declared in `inst/spec/validation-registry-6.0.csv`.
 #'
 #' @references
 #' Sandve, G. K. et al. (2013). Ten simple rules for reproducible computational

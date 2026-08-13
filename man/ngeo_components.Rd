@@ -36,8 +36,8 @@ rule, explicit isolate policy, and non-negative finite edge weights.
 \section{Validation evidence}{
 
 Distance, adjacency, component, symmetry, isolate, and interoperability
-fixtures are declared in `inst/spec/validation-registry-6.0.csv` and linked
-from `inst/validation/claim-evidence-matrix-6.0.csv`.
+fixtures and their evidence outputs are declared in
+`inst/spec/validation-registry-6.0.csv`.
 }
 
 \examples{

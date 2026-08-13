@@ -42,8 +42,7 @@ reconstruction of missing semantics.
 \section{Validation evidence}{
 
 QC, DAG, environment, fixture-integrity, and migration golden tests are
-declared in `inst/spec/validation-registry-6.0.csv`; evidence status is linked
-in `inst/validation/claim-evidence-matrix-6.0.csv`.
+declared in `inst/spec/validation-registry-6.0.csv`.
 }
 
 \examples{

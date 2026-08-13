@@ -70,8 +70,8 @@ that preserve the null and the declared dependence or blocking structure.
 \section{Validation evidence}{
 
 Null, exchangeability, family-wise error, boundary, and multiscale calibration
-targets are declared in `inst/spec/validation-registry-6.0.csv`; current claim
-evidence is recorded in `inst/validation/claim-evidence-matrix-6.0.csv`.
+targets and their evidence outputs are declared in
+`inst/spec/validation-registry-6.0.csv`.
 }
 
 \examples{

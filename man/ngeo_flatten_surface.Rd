@@ -58,8 +58,8 @@ conservation. Surface operations assume valid faces and matched hemispheres.
 \section{Validation evidence}{
 
 Constructor, topology, affine, surface-map, conservation, and cartography
-fixtures are declared in `inst/spec/validation-registry-6.0.csv`; claim status
-is linked in `inst/validation/claim-evidence-matrix-6.0.csv`.
+fixtures and their evidence outputs are declared in
+`inst/spec/validation-registry-6.0.csv`.
 }
 
 \examples{

@@ -52,9 +52,8 @@ requested volume, surface, grayordinate, or parcellation operation.
 
 \section{Validation evidence}{
 
-Support-map, conservation, resampling, and atlas validation targets are
-recorded in `inst/validation/claim-evidence-matrix-6.0.csv`. Executable
-conformance suites and their evidence outputs are declared in
+Executable support-map, conservation, resampling, and atlas conformance
+suites and their evidence outputs are declared in
 `inst/spec/validation-registry-6.0.csv`.
 }
 

@@ -36,8 +36,7 @@ stable element identity, and explicit temporal boundary and missingness rules.
 \section{Validation evidence}{
 
 Temporal-axis, lag, sparse-weight, boundary, and longitudinal fixtures are
-declared in `inst/spec/validation-registry-6.0.csv`; linked claim status is in
-`inst/validation/claim-evidence-matrix-6.0.csv`.
+declared in `inst/spec/validation-registry-6.0.csv`.
 }
 
 \examples{

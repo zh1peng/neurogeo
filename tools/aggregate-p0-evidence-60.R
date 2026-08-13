@@ -51,6 +51,7 @@ if (!all(identity_pass)) {
 }
 
 candidate <- reports[[1L]]$candidate
+package_version <- read.dcf("DESCRIPTION", fields = "Version")[[1L]]
 artifacts <- lapply(paths, function(path) list(
   path = basename(path),
   sha256 = ngeo_sha256_file(path),
@@ -67,7 +68,7 @@ checks <- list(
   ),
   identity = all(identity_pass),
   suite_pass = all(vapply(reports, `[[`, logical(1), "pass")),
-  package_version = identical(candidate$package_version, "6.0.0")
+  package_version = identical(candidate$package_version, package_version)
 )
 attestation <- list(
   schema = "neurogeo/p0-attestation/1",

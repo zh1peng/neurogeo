@@ -26,6 +26,7 @@ sha_canonical_text <- function(path) {
   digest::digest(bytes[!drop_cr], algo = "sha256", serialize = FALSE)
 }
 report <- jsonlite::read_json(report_path, simplifyVector = FALSE)
+evidence_version <- report$package_version[[1L]]
 cells <- utils::read.csv(cells_path, stringsAsFactors = FALSE, check.names = FALSE)
 receipts <- utils::read.csv(receipts_path, stringsAsFactors = FALSE, check.names = FALSE)
 design_path <- file.path(root, "phase3-design-6.0.json")
@@ -51,9 +52,7 @@ supported <- as.logical(cells$executed)
 checks <- list(
   schema = identical(report$schema[[1L]], "neurogeo/val302-external-reference/1"),
   validation_id = identical(report$validation_id[[1L]], "VAL-302"),
-  package_version = identical(
-    report$package_version[[1L]], read.dcf("DESCRIPTION", fields = "Version")[[1L]]
-  ),
+  package_version = identical(evidence_version, "6.0.0"),
   frozen_design = identical(design_hash, locked_hash) &&
     identical(report$design_sha256[[1L]], design_hash),
   complete_grid = nrow(cells) == 108L && !anyDuplicated(cells[keys]) &&

@@ -12,8 +12,8 @@
 #'
 #' @section Validation evidence:
 #' Dense-reference, chunk-invariance, convergence, seed, and resource-budget
-#' fixtures are declared in `inst/spec/validation-registry-6.0.csv`; claim status
-#' is linked in `inst/validation/claim-evidence-matrix-6.0.csv`.
+#' fixtures and their evidence outputs are declared in
+#' `inst/spec/validation-registry-6.0.csv`.
 #'
 #' @references
 #' Saad, Y. (2003). *Iterative Methods for Sparse Linear Systems*. SIAM.

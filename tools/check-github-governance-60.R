@@ -54,25 +54,17 @@ if (is.data.frame(contexts) && "context" %in% names(contexts)) {
 }
 contexts <- as.character(contexts)
 reviews <- protection$required_pull_request_reviews
-waiver_path <- file.path("inst", "spec", "release-scope-waivers-6.0.json")
-waivers <- jsonlite::read_json(waiver_path, simplifyVector = FALSE)
-waiver_ids <- vapply(
-  waivers$waivers, function(item) item$waiver_id[[1L]], character(1)
-)
-review_waived <- "WVR-PR-001" %in% waiver_ids
 checks <- list(
   branch_protected = TRUE,
   required_status_checks = all(required_contexts %in% contexts) &&
     isTRUE(protection$required_status_checks$strict),
   admins_enforced = isTRUE(protection$enforce_admins$enabled),
-  approving_review_required_or_waived = review_waived || (
+  approving_review_required = (
     is.numeric(reviews$required_approving_review_count) &&
       reviews$required_approving_review_count >= 1L
   ),
-  code_owner_review_required_or_waived = review_waived ||
-    isTRUE(reviews$require_code_owner_reviews),
-  last_push_approval_required_or_waived = review_waived ||
-    isTRUE(reviews$require_last_push_approval),
+  code_owner_review_required = isTRUE(reviews$require_code_owner_reviews),
+  last_push_approval_required = isTRUE(reviews$require_last_push_approval),
   stale_reviews_dismissed = isTRUE(reviews$dismiss_stale_reviews),
   linear_history_required = isTRUE(protection$required_linear_history$enabled),
   conversations_resolved =
@@ -87,14 +79,12 @@ result <- list(
   package_version = description[[1L, "Version"]],
   repository = repository, branch = "main", remote_main = remote_main,
   generated_at_utc = format(Sys.time(), tz = "UTC", format = "%Y-%m-%dT%H:%M:%SZ"),
-  review_waiver_active = review_waived,
   required_contexts = required_contexts,
   observed_contexts = contexts,
   checks = checks, pass = pass,
   evidence_boundary = paste(
-    "This is a live GitHub API observation. WVR-PR-001 applies only to the",
-    "independent approval for this merge; all other checked protections",
-    "remain mandatory and branch settings must be rechecked."
+    "This is a live GitHub API observation. Branch settings must be",
+    "rechecked for each release."
   )
 )
 dir.create(dirname(output), recursive = TRUE, showWarnings = FALSE)

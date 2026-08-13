@@ -55,6 +55,10 @@ receive new inference-registry rows merely because they are stable.
 
 ## Scientific limitations
 
+These are the accepted 6.1 limitations. The reviewed 6.2 amendments are
+recorded in `ADR-6.2-brain-gis-hardening.md`; they do not retroactively change
+the meaning of a result produced by a 6.1 release artifact.
+
 - MAUP output is descriptive support sensitivity, not evidence of atlas
   invariance or a valid basis for choosing a support and testing on the same
   data.
