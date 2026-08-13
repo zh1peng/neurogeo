@@ -190,10 +190,34 @@ test_that("brain landscape reports patches, boundaries, and layer overlap", {
   expect_true(all(result$nodes$gradient >= 0))
   expect_true(all(result$cross_layer_overlap$active_jaccard >= 0))
   expect_true(all(result$cross_layer_overlap$active_jaccard <= 1))
-  expect_identical(result$history$physical_perimeter_claimed, FALSE)
+  expect_identical(result$history$physical_length_claimed, FALSE)
+  expect_match(result$history$boundary_metric, "not_physical_length")
   contract <- ngeo_inference_contract(result)
   expect_identical(contract$identifiers$base_hash, base_hash(fixture$x))
   expect_identical(contract$identifiers$analysis_hash, result$analysis_hash)
+})
+
+test_that("regionalization freeze and apply guard against training leakage", {
+  fixture <- p2_chain_fixture()
+  trained <- ngeo_contiguous_regionalization(
+    fixture$x, fixture$weights, layers = c("s1_x", "s1_y"),
+    n_regions = 2L
+  )
+  frozen <- ngeo_freeze_regionalization(trained)
+
+  expect_s3_class(frozen, "ngeo_frozen_regionalization")
+  expect_error(
+    ngeo_apply_regionalization(fixture$x, frozen),
+    class = "ngeo_error_data_leakage"
+  )
+  application <- fixture$x
+  application$values[, c("s1_x", "s1_y")] <-
+    application$values[, c("s1_x", "s1_y")] + 0.5
+  applied <- ngeo_apply_regionalization(application, frozen)
+  expect_s3_class(applied, "ngeo_partition")
+  expect_identical(applied$membership, trained$membership)
+  expect_identical(applied$regionalization$workflow_state, "applied")
+  expect_false(applied$regionalization$training_values_reused)
 })
 
 test_that("least-cost distance follows the anatomy-conditioned path", {

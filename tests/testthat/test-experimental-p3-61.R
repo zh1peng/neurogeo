@@ -48,6 +48,30 @@ test_that("brain point process simulations are reproducible", {
   expect_equal(first$estimates, second$estimates)
 })
 
+test_that("point process provides global envelopes and weighted simple draws", {
+  x <- ngeo_point(cbind(x = 0:5, y = 0))
+  result <- ngeo_brain_point_process(
+    x, events = c(1L, 3L, 5L), radii = 0:3,
+    exposure = c(1, 2, 3, 4, 5, 6), occupancy = "simple",
+    simulations = 39L, seed = 6202L, envelope = "global",
+    retain_simulations = TRUE
+  )
+
+  expect_true(result$history$familywise_envelope)
+  expect_match(result$history$simple_sampling, "without replacement")
+  expect_match(result$history$csr_normalization, "Monte Carlo")
+  finite <- is.finite(result$estimates$relative_pair_enrichment)
+  expect_true(all(is.finite(
+    result$estimates$global_envelope_lower[finite]
+  )))
+  expect_true(all(result$estimates$p_global_clustering[finite] > 0))
+  simulation_mean <- colMeans(result$simulations$estimates, na.rm = TRUE)
+  expect_equal(
+    simulation_mean[is.finite(simulation_mean)],
+    rep(1, sum(is.finite(simulation_mean))), tolerance = 1e-12
+  )
+})
+
 p3_time_fixture <- function() {
   values <- matrix(
     c(
@@ -117,6 +141,35 @@ test_that("nonseparable hotspots reject a separable zero interaction", {
     ),
     class = "ngeo_error_argument"
   )
+})
+
+test_that("hotspots provide joint null maxT and group feature interface", {
+  fixture <- p3_time_fixture()
+  first <- ngeo_nonseparable_hotspots(
+    fixture$x, fixture$weights, spatial_cutoff = 2L,
+    temporal_cutoff = 3, permutations = 19L, seed = 6203L
+  )
+  second_x <- fixture$x
+  second_x$values <- second_x$values + matrix(
+    seq_len(length(second_x$values)) / 100,
+    nrow = nrow(second_x$values)
+  )
+  second <- ngeo_nonseparable_hotspots(
+    second_x, fixture$weights, spatial_cutoff = 2L,
+    temporal_cutoff = 3, permutations = 19L, seed = 6204L
+  )
+
+  expect_true(first$history$familywise_error_control)
+  expect_true(all(first$local$p_adjusted >= first$local$p_value))
+  expect_true(all(first$local$time_unit == "day"))
+  features <- ngeo_hotspot_group_features(
+    list(subject_1 = first, subject_2 = second),
+    summaries = c("mean_z", "trend")
+  )
+  expect_s3_class(features, "ngeo_subject_features")
+  expect_identical(rownames(features$values), c("subject_1", "subject_2"))
+  expect_equal(ncol(features$values), 12L)
+  expect_identical(features$diagnostics$time_unit, "day")
 })
 
 test_that("finite-domain pair enrichment has exact CSR normalization", {

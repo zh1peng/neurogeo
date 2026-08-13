@@ -87,27 +87,15 @@ test_that("explicit-bandwidth kernel regression recovers a linear field", {
   expect_identical(attr(result, "distance_method"), "euclidean")
 })
 
-test_that("Moran eigen-sign surrogates are explicit and reproducible", {
+test_that("singleton Moran spectral randomizations are reproducible", {
   fixture <- model_grid()
-  expect_error(
-    ngeo_moran_null(
-      fixture$x,
-      fixture$spatial_weights,
-      layer = "response",
-      nsim = 2,
-      seed = 99,
-      zero_policy = TRUE
-    ),
-    class = "ngeo_error_experimental"
-  )
   first <- ngeo_moran_null(
     fixture$x,
     fixture$spatial_weights,
     layer = "response",
     nsim = 8,
     seed = 99,
-    zero_policy = TRUE,
-    experimental = TRUE
+    zero_policy = TRUE
   )
   second <- ngeo_moran_null(
     fixture$x,
@@ -115,14 +103,13 @@ test_that("Moran eigen-sign surrogates are explicit and reproducible", {
     layer = "response",
     nsim = 8,
     seed = 99,
-    zero_policy = TRUE,
-    experimental = TRUE
+    zero_policy = TRUE
   )
   expect_s3_class(first, "ngeo_null")
   expect_identical(first$simulations, second$simulations)
-  expect_identical(first$method, "eigen_sign_surrogate")
-  expect_identical(first$status, "experimental_uncalibrated")
-  expect_false(first$preserves_spatial_autocorrelation)
+  expect_identical(first$method, "moran_spectral_randomization_singleton")
+  expect_identical(first$status, "stable")
+  expect_true(first$preserves_spatial_autocorrelation)
 })
 
 test_that("simulation streams are reproducible across worker counts", {

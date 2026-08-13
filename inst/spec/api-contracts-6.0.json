@@ -1,7 +1,7 @@
 {
   "schema": "neurogeo/api-contracts/1",
-  "package_version": "6.1.0",
-  "stable_count": 338,
+  "package_version": "6.2.0",
+  "stable_count": 343,
   "contracts": {
     "aggregate_to": {
       "symbol": "aggregate_to",
@@ -396,7 +396,7 @@
         "budget": "ngeo_resource_budget()"
       },
       "condition_classes": ["ngeo_error_alignment", "ngeo_error_argument", "ngeo_error_base_mismatch", "ngeo_error_topology"],
-      "documentation_sha256": "80a8c1284dc168bfc1427ff78804a29c7e0fd6b52386e993d1104cb4261b67be"
+      "documentation_sha256": "27a2b2661170cc9b85557ab7b5833e334fec917afe845731b8051d5f1a13c18e"
     },
     "ngeo_brain_point_process": {
       "symbol": "ngeo_brain_point_process",
@@ -410,13 +410,15 @@
         "distance_method": "NULL",
         "simulations": "0L",
         "seed": "NULL",
+        "envelope": "c(\"pointwise\", \"global\", \"both\")",
+        "envelope_level": "0.95",
         "occupancy": "c(\"coincident\", \"simple\")",
         "retain_simulations": "FALSE",
         "max_elements": "1000L",
         "budget": "ngeo_resource_budget()"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_resource", "ngeo_error_support"],
-      "documentation_sha256": "22ba19d8078935c26770af9618bec7f8e29b1717fe28cce6748f24499f46e1f9"
+      "documentation_sha256": "fb0df59dc3873f2448a34129bf268d17b565009935e863b4d9ff7c0f2bd21e22"
     },
     "ngeo_build_resampling_map": {
       "symbol": "ngeo_build_resampling_map",
@@ -427,6 +429,17 @@
       },
       "condition_classes": [],
       "documentation_sha256": "ea91877a1484267b3d34873fabd814fb89f26652d62441c16f4bceb10bda2be5"
+    },
+    "ngeo_apply_regionalization": {
+      "symbol": "ngeo_apply_regionalization",
+      "type": "export",
+      "formals": {
+        "x": "",
+        "frozen": "",
+        "allow_training_data": "FALSE"
+      },
+      "condition_classes": ["ngeo_error_argument", "ngeo_error_base_mismatch", "ngeo_error_data_leakage", "ngeo_error_partition"],
+      "documentation_sha256": "4d04dfcb7297d7cfca22cc39703598378bb798f17bf6d42eed5f7ef3c61d7737"
     },
     "ngeo_capabilities": {
       "symbol": "ngeo_capabilities",
@@ -818,6 +831,15 @@
       "condition_classes": ["ngeo_error_argument", "ngeo_error_geometry"],
       "documentation_sha256": "4b8485e4792baa13c19348b54ad27ec1e9ed9196168c93657750471ccda171f1"
     },
+    "ngeo_freeze_regionalization": {
+      "symbol": "ngeo_freeze_regionalization",
+      "type": "export",
+      "formals": {
+        "partition": ""
+      },
+      "condition_classes": "ngeo_error_partition",
+      "documentation_sha256": "3778f291f764586e8502284a3fb087a79f306d1bef8b34900404985d7c53873a"
+    },
     "ngeo_geary": {
       "symbol": "ngeo_geary",
       "type": "export",
@@ -970,6 +992,16 @@
       },
       "condition_classes": "ngeo_error_history_dag",
       "documentation_sha256": "b17de6cf28adfe39d670322fdceaa24ac606304bade9dfc367460ccabbbe7a60"
+    },
+    "ngeo_hotspot_group_features": {
+      "symbol": "ngeo_hotspot_group_features",
+      "type": "export",
+      "formals": {
+        "results": "",
+        "summaries": "c(\"mean_z\", \"trend\", \"max_abs_z\", \"hot_fraction\")"
+      },
+      "condition_classes": ["ngeo_error_alignment", "ngeo_error_argument", "ngeo_error_independent_unit"],
+      "documentation_sha256": "f013a467a352a86a6427c60aab4e71d79133ab9bf0039fb1842cbff880707f0d"
     },
     "ngeo_inference_contract": {
       "symbol": "ngeo_inference_contract",
@@ -1135,11 +1167,13 @@
         "exceedance": "0",
         "permutations": "0L",
         "seed": "NULL",
+        "null": "c(\"moran\", \"free\")",
         "adjust": "c(\"maxT\", \"none\")",
+        "maxT_scope": "c(\"subject\", \"map\")",
         "budget": "ngeo_resource_budget()"
       },
       "condition_classes": ["ngeo_error_argument", "ngeo_error_layer_missing"],
-      "documentation_sha256": "c2c79f969e578e44f14f19732fb496990bb116ed1459cec33bc662bede564731"
+      "documentation_sha256": "41354d052fec760eeea7d228895cde4b2f562de9e21b72630d392317757ec86f"
     },
     "ngeo_local_moran": {
       "symbol": "ngeo_local_moran",
@@ -1301,6 +1335,23 @@
       "condition_classes": [],
       "documentation_sha256": "7cc1e8a11f51623cc6056d012c5948ab5d2a4f3d5325fc6d8fd08e2890f98eb0"
     },
+    "ngeo_moran_null": {
+      "symbol": "ngeo_moran_null",
+      "type": "export",
+      "formals": {
+        "x": "",
+        "spatial_weights": "",
+        "layer": "1L",
+        "nsim": "999L",
+        "seed": "NULL",
+        "na_action": "c(\"fail\", \"omit\")",
+        "zero_policy": "FALSE",
+        "workers": "1L",
+        "experimental": "FALSE"
+      },
+      "condition_classes": ["ngeo_error_argument", "ngeo_error_resource"],
+      "documentation_sha256": "1de3ab28f4c40a6a35fff7542ca146d3838975b168c4ab0fb3f3603ec0397fe3"
+    },
     "ngeo_multiscale_inference": {
       "symbol": "ngeo_multiscale_inference",
       "type": "export",
@@ -1351,11 +1402,14 @@
         "spatial_cutoff": "NULL",
         "temporal_cutoff": "NULL",
         "z_threshold": "1.96",
+        "permutations": "0L",
+        "seed": "NULL",
+        "adjust": "c(\"maxT\", \"none\")",
         "retain_matrix": "FALSE",
         "budget": "ngeo_resource_budget()"
       },
-      "condition_classes": ["ngeo_error_argument", "ngeo_error_base_mismatch", "ngeo_error_missing", "ngeo_error_support", "ngeo_error_temporal_measure"],
-      "documentation_sha256": "7e3e85ea0069d54d18107b03ada2e7af07097a92884dc7a543bf64317b877f5c"
+      "condition_classes": ["ngeo_error_argument", "ngeo_error_base_mismatch", "ngeo_error_missing", "ngeo_error_support", "ngeo_error_temporal_measure", "ngeo_error_time_axis"],
+      "documentation_sha256": "3f61dae36fa550b3b72c2a80bd4b4c6d25f9e3ee7935515988b161a50a93b947"
     },
     "ngeo_object_manifest": {
       "symbol": "ngeo_object_manifest",
@@ -3545,6 +3599,16 @@
     },
     "print.ngeo_file_values": {
       "symbol": "print.ngeo_file_values",
+      "type": "s3_method",
+      "formals": {
+        "x": "",
+        "...": ""
+      },
+      "condition_classes": [],
+      "documentation_sha256": ""
+    },
+    "print.ngeo_frozen_regionalization": {
+      "symbol": "print.ngeo_frozen_regionalization",
       "type": "s3_method",
       "formals": {
         "x": "",

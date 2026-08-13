@@ -1,3 +1,20 @@
+# neurogeo 6.2.0
+
+* Added centered singleton Moran spectral randomization to local cross-layer
+  coupling, with exact mean, centered-sum-of-squares, and Moran-quadratic-form
+  checks plus independent-unit max-T families.
+* Added an explicit train/freeze/apply workflow for contiguous regionalization;
+  test applications reuse fixed membership and reject exact training-value
+  reuse by default.
+* Added simultaneous studentized global envelopes for finite-domain point
+  processes and sampling-design-matched, exposure-weighted simple-process
+  simulations without replacement.
+* Added joint space-time reference-map permutations, local max-T familywise
+  control, and a subject-feature bridge to `ngeo_group_test()` for
+  nonseparable hotspots. Temporal distances use the declared real-time axis.
+* Renamed brain-landscape shape language to boundary-edge counts and an
+  explicitly non-physical support-per-edge proxy.
+
 # neurogeo 6.1.0
 
 * Added ten stable brain-GIS APIs for support-design sensitivity, local

@@ -13,6 +13,8 @@ ngeo_brain_point_process(
   distance_method = NULL,
   simulations = 0L,
   seed = NULL,
+  envelope = c("pointwise", "global", "both"),
+  envelope_level = 0.95,
   occupancy = c("coincident", "simple"),
   retain_simulations = FALSE,
   max_elements = 1000L,
@@ -38,16 +40,21 @@ to the base support measure.}
 base-specific default.}
 
 \item{simulations}{Number of exposure-weighted discrete CSR simulations for
-pointwise envelopes and one-sided clustering p-values.}
+envelopes and one-sided clustering p-values.}
 
 \item{seed}{Reproducible simulation seed.}
 
+\item{envelope}{Pointwise envelopes, a simultaneous studentized maximum-
+deviation envelope across radii within each marked-pair family, or both.}
+
+\item{envelope_level}{Coverage level for the selected envelope.}
+
 \item{occupancy}{Whether to sample an independent discrete CSR process with
 replacement (the default, permitting coincident events), or a simple
-process without repeated elements. The current simple-process reference
-requires equal exposure weights; unequal weighted sampling without
-replacement is rejected rather than approximated. Cross-type overlap
-remains possible in both modes.}
+process by exposure-weighted successive sampling without replacement.
+Unequal-exposure simple processes require simulations so their CSR
+normalization is estimated under the same sampling design. Cross-type
+overlap remains possible in both modes.}
 
 \item{retain_simulations}{Whether to retain the complete simulation matrix.
 Pointwise summaries and p-values are returned either way.}
@@ -59,14 +66,17 @@ through the stable maximum of 1000 elements.}
 }
 \value{
 An `ngeo_brain_point_process` with cumulative pair-enrichment estimates,
-  finite-domain CSR references, event records, and optional pointwise null
-  envelopes. Familywise envelopes and population inference are not implied.
+  finite-domain CSR references, event records, and optional pointwise or
+  simultaneous null envelopes. Population inference is not implied.
 }
 \description{
 Computes an ordered-pair summary for one or more event types over the
 declared base metric. At each radius, the observed fraction of event pairs
-within that radius is divided by its exact exposure-weighted discrete CSR
-probability on the same finite base. The result is dimensionless cumulative
+within that radius is divided by its exposure-weighted discrete CSR
+probability on the same finite base. This reference is analytic for the
+coincident process and equal-exposure simple process; unequal-exposure
+simple processes use the Monte Carlo mean under the matched sampling design.
+The result is dimensionless cumulative
 pair enrichment: one is the finite-domain CSR reference, values above one
 indicate excess close pairs, and values below one indicate fewer close
 pairs. It is not the classical Euclidean area-valued Ripley K and need not

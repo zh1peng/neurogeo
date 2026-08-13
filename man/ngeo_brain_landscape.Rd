@@ -43,10 +43,10 @@ An `ngeo_brain_landscape` with node, edge, patch, layer-summary, and
 \description{
 Converts selected continuous layers into explicitly thresholded connected
 patches on the undirected union of a spatial graph. It reports support size,
-graph-edge perimeter and a support-per-edge shape proxy, edge-contrast
+crossing boundary-edge count and a support-per-edge shape proxy, edge-contrast
 summaries, high-contrast
-boundary nodes, and support-weighted cross-layer overlap. Graph-edge counts
-are not physical surface perimeter.
+boundary nodes, and support-weighted cross-layer overlap. Boundary-edge
+counts and the derived shape proxy have no physical length interpretation.
 }
 \section{When to use and limitations}{
 

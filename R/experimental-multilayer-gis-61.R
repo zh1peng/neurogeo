@@ -454,7 +454,8 @@ ngeo_maup_sensitivity <- function(
 
 .ngeo_local_coupling_block <- function(
     x, index, lookup, pair, direction, metric, support, weights,
-    exceedance, permutation = NULL) {
+    exceedance, permutation = NULL, surrogate = NULL) {
+  is_simulation <- !is.null(permutation) || !is.null(surrogate)
   first <- if (identical(direction, "x_to_y")) pair$x else pair$y
   second <- if (identical(direction, "x_to_y")) pair$y else pair$x
   output <- vector("list", nrow(index$unit))
@@ -464,7 +465,11 @@ ngeo_maup_sensitivity <- function(
     current <- .ngeo_coupling_values(x, layers)
     z_x <- .ngeo_local_z(current[, 1L], support)
     z_y <- .ngeo_local_z(current[, 2L], support)
-    simulated_y <- if (is.null(permutation)) {
+    simulated_y <- if (!is.null(surrogate)) {
+      .ngeo_local_z(
+        surrogate[, as.character(layers[[2L]])], support
+      )
+    } else if (is.null(permutation)) {
       z_y
     } else {
       z_y[permutation]
@@ -485,7 +490,7 @@ ngeo_maup_sensitivity <- function(
           as.numeric(z_x <= -exceedance) * low_y
       }
     )
-    if (!is.null(permutation)) {
+    if (is_simulation) {
       output[[unit]] <- statistic
       next
     }
@@ -516,7 +521,7 @@ ngeo_maup_sensitivity <- function(
   }
   output <- Filter(Negate(is.null), output)
   if (!length(output)) return(NULL)
-  if (!is.null(permutation)) return(unlist(output, use.names = FALSE))
+  if (is_simulation) return(unlist(output, use.names = FALSE))
   do.call(rbind, output)
 }
 
@@ -536,18 +541,19 @@ ngeo_maup_sensitivity <- function(
 }
 
 .ngeo_local_coupling_simulation <- function(
-    x, index, lookup, specs, support, weights, exceedance, permutation) {
+    x, index, lookup, specs, support, weights, exceedance,
+    permutation = NULL, surrogate = NULL) {
   unlist(lapply(specs, function(spec) {
     .ngeo_local_coupling_block(
       x, index, lookup, spec$pair, spec$direction, spec$metric,
-      support, weights, exceedance, permutation
+      support, weights, exceedance, permutation, surrogate
     )
   }), use.names = FALSE)
 }
 
 .ngeo_local_coupling_inference <- function(
     result, x, index, lookup, specs, support, weights, exceedance,
-    permutations, seed, adjust, budget) {
+    permutations, seed, adjust, null, maxT_scope, budget) {
   result$p_value <- NA_real_
   result$p_adjusted <- NA_real_
   infer <- result$metric != "coexceedance"
@@ -556,17 +562,57 @@ ngeo_maup_sensitivity <- function(
   metric <- result$metric[infer]
   raw_count <- integer(length(observed))
   adjusted_count <- integer(length(observed))
-  family <- interaction(
-    result$unit_id[infer], result$pair_id[infer],
-    result$direction[infer], result$metric[infer],
-    drop = TRUE, lex.order = TRUE
-  )
-  .ngeo_with_seed(seed, function() {
+  family <- if (identical(maxT_scope, "subject")) {
+    factor(result$unit_id[infer])
+  } else {
+    interaction(
+      result$unit_id[infer], result$pair_id[infer],
+      result$direction[infer], result$metric[infer],
+      drop = TRUE, lex.order = TRUE
+    )
+  }
+  lagged_layers <- unique(unlist(lapply(specs, function(spec) {
+    lagged <- if (identical(spec$direction, "x_to_y")) {
+      spec$pair$y
+    } else {
+      spec$pair$x
+    }
+    as.integer(lookup[, lagged])
+  }), use.names = FALSE))
+  lagged_layers <- lagged_layers[!is.na(lagged_layers)]
+  spatial_draws <- if (identical(null, "moran")) {
+    maximum <- getOption("neurogeo.max_spectral_null_elements", 2000L)
+    if (nrow(x$base$elements) > maximum) {
+      .ngeo_abort(
+        sprintf("Spectral nulls are limited to %d analysed elements.", maximum),
+        "ngeo_error_resource"
+      )
+    }
+    .ngeo_moran_randomizations(
+      as.matrix(x$values[, lagged_layers, drop = FALSE]),
+      weights, permutations, seed
+    )$draws
+  } else {
+    NULL
+  }
+  run <- function() {
     for (simulation in seq_len(permutations)) {
       .ngeo_budget_checkpoint(budget)
-      permutation <- sample(seq_len(nrow(x$base$elements)))
+      permutation <- if (identical(null, "free")) {
+        sample(seq_len(nrow(x$base$elements)))
+      } else {
+        NULL
+      }
+      surrogate <- if (identical(null, "moran")) {
+        current_draw <- spatial_draws[[simulation]]
+        colnames(current_draw) <- as.character(lagged_layers)
+        current_draw
+      } else {
+        NULL
+      }
       current <- .ngeo_local_coupling_simulation(
-        x, index, lookup, specs, support, weights, exceedance, permutation
+        x, index, lookup, specs, support, weights, exceedance,
+        permutation, surrogate
       )[infer]
       for (name in unique(metric)) {
         rows <- which(metric == name)
@@ -597,7 +643,8 @@ ngeo_maup_sensitivity <- function(
       }
     }
     invisible(NULL)
-  })
+  }
+  if (identical(null, "free")) .ngeo_with_seed(seed, run) else run()
   result$p_value[infer] <- (raw_count + 1) / (permutations + 1)
   result$p_adjusted[infer] <- if (identical(adjust, "maxT")) {
     (adjusted_count + 1) / (permutations + 1)
@@ -610,10 +657,10 @@ ngeo_maup_sensitivity <- function(
 #' Map local cross-layer spatial coupling
 #'
 #' Computes directed bivariate local Moran, cross-layer local Geary, and
-#' weighted signed co-exceedance maps for aligned layer pairs. Optional free
-#' permutation tests condition on the observed spatial maps and assume complete
-#' element exchangeability; they do not preserve spatial autocorrelation and do
-#' not constitute population inference.
+#' weighted signed co-exceedance maps for aligned layer pairs. Inference can use
+#' either a reference-map free permutation or singleton Moran spectral
+#' randomization of the lagged stack. The latter preserves each randomized
+#' map's global Moran quadratic form. Neither option is population inference.
 #'
 #' @param x Aligned multilayer `ngeo` object.
 #' @param index Matching `ngeo_layer_index`.
@@ -627,11 +674,16 @@ ngeo_maup_sensitivity <- function(
 #'   multiplicity family is generated by one coherent permutation action.
 #' @param exceedance Non-negative standardized threshold used by
 #'   `coexceedance`.
-#' @param permutations Number of free element permutations. Zero returns
-#'   descriptive maps only.
+#' @param permutations Number of null randomizations. Zero returns descriptive
+#'   maps only.
 #' @param seed Reproducible permutation seed.
+#' @param null Reference-map null: Moran spectral randomization preserving the
+#'   observed global spatial autocorrelation, or unconstrained free element
+#'   permutation.
 #' @param adjust Max-T adjustment across locations within each declared
-#'   unit-pair-direction-metric map, or no multiplicity adjustment.
+#'   family, or no multiplicity adjustment.
+#' @param maxT_scope Make each independent subject/unit one max-T family, or
+#'   use a separate family for every unit-pair-direction-metric map.
 #' @param budget Hard execution limits from [ngeo_resource_budget()].
 #'
 #' @return An `ngeo_local_layer_coupling` with one row per available
@@ -659,7 +711,9 @@ ngeo_local_layer_coupling <- function(
     exceedance = 0,
     permutations = 0L,
     seed = NULL,
+    null = c("moran", "free"),
     adjust = c("maxT", "none"),
+    maxT_scope = c("subject", "map"),
     budget = ngeo_resource_budget()) {
   ngeo_validate(x, "basic")
   lookup <- .ngeo_coupling_index(x, index)
@@ -685,6 +739,7 @@ ngeo_local_layer_coupling <- function(
     )
   }
   permutations <- .ngeo_permutations(permutations)
+  null <- match.arg(null)
   if (permutations > 0L && identical(direction, "both")) {
     .ngeo_abort(
       paste(
@@ -697,13 +752,14 @@ ngeo_local_layer_coupling <- function(
   if (permutations > 0L && "coexceedance" %in% metrics) {
     .ngeo_abort(
       paste(
-        "`coexceedance` is descriptive in version 6.1; request it in a",
+        "`coexceedance` is descriptive in version 6.2; request it in a",
         "separate call with `permutations = 0`."
       ),
       "ngeo_error_argument"
     )
   }
   adjust <- match.arg(adjust)
+  maxT_scope <- match.arg(maxT_scope)
   pair_table <- .ngeo_coupling_pairs(index, pairs, TRUE)
   .ngeo_coupling_measures(
     x, unique(c(pair_table$x, pair_table$y))
@@ -739,7 +795,8 @@ ngeo_local_layer_coupling <- function(
   rownames(values) <- NULL
   values <- .ngeo_local_coupling_inference(
     values, x, index, lookup, specs, support_info$values,
-    weights_info$matrix, exceedance, permutations, seed, adjust, context
+    weights_info$matrix, exceedance, permutations, seed, adjust, null,
+    maxT_scope, context
   )
   result <- list(
     values = values,
@@ -754,7 +811,8 @@ ngeo_local_layer_coupling <- function(
       values = as.matrix(x$values),
       pair = pair_table, direction = directions, metrics = metrics,
       exceedance = exceedance, permutations = permutations,
-      seed = if (permutations) .ngeo_seed(seed) else NULL, adjust = adjust
+      seed = if (permutations) .ngeo_seed(seed) else NULL, null = null,
+      adjust = adjust, maxT_scope = maxT_scope
     )),
     diagnostics = list(
       units = length(unique(values$unit_id)),
@@ -762,7 +820,11 @@ ngeo_local_layer_coupling <- function(
       directions = directions,
       metrics = metrics,
       elements = nrow(x$base$elements),
-      family = "locations within each unit-pair-direction-metric map",
+      family = if (identical(maxT_scope, "subject")) {
+        "all requested local endpoints within each independent unit"
+      } else {
+        "locations within each unit-pair-direction-metric map"
+      },
       adjustment = adjust
     ),
     history = list(
@@ -774,11 +836,20 @@ ngeo_local_layer_coupling <- function(
       permutations = permutations,
       seed = if (permutations) .ngeo_seed(seed) else NULL,
       null = if (permutations) {
-        "shared unconstrained element permutation of the lagged stack"
+        if (identical(null, "moran")) {
+          paste(
+            "singleton Moran spectral randomization of the lagged stack;",
+            "shared eigenmode signs across randomized maps"
+          )
+        } else {
+          "shared unconstrained element permutation of the lagged stack"
+        }
       } else {
         "none"
       },
-      preserves_spatial_autocorrelation = FALSE,
+      preserves_spatial_autocorrelation = permutations > 0L &&
+        identical(null, "moran"),
+      maxT_scope = maxT_scope,
       inference_unit = "spatial_map",
       population_inference = FALSE,
       geary_alternative = "greater (local cross-layer dissimilarity)",

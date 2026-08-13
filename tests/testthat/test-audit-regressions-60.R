@@ -340,7 +340,7 @@ test_that("spin strata prevent cross-component mapping and report collisions", {
   expect_identical(observed$mapping_policy, "nearest_with_replacement")
 })
 
-test_that("eigen-sign surrogate discloses failed irregular-graph invariants", {
+test_that("centered singleton MSR preserves irregular-graph invariants", {
   x <- ngeo_point(
     cbind(x = c(0, 1, 2, 5, 9), y = 0),
     values = cbind(signal = c(-2, 0, 1, 4, 10))
@@ -360,12 +360,16 @@ test_that("eigen-sign surrogate discloses failed irregular-graph invariants", {
     matrix = spatial_weights$matrix
   )
 
-  expect_true(any(abs(colMeans(observed$simulations) - mean(source)) > 1e-8))
-  expect_true(any(abs(
+  expect_equal(colMeans(observed$simulations), rep(mean(source), 12L),
+               tolerance = 1e-10)
+  expect_equal(
     apply(observed$simulations, 2L, stats::var) - stats::var(source)
-  ) > 1e-8))
-  expect_true(any(abs(simulated_moran - observed$observed_moran) > 1e-8))
-  expect_false(observed$preserves_spatial_autocorrelation)
+  , rep(0, 12L), tolerance = 1e-10)
+  expect_equal(
+    simulated_moran, rep(observed$observed_moran, 12L), tolerance = 1e-10
+  )
+  expect_true(observed$preserves_spatial_autocorrelation)
+  expect_identical(observed$status, "stable")
 })
 
 test_that("metric roles, components, and zero distances fail safely", {

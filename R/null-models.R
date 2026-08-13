@@ -305,20 +305,59 @@ ngeo_spin_null <- function(
   result
 }
 
+.ngeo_moran_basis <- function(matrix) {
+  matrix <- as.matrix((matrix + Matrix::t(matrix)) / 2)
+  n <- nrow(matrix)
+  if (n < 2L) {
+    .ngeo_abort(
+      "Moran spectral randomization requires at least two elements.",
+      "ngeo_error_statistic"
+    )
+  }
+  centered_basis <- qr.Q(qr(stats::contr.helmert(n)))
+  reduced <- crossprod(centered_basis, matrix %*% centered_basis)
+  decomposition <- eigen(reduced, symmetric = TRUE)
+  list(
+    vectors = centered_basis %*% decomposition$vectors,
+    values = decomposition$values
+  )
+}
+
+.ngeo_moran_randomizations <- function(values, matrix, nsim, seed = NULL) {
+  values <- as.matrix(values)
+  basis <- .ngeo_moran_basis(matrix)
+  means <- colMeans(values)
+  centered <- sweep(values, 2L, means, "-")
+  coefficients <- crossprod(basis$vectors, centered)
+  draws <- .ngeo_with_seed(seed, function() {
+    lapply(seq_len(nsim), function(...) {
+      signs <- sample(c(-1, 1), nrow(coefficients), replace = TRUE)
+      sweep(
+        basis$vectors %*% (coefficients * signs),
+        2L, means, "+"
+      )
+    })
+  })
+  list(draws = draws, basis = basis)
+}
+
 #' Generate Moran spectral randomizations
 #'
-#' Random sign changes in the eigenbasis of a symmetrized graph operator.
-#' This surrogate does not generally preserve the sample mean, variance, or
-#' Moran statistic for irregular or row-standardized graphs. It is therefore
-#' available only for explicit experimental method evaluation. A dense
-#' eigendecomposition is guarded by
+#' Uses the singleton Moran spectral randomization on a centered orthonormal
+#' Moran eigenvector basis. Random sign changes preserve each map's sample
+#' mean, centered sum of squares, and Moran quadratic form, including for
+#' irregular or row-standardized graphs. When several layers are supplied
+#' internally, a shared sign action also preserves their cross-layer spectral
+#' dependence. A dense eigendecomposition is guarded by
 #' `options(neurogeo.max_spectral_null_elements)`.
 #'
 #' @inheritParams ngeo_moran
 #' @param nsim Number of null layers.
 #' @param workers Number of R worker processes.
-#' @param experimental Must be `TRUE`. This surrogate remains uncalibrated and
-#'   must not be treated as stable null inference.
+#' @param experimental Retained for backward compatibility and ignored. The
+#'   singleton implementation is algebraically checked in version 6.2; whether
+#'   its exchangeability assumptions answer a particular scientific question
+#'   remains the caller's responsibility.
 #'
 #' @return An `ngeo_null` object.
 #' @export
@@ -332,7 +371,13 @@ ngeo_moran_null <- function(
     zero_policy = FALSE,
     workers = 1L,
     experimental = FALSE) {
-  .ngeo_experimental_null(experimental, "Moran eigen-sign surrogate")
+  if (!is.logical(experimental) || length(experimental) != 1L ||
+      is.na(experimental)) {
+    .ngeo_abort(
+      "`experimental` must be TRUE or FALSE.",
+      "ngeo_error_argument"
+    )
+  }
   na_action <- match.arg(na_action)
   input <- .ngeo_spatial_inputs(
     x,
@@ -351,34 +396,40 @@ ngeo_moran_null <- function(
       "ngeo_error_resource"
     )
   }
-  operator <- (input$matrix + Matrix::t(input$matrix)) / 2
-  decomposition <- eigen(
-    as.matrix(operator),
-    symmetric = TRUE
-  )
+  basis <- .ngeo_moran_basis(input$matrix)
   centered <- input$values - mean(input$values)
-  coefficients <- as.numeric(
-    crossprod(decomposition$vectors, centered)
-  )
+  coefficients <- as.numeric(crossprod(basis$vectors, centered))
   simulations <- .ngeo_simulate(nsim, seed, workers, function(...) {
     signs <- sample(c(-1, 1), length(coefficients), replace = TRUE)
-    as.numeric(
-      mean(input$values) +
-        decomposition$vectors %*% (coefficients * signs)
-    )
+    as.numeric(mean(input$values) + basis$vectors %*% (coefficients * signs))
   })
+  simulation_matrix <- do.call(cbind, simulations)
+  observed_moran <- .ngeo_moran_value(input$values, input$matrix)
+  simulated_moran <- apply(
+    simulation_matrix, 2L, .ngeo_moran_value, matrix = input$matrix
+  )
   result <- list(
-    method = "eigen_sign_surrogate",
-    status = "experimental_uncalibrated",
-    preserves_spatial_autocorrelation = FALSE,
-    simulations = do.call(cbind, simulations),
+    method = "moran_spectral_randomization_singleton",
+    status = "stable",
+    preserves_spatial_autocorrelation = TRUE,
+    preserved_properties = c(
+      "sample_mean", "centered_sum_of_squares", "moran_quadratic_form"
+    ),
+    simulations = simulation_matrix,
     element_id = input$element_id,
     layer_id = input$layer_id,
     layer_name = input$layer_name,
     base_hash = input$base_hash,
     weights_method = input$weights_method,
     normalization = input$normalization,
-    observed_moran = .ngeo_moran_value(input$values, input$matrix),
+    observed_moran = observed_moran,
+    maximum_moran_error = max(abs(simulated_moran - observed_moran)),
+    maximum_mean_error = max(abs(colMeans(simulation_matrix) -
+      mean(input$values))),
+    maximum_centered_ss_error = max(abs(apply(
+      simulation_matrix, 2L,
+      function(value) sum((value - mean(value))^2)
+    ) - sum(centered^2))),
     nsim = .ngeo_nsim(nsim),
     seed = .ngeo_seed(seed),
     workers = .ngeo_workers(workers),

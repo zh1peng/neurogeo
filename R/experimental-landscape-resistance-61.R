@@ -112,7 +112,7 @@
     in_patch_to <- component[edge$to] == id
     crossing <- xor(in_patch_from %in% TRUE, in_patch_to %in% TRUE)
     internal <- in_patch_from %in% TRUE & in_patch_to %in% TRUE
-    perimeter <- sum(crossing)
+    boundary_edge_count <- sum(crossing)
     area <- sum(support[rows])
     data.frame(
       patch_id = paste0(layer_id, "::", id),
@@ -123,9 +123,9 @@
       mean_value = stats::weighted.mean(values[rows], support[rows]),
       maximum_gradient = max(gradient[rows]),
       internal_edges = sum(internal),
-      boundary_edges = perimeter,
-      support_per_boundary_edge_squared = if (perimeter > 0) {
-        area / perimeter^2
+      boundary_edges = boundary_edge_count,
+      support_per_boundary_edge_squared = if (boundary_edge_count > 0) {
+        area / boundary_edge_count^2
       } else {
         NA_real_
       },
@@ -233,10 +233,10 @@
 #'
 #' Converts selected continuous layers into explicitly thresholded connected
 #' patches on the undirected union of a spatial graph. It reports support size,
-#' graph-edge perimeter and a support-per-edge shape proxy, edge-contrast
+#' crossing boundary-edge count and a support-per-edge shape proxy, edge-contrast
 #' summaries, high-contrast
-#' boundary nodes, and support-weighted cross-layer overlap. Graph-edge counts
-#' are not physical surface perimeter.
+#' boundary nodes, and support-weighted cross-layer overlap. Boundary-edge
+#' counts and the derived shape proxy have no physical length interpretation.
 #'
 #' @param x An `ngeo` object with finite numeric layers.
 #' @param spatial_weights Matching spatial weights. Directed graphs are reduced
@@ -372,8 +372,8 @@ ngeo_brain_landscape <- function(
       tail = tail,
       boundary_quantile = boundary_quantile,
       gradient_metric = "root_mean_squared_edge_difference",
-      perimeter_metric = "crossing_graph_edge_count",
-      physical_perimeter_claimed = FALSE,
+      boundary_metric = "crossing_graph_edge_count_not_physical_length",
+      physical_length_claimed = FALSE,
       directed_weights_reduced_to_undirected_union = TRUE,
       inference = "descriptive; thresholds are caller-declared decisions",
       status = "stable"

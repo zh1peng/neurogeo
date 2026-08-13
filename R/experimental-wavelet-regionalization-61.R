@@ -941,7 +941,7 @@ ngeo_contiguous_regionalization <- function(
   }
   if (n_regions > 256L) {
     .ngeo_abort(
-      "The bounded 6.1 regionalization search supports at most 256 regions.",
+      "The bounded 6.2 regionalization search supports at most 256 regions.",
       "ngeo_error_resource"
     )
   }
@@ -1033,12 +1033,25 @@ ngeo_contiguous_regionalization <- function(
     feature_weighting = "equal after per-layer standardization",
     standardization_weighting = "base_support",
     support_hash = support_info$hash,
+    training_value_hash = .ngeo_layer_digest(
+      as.matrix(x$values[, feature$selected, drop = FALSE])
+    ),
+    training_analysis_hash = .ngeo_layer_digest(list(
+      base_hash = base_hash(x),
+      weights = spatial_weights$raw_matrix,
+      layer_id = x$layers$layer_id[feature$selected],
+      values = as.matrix(x$values[, feature$selected, drop = FALSE]),
+      n_regions = n_regions,
+      min_elements = min_elements,
+      min_support = min_support
+    )),
     search_states = cut$search_states,
     edge_cost_ties = anyDuplicated(edges$cost) > 0L,
     mst_uniqueness_claimed = FALSE,
     cut_selection = "bounded_first_feasible_descending_edge_cost",
     globally_optimal = FALSE,
     status = "stable",
+    workflow_state = "trained_unfrozen",
     inference = paste(
       "analytic regionalization only; freeze on training data before",
       "testing regional effects"
@@ -1046,4 +1059,139 @@ ngeo_contiguous_regionalization <- function(
   )
   .ngeo_validate_partition(partition, x)
   partition
+}
+
+#' Freeze a trained contiguous regionalization
+#'
+#' Converts the result of [ngeo_contiguous_regionalization()] into an immutable
+#' membership specification. The frozen object stores no training values and
+#' can be applied to an independent dataset on exactly the same spatial base.
+#'
+#' @param partition A partition learned by
+#'   [ngeo_contiguous_regionalization()].
+#'
+#' @return An `ngeo_frozen_regionalization`.
+#' @template stable-statistical-method
+#' @export
+ngeo_freeze_regionalization <- function(partition) {
+  .ngeo_validate_partition(partition)
+  regionalization <- partition$regionalization %||% NULL
+  if (is.null(regionalization) ||
+      !identical(partition$source, "contiguous_mst_regionalization") ||
+      !is.character(regionalization$training_analysis_hash) ||
+      length(regionalization$training_analysis_hash) != 1L) {
+    .ngeo_abort(
+      "Only a trained contiguous regionalization can be frozen.",
+      "ngeo_error_partition"
+    )
+  }
+  result <- list(
+    membership = partition$membership,
+    parcellation = partition$parcellation,
+    source_base_hash = partition$source_base_hash,
+    training_value_hash = regionalization$training_value_hash,
+    training_analysis_hash = regionalization$training_analysis_hash,
+    selected_layer_id = regionalization$selected_layer_id,
+    method = regionalization$method,
+    workflow_state = "frozen",
+    freeze_hash = NULL
+  )
+  result$freeze_hash <- .ngeo_layer_digest(result[names(result) != "freeze_hash"])
+  class(result) <- "ngeo_frozen_regionalization"
+  result
+}
+
+#' Apply a frozen regionalization to independent data
+#'
+#' Reuses only the frozen membership labels; it never relearns boundaries from
+#' the application values. By default, applying to the exact training values is
+#' rejected as a leakage guard. Set `allow_training_data = TRUE` only for an
+#' explicitly descriptive training-set summary, never for testing.
+#'
+#' @param x An `ngeo` object on the frozen training base.
+#' @param frozen An `ngeo_frozen_regionalization`.
+#' @param allow_training_data Permit an explicitly descriptive application to
+#'   the same selected values used for training.
+#'
+#' @return A fixed `ngeo_partition` aligned to `x`, suitable for
+#'   [ngeo_aggregate()].
+#' @template stable-statistical-method
+#' @export
+ngeo_apply_regionalization <- function(
+    x, frozen, allow_training_data = FALSE) {
+  ngeo_validate(x, "basic")
+  if (!inherits(frozen, "ngeo_frozen_regionalization") ||
+      !identical(
+        frozen$freeze_hash,
+        .ngeo_layer_digest(
+          unclass(frozen)[names(frozen) != "freeze_hash"]
+        )
+      )) {
+    .ngeo_abort(
+      "`frozen` is not a valid immutable regionalization.",
+      "ngeo_error_partition"
+    )
+  }
+  if (!identical(frozen$source_base_hash, base_hash(x))) {
+    .ngeo_abort(
+      "The frozen regionalization does not match the application base.",
+      "ngeo_error_base_mismatch"
+    )
+  }
+  if (!is.logical(allow_training_data) || length(allow_training_data) != 1L ||
+      is.na(allow_training_data)) {
+    .ngeo_abort(
+      "`allow_training_data` must be TRUE or FALSE.",
+      "ngeo_error_argument"
+    )
+  }
+  selected <- match(frozen$selected_layer_id, x$layers$layer_id)
+  application_value_hash <- if (anyNA(selected) || is.null(x$values)) {
+    NA_character_
+  } else {
+    .ngeo_layer_digest(as.matrix(x$values[, selected, drop = FALSE]))
+  }
+  same_values <- identical(application_value_hash, frozen$training_value_hash)
+  if (same_values && !allow_training_data) {
+    .ngeo_abort(
+      paste(
+        "The application values equal the regionalization training values;",
+        "use independent data for testing."
+      ),
+      "ngeo_error_data_leakage"
+    )
+  }
+  partition <- ngeo_partition(
+    x, frozen$membership, unlabeled_policy = "error"
+  )
+  partition$parcellation <- frozen$parcellation
+  partition$source <- "frozen_contiguous_regionalization"
+  partition$regionalization <- list(
+    method = frozen$method,
+    workflow_state = "applied",
+    frozen = TRUE,
+    freeze_hash = frozen$freeze_hash,
+    training_analysis_hash = frozen$training_analysis_hash,
+    application_value_hash = application_value_hash,
+    training_values_reused = same_values,
+    inference = if (same_values) {
+      "descriptive training-set application; not valid for testing"
+    } else {
+      "fixed partition applied without relearning; downstream test assumptions still apply"
+    }
+  )
+  .ngeo_validate_partition(partition, x)
+  partition
+}
+
+#' @export
+print.ngeo_frozen_regionalization <- function(x, ...) {
+  cat(
+    "<ngeo_frozen_regionalization>\n",
+    "  regions: ", nrow(x$parcellation), "\n",
+    "  elements: ", length(x$membership), "\n",
+    "  state: ", x$workflow_state, "\n",
+    sep = ""
+  )
+  invisible(x)
 }

@@ -13,6 +13,9 @@ ngeo_nonseparable_hotspots(
   spatial_cutoff = NULL,
   temporal_cutoff = NULL,
   z_threshold = 1.96,
+  permutations = 0L,
+  seed = NULL,
+  adjust = c("maxT", "none"),
   retain_matrix = FALSE,
   budget = ngeo_resource_budget()
 )
@@ -36,6 +39,14 @@ observed interval.}
 
 \item{z_threshold}{Positive descriptive state threshold.}
 
+\item{permutations}{Number of joint space-time null randomizations. Zero
+returns descriptive scores only.}
+
+\item{seed}{Reproducible null seed.}
+
+\item{adjust}{Max-T familywise correction across the complete local
+space-time map, or unadjusted cellwise Monte Carlo p-values.}
+
 \item{retain_matrix}{Whether to retain the redundant space-by-time score
 matrix in addition to the long-form `local` table.}
 
@@ -43,15 +54,18 @@ matrix in addition to the long-form `local` table.}
 }
 \value{
 An `ngeo_nonseparable_hotspots` with local scores, descriptive state
-summaries, and adjacency edges ordered by first hot time. It contains no
-calibrated p-values.
+summaries, adjacency edges ordered by first hot time, and optional local
+Monte Carlo p-values.
 }
 \description{
 Computes local Getis--Ord-style standardized scores over graph-hop and
 irregular-time neighborhoods with a positive space-time interaction term.
 The calculation uses truncated neighborhood lists rather than a dense
-all-pairs space-time matrix. State labels and temporally ordered adjacency
-edges are descriptive; they do not establish transmission or causality.
+all-pairs space-time matrix. Optional inference uses one joint action that
+permutes spatial identities and declared time coordinates for the complete
+space-time field, with max-T familywise control across all local cells.
+State labels and temporally ordered adjacency edges remain descriptive; they
+do not establish transmission or causality.
 }
 \section{When to use and limitations}{
 

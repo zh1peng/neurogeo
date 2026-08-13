@@ -1,0 +1,112 @@
+---
+title: "Brain-GIS inference workflow in neurogeo 6.2"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Brain-GIS inference workflow in neurogeo 6.2}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+Version 6.2 separates reference-map inference, partition training, and
+population inference. These are different sampling units and must not be
+reported as interchangeable tests.
+
+## Local cross-layer coupling
+
+Use Moran spectral randomization when the lagged reference maps' observed
+global spatial autocorrelation should be retained. `maxT_scope = "subject"`
+makes all requested local endpoints within each independent unit one max-T
+family. `null = "free"` remains available only as a non-spatial reference-map
+null under complete element exchangeability.
+
+```{r}
+local <- ngeo_local_layer_coupling(
+  x, index, spatial_weights,
+  metrics = "local_cross_moran",
+  direction = "x_to_y",
+  permutations = 999,
+  null = "moran",
+  adjust = "maxT",
+  maxT_scope = "subject"
+)
+```
+
+## Train, freeze, then apply a regionalization
+
+Never learn a partition from the outcome data used for its downstream test.
+Train on a separate dataset, freeze only its membership, and apply that frozen
+membership to an independent dataset on the same spatial base.
+
+```{r}
+trained <- ngeo_contiguous_regionalization(
+  training_data, spatial_weights,
+  layers = c("thickness", "myelin"), n_regions = 10
+)
+frozen <- ngeo_freeze_regionalization(trained)
+test_partition <- ngeo_apply_regionalization(test_data, frozen)
+test_regions <- ngeo_aggregate(test_data, test_partition)
+```
+
+Exact reuse of the selected training values is rejected by default. Setting
+`allow_training_data = TRUE` marks an application as descriptive and does not
+make a training-set test valid.
+
+## Point-process envelopes
+
+`envelope = "pointwise"` controls each radius separately.
+`envelope = "global"` uses a studentized maximum-deviation envelope across all
+radii within each marked-pair family. `"both"` returns both summaries.
+Unequal-exposure simple processes use exposure-weighted sampling without
+replacement and require simulations for a sampling-design-matched CSR
+normalization.
+
+```{r}
+pattern <- ngeo_brain_point_process(
+  x, events, radii,
+  exposure = opportunity,
+  occupancy = "simple",
+  simulations = 999,
+  envelope = "global"
+)
+```
+
+## Space-time hotspots and group inference
+
+Hotspot inference jointly permutes spatial identities and assignments to the
+declared real-time coordinates. Max-T controls the family of all local
+space-time cells within one independent unit. The time bandwidth and cutoff
+are expressed in `ngeo_time_axis()` units, not column indices.
+
+```{r}
+subject_hotspot <- ngeo_nonseparable_hotspots(
+  subject_time_maps, spatial_weights,
+  temporal_bandwidth = 7,
+  temporal_cutoff = 21,
+  permutations = 999,
+  adjust = "maxT"
+)
+
+features <- ngeo_hotspot_group_features(
+  list(subject_01 = subject_hotspot, subject_02 = subject_hotspot_02),
+  summaries = c("mean_z", "trend")
+)
+group_result <- ngeo_group_test(
+  features, subject_design, ~ age + group, test = "group",
+  exchangeability = subject_exchangeability,
+  adjustment = "maxT"
+)
+```
+
+The joint hotspot null is still reference-map inference. The group test is the
+population-level interface and requires one independently computed hotspot
+result per declared sampling unit.
+
+## Brain-landscape terminology
+
+`ngeo_brain_landscape()` reports `boundary_edges` and
+`support_per_boundary_edge_squared`. They are graph-topology summaries, not a
+physical perimeter or a metric compactness measurement.

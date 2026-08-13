@@ -34,17 +34,20 @@ rebuilds the declared normalization on the retained raw-weight subgraph.}
 
 \item{workers}{Number of R worker processes.}
 
-\item{experimental}{Must be `TRUE`. This surrogate remains uncalibrated and
-must not be treated as stable null inference.}
+\item{experimental}{Retained for backward compatibility and ignored. The
+singleton implementation is algebraically checked in version 6.2; whether
+its exchangeability assumptions answer a particular scientific question
+remains the caller's responsibility.}
 }
 \value{
 An `ngeo_null` object.
 }
 \description{
-Random sign changes in the eigenbasis of a symmetrized graph operator.
-This surrogate does not generally preserve the sample mean, variance, or
-Moran statistic for irregular or row-standardized graphs. It is therefore
-available only for explicit experimental method evaluation. A dense
-eigendecomposition is guarded by
+Uses the singleton Moran spectral randomization on a centered orthonormal
+Moran eigenvector basis. Random sign changes preserve each map's sample
+mean, centered sum of squares, and Moran quadratic form, including for
+irregular or row-standardized graphs. When several layers are supplied
+internally, a shared sign action also preserves their cross-layer spectral
+dependence. A dense eigendecomposition is guarded by
 `options(neurogeo.max_spectral_null_elements)`.
 }

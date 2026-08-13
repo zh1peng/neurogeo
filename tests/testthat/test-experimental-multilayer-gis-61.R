@@ -76,7 +76,8 @@ test_that("local coupling maxT inference is reproducible and bounded", {
     metrics = c("local_cross_moran", "local_geary"),
     direction = "x_to_y",
     permutations = 19L,
-    seed = 61L
+    seed = 61L,
+    null = "free"
   )
   second <- ngeo_local_layer_coupling(
     fixture$x,
@@ -85,7 +86,8 @@ test_that("local coupling maxT inference is reproducible and bounded", {
     metrics = c("local_cross_moran", "local_geary"),
     direction = "x_to_y",
     permutations = 19L,
-    seed = 61L
+    seed = 61L,
+    null = "free"
   )
 
   expect_equal(first$values$p_value, second$values$p_value)
@@ -234,7 +236,7 @@ test_that("local permutation p-values use cumulative exceedance counts", {
   result <- ngeo_local_layer_coupling(
     fixture$x, fixture$index, fixture$weights,
     metrics = "local_cross_moran", direction = "x_to_y",
-    permutations = permutations, seed = seed, adjust = "none"
+    permutations = permutations, seed = seed, null = "free", adjust = "none"
   )
   observed <- abs(result$values$statistic)
   index <- fixture$index
@@ -258,6 +260,21 @@ test_that("local permutation p-values use cumulative exceedance counts", {
   expected <- (rowSums(simulated >= observed) + 1) / (permutations + 1)
   expect_equal(result$values$p_value, expected)
   expect_gt(length(unique(result$values$p_value)), 2L)
+})
+
+test_that("local coupling supports Moran null and subject-level maxT", {
+  fixture <- local_coupling_fixture()
+  result <- ngeo_local_layer_coupling(
+    fixture$x, fixture$index, fixture$weights,
+    metrics = c("local_cross_moran", "local_geary"),
+    direction = "x_to_y", permutations = 19L, seed = 6201L
+  )
+
+  expect_true(result$history$preserves_spatial_autocorrelation)
+  expect_identical(result$history$maxT_scope, "subject")
+  expect_match(result$history$null, "Moran spectral")
+  expect_true(all(result$values$p_adjusted >= result$values$p_value))
+  expect_match(result$diagnostics$family, "independent unit")
 })
 
 test_that("MAUP correlation is support weighted and requires crossed zoning", {
