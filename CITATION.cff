@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use neurogeo, cite the archived release and the accompanying methods paper."
 type: software
 title: "neurogeo: Neuroimaging Geoinformatics Core Objects"
-version: 6.2.0
+version: 6.3.0
 authors:
   - family-names: "zh1peng"
     email: "zhipeng30@foxmail.com"

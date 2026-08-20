@@ -448,6 +448,60 @@
   )
 }
 
+#' Compute a portable ordered-base signature
+#'
+#' Unlike [base_hash()], this SHA-256 identifier is computed from the canonical
+#' JSON-compatible base payload used by portable object manifest schema 2. It
+#' is intended for cross-language spatial alignment. Base labels are excluded,
+#' while ordered elements, geometry, coordinate space, intrinsic topology,
+#' and the active surface coordinate set are included where applicable.
+#'
+#' @section When to use and when not to use:
+#' Use the portable signature to compare ordered Bases across languages or
+#' serialized artifacts. Use [base_hash()] for fast identity within R; do not
+#' interpret either identifier as a spatial distance or registration.
+#' @section Units and assumptions:
+#' Coordinate values and units are encoded as declared by the Base. Equality
+#' assumes independent implementations reproduce the canonical manifest-
+#' schema-2 payload and JSON encoding exactly.
+#' @section Validation:
+#' Supported Base types are converted through the portable Base payload used
+#' by object manifests and hashed with SHA-256. Relation inputs must first pass
+#' Relation validation.
+#'
+#' @param x An `ngeo`, `ngeo_layer_view`, `ngeo_relation`, or `ngeo_base`
+#'   object.
+#' @return A 64-character hexadecimal SHA-256 signature.
+#' @examples
+#' x <- ngeo_point(cbind(x = 0:2, y = 0))
+#' base_signature(x)
+#' identical(base_signature(x), ngeo_base_signature(x))
+#' @seealso [base_hash()], [ngeo_object_manifest()]
+#' @references neurogeo API 6.3, `inst/spec/API-6.3.md`.
+#' @export
+base_signature <- function(x) {
+  if (inherits(x, "ngeo_relation")) {
+    ngeo_validate_relation(x)
+    return(x$base$signature)
+  }
+  base <- if (inherits(x, "ngeo") || inherits(x, "ngeo_layer_view")) {
+    x$base
+  } else {
+    x
+  }
+  if (!inherits(base, "ngeo_base")) {
+    .ngeo_abort(
+      "`x` must be an `ngeo`, `ngeo_layer_view`, `ngeo_relation`, or `ngeo_base` object.",
+      "ngeo_error_argument"
+    )
+  }
+  .ngeo_portable_base_hash(base)
+}
+
+#' @rdname base_signature
+#' @export
+ngeo_base_signature <- function(x) base_signature(x)
+
 .ngeo_dataset_manifest_metadata <- function(x) {
   list(
     base_type = x$base$type,

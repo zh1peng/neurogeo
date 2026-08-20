@@ -8,7 +8,10 @@ used by installed conformance checks.
 `ADR-6.1-brain-gis-promotion.md` define the additive 6.1 brain-GIS analysis
 surface. `API-6.2.md` and `ADR-6.2-brain-gis-hardening.md` define the 6.2
 workflow, inference, lifecycle, and portable-identity amendments; the NGCS 6.0
-container is unchanged. The files
+container is unchanged. `API-6.3.md` and
+`ADR-6.3-interoperability-infrastructure.md` define the optional Relation,
+layer-view, portable-base-signature, and package-boundary contracts; they also
+leave the NGCS 6.0 container unchanged. The files
 `api-lifecycle-6.0.csv`, `api-contracts-6.0.json`, and
 `inference-contracts-6.0.csv` retain their names as the canonical registries
 for the complete 6.x series.

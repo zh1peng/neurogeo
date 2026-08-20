@@ -1,7 +1,7 @@
 {
   "schema": "neurogeo/api-contracts/1",
-  "package_version": "6.2.0",
-  "stable_count": 343,
+  "package_version": "6.3.0",
+  "stable_count": 350,
   "contracts": {
     "aggregate_to": {
       "symbol": "aggregate_to",
@@ -62,7 +62,16 @@
         "x": ""
       },
       "condition_classes": "ngeo_error_argument",
-      "documentation_sha256": "3dcec2ea43dc6415045b6407f1684b547ebcfee2ace19fcee8d9c571299db590"
+      "documentation_sha256": "fc74b26eaa65dca8cd0626442837f562fcce81cb14598a79087bb5fe4f2c7fd4"
+    },
+    "base_signature": {
+      "symbol": "base_signature",
+      "type": "export",
+      "formals": {
+        "x": ""
+      },
+      "condition_classes": "ngeo_error_argument",
+      "documentation_sha256": "57802c3d0a3db9e48fab0b9b526576aae2d1c80db19cfe90cb6c9f4df16bde78"
     },
     "base_type": {
       "symbol": "base_type",
@@ -282,6 +291,15 @@
       },
       "condition_classes": [],
       "documentation_sha256": "0de2f378f636c60d32bba5bdf7b01a80f20d0421ddd33bc24024b2a9cc80fa0f"
+    },
+    "ngeo_base_signature": {
+      "symbol": "ngeo_base_signature",
+      "type": "export",
+      "formals": {
+        "x": ""
+      },
+      "condition_classes": [],
+      "documentation_sha256": "57802c3d0a3db9e48fab0b9b526576aae2d1c80db19cfe90cb6c9f4df16bde78"
     },
     "ngeo_base_type": {
       "symbol": "ngeo_base_type",
@@ -1145,6 +1163,16 @@
       "condition_classes": [],
       "documentation_sha256": "514cb35f9b6fd6f28ec26fa736664a8ac3a791b607c62ad8e690240943aeb9ca"
     },
+    "ngeo_layer_view": {
+      "symbol": "ngeo_layer_view",
+      "type": "export",
+      "formals": {
+        "x": "",
+        "layer": ""
+      },
+      "condition_classes": "ngeo_error_layer",
+      "documentation_sha256": "250d9ef6812766dfa85e5c19d1d558540a0d2bb09f539b1d934212f4b20e519b"
+    },
     "ngeo_layers": {
       "symbol": "ngeo_layers",
       "type": "export",
@@ -1617,6 +1645,21 @@
       },
       "condition_classes": [],
       "documentation_sha256": "6272f37302451434fa8111cf5acac18c517bfe4336e69f3ac90f3c411206615f"
+    },
+    "ngeo_relation": {
+      "symbol": "ngeo_relation",
+      "type": "export",
+      "formals": {
+        "base": "",
+        "data": "",
+        "type": "",
+        "directed": "FALSE",
+        "weighted": "TRUE",
+        "measure": "NULL",
+        "provenance": "list()"
+      },
+      "condition_classes": "ngeo_error_relation",
+      "documentation_sha256": "83a1c188edae7fa9848e2f8974f557cf60c71128e366388d437bcb98d42294c1"
     },
     "ngeo_replay": {
       "symbol": "ngeo_replay",
@@ -2594,6 +2637,16 @@
       },
       "condition_classes": ["ngeo_error_manifest", "ngeo_error_schema"],
       "documentation_sha256": "7ff55fa2bb64c77c1214703925e03bca1034e9f8dbc779728ebde5aac18be8fb"
+    },
+    "ngeo_validate_relation": {
+      "symbol": "ngeo_validate_relation",
+      "type": "export",
+      "formals": {
+        "x": "",
+        "base": "NULL"
+      },
+      "condition_classes": ["ngeo_error_alignment", "ngeo_error_relation"],
+      "documentation_sha256": "c00cd27ff5e9f7d67344bd56b52f4913d72f4c17dbc4f8dcdc8600031e07b62b"
     },
     "ngeo_validate_replay_manifest": {
       "symbol": "ngeo_validate_replay_manifest",
@@ -3757,6 +3810,16 @@
       "condition_classes": [],
       "documentation_sha256": ""
     },
+    "print.ngeo_layer_view": {
+      "symbol": "print.ngeo_layer_view",
+      "type": "s3_method",
+      "formals": {
+        "x": "",
+        "...": ""
+      },
+      "condition_classes": [],
+      "documentation_sha256": ""
+    },
     "print.ngeo_lisa": {
       "symbol": "print.ngeo_lisa",
       "type": "s3_method",
@@ -3829,6 +3892,16 @@
     },
     "print.ngeo_qc": {
       "symbol": "print.ngeo_qc",
+      "type": "s3_method",
+      "formals": {
+        "x": "",
+        "...": ""
+      },
+      "condition_classes": [],
+      "documentation_sha256": ""
+    },
+    "print.ngeo_relation": {
+      "symbol": "print.ngeo_relation",
       "type": "s3_method",
       "formals": {
         "x": "",

@@ -3,7 +3,7 @@
 `neurogeo` is the R reference implementation of the Neuroimaging
 Geoinformatics Core Specification (NGCS).
 
-> **Development status (6.2 audit):** the NGCS 6.0 data model remains frozen.
+> **Development status (6.3):** the NGCS 6.0 data model remains frozen.
 > The additive 6.2 brain-GIS inference API is undergoing correctness,
 > documentation, and release-evidence review.
 > Surface-spin remains experimental. Centered singleton Moran spectral
@@ -38,7 +38,7 @@ audited source currently in that checkout with:
 
 ```sh
 R CMD build .
-R CMD INSTALL neurogeo_6.2.0.tar.gz
+R CMD INSTALL neurogeo_6.3.0.tar.gz
 ```
 
 On Windows PowerShell, use `R.exe CMD ...` if `R` is an existing shell alias.
@@ -51,7 +51,7 @@ remotes::install_github("zh1peng/neurogeo@main")
 
 See the [platform commands and optional-backend
 matrix](https://zh1peng.github.io/neurogeo/en/guide/installation) before
-reading neuroimaging files. A stable command pinned to `v6.2.0` will be
+reading neuroimaging files. A stable command pinned to `v6.3.0` will be
 published only after that tag and its release evidence exist.
 
 ## Minimal workflow
@@ -125,6 +125,54 @@ x <- ngeo_parcellation(
 Layer and measure metadata may be omitted for simple inputs; constructors
 generate valid unknown metadata and operations validate capabilities when they
 need them.
+
+## Stable layer and relation interfaces
+
+Downstream packages can request one complete spatial field without depending
+on the normalized `x$values`, `x$layers`, and `x$measures` storage:
+
+```r
+field <- ngeo_layer_view(x, "subject_001")
+field$base
+field$values
+field$measure
+field$metadata
+```
+
+Optional empirical pairwise information is represented independently rather
+than added to the frozen `ngeo` top-level fields:
+
+```r
+edges <- data.frame(from = c(1, 2), to = c(2, 3), value = c(.2, .5))
+relation <- ngeo_relation(
+  x,
+  edges,
+  type = "functional_connectivity",
+  directed = FALSE,
+  weighted = TRUE,
+  provenance = list(source = "example")
+)
+ngeo_validate_relation(relation, x)
+```
+
+`base_hash()` is the R implementation identity used for fast in-package
+binding. `base_signature()` is the canonical SHA-256 identity intended for
+cross-language alignment. Labels are excluded from both identities.
+
+Relations are reserved for empirical pairwise information such as structural
+or functional connectivity, morphological similarity, gene coexpression, and
+effective connectivity. Distance, adjacency, and spatial weights remain
+analysis objects.
+
+## Package boundary
+
+neurogeo owns spatial representation (`Base`, `Layer`, and optional
+`Relation`) plus spatial analysis, including distance, neighborhood, weights,
+statistics, null models, support mapping, transforms, inference, and
+uncertainty. Dynamics, perturbation, simulation, calibration, prediction, and
+domain-specific neural models belong in downstream packages that consume
+neurogeo objects. The dependency direction is downstream package to neurogeo;
+neurogeo has no dependency on a simulation or virtual-brain package.
 
 ## Spatial aggregation
 

@@ -438,14 +438,23 @@ ngeo_base_hash <- function(x) base_hash(x)
 #' changing spatial compatibility. It is not a replacement for
 #' language-independent conformance fixtures.
 #'
-#' @param x An `ngeo` object or `ngeo_base`.
+#' @param x An `ngeo`, `ngeo_layer_view`, `ngeo_relation`, or `ngeo_base`
+#'   object.
 #' @return A hexadecimal xxHash64 digest.
 #' @export
 base_hash <- function(x) {
-  base <- if (inherits(x, "ngeo")) x$base else x
+  if (inherits(x, "ngeo_relation")) {
+    ngeo_validate_relation(x)
+    return(x$base$hash)
+  }
+  base <- if (inherits(x, "ngeo") || inherits(x, "ngeo_layer_view")) {
+    x$base
+  } else {
+    x
+  }
   if (!inherits(base, "ngeo_base")) {
     .ngeo_abort(
-      "`x` must be an `ngeo` object or `ngeo_base`.",
+      "`x` must be an `ngeo`, `ngeo_layer_view`, `ngeo_relation`, or `ngeo_base` object.",
       "ngeo_error_argument"
     )
   }

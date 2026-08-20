@@ -22,10 +22,10 @@ if (!identical(expected, observed)) {
     call. = FALSE
   )
 }
-if (!identical(sum(expected$type == "export"), 251L)) {
-  stop("The registered export count differs from the approved 6.2 ADR.")
+if (!identical(sum(expected$type == "export"), 256L)) {
+  stop("The registered export count differs from the approved 6.3 ADR.")
 }
-if (!identical(sum(expected$type == "s3_method"), 100L)) {
-  stop("The registered S3 method count differs from the approved 6.2 ADR.")
+if (!identical(sum(expected$type == "s3_method"), 102L)) {
+  stop("The registered S3 method count differs from the approved 6.3 ADR.")
 }
 cat("Public API lifecycle registry is complete and current.\n")

@@ -7,7 +7,8 @@
 base_hash(x)
 }
 \arguments{
-\item{x}{An `ngeo` object or `ngeo_base`.}
+\item{x}{An `ngeo`, `ngeo_layer_view`, `ngeo_relation`, or `ngeo_base`
+object.}
 }
 \value{
 A hexadecimal xxHash64 digest.

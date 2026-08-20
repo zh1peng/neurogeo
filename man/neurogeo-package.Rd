@@ -6,7 +6,9 @@
 \alias{neurogeo-package}
 \title{neurogeo: Neuroimaging Geoinformatics Core Objects}
 \description{
-The R reference implementation of NGCS.
+The R reference implementation of NGCS for spatial representation and
+spatial analysis. Optional empirical relations are separate objects bound
+to a frozen NGCS spatial base; dynamics and simulation belong downstream.
 }
 \seealso{
 Useful links:

@@ -3,6 +3,7 @@
 "as_igraph","core-api","man/as_igraph.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "as_spdep_listw","core-api","man/as_spdep_listw.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "as_spdep_nb","core-api","man/as_spdep_nb.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"base_signature","reproducibility-engineering","man/base_signature.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_add_transform","core-api","man/ngeo_add_transform.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_adjacency","core-api","man/ngeo_adjacency.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_affine_grid_map","core-api","man/ngeo_affine_grid_map.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -18,6 +19,7 @@
 "ngeo_atlas_robust_effect","neuroimaging-methods","man/ngeo_atlas_robust_effect.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_base_elements","core-api","man/ngeo_prefixed_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_base_hash","reproducibility-engineering","man/ngeo_prefixed_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_base_signature","reproducibility-engineering","man/base_signature.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_base_type","core-api","man/ngeo_prefixed_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_basis_project","core-api","man/ngeo_basis_project.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_bids_build_name","io","man/ngeo_bids_build_name.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -81,6 +83,7 @@
 "ngeo_labels","core-api","man/ngeo_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_layer_coupling","core-api","man/ngeo_layer_coupling.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_layer_index","core-api","man/ngeo_layer_index.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_layer_view","core-api","man/ngeo_layer_view.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_layers","core-api","man/ngeo_prefixed_accessors.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_local_layer_coupling","statistical-methods","man/ngeo_local_layer_coupling.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_local_moran","statistical-methods","man/ngeo_local_moran.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -115,6 +118,7 @@
 "ngeo_region_adjacency","core-api","man/ngeo_region_adjacency.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_register_space","core-api","man/ngeo_register_space.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_registration_ensemble","core-api","man/ngeo_registration_ensemble.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_relation","core-api","man/ngeo_relation.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_replay","reproducibility-engineering","man/ngeo_replay.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_replay_step","reproducibility-engineering","man/ngeo_replay_step.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_resample","neuroimaging-methods","man/ngeo_resample.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
@@ -188,6 +192,7 @@
 "ngeo_validate_file_values","io","man/ngeo_file_values_validation.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_validate_history_dag","core-api","man/ngeo_validate_history_dag.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_validate_manifest","reproducibility-engineering","man/ngeo_validate_manifest.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
+"ngeo_validate_relation","core-api","man/ngeo_validate_relation.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_validate_replay_manifest","reproducibility-engineering","man/ngeo_validate_replay_manifest.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_validate_resampling_plan","neuroimaging-methods","man/ngeo_validate_resampling_plan.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE
 "ngeo_validate_solver_control","core-api","man/ngeo_validate_solver_control.Rd",TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE

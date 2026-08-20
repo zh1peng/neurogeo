@@ -1,3 +1,21 @@
+# neurogeo 6.3.0
+
+* Added the optional first-class `ngeo_relation` infrastructure for empirical
+  pairwise information bound to an ordered spatial base without changing the
+  frozen five-field `ngeo` container. Distance, adjacency, and spatial weights
+  remain separate analysis objects.
+* Added `ngeo_layer_view()` as the stable one-spatial-field extraction
+  contract, returning a base, one-column values block, measurement semantics,
+  and layer metadata without exposing the normalized dataset internals.
+* Added portable `base_signature()` and `ngeo_base_signature()` SHA-256
+  identifiers using the canonical manifest-schema-2 base payload for
+  cross-language alignment. The existing `base_hash()` remains the faster
+  implementation-specific R identity.
+* Formalized the package boundary as spatial representation and spatial
+  analysis; dynamics, perturbation, simulation, calibration, and prediction
+  remain responsibilities of downstream packages with a one-way dependency
+  on neurogeo.
+
 # neurogeo 6.2.0
 
 * Advanced portable dataset and logical-object identities to schema 2 so a

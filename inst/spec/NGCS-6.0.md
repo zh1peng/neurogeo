@@ -54,7 +54,7 @@ unknown semantics require an explicit policy.
 NGCS 6.0 is incompatible with the 5.x `domain / maps / provenance` container.
 Portable manifests for current objects report schema version 6.0 and use
 `base`, `layer`, and `history` terminology. The portable manifest envelope is
-versioned independently from the object schema. Neurogeo 6.2 uses
+versioned independently from the object schema. Neurogeo 6.3 uses
 `NGCS-object-manifest-2` and `NGCS-logical-object-2` so surface identity binds
 the selected active coordinate set; schema-1 object manifests are not valid
 cache or checkpoint identities under that contract.
